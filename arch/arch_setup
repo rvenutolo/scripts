@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+
+set -euox pipefail
+
+function prompt() {
+  read -rp "$1 [Y/n]"
+  if [[ "${REPLY}" == '' || "${REPLY}" == [yY] ]]; then
+    echo 'y'
+  else
+    echo 'n'
+  fi
+}
+
+function prompt_packages() {
+  prompt "Install $1 packages?"
+}
+
+function log() {
+  echo ">>> $1" >&2
+}
+
+function do_install_aur_helper() {
+  if [[ "$1" == 'y' ]]; then
+    log "Installing $2"
+    return
+  else
+    log "Skipping installing $2"
+  fi
+  false
+}
+
+function install_aur_helper() {
+  sudo pacman --sync --needed 'base-devel' 'git'
+  readonly tmp_dir="$(mktemp --directory)"
+  cd "${tmp_dir}"
+  git clone "https://aur.archlinux.org/$1.git"
+  cd "$1"
+  makepkg -si
+}
+
+function do_install_packages() {
+  if [[ "$1" == 'y' ]]; then
+    log "Installing $2 packages"
+    return
+  else
+    log "Skipping installing $2 packages"
+  fi
+  false
+}
+
+function get_package_file_url() {
+  echo "https://raw.githubusercontent.com/rvenutolo/Scripts/main/arch/packages/$1/$2.txt"
+}
+
+function pacman_install() {
+  curl "$(get_package_file_url "$1" "$2")" | sudo pacman --sync --needed --noconfirm -
+}
+
+function aur_install() {
+  if [[ "${install_paru}" == 'y' ]]; then
+    curl "$(get_package_file_url "$1" "$2")" | paru --aur --sync --needed --noconfirm -
+  elif [[ "${install_yay}" == 'y' ]]; then
+    curl "$(get_package_file_url "$1" "$2")" | yay --aur --sync --needed --noconfirm -
+  else
+    echo "Neither paru or yay is installed. Skipping installing AUR packages."
+    exit 2
+  fi
+}
+
+readonly use_reflector="$(prompt 'Use reflector to update mirrors and choose fastest?')"
+readonly add_chaotic_aur="$(prompt 'Enable Chaotic AUR?')"
+readonly install_paru="$(prompt 'Install paru?')"
+readonly install_yay="$(prompt 'Install yay?')"
+readonly install_aws_cli="$(prompt 'Install AWS CLI?')"
+
+readonly install_native_cli="$(prompt_packages 'native CLI')"
+readonly install_personal_native_cli="$(prompt_packages 'personal native CLI')"
+readonly install_native_gui="$(prompt_packages 'native GUI')"
+readonly install_personal_native_gui="$(prompt_packages 'personal native GUI')"
+readonly install_aur_cli="$(prompt_packages 'AUR CLI')"
+readonly install_personal_aur_cli="$(prompt_packages 'personal AUR CLI')"
+readonly install_aur_gui="$(prompt_packages 'AUR GUI')"
+readonly install_personal_aur_gui="$(prompt_packages 'personal AUR GUI')"
+readonly install_flatpak_packages="$(prompt_packages 'Flatpak')"
+readonly install_sdkman_packages="$(prompt_packages 'SDKMAN')"
+
+log 'Updating existing packages'
+sudo pacman --sync --refresh --sysupgrade
+
+if [[ "${use_reflector}" == 'y' ]]; then
+  log 'Updating mirrors and choosing fastest'
+  sudo pacman --sync --needed --noconfirm 'reflector'
+  sudo reflector --country 'United States' --age '12' --protocol 'https' --sort 'rate' --save '/etc/pacman.d/mirrorlist'
+else
+  log 'Skipping updating mirrors and choosing fastest'
+fi
+
+if [[ "${add_chaotic_aur}" == 'y' ]]; then
+  log 'Adding Chaotic AUR'
+  sudo pacman-key --recv-key 'FBA220DFC880C036' --keyserver 'keyserver.ubuntu.com'
+  sudo pacman-key --lsign-key 'FBA220DFC880C036'
+  sudo pacman --upgrade --noconfirm 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+  echo "
+  [chaotic-aur]
+  Include = /etc/pacman.d/chaotic-mirrorlist" | sudo tee -a /etc/pacman.conf
+  sudo pacman --sync --refresh --sysupgrade
+else
+  log 'Skipping adding Chaotic AUR'
+fi
+
+if do_install_aur_helper "${install_paru}" 'paru'; then
+  install_aur_helper 'paru'
+fi
+if do_install_aur_helper "${install_yay}" 'yay'; then
+  install_aur_helper 'yay'
+fi
+
+if [[ "${install_aws_cli}" == 'y' ]]; then
+  log 'Installing AWS CLI'
+  readonly aws_cli_url='https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip'
+  readonly aws_cli_tmp_dir="$(mktemp --directory)"
+  readonly aws_cli_zip_file="${aws_cli_tmp_dir}/aws_cli.zip"
+  curl --silent --location --output "${aws_cli_zip_file}" "${aws_cli_url}"
+  unzip -q "${aws_cli_zip_file}" -d "${aws_cli_tmp_dir}"
+  sudo "${aws_cli_tmp_dir}/aws/install" --bin-dir '/usr/local/bin' --install-dir '/usr/local/aws-cli' --update
+else
+  log 'Skipping installing AWS CLI'
+fi
+
+if do_install_packages "${install_native_cli}" 'native CLI'; then
+  pacman_install 'native' 'cli'
+fi
+if do_install_packages "${install_personal_native_cli}" 'personal native CLI'; then
+  pacman_install 'native' 'cli_personal'
+fi
+if do_install_packages "${install_native_gui}" 'native GUI'; then
+  pacman_install 'native' 'gui'
+fi
+if do_install_packages "${install_personal_native_gui}" 'personal native GUI'; then
+  pacman_install 'native' 'gui_personal'
+fi
+if do_install_packages "${install_aur_cli}" 'AUR CLI'; then
+  aur_install 'aur' 'cli'
+fi
+if do_install_packages "${install_personal_aur_cli}" 'personal AUR CLI'; then
+  aur_install 'aur' 'cli_personal'
+fi
+if do_install_packages "${install_aur_gui}" 'AUR GUI'; then
+  aur_install 'aur' 'gui'
+fi
+if do_install_packages "${install_personal_aur_gui}" 'personal AUR GUI'; then
+  aur_install 'aur' 'gui_personal'
+fi
+
+if do_install_packages "${install_flatpak_packages}" 'Flatpak'; then
+  curl "$(get_package_file_url 'flatpak' 'flatpaks')" | flatpak install flathub -
+fi
+
+if do_install_packages "${install_sdkman_packages}" 'SDKMAN'; then
+  export SDKMAN_DIR="$HOME/.local/share/sdkman"
+  curl --silent 'https://get.sdkman.io' | bash
+  source "${SDKMAN_DIR}/bin/sdkman-init.sh"
+  sdk install gradle
+  sdk install groovy
+  sdk install java
+  sdk install kotlin
+  sdk install maven
+  sdk install mcs
+  sdk install micronaut
+  sdk install mvnd
+  sdk install pomchecker
+  sdk install sbt
+  sdk install scala
+  sdk install skeletal
+  sdk install spark-submit
+  sdk install spring
+  sdk install visualvm
+fi
+
+# TODO parquet-tools ptop riff tabs2spaces flatseal eyeD3

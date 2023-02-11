@@ -1,0 +1,15 @@
+autotrash
+await
+cheat
+cpufetch
+doggo
+fcp-bin
+hstr
+maldet
+moar
+oneshot
+parallel-disk-usage-bin
+pingg-git
+psgrep
+px_ptop
+trash-d
