@@ -1,0 +1,2 @@
+magnus
+quickgui-bin

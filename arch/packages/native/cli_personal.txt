@@ -1,0 +1,7 @@
+flac
+imagemagick
+lame
+mediainfo
+mp3splt
+sox
+speedtest-cli
