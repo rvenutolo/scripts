@@ -1,4 +1,7 @@
+dnuos
 flac
+flac2all
+flac2mp3
 imagemagick
 lame
 mediainfo
