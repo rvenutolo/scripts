@@ -8,7 +8,9 @@ libvirt
 lutris
 mediainfo-gui
 picard
+protontricks
 protonup-git
+puddletag
 qbittorrent
 skypeforlinux-stable-bin
 soundkonverter
