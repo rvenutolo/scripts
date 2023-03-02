@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_no_args "$@"
+
+readonly images="$(docker images --all --filter=dangling=true --quiet)"
+if [[ -n "${images}" ]]; then
+  podman rmi "${images}"
+fi

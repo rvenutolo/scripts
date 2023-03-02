@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_at_least_1_arg "$@"
+
+readonly filetime="$(date +%Y%m%d_%H%M%S)"
+for file; do
+  if [[ -f "$file" || -d "$file" ]]; then
+    dirname="$(dirname -- "${file}")"
+    filename="$(basename -- "${file}")"
+    target_file="${dirname}/${filename}.${filetime}.bak"
+    cp --archive -- "${file}" "${target_file}"
+    log "${file} -> ${target_file}"
+  else
+    log "${file} is not a regular file or directory"
+    exit 2
+  fi
+done

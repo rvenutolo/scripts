@@ -1,6 +1,0 @@
-com.authy.Authy
-com.google.Chrome
-com.discordapp.Discord
-org.mozilla.firefox
-com.jetbrains.IntelliJ-IDEA-Ultimate
-com.slack.Slack

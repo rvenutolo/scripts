@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+if [[ "$#" -eq 0 ]]; then
+  check_for_stdin
+fi
+
+if [[ "$#" -eq 0 ]]; then
+  highlight --out-format=ansi --force
+else
+  for file; do
+    case "${file}" in
+      *.md) glow "${file}" ;;
+      *) highlight --out-format=ansi --force "${file}" ;;
+    esac
+  done
+fi

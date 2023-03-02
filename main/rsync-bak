@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_at_least_2_args "$@"
+
+rsync \
+  --archive \
+  --itemize-changes \
+  --human-readable \
+  --executability \
+  --partial \
+  --progress \
+  --atimes \
+  --stats \
+  --links \
+  --ignore-existing \
+  "$@"

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_exactly_2_args "$@"
+
+# https://www.digitalocean.com/community/tutorials/reduce-pdf-file-size-in-linux
+gs \
+  -sDEVICE=pdfwrite \
+  -dCompatibilityLevel=1.4 \
+  -dPDFSETTINGS=/printer \
+  -dNOPAUSE \
+  -dQUIET \
+  -dBATCH \
+  -sOutputFile="$2" \
+  "$1"

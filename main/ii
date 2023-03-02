@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_no_args "$@"
+
+echo -e "\nYou are logged on $(hostname)"
+echo -e "\nAdditional information: "
+uname --all
+echo -e "\nUsers logged on: "
+w --no-header
+echo -e "\nCurrent date: "
+date
+echo -e "\nMachine stats: "
+uptime
+echo -e "\nMemory stats: "
+free

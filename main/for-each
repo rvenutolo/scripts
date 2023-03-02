@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_at_least_1_arg "$@"
+## TODO check this
+check_for_stdin
+
+# ex:
+# echo -e 'foo bar\nbaz' | for-each echo
+# runs (in sequence):
+# echo foo
+# echo bar
+# echo baz
+xargs --max-args=1 "$@"

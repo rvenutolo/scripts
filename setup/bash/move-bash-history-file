@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_no_args "$@"
+
+readonly old_history_file="${HOME}/.bash_history"
+readonly new_history_file="${HISTFILE}"
+mkdir --parents "$(dirname "${new_history_file}")"
+
+if [[ ! -f "${old_history_file}" ]]; then
+  exit 0
+fi
+if [[ "${old_history_file}" == "${new_history_file}" ]]; then
+  exit 0
+fi
+if ! prompt_yn "Move ${old_history_file} -> ${new_history_file}?"; then
+  exit 0
+fi
+
+log "Moving: ${old_history_file} -> ${new_history_file}"
+mv "${old_history_file}" "${new_history_file}"
+log "Moved: ${old_history_file} -> ${new_history_file}"

@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_at_least_1_arg "$@"
+
+rsync \
+  --archive \
+  --itemize-changes \
+  --human-readable \
+  --executability \
+  --partial \
+  --progress \
+  --atimes \
+  --stats \
+  --links \
+  --ignore-existing \
+  --exclude '.cache/' \
+  --exclude '.local/share/Trash/' \
+  --exlude  '.local/share/stack/' \
+  --exclude '.m2/repository/' \
+  --exclude '.stack/' \
+  --exclude 'snap/' \
+  --exclude 'VMs/' \
+  "$HOME" "$@"
