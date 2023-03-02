@@ -55,6 +55,13 @@ function check_at_least_2_args() {
   fi
 }
 
+function check_exactly_3_args() {
+  if [[ "$#" -ne 3 ]]; then
+    log "Expected exactly 3 arguments"
+    exit 2
+  fi
+}
+
 function check_for_stdin() {
   if [[ -t 0 ]]; then
     log "Expected STDIN"
@@ -209,4 +216,68 @@ function prompt_for_value() {
   fi
 }
 
+function enable_service() {
+  check_exactly_3_args "$@"
+  local service_unit="$1"
+  local service_desc="$2"
+  local system_or_user="$3"
+  if ! systemctl is-enabled --"${system_or_user}" --quiet "${service_unit}" && prompt_yn "Enable and start ${service_desc} service?"; then
+    log "Enabling and starting ${service_desc} service"
+    systemctl enable --now --"${system_or_user}" --quiet "${service_unit}"
+    log "Enabled and started ${service_desc} service"
+  fi
+  if ! systemctl is-active --"${system_or_user}" --quiet "${service_unit}" && prompt_yn "Start ${service_desc} service?"; then
+    log "Starting ${service_desc} service"
+    systemctl start --"${system_or_user}" --quiet "${service_unit}"
+    log "Started ${service_desc} service"
+  fi
+}
 
+function link_file() {
+  check_exactly_2_args "$@"
+  local target_file="$1"
+  local link_file="$2"
+  if [[ -f "${target_file}" ]]; then
+    log "${target_file} does not exist"
+    exit 0
+  fi
+  if [[ -L "${link_file}" && "$(readlink --canonicalize "${link_file}")" == "$(readlink --canonicalize "${target_file}")" ]]; then
+    exit 0
+  fi
+  if [[ -f "${link_file}" ]]; then
+    diff --color --unified "${link_file}" "${target_file}" || true
+    if ! prompt_yn "${link_file} exists - Link: ${target_file} -> ${link_file}?"; then
+      exit 0
+    fi
+  else
+    if ! prompt_yn "Link: ${target_file} -> ${link_file}?"; then
+      exit 0
+    fi
+  fi
+  log "Linking: ${target_file} -> ${link_file}"
+  if [[ -f "${link_file}" ]]; then
+    sudo rm "${link_file}"
+  fi
+  sudo mkdir --parents "$(dirname "${link_file}")"
+  sudo ln --symbolic "${target_file}" "${link_file}"
+  log "Linked: ${target_file} -> ${link_file}"
+}
+
+function move_file() {
+  check_exactly_2_args "$@"
+  local old_file="$1"
+  local new_file="$2"
+  if [[ ! -f "${old_file}" ]]; then
+    exit 0
+  fi
+  if [[ "${old_file}" == "${new_file}" ]]; then
+    exit 0
+  fi
+  if ! prompt_yn "Move ${old_file} -> ${new_file}?"; then
+    exit 0
+  fi
+  log "Moving: ${old_file} -> ${new_file}"
+  mkdir --parents "$(dirname "${new_file}")"
+  mv "${old_file}" "${new_file}"
+  log "Moved: ${old_file} -> ${new_file}"
+}
