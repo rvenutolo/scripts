@@ -237,7 +237,7 @@ function link_file() {
   check_exactly_2_args "$@"
   local _target_file="$1"
   local _link_file="$2"
-  if [[ -f "${_target_file}" ]]; then
+  if [[ ! -f "${_target_file}" ]]; then
     log "${_target_file} does not exist"
     exit 0
   fi
