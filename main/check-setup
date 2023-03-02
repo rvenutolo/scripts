@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+# elsewhere in the script needs sudo, so prompt for password before rest of script runs
+sudo true
+
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
 check_no_args "$@"
 
