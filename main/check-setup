@@ -217,7 +217,7 @@ if is_personal; then
   expected_active_system_services+=('crashplan-pro')
 fi
 if is_personal && is_desktop; then
-  expected_active_system_services+=('nfs-server')
+  expected_active_system_services+=('nfsv4-server')
 fi
 for service in "${expected_active_system_services[@]}"; do
   if ! systemctl is-active --quiet "${service}"; then
