@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+source "${SCRIPTS_DIR}/lib/functions.sh"
 check_no_args "$@"
 
 readonly actual_groups="$(groups "${USER}")"
