@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_at_most_1_arg "$@"
+
+if [[ "$#" -eq 0 ]]; then
+  readonly screenshot_file="${HOME}/screenshot_$(date +%Y%m%d_%H%M%S).png"
+else
+  readonly screenshot_file="$1"
+fi
+
+shotgun --geometry "$(hacksaw)" --format 'png' "${screenshot_file}"
+log "Saved to: ${screenshot_file}"

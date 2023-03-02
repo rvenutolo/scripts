@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_at_least_1_arg "$@"
+
+readonly file="$1"
+shift
+case "${file}" in
+  *.tar | *.tar.* | *.tbz2 | *.tgz) tar --create --verbose --auto-compress --file "${file}" "$@" ;;
+  *.bz2) bzip2 --verbose "${file}" "$@" ;;
+  *.gz) gzip --verbose "${file}" "$@" ;;
+  *.lzma) xz --verbose --format=lzma "${file}" "$@" ;;
+  *.rar) rar a "${file}" "$@" ;;
+  *.xz) xz --verbose "${file}" "$@" ;;
+  *.zip) zip --verbose "${file}" "$@" ;;
+  *.7z) 7z a "${file}" "$@" ;;
+  *) log "Filetype not recognized: ${file}" && exit 2 ;;
+esac
+log "compressed '${file}'"

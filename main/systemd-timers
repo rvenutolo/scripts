@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_no_args "$@"
+
+systemctl status '*timer' --no-pager
+systemctl status --user '*timer' --no-pager

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_at_least_1_arg "$@"
+
+for file; do
+  if [[ -e "${file}" && ! -f "${file}" ]]; then
+    log "${file} is NOT a file"
+  else
+    touch "${file}"
+    chmod +x "${file}"
+  fi
+done

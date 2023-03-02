@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_no_args "$@"
+
+if [[ "$(loginctl show-user "${USER}" --property='Linger')" == 'Linger=yes' ]]; then
+  exit 0
+fi
+if ! prompt_yn 'Set user to linger?'; then
+  exit 0
+fi
+
+log 'Setting user to linger'
+sudo loginctl enable-linger "${USER}"
+log 'Set user to linger'

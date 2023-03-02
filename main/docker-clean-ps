@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_no_args "$@"
+
+readonly containers="$(docker ps --filter=status=exited --filter=status=created --quiet)"
+if [[ -n "${containers}" ]]; then
+  docker rm "${containers}"
+fi

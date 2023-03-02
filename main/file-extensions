@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_at_most_1_arg "$@"
+
+if [[ "$#" -eq 0 ]]; then
+  readonly dir="."
+else
+  readonly dir="$1"
+fi
+
+find "${dir}" -type f -printf "%f\n" \
+  | grep --fixed-strings '.' \
+  | awk -F '.' '{print "." $NF}' \
+  | sort \
+  | uniq --count \
+  | sort --numeric-sort --reverse

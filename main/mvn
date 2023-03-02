@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+
+# remove this dir from the path so executing `mvn` doesn't execute this script
+path_remove "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+
+dir="$PWD"
+project_root="$PWD"
+while [[ "$dir" != / ]]; do
+  if [[ -f "$dir/pom.xml" || -f "$dir/mvnw" ]]; then
+    readonly project_root="$dir"
+    break
+  fi
+  dir="$(dirname -- "${dir}")"
+done
+
+if [[ -x "$project_root/mvnw" ]]; then
+  log 'Executing mvnw instead of mvn'
+  "${project_root}/mvnw" "$@"
+elif executable_exists 'mvnd'; then
+  log 'Executing mvnd instead of mvn'
+  mvnd "$@"
+else
+  mvn "$@"
+fi

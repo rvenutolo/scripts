@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_no_args "$@"
+check_for_stdin
+
+## handy for counting duplicated lines in a file or listing
+sort | uniq --count | sort --numeric-sort --reverse

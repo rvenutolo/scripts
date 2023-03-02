@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_no_args "$@"
+
+# chezmoi external files stuff should get this file,
+# which is a script that should have one function: kitty_keys
+readonly kitty_keys_file="${HOME}/.bin/other/kitty_keys.sh"
+if is_readable_files "${kitty_keys_file}"; then
+  source "${kitty_keys_file}"
+  kitty_keys
+else
+  log "${kitty_keys_file} is not a readable file"
+  exit 2
+fi

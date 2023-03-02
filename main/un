@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_at_least_1_arg "$@"
+
+for archive in "$@"; do
+  if [ -f "${archive}" ]; then
+    case "${archive}" in
+      *.tar.bz2) tar --extract --verbose --bzip2 --file "${archive}" ;;
+      *.tar.gz) tar --extract --verbose --gzip --file "${archive}" ;;
+      *.tar.xz) tar --extract --verbose --xz --file "${archive}" ;;
+      *.tar.zst) tar --extract --verbose --use-compress-program=unzstd --file "${archive}" ;;
+      *.bz2) bzip2 --decompress --verbose "${archive}" ;;
+      *.exe) cabextract "${archive}" ;;
+      *.gz) gzip --decompress --verbose "${archive}" ;;
+      *.lzma) xz --decompress --verbose --format=lzma "${archive}" ;;
+      *.rar) rar x "${archive}" ;;
+      *.tar) tar --extract --verbose --file "${archive}" ;;
+      *.tbz2) tar --extract --verbose --bzip2 --file ;;
+      *.tgz) tar --extract --verbose --gzip --file "${archive}" ;;
+      *.xz) xz --decompress --verbose "${archive}" ;;
+      *.zip) unzip -v "${archive}" ;;
+      *.7z) 7z x "${archive}" ;;
+      *) log "Don't know how to extract '${archive}'" && exit 2 ;;
+    esac
+    log "extracted '${archive}'"
+  else
+    log "'${archive}' is not a regular file"
+    exit 2
+  fi
+done

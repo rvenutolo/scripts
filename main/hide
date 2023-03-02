@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_at_least_1_arg "$@"
+
+for file; do
+  dirname="$(dirname -- "${file}")"
+  filename="$(basename -- "${file}")"
+  target_file="${dirname}/.${filename}"
+  mv -- "${file}" "${target_file}"
+  log "${file} -> ${target_file}"
+done

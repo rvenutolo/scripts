@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+
+readonly url='https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas_linux_amd64'
+readonly etag_file="${XDG_CACHE_HOME}/linpeas/etag"
+readonly linpeas_file="${XDG_DATA_HOME}/linpeas"
+readonly linpeas_output="~/linpeas_$(date +%Y%m%d-%H%M%S).txt"
+
+mkdir --parents "$(dirname "${etag_file}")"
+mkdir --parents "$(dirname "${linpeas_file}")"
+touch "${etag_file}"
+curl --silent  --show-error --location --etag-compare "${etag_file}" --etag-save "${etag_file}" --output "${linpeas_file}" "${url}"
+chmod +x "${linpeas_file}"
+
+log "This can take a long time"
+log "Writing output to: ${linpeas_output}"
+"${linpeas_file}" "$@" > "${linpeas_output}"
+log "Wrote output to: ${linpeas_output}, read it with 'less -r ${linpeas_output}'"

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+if [[ "$#" -eq 0 ]]; then
+  check_for_stdin
+fi
+
+if [[ "$#" -eq 0 ]]; then
+  tr '[:upper:]' '[:lower:]'
+else
+  for file; do
+    dirname="$(dirname -- "${file}")"
+    filename="$(basename -- "${file}")"
+    lower_filename="$(echo "${filename}" | tr '[:upper:]' '[:lower:]')"
+    target_file="${dirname}/${lower_filename}"
+    if [[ "${lower_filename}" != "${filename}" ]]; then
+      mv -- "${file}" "${target_file}"
+      log "${file} -> ${target_file}"
+    else
+      log "${file} not renamed"
+    fi
+  done
+fi

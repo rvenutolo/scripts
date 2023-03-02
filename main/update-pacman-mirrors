@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+check_no_args "$@"
+
+sudo pacman-mirrors --country 'United_States,Canada'
+sudo pacman-mirrors --fasttrack
+sudo pacman -Syyu
