@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/../lib/functions.sh"
+#source "${SCRIPTS_DIR}/lib/functions.sh"
 
 function log() {
   echo "${0##*/}: $*" >&2
