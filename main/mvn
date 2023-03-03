@@ -16,6 +16,7 @@ while [[ "$dir" != / ]]; do
   fi
   dir="$(dirname -- "${dir}")"
 done
+readonly project_root
 
 if [[ -x "$project_root/mvnw" ]]; then
   log 'Executing mvnw instead of mvn'

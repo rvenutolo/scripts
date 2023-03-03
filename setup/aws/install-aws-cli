@@ -24,8 +24,10 @@ if ! executable_exists 'unzip'; then
   log 'Downloaded unzip'
 fi
 readonly aws_cli_url='https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip'
-readonly aws_cli_tmp_dir="$(mktemp --directory)"
-readonly aws_cli_zip_file="${aws_cli_tmp_dir}/aws_cli.zip"
+aws_cli_tmp_dir="$(mktemp --directory)"
+readonly aws_cli_tmp_dir
+aws_cli_zip_file="${aws_cli_tmp_dir}/aws_cli.zip"
+readonly aws_cli_zip_file
 curl --silent --show-error --location --output "${aws_cli_zip_file}" "${aws_cli_url}"
 unzip -q "${aws_cli_zip_file}" -d "${aws_cli_tmp_dir}"
 sudo "${aws_cli_tmp_dir}/aws/install" --bin-dir '/usr/local/bin' --install-dir '/usr/local/aws-cli' --update
