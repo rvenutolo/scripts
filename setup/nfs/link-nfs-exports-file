@@ -12,6 +12,7 @@ if ! is_desktop || ! is_personal; then
   exit 0
 fi
 if ! executable_exists 'nfsstat'; then
+  log 'nfsstat executable not found'
   exit 0
 fi
 link_file "${target_file}" "${link_file}"

@@ -6,6 +6,7 @@ source "${SCRIPTS_DIR}/lib/functions.sh"
 check_no_args "$@"
 
 if executable_exists 'aws'; then
+  log 'aws executable already exists'
   exit 0
 fi
 if ! prompt_yn 'Install AWS CLI?'; then
