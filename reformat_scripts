@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "${SCRIPTS_DIR}/lib/functions.sh"
+check_no_args "$@"
+
+shfmt \
+  --list \
+  --indent 2 \
+  --case-indent \
+  --binary-next-line \
+  --space-redirects \
+  --write \
+  "${SCRIPTS_DIR}/lib" "${SCRIPTS_DIR}/main" "${SCRIPTS_DIR}/setup"
