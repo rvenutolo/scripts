@@ -134,7 +134,7 @@ function contains_word() {
   check_exactly_1_arg "$@"
   check_for_stdin
   local _word="$1"
-  grep --quiet --fixed-strings --ignore-case --_word-regex "${_word}"
+  grep --quiet --fixed-strings --ignore-case --word-regex "${_word}"
 }
 
 function is_distro() {
