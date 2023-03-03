@@ -9,6 +9,9 @@ readonly target_file="${HOME}/.etc/reflector.conf"
 readonly link_file='/etc/xdg/reflector/reflector.conf'
 
 if ! executable_exists 'reflector'; then
+  if is_arch; then
+    log 'reflector executable not found'
+  fi
   exit 0
 fi
 link_file "${target_file}" "${link_file}"

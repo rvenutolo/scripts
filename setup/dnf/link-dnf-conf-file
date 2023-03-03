@@ -9,6 +9,7 @@ readonly link_file='/etc/dnf/dnf.conf'
 readonly target_file="${HOME}/.etc/dnf.conf"
 
 if ! executable_exists 'dnf'; then
+  log 'dnf executable not found'
   exit 0
 fi
 if [[ -f "${target_file}" ]]; then

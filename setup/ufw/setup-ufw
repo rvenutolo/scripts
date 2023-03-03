@@ -6,6 +6,7 @@ source "${SCRIPTS_DIR}/lib/functions.sh"
 check_no_args "$@"
 
 if ! executable_exists 'ufw'; then
+  log 'ufw executable not found'
   exit 0
 fi
 
