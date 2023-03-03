@@ -18,7 +18,7 @@ rsync \
   --ignore-existing \
   --exclude '.cache/' \
   --exclude '.local/share/Trash/' \
-  --exlude  '.local/share/stack/' \
+  --exclude '.local/share/stack/' \
   --exclude '.m2/repository/' \
   --exclude '.stack/' \
   --exclude 'snap/' \
