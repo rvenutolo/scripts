@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "${SCRIPTS_DIR}/lib/functions.sh"
+
+function usage() {
+  echo "Usage: ${0##*/} [-d | --dir DIR] FILE..." >&2
+}
+
+parsed_args="$(getopt --alternative --name "${0##*/}" --options 'd:' --longoptions 'dir:' -- "$@")"
+readonly parsed_args
+eval set -- "${parsed_args}"
+while true; do
+  case "$1" in
+    -d | --dir)
+      readonly searchDir="$2"
+      shift 2
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      echo "Unexpected option: $1 - this should not happen."
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+check_at_least_1_arg "$@"
+
+for file; do
+  find -L "${searchDir:-.}" -samefile "${file}" -exec echo "${file} {}" \; 2> /dev/null || true
+done | sort | column --table --table-columns 'FILE,LINK'
