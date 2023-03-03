@@ -196,10 +196,10 @@ if ! is_headless; then
   if executable_exists 'fc-list'; then
     installed_fonts="$(fc-list : family)"
     for font in "${expected_fonts[@]}"; do
-      if ! contains_word "${font}" <<< "${installed_fonts}" &&
-        ! contains_word "${font}TTF" <<< "${installed_fonts}" &&
-        ! contains_word "$(echo -e "${font}" | tr --delete '[:space:]')" <<< "${installed_fonts}" &&
-        ! contains_word "$(echo -e "${font}TTF" | tr --delete '[:space:]')" <<< "${installed_fonts}"; then
+      if ! contains_word "${font}" <<< "${installed_fonts}" \
+        && ! contains_word "${font}TTF" <<< "${installed_fonts}" \
+        && ! contains_word "$(echo -e "${font}" | tr --delete '[:space:]')" <<< "${installed_fonts}" \
+        && ! contains_word "$(echo -e "${font}TTF" | tr --delete '[:space:]')" <<< "${installed_fonts}"; then
         echo "Font not available: ${font}"
       fi
     done
