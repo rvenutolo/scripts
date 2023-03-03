@@ -40,7 +40,7 @@ if executable_exists 'snap'; then
   sudo snap refresh
 fi
 
-sdkman_init_script="${SDKMAN_DIR}/bin/sdkman-init.sh"
+readonly sdkman_init_script="${SDKMAN_DIR}/bin/sdkman-init.sh"
 if is_readable_file "${sdkman_init_script}"; then
   log 'SDKMAN'
   ## TODO check on this

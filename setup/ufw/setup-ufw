@@ -10,7 +10,8 @@ if ! executable_exists 'ufw'; then
   exit 0
 fi
 
-readonly local_ip_num="$(ipv4_to_num "$(ip -oneline route get to '8.8.8.8' | sed --quiet 's/.*src \([0-9.]\+\).*/\1/p')")"
+local_ip_num="$(ipv4_to_num "$(ip -oneline route get to '8.8.8.8' | sed --quiet 's/.*src \([0-9.]\+\).*/\1/p')")"
+readonly local_ip_num
 if [[ $(ipv4_to_num '10.0.0.0') -le "${local_ip_num}" && "${local_ip_num}" -le $(ipv4_to_num '10.255.255.255') ]]; then
   local_network='10.0.0.0/8'
 elif [[ $(ipv4_to_num '172.16.0.0') -le "${local_ip_num}" && "${local_ip_num}" -le $(ipv4_to_num '172.31.255.255') ]]; then

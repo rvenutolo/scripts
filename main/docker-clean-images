@@ -5,7 +5,8 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/lib/functions.sh"
 check_no_args "$@"
 
-readonly images="$(docker images --all --filter=dangling=true --quiet)"
+images="$(docker images --all --filter=dangling=true --quiet)"
+readonly images
 if [[ -n "${images}" ]]; then
   docker rmi "${images}"
 fi
