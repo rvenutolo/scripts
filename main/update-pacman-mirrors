@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "${SCRIPTS_DIR}/lib/functions.sh"
+source "${SCRIPTS_DIR}/lib/functions.bash"
 check_no_args "$@"
 
 sudo pacman-mirrors --country 'United_States,Canada'

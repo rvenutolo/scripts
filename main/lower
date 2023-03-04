@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "${SCRIPTS_DIR}/lib/functions.sh"
+source "${SCRIPTS_DIR}/lib/functions.bash"
 if [[ "$#" -eq 0 ]]; then
   check_for_stdin
 fi

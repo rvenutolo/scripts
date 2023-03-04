@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "${SCRIPTS_DIR}/lib/functions.sh"
+source "${SCRIPTS_DIR}/lib/functions.bash"
 check_no_args "$@"
 
 readonly old_history_file="${HOME}/.bash_history"
