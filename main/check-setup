@@ -126,13 +126,13 @@ if is_personal && ! is_headless; then
     'zoom'
   )
 fi
-if is_distro 'fedora'; then
+if is_fedora; then
   expected_executables+=('alien' 'sestatus')
 fi
-if is_distro 'fedora' && ! is_headless; then
+if is_fedora && ! is_headless; then
   expected_executables+=('fedy')
 fi
-if is_distro 'arch' || is_distro 'manjaro'; then
+if is_arch || is_manjaro; then
   expected_executables+=('aa-enabled' 'pacseek' 'paru' 'yay')
 fi
 
@@ -298,7 +298,7 @@ if executable_exists 'pacman'; then
   done
 fi
 
-if is_distro 'fedora'; then
+if is_fedora; then
   expected_dnf_conf_vals=('max_parallel_downloads' 'defaultyes' 'keepcache')
   dnf_conf_text="$(cat '/etc/dnf/dnf.conf')"
   for dnf_conf_val in "${expected_dnf_conf_vals[@]}"; do

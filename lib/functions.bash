@@ -106,9 +106,34 @@ function command_exists() {
   type -Pf "$1" > /dev/null 2>&1
 }
 
+function os_id() {
+  check_no_args "$@"
+  grep --only-matching --perl-regexp '^ID=\K\w+$' '/etc/os-release'
+}
+
 function is_arch() {
   check_no_args "$@"
-  grep --quiet '^ID=arch$\|^ID_LIKE=arch$' '/etc/os-release'
+  [[ "$(os_id)" == 'arch' ]]
+}
+
+function is_manjaro() {
+  check_no_args "$@"
+  [[ "$(os_id)" == 'manjaro' ]]
+}
+
+function is_fedora() {
+  check_no_args "$@"
+  [[ "$(os_id)" == 'fedora' ]]
+}
+
+function is_debian() {
+  check_no_args "$@"
+  [[ "$(os_id)" == 'debian' ]]
+}
+
+function is_ubuntu() {
+  check_no_args "$@"
+  [[ "$(os_id)" == 'ubuntu' ]]
 }
 
 # $1 = path to remove
@@ -136,12 +161,6 @@ function contains_word() {
   check_exactly_1_arg "$@"
   check_for_stdin
   grep --quiet --fixed-strings --ignore-case --word-regex "$1"
-}
-
-# $1 = distro name
-function is_distro() {
-  check_exactly_1_arg "$@"
-  hostnamectl | grep --fixed-strings 'Operating System:' | cut --delimiter=':' --fields=2 | contains_word "$1"
 }
 
 # $1 = env
