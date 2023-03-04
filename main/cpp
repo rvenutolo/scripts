@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "${SCRIPTS_DIR}/lib/functions.sh"
+source "${SCRIPTS_DIR}/lib/functions.bash"
 check_exactly_2_args "$@"
 
 # Copy file with a progress bar

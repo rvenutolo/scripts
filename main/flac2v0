@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "${SCRIPTS_DIR}/lib/functions.sh"
+source "${SCRIPTS_DIR}/lib/functions.bash"
 check_no_args "$@"
 
 flac2mp3.pl --quiet --lameargs='-V0 --noreplaygain --nohist --quiet' --processes="$(nproc)" . .

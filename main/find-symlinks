@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "${SCRIPTS_DIR}/lib/functions.sh"
+source "${SCRIPTS_DIR}/lib/functions.bash"
 
 function usage() {
   echo "Usage: ${0##*/} [-d | --dir DIR] FILE..." >&2

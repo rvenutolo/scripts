@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#source "${SCRIPTS_DIR}/lib/functions.sh"
+#source "${SCRIPTS_DIR}/lib/functions.bash"
 
 function log() {
   echo "${0##*/}: $*" >&2
