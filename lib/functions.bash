@@ -301,6 +301,25 @@ function num_to_ipv4() {
   echo "$(($1 >> 24 & 0xff)).$(($1 >> 16 & 0xff)).$(($1 >> 8 & 0xff)).$(($1 & 0xff))"
 }
 
+function local_ip() {
+  check_no_args "$@"
+  ip -oneline route get to '8.8.8.8' | sed --quiet 's/.*src \([0-9.]\+\).*/\1/p'
+}
+
+function local_network() {
+  local local_ip_num="$(ipv4_to_num "$(local_ip)")"
+  if [[ $(ipv4_to_num '10.0.0.0') -le "${local_ip_num}" && "${local_ip_num}" -le $(ipv4_to_num '10.255.255.255') ]]; then
+    echo '10.0.0.0/8'
+  elif [[ $(ipv4_to_num '172.16.0.0') -le "${local_ip_num}" && "${local_ip_num}" -le $(ipv4_to_num '172.31.255.255') ]]; then
+    echo '172.16.0.0/12'
+  elif [[ $(ipv4_to_num '192.168.0.0') -le "${local_ip_num}" && "${local_ip_num}" -le $(ipv4_to_num '192.168.255.255') ]]; then
+    echo '192.168.0.0/16'
+  else
+    log "Could not determine local network IPv4 range"
+    exit 2
+  fi
+}
+
 # path_remove "$(this_script_dir)"
 function this_script_dir() {
   cd -- "$(dirname -- "${BASH_SOURCE[1]}")" &> /dev/null && pwd
