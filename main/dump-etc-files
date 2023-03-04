@@ -14,7 +14,7 @@ eval set -- "${parsed_args}"
 while true; do
   case "$1" in
     -d | --dir)
-      dumpDir="$2"
+      dir="$2"
       shift 2
       ;;
     --)
@@ -28,17 +28,19 @@ while true; do
       ;;
   esac
 done
-readonly dumpDir="${dumpDir:-.}"
-mkdir --parents "${dumpDir}"
+readonly dir="${dir:-.}"
+mkdir --parents "${dir}"
 
 if [ "$#" -eq 0 ]; then
-  readonly distros=('archlinux' 'debian' 'fedora' 'ubuntu')
+  readonly distros=('alpine' 'archlinux' 'debian' 'fedora' 'ubuntu')
 else
   readonly distros=("$@")
 fi
 
 for distro in "${distros[@]}"; do
-  docker run --rm --volume "${dumpDir}/${distro}:/host" "${distro}:latest" bash -c 'cp -r /etc /host'
+  log "Dumping /etc from ${distro} to ${dir}/${distro}"
+  docker run --rm --volume "${dir}/${distro}:/host" "${distro}:latest" sh -c 'cp -r /etc /host'
+  log "Dumped /etc from ${distro} to ${dir}/${distro}"
 done
 
-sudo chown -R "${USER}" "${dumpDir}"/*
+sudo chown -R "${USER}" "${dir}"/*
