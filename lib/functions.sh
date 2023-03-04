@@ -3,7 +3,7 @@
 #source "${SCRIPTS_DIR}/lib/functions.sh"
 
 function log() {
-  echo "[$(date '+%T')] ${0##*/}: $*" >&2
+  echo "${0##*/}: $*" >&2
 }
 
 function check_no_args() {
