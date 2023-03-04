@@ -69,11 +69,11 @@ function check_for_stdin() {
   fi
 }
 
+# $1 = variable name
 function check_for_var() {
   check_exactly_1_arg "$@"
-  readonly var_name="$1"
-  if [[ -z "${!var_name-}" ]]; then
-    log "${var_name} not set"
+  if [[ -z "${!1-}" ]]; then
+    log "$1 not set"
     exit 2
   fi
 }
@@ -86,24 +86,24 @@ function check_is_root() {
   fi
 }
 
+# $1 = file
 function is_readable_file() {
   check_exactly_1_arg "$@"
-  local _file="$1"
-  [[ -f "${_file}" && -r "${_file}" ]]
+  [[ -f "$1" && -r "$1" ]]
 }
 
+# $1 = executable
 function executable_exists() {
   check_exactly_1_arg "$@"
-  local _executable="$1"
   # executables / no builtins, aliases, or functions
-  type -aPf "${_executable}" > /dev/null 2>&1
+  type -aPf "$1" > /dev/null 2>&1
 }
 
+# $1 = command
 function command_exists() {
   check_exactly_1_arg "$@"
-  local _command="$1"
   # executables and builtins / no aliases or functions
-  type -Pf "${_command}" > /dev/null 2>&1
+  type -Pf "$1" > /dev/null 2>&1
 }
 
 function is_arch() {
@@ -111,42 +111,43 @@ function is_arch() {
   grep --quiet '^ID=arch$\|^ID_LIKE=arch$' '/etc/os-release'
 }
 
+# $1 = path to remove
 function path_remove() {
   check_exactly_1_arg "$@"
-  local _path_to_remove="$1"
-  PATH=$(echo -n "$PATH" | awk -v RS=: -v ORS=: '$0 != "'"${_path_to_remove}"'"' | sed 's/:$//')
+  PATH=$(echo -n "$PATH" | awk -v RS=: -v ORS=: '$0 != "'"$1"'"' | sed 's/:$//')
 }
 
+# $1 = path to append
 function path_append() {
   check_exactly_1_arg "$@"
-  local _path_to_append="$1"
-  path_remove "${_path_to_append}" && PATH="$PATH:${_path_to_append}"
+  path_remove "$1" && PATH="$PATH:$1"
 }
 
+# $1 = path to prepend
 function path_prepend() {
   check_exactly_1_arg "$@"
-  local _path_to_prepend="$1"
-  path_remove "${_path_to_prepend}" && PATH="${_path_to_prepend}:$PATH"
+  path_remove "$1" && PATH="$1:$PATH"
 }
 
+# expected to pipe to this function, ex: groups | contains_word 'wheel'
+# $1 = word
 function contains_word() {
   # expected to pipe to this function
   check_exactly_1_arg "$@"
   check_for_stdin
-  local _word="$1"
-  grep --quiet --fixed-strings --ignore-case --word-regex "${_word}"
+  grep --quiet --fixed-strings --ignore-case --word-regex "$1"
 }
 
+# $1 = distro name
 function is_distro() {
   check_exactly_1_arg "$@"
-  local _distro="$1"
-  hostnamectl | grep --fixed-strings 'Operating System:' | cut --delimiter=':' --fields=2 | contains_word "${_distro}"
+  hostnamectl | grep --fixed-strings 'Operating System:' | cut --delimiter=':' --fields=2 | contains_word "$1"
 }
 
+# $1 = env
 function is_desktop_env() {
   check_exactly_1_arg "$@"
-  local _de="$1"
-  echo "${XDG_CURRENT_DESKTOP-}" | contains_word "${_de}"
+  echo "${XDG_CURRENT_DESKTOP-}" | contains_word "$1"
 }
 
 function is_personal() {
@@ -174,112 +175,98 @@ function is_headless() {
   [[ "${HEADLESS-}" == 'yes' ]]
 }
 
+# $1 = question
 function prompt_ny() {
   check_exactly_1_arg "$@"
-  local _question="$1"
-  local _prompt_reply=''
-  while [[ "${_prompt_reply}" != 'y' && "${_prompt_reply}" != 'n' ]]; do
-    read -rp "${_question} [Y/n]: " _prompt_reply
-    if [[ ${_prompt_reply} == [yY] ]]; then
-      _prompt_reply='y'
-    elif [[ "${_prompt_reply}" == '' || "${_prompt_reply}" == [nN] ]]; then
-      _prompt_reply='n'
+  REPLY=''
+  while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
+    read -rp "$1 [Y/n]: "
+    if [[ ${REPLY} == [yY] ]]; then
+      REPLY='y'
+    elif [[ "${REPLY}" == '' || "${REPLY}" == [nN] ]]; then
+      REPLY='n'
     fi
   done
-  [[ "${_prompt_reply}" == 'y' ]]
+  [[ "${REPLY}" == 'y' ]]
 }
 
+# $1 = question
 function prompt_yn() {
   check_exactly_1_arg "$@"
-  local _question="$1"
-  local _prompt_reply=''
-  while [[ "${_prompt_reply}" != 'y' && "${_prompt_reply}" != 'n' ]]; do
-    read -rp "${_question} [Y/n]: " _prompt_reply
-    if [[ "${_prompt_reply}" == '' || ${_prompt_reply} == [yY] ]]; then
-      _prompt_reply='y'
-    elif [[ "${_prompt_reply}" == [nN] ]]; then
-      _prompt_reply='n'
+  REPLY=''
+  while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
+    read -rp "$1 [Y/n]: "
+    if [[ "${REPLY}" == '' || ${REPLY} == [yY] ]]; then
+      REPLY='y'
+    elif [[ "${REPLY}" == [nN] ]]; then
+      REPLY='n'
     fi
   done
-  [[ "${_prompt_reply}" == 'y' ]]
+  [[ "${REPLY}" == 'y' ]]
 }
 
+# $1 = question
+# $2 = default value
 function prompt_for_value() {
   check_exactly_2_args "$@"
-  local _question="$1"
-  local _default_value="$2"
-  read -rp "${_question} [${_default_value}]: " _prompt_reply
-  if [[ -z "${_prompt_reply}" ]]; then
-    echo "${_default_value}"
+  REPLY=''
+  read -rp "$1 [$2]: "
+  if [[ -z "${REPLY}" ]]; then
+    echo "$2"
   else
-    echo "${_prompt_reply}"
+    echo "${REPLY}"
   fi
 }
 
-function enable_service() {
-  check_exactly_3_args "$@"
-  local _service_unit="$1"
-  local _service_desc="$2"
-  local _system_or_user="$3"
-  if ! systemctl is-enabled --"${_system_or_user}" --quiet "${_service_unit}" && prompt_yn "Enable and start ${_service_desc} service?"; then
-    log "Enabling and starting ${_service_desc} service"
-    systemctl enable --now --"${_system_or_user}" --quiet "${_service_unit}"
-    log "Enabled and started ${_service_desc} service"
-  fi
-  if ! systemctl is-active --"${_system_or_user}" --quiet "${_service_unit}" && prompt_yn "Start ${_service_desc} service?"; then
-    log "Starting ${_service_desc} service"
-    systemctl start --"${_system_or_user}" --quiet "${_service_unit}"
-    log "Started ${_service_desc} service"
-  fi
-}
-
+# $1 = target file
+# $2 = link file
 function link_file() {
   check_exactly_2_args "$@"
-  local _target_file="$1"
-  local _link_file="$2"
-  if [[ ! -f "${_target_file}" ]]; then
-    log "${_target_file} does not exist"
+  if [[ ! -f "$1" ]]; then
+    log "$1 does not exist"
     exit 0
   fi
-  if [[ -L "${link_file}" && "$(readlink --canonicalize "${link_file}")" == "$(readlink --canonicalize "${_target_file}")" ]]; then
+  if [[ -L "$2" && "$(readlink --canonicalize "$2")" == "$(readlink --canonicalize "$1")" ]]; then
     exit 0
   fi
-  if [[ -f "${link_file}" ]]; then
-    diff --color --unified "${link_file}" "${_target_file}" || true
-    if ! prompt_yn "${link_file} exists - Link: ${_target_file} -> ${link_file}?"; then
+  if [[ -f "$2" ]]; then
+    diff --color --unified "$2" "$1" || true
+    if ! prompt_yn "$2 exists - Link: $1 -> $2?"; then
       exit 0
     fi
   else
-    if ! prompt_yn "Link: ${_target_file} -> ${link_file}?"; then
+    if ! prompt_yn "Link: $1 -> $2?"; then
       exit 0
     fi
   fi
-  log "Linking: ${_target_file} -> ${link_file}"
-  if [[ -f "${link_file}" ]]; then
-    sudo rm "${link_file}"
+  log "Linking: $1 -> $2"
+  if [[ -f "$2" ]]; then
+    sudo rm "$2"
   fi
-  sudo mkdir --parents "$(dirname "${link_file}")"
-  sudo ln --symbolic "${_target_file}" "${link_file}"
-  log "Linked: ${_target_file} -> ${link_file}"
+  sudo mkdir --parents "$(dirname "$2")"
+  sudo ln --symbolic "$1" "$2"
+  log "Linked: $1 -> $2"
 }
 
+# $1 = old file location
+# $2 = new file location
 function move_file() {
   check_exactly_2_args "$@"
   local _old_file="$1"
   local _new_file="$2"
-  if [[ ! -f "${_old_file}" ]]; then
+  if [[ ! -f "$1" ]]; then
     exit 0
   fi
-  if [[ "${_old_file}" == "${_new_file}" ]]; then
+  if [[ "$1" == "$2" ]]; then
     exit 0
   fi
-  if ! prompt_yn "Move ${_old_file} -> ${_new_file}?"; then
+  if ! prompt_yn "Move $1 -> $2?"; then
     exit 0
   fi
-  log "Moving: ${_old_file} -> ${_new_file}"
-  mkdir --parents "$(dirname "${_new_file}")"
-  mv "${_old_file}" "${_new_file}"
-  log "Moved: ${_old_file} -> ${_new_file}"
+  log "Moving: $1 -> $2"
+  mkdir --parents "$(dirname "$2")"
+  mv "$1" "$2"
+  log "Moved: $1 -> $2"
 }
 
 function ipv4_to_num() {
