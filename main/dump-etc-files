@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "${SCRIPTS_DIR}/lib/functions.sh"
+
+function usage() {
+  echo "Usage: ${0##*/} [-d | --dir DIR] DISTRO..." >&2
+}
+
+parsed_args="$(getopt --alternative --name "${0##*/}" --options 'd:' --longoptions 'dir:' -- "$@")"
+readonly parsed_args
+eval set -- "${parsed_args}"
+while true; do
+  case "$1" in
+    -d | --dir)
+      dumpDir="$2"
+      shift 2
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      echo "Unexpected option: $1 - this should not happen."
+      usage
+      exit 2
+      ;;
+  esac
+done
+readonly dumpDir="${dumpDir:-.}"
+mkdir --parents "${dumpDir}"
+
+if [ "$#" -eq 0 ]; then
+  readonly distros=('archlinux' 'debian' 'fedora' 'ubuntu')
+else
+  readonly distros=("$@")
+fi
+
+for distro in "${distros[@]}"; do
+  docker run --rm --volume "${dumpDir}/${distro}:/host" "${distro}:latest" bash -c 'cp -r /etc /host'
+done
+
+sudo chown -R "${USER}" "${dumpDir}"/*
