@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "${SCRIPTS_DIR}/lib/functions.bash"
+check_exactly_1_arg "$@"
+
+num_to_ipv4 "$1"
