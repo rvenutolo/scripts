@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# delete-from-trash-with-file-extension .png .JPG
+# extensions must start with '.' and are case insensitive
+
+set -euo pipefail
+
+source "${SCRIPTS_DIR}/lib/functions.bash"
+check_at_least_1_arg "$@"
+
+readonly trash_dir="${XDG_DATA_HOME}/Trash"
+readonly trash_files_dir="${trash_dir}/files"
+readonly trash_info_dir="${trash_dir}/info"
+
+for file_extension; do
+  if [[ "${file_extension:0:1}" != '.' ]]; then
+    log "File extension must start with '.'"
+    exit 2
+  fi
+  if [[ "${file_extension}" =~ \* ]]; then
+    log "File extension containing '*' is unsupported"
+    exit 2
+  fi
+  log "Deleting files in trash with extension: '${file_extension,,}'"
+  grep --only-matching --perl-regexp '^Path=\K.*' ${trash_info_dir}/* | while read -r line; do
+    orig_file="${line/*:/}"
+    if [[ "${orig_file,,}" =~ "${file_extension,,}"$ ]]; then
+      info_file="${line/:*/}"
+      trash_file="${info_file/${trash_info_dir}/${trash_files_dir}}"
+      trash_file="${trash_file/.trashinfo/}"
+      rm "${info_file}" "${trash_file}"
+    fi
+  done
+  log "Deleted files in trash with extension: '${file_extension,,}'"
+done
