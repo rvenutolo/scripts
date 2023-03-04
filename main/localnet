@@ -5,4 +5,4 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/lib/functions.bash"
 check_no_args "$@"
 
-local_ip
+local_network
