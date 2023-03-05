@@ -127,13 +127,28 @@ if is_personal && ! is_headless; then
   )
 fi
 if is_fedora; then
-  expected_executables+=('alien' 'sestatus')
+  expected_executables+=(
+    'alien'
+    'sestatus'
+  )
 fi
 if is_fedora && ! is_headless; then
-  expected_executables+=('fedy')
+  expected_executables+=(
+    'fedy'
+  )
 fi
 if is_arch || is_manjaro; then
-  expected_executables+=('aa-enabled' 'pacseek' 'paru' 'yay')
+  expected_executables+=(
+    'aa-enabled'
+    'pacseek'
+    'paru'
+    'yay'
+  )
+fi
+if is_arch; then
+  expected_executables+=(
+    'reflector'
+  )
 fi
 
 ## remove my bin dirs from path so scripts that mask commands are no longer on PATH, ex: mvn
@@ -164,6 +179,17 @@ expected_files=(
   '/usr/share/git/completion/git-prompt.sh'
   '/etc/fail2ban/jail.local'
 )
+if is_personal; then
+  expected_files+=(
+    '/etc/sysctl.d/90-kvals.conf'
+    '/etc/sysctl.d/50-max_user_watches.conf'
+  )
+fi
+if is_personal && is_desktop; then
+  expected_files+=(
+    '/etc/exports.d/storage.exports'
+  )
+fi
 for file in "${expected_files[@]}"; do
   if ! is_readable_file "${file}"; then
     echo "Missing file: ${file}"
@@ -213,12 +239,31 @@ if executable_exists 'loginctl' && ! loginctl show-user "${USER}" --property=Lin
   echo "${USER} is not set to linger"
 fi
 
-expected_active_system_services=('cups' 'fail2ban' 'sshd' 'ufw')
+expected_active_system_services=(
+  'cups.service'
+  'fail2ban.service'
+  'sshd.service'
+  'ufw.service'
+)
 if is_personal; then
-  expected_active_system_services+=('crashplan-pro')
+  expected_active_system_services+=(
+    'crashplan-pro.service'
+  )
 fi
 if is_personal && is_desktop; then
-  expected_active_system_services+=('nfsv4-server')
+  expected_active_system_services+=(
+    'nfsv4-server.service'
+  )
+fi
+if is_arch || is_manjaro; then
+  expected_active_system_services+=(
+    'apparmor.service'
+  )
+fi
+if is_arch; then
+  expected_active_system_services+=(
+    'reflector.service'
+  )
 fi
 for service in "${expected_active_system_services[@]}"; do
   if ! systemctl is-active --quiet "${service}"; then
@@ -228,7 +273,9 @@ done
 
 expected_enabled_system_services=()
 if is_personal && is_desktop; then
-  expected_enabled_system_services+=('libvirtd')
+  expected_enabled_system_services+=(
+    'libvirtd.service'
+  )
 fi
 for service in "${expected_enabled_system_services[@]}"; do
   if ! systemctl is-enabled --quiet "${service}"; then
@@ -236,7 +283,16 @@ for service in "${expected_enabled_system_services[@]}"; do
   fi
 done
 
-expected_active_user_services=('autotrash.timer' 'journalctl-vacuum.timer' 'ssh-agent')
+expected_active_user_services=(
+  'autotrash.timer'
+  'freshclam.timer'
+  'journalctl-vacuum.timer'
+  'maldet-update.timer'
+  'pkgfile-update.timer'
+  'ssh-agent.service'
+  'tldr-update.timer'
+  'trash-cleanup.timer'
+)
 for service in "${expected_active_user_services[@]}"; do
   if ! systemctl is-active --user --quiet "${service}"; then
     echo "User service not active: ${service}"
@@ -250,9 +306,16 @@ for service in "${expected_enabled_user_services[@]}"; do
   fi
 done
 
-expected_groups=('sys' 'wheel')
+expected_groups=(
+  'sys'
+  'wheel'
+)
 if is_personal && is_desktop; then
-  expected_services+=('kvm' 'input' 'libvirt')
+  expected_services+=(
+    'kvm'
+    'input'
+    'libvirt'
+  )
 fi
 actual_groups="$(groups "${USER}")"
 readonly actual_groups
