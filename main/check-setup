@@ -286,10 +286,7 @@ done
 
 expected_active_user_services=(
   'autotrash.timer'
-  'freshclam.timer'
   'journalctl-vacuum.timer'
-  'maldet-update.timer'
-  'pkgfile-update.timer'
   'ssh-agent.service'
   'tldr-update.timer'
   'trash-cleanup.timer'
