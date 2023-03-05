@@ -240,6 +240,7 @@ if executable_exists 'loginctl' && ! loginctl show-user "${USER}" --property=Lin
 fi
 
 expected_active_system_services=(
+  'clamav-daemon.service'
   'cups.service'
   'fail2ban.service'
   'sshd.service'
