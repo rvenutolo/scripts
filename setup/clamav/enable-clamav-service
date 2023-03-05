@@ -5,10 +5,10 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/lib/functions.bash"
 check_no_args "$@"
 
-readonly required_executable='freshclam'
-readonly service_desc='freshclam'
-readonly service_unit='freshclam.timer'
-readonly system_or_user='user'
+readonly required_executable='clamd'
+readonly service_desc='ClamAV daemon'
+readonly service_unit='clamav-daemon.service'
+readonly system_or_user='system'
 
 if [[ "${system_or_user}" == 'system' ]]; then
   readonly service_file="/usr/lib/systemd/system/${service_unit}"
