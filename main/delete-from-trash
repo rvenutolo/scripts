@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# delete-from-trash '^/storage/ftp' '\.torrent$'
+# args are grep patterns
+
+set -euo pipefail
+
+source "${SCRIPTS_DIR}/lib/functions.bash"
+check_at_least_1_arg "$@"
+
+readonly trash_dir="${XDG_DATA_HOME}/Trash"
+readonly trash_files_dir="${trash_dir}/files"
+readonly trash_info_dir="${trash_dir}/info"
+
+for info_file in "${trash_info_dir}/"*.trashinfo; do
+  orig_file="$(grep --only-matching --perl-regexp '^Path=\K.*' "${info_file}")"
+  for pattern in "$@"; do
+    if (grep --quiet --ignore-case "${pattern}" <<< "${orig_file}"); then
+      trash_file="${info_file/${trash_info_dir}/${trash_files_dir}}"
+      trash_file="${trash_file/.trashinfo/}"
+      rm "${info_file}" "${trash_file}"
+      break
+    fi
+  done
+done
