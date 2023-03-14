@@ -5,7 +5,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/lib/functions.bash"
 check_no_args "$@"
 
-readonly required_executable='delete-from-trash-with-file-extension'
+readonly required_executable='delete-from-trash'
 readonly service_desc='Trash cleanup'
 readonly service_unit='trash-cleanup.timer'
 readonly system_or_user='user'
