@@ -11,10 +11,12 @@ function log_updating() {
   echo '----------------------------------------' >&2
 }
 
-if executable_exists 'yay'; then
+if executable_exists 'paru'; then
+  log_updating 'packages with paru'
+  paru paru -Syu
+elif executable_exists 'yay'; then
   log_updating 'packages with yay'
   yay -Syyu
-  yay -Yc
 elif executable_exists 'pacman'; then
   log_updating 'packages with pacman'
   sudo pacman -Syu
