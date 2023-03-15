@@ -69,6 +69,16 @@ if executable_exists 'gem'; then
   sudo gem update
 fi
 
+if executable_exists 'pip3'; then
+  log_updating 'pip3 packages'
+  pip3 install --upgrade --user pip
+fi
+
+if executable_exists 'npm'; then
+  log updating 'npm packages'
+  npm update '--location=global'
+fi
+
 if executable_exists 'brew'; then
   log_updating 'Homebrew packages'
   brew update
