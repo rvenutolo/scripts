@@ -18,7 +18,7 @@ for info_file in "${trash_info_dir}/"*.trashinfo; do
     if (grep --quiet --ignore-case "${pattern}" <<< "${orig_file}"); then
       trash_file="${info_file/${trash_info_dir}/${trash_files_dir}}"
       trash_file="${trash_file/.trashinfo/}"
-      rm "${info_file}" "${trash_file}"
+      rm -rf "${info_file}" "${trash_file}"
       break
     fi
   done
