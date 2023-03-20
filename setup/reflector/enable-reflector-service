@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "${SCRIPTS_DIR}/lib/functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/functions.bash"
 check_no_args "$@"
 
 readonly required_executable='reflector'

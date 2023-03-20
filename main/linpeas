@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "${SCRIPTS_DIR}/lib/functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 
 readonly url='https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas_linux_amd64'
 readonly etag_file="${XDG_CACHE_HOME}/linpeas/etag"

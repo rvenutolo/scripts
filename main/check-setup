@@ -5,7 +5,7 @@ set -euo pipefail
 # elsewhere in the script needs sudo, so prompt for password before rest of script runs
 sudo true
 
-source "${SCRIPTS_DIR}/lib/functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_no_args "$@"
 
 expected_vars=(

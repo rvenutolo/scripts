@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "${SCRIPTS_DIR}/lib/functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 
 # remove this dir from the path so executing `gradle` doesn't execute this script
 path_remove "$(this_script_dir)"
