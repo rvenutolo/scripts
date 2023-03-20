@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "${SCRIPTS_DIR}/lib/functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib/functions.bash"
 check_no_args "$@"
 
 shfmt \
@@ -12,4 +12,4 @@ shfmt \
   --binary-next-line \
   --space-redirects \
   --write \
-  "${SCRIPTS_DIR}/lib" "${SCRIPTS_DIR}/main" "${SCRIPTS_DIR}/setup"
+  "$(this_script_dir)/lib" "$(this_script_dir)/main" "$(this_script_dir)/setup"
