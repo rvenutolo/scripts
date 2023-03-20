@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "${SCRIPTS_DIR}/lib/functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_for_var 'FILE_MANAGER'
 
 if [[ "$#" -eq 0 ]]; then

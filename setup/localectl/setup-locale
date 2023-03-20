@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "${SCRIPTS_DIR}/lib/functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/functions.bash"
 check_no_args "$@"
 
 if localectl | grep --quiet --fixed-strings 'LANG=en_US.UTF-8'; then

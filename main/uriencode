@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "${SCRIPTS_DIR}/lib/functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_exactly_1_arg "$@"
 
 jq --null-input --raw-output --arg v "$1" '$v|@uri'

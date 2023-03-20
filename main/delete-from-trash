@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-source "${SCRIPTS_DIR}/lib/functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_at_least_1_arg "$@"
 
 readonly trash_dir="${XDG_DATA_HOME}/Trash"
