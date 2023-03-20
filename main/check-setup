@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # elsewhere in the script needs sudo, so prompt for password before rest of script runs
-sudo true
+sudo --validate
 
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_no_args "$@"
