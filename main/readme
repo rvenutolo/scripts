@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
+check_no_args "$@"
+
+shopt -s nocaseglob
+for readme_file in readme*; do
+  if is_readable_file "${readme_file}"; then
+    echo "----------"
+    echo "${readme_file}"
+    echo "----------"
+    if executable_exists 'glow'; then
+      glow "${readme_file}"
+    else
+      cat "${readme_file}"
+    fi
+  fi
+done
