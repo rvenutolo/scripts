@@ -18,7 +18,6 @@ expected_vars=(
   'GOPATH'
   'HEADLESS'
   'JAVA_HOME'
-  'LANGUAGE'
   'LANG'
   'MANPAGER'
   'PAGER'
