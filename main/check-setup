@@ -180,8 +180,8 @@ expected_files=(
 )
 if is_personal; then
   expected_files+=(
-    '/etc/sysctl.d/90-kvals.conf'
-    '/etc/sysctl.d/50-max_user_watches.conf'
+    '/etc/sysctl.d/kvals.conf'
+    '/etc/sysctl.d/max_user_watches.conf'
   )
 fi
 if is_personal && is_desktop; then
