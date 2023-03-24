@@ -6,6 +6,6 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/functions.bash"
 check_no_args "$@"
 
 readonly target_file="${HOME}/.etc/sysctl-kvals.conf"
-readonly link_file='/etc/sysctl.d/90-kvals.conf'
+readonly link_file='/etc/sysctl.d/kvals.conf'
 
 link_file "${target_file}" "${link_file}"

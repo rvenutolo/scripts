@@ -6,6 +6,6 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/functions.bash"
 check_no_args "$@"
 
 readonly target_file="${HOME}/.etc/sysctl-max_user_watches.conf"
-readonly link_file='/etc/sysctl.d/50-max_user_watches.conf'
+readonly link_file='/etc/sysctl.d/max_user_watches.conf'
 
 link_file "${target_file}" "${link_file}"
