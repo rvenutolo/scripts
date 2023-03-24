@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
+check_exactly_1_arg "$@"
+
+if is_readable_file "$1"; then
+  echo "----------"
+  echo "$1"
+  echo "----------"
+  ls -l "$1"
+  file "$1"
+else
+  log "$1 is not a readable file"
+  exit 2
+fi
