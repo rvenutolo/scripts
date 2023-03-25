@@ -244,7 +244,7 @@ function link_file() {
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
     log "$1 does not exist"
-    exit 0
+    exit 2
   fi
   if [[ -L "$2" && "$(readlink --canonicalize "$2")" == "$(readlink --canonicalize "$1")" ]]; then
     exit 0
@@ -260,11 +260,8 @@ function link_file() {
     fi
   fi
   log "Linking: $1 -> $2"
-  if [[ -f "$2" ]]; then
-    sudo rm "$2"
-  fi
-  sudo mkdir --parents "$(dirname "$2")"
-  sudo ln --symbolic "$1" "$2"
+  mkdir --parents "$(dirname "$2")"
+  ln --symbolic "$1" "$2"
   log "Linked: $1 -> $2"
 }
 
@@ -273,13 +270,22 @@ function link_file() {
 function move_file() {
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
-    exit 0
+    log "$1 does not exist"
+    exit 2
   fi
   if [[ "$1" == "$2" ]]; then
-    exit 0
+    log "File paths are the same"
+    exit 2
   fi
-  if ! prompt_yn "Move $1 -> $2?"; then
-    exit 0
+  if [[ -f "$2" ]]; then
+    diff --color --unified "$2" "$1" || true
+    if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
+      exit 0
+    fi
+  else
+    if ! prompt_yn "Move $1 -> $2?"; then
+        exit 0
+      fi
   fi
   log "Moving: $1 -> $2"
   mkdir --parents "$(dirname "$2")"
