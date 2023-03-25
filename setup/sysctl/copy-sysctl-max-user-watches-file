@@ -8,4 +8,5 @@ check_no_args "$@"
 readonly target_file="${HOME}/.etc/sysctl-max_user_watches.conf"
 readonly link_file='/etc/sysctl.d/max_user_watches.conf'
 
-link_system_file "${target_file}" "${link_file}"
+# Copy instead of symlink - see 'protected_symlinks' in https://www.kernel.org/doc/Documentation/sysctl/fs.txt
+copy_system_file "${target_file}" "${link_file}"
