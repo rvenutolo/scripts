@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
 readonly link_file='/etc/dnf/dnf.conf'

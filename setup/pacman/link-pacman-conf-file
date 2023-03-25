@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
 readonly target_file="${HOME}/.etc/pacman.conf"
@@ -11,7 +11,7 @@ readonly link_file='/etc/pacman.conf'
 if ! executable_exists 'pacman'; then
   exit 0
 fi
-link_file "${target_file}" "${link_file}"
+link_system_file "${target_file}" "${link_file}"
 
 log 'Adding Chaotic AUR keyring and mirror list'
 sudo pacman-key --recv-key 'FBA220DFC880C036' --keyserver 'keyserver.ubuntu.com'
