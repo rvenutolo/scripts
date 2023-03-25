@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/functions.bash"
 check_no_args "$@"
 
 for setup_script in "${SCRIPTS_DIR}/setup/"*/*; do
