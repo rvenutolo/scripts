@@ -160,3 +160,59 @@ function move_system_file() {
   sudo mv "$1" "$2"
   log "Moved: $1 -> $2"
 }
+
+# $1 = old file location
+# $2 = new file location
+function copy_user_file() {
+  check_exactly_2_args "$@"
+  if [[ ! -f "$1" ]]; then
+    log "$1 does not exist"
+    exit 2
+  fi
+  if [[ "$1" == "$2" ]]; then
+    log "File paths are the same"
+    exit 2
+  fi
+  if [[ -f "$2" ]]; then
+    diff --color --unified "$2" "$1" || true
+    if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
+      exit 0
+    fi
+  else
+    if ! prompt_yn "Copy $1 -> $2?"; then
+        exit 0
+      fi
+  fi
+  log "Copying: $1 -> $2"
+  mkdir --parents "$(dirname "$2")"
+  cp "$1" "$2"
+  log "Copied: $1 -> $2"
+}
+
+# $1 = old file location
+# $2 = new file location
+function copy_system_file() {
+  check_exactly_2_args "$@"
+  if [[ ! -f "$1" ]]; then
+    log "$1 does not exist"
+    exit 2
+  fi
+  if [[ "$1" == "$2" ]]; then
+    log "File paths are the same"
+    exit 2
+  fi
+  if [[ -f "$2" ]]; then
+    diff --color --unified "$2" "$1" || true
+    if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
+      exit 0
+    fi
+  else
+    if ! prompt_yn "Copy $1 -> $2?"; then
+        exit 0
+      fi
+  fi
+  log "Copying: $1 -> $2"
+  sudo mkdir --parents "$(dirname "$2")"
+  sudo cp "$1" "$2"
+  log "Copied: $1 -> $2"
+}
