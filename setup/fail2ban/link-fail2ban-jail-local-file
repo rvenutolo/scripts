@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
 readonly target_file="${HOME}/.etc/fail2ban-jail.local"
@@ -12,4 +12,4 @@ if ! executable_exists 'fail2ban-server'; then
   log 'fail2ban-server executable not found'
   exit 0
 fi
-link_file "${target_file}" "${link_file}"
+link_system_file "${target_file}" "${link_file}"

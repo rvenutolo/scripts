@@ -2,10 +2,10 @@
 
 set -euo pipefail
 
-source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
 readonly old_history_file="${HOME}/.bash_history"
 readonly new_history_file="${HISTFILE}"
 
-move_file "${old_history_file}" "${new_history_file}"
+move_user_file "${old_history_file}" "${new_history_file}"

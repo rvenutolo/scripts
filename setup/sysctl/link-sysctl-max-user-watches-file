@@ -2,10 +2,10 @@
 
 set -euo pipefail
 
-source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/functions.bash"
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
 readonly target_file="${HOME}/.etc/sysctl-max_user_watches.conf"
 readonly link_file='/etc/sysctl.d/max_user_watches.conf'
 
-link_file "${target_file}" "${link_file}"
+link_system_file "${target_file}" "${link_file}"
