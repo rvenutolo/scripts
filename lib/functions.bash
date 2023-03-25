@@ -272,8 +272,6 @@ function link_file() {
 # $2 = new file location
 function move_file() {
   check_exactly_2_args "$@"
-  local _old_file="$1"
-  local _new_file="$2"
   if [[ ! -f "$1" ]]; then
     exit 0
   fi
