@@ -174,9 +174,13 @@ function copy_user_file() {
     exit 2
   fi
   if [[ -f "$2" ]]; then
-    diff --color --unified "$2" "$1" || true
-    if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
+    if cmp --silent "$1" "$2"; then
       exit 0
+    else
+      diff --color --unified "$2" "$1" || true
+      if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
+        exit 0
+      fi
     fi
   else
     if ! prompt_yn "Copy $1 -> $2?"; then
@@ -202,9 +206,13 @@ function copy_system_file() {
     exit 2
   fi
   if [[ -f "$2" ]]; then
-    diff --color --unified "$2" "$1" || true
-    if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
+    if cmp --silent "$1" "$2"; then
       exit 0
+    else
+      diff --color --unified "$2" "$1" || true
+      if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
+        exit 0
+      fi
     fi
   else
     if ! prompt_yn "Copy $1 -> $2?"; then
