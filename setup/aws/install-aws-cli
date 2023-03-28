@@ -17,7 +17,9 @@ log 'Installing AWS CLI'
 if ! executable_exists 'unzip'; then
   log 'Downloading unzip'
   ## TODO test if this works on non-arch stuff
-  curl --silent --show-error --location --output '/tmp/unzip.tar.zst' 'https://archlinux.org/packages/extra/x86_64/unzip/download/'
+  curl --silent --show-error --location \
+    --output '/tmp/unzip.tar.zst' \
+    'https://archlinux.org/packages/extra/x86_64/unzip/download/'
   tar --extract --use-compress-program=unzstd --file '/tmp/unzip.tar.zst' --directory '/tmp' 'usr/bin/unzip'
   chmod +x '/tmp/usr/bin/unzip'
   PATH="/tmp/usr/bin:${PATH}"

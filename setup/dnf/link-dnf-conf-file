@@ -16,7 +16,8 @@ if [[ -f "${target_file}" ]]; then
   log "${target_file} does not exist"
   exit 0
 fi
-if [[ -L "${link_file}" && "$(readlink --canonicalize "${link_file}")" == "$(readlink --canonicalize "${target_file}")" ]]; then
+if [[ -L "${link_file}" \
+    && "$(readlink --canonicalize "${link_file}")" == "$(readlink --canonicalize "${target_file}")" ]]; then
   exit 0
 fi
 if [[ -f "${link_file}" ]]; then
