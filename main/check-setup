@@ -73,7 +73,7 @@ expected_executables=(
   'sbt' 'scala' 'screen' 'sd' 'sed' 'shellcheck' 'shellharden' 'shfmt' 'sk' 'skeletal' 'slocate' 'sn' 'snap' 'sntp'
   'sops' 'spark-submit' 'spring' 'ssh' 'starship' 'su' 'sudo'
   'tabs2spaces' 'tar' 'tcpdump' 'tldr' 'tmux' 'tokei' 'top' 'tracepath' 'traceroute' 'trash' 'tree'
-  'ufw' 'unlzma' 'unrar' 'unxz' 'unzip' 'usermod'
+  'ufw' 'unix2dos' 'unlzma' 'unrar' 'unxz' 'unzip' 'usermod'
   'wget' 'whatis' 'which'
   'xargs' 'xcp' 'xh' 'xsel' 'xz'
   'zellij' 'zip' 'zoxide' 'zstd'
