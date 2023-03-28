@@ -215,11 +215,14 @@ function local_ip() {
 
 function local_network() {
   local local_ip_num="$(ipv4_to_num "$(local_ip)")"
-  if [[ $(ipv4_to_num '10.0.0.0') -le "${local_ip_num}" && "${local_ip_num}" -le $(ipv4_to_num '10.255.255.255') ]]; then
+  if [[ $(ipv4_to_num '10.0.0.0') -le "${local_ip_num}" \
+      && "${local_ip_num}" -le $(ipv4_to_num '10.255.255.255') ]]; then
     echo '10.0.0.0/8'
-  elif [[ $(ipv4_to_num '172.16.0.0') -le "${local_ip_num}" && "${local_ip_num}" -le $(ipv4_to_num '172.31.255.255') ]]; then
+  elif [[ $(ipv4_to_num '172.16.0.0') -le "${local_ip_num}" \
+      && "${local_ip_num}" -le $(ipv4_to_num '172.31.255.255') ]]; then
     echo '172.16.0.0/12'
-  elif [[ $(ipv4_to_num '192.168.0.0') -le "${local_ip_num}" && "${local_ip_num}" -le $(ipv4_to_num '192.168.255.255') ]]; then
+  elif [[ $(ipv4_to_num '192.168.0.0') -le "${local_ip_num}" \
+      && "${local_ip_num}" -le $(ipv4_to_num '192.168.255.255') ]]; then
     echo '192.168.0.0/16'
   else
     log "Could not determine local network IPv4 range"

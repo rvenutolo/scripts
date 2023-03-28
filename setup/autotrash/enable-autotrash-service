@@ -29,12 +29,14 @@ if [[ ! -f "${service_file}" ]]; then
   exit 0
 fi
 
-if ! systemctl is-enabled --"${system_or_user}" --quiet "${service_unit}" && prompt_yn "Enable and start ${service_desc} service?"; then
+if ! systemctl is-enabled --"${system_or_user}" --quiet "${service_unit}" \
+    && prompt_yn "Enable and start ${service_desc} service?"; then
   log "Enabling and starting ${service_desc} service"
   systemctl enable --now --"${system_or_user}" --quiet "${service_unit}"
   log "Enabled and started ${service_desc} service"
 fi
-if ! systemctl is-active --"${system_or_user}" --quiet "${service_unit}" && prompt_yn "Start ${service_desc} service?"; then
+if ! systemctl is-active --"${system_or_user}" --quiet "${service_unit}" \
+    && prompt_yn "Start ${service_desc} service?"; then
   log "Starting ${service_desc} service"
   systemctl start --"${system_or_user}" --quiet "${service_unit}"
   log "Started ${service_desc} service"
