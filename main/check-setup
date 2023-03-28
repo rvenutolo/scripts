@@ -52,7 +52,7 @@ expected_executables=(
   'backintime' 'bandwhich' 'bat' 'bc' 'bmon' 'broot' 'btm' 'btop' 'bzip2'
   'cabextract' 'cargo' 'checkbashisms' 'cheat' 'chezmoi' 'choose' 'clamscan' 'clipboard' 'cmake' 'colordiff' 'column' 'counts' 'cpufetch' 'crontab' 'ctop' 'curl' 'curlie'
   'dash' 'ddh' 'delta' 'diff' 'difft' 'diff-so-fancy' 'dig' 'distrobox' 'dmesg' 'dog' 'doggo' 'dos2unix' 'dotenv-linter' 'dua' 'duf' 'dust'
-  'exa'
+  'editorconfig-checker' 'exa'
   'fail2ban-client' 'fclones' 'fcp' 'fd' 'fend' 'ff' 'fff' 'file' 'find' 'fish' 'free' 'fselect' 'fx' 'fzf'
   'gawk' 'gdu' 'git' 'gitui' 'glances' 'glow' 'go' 'gpg' 'gping' 'gradle' 'grep' 'grex' 'groups' 'groovy' 'gs' 'gtop' 'gunzip' 'gzip'
   'hck' 'hx' 'highlight' 'hostname' 'hstr' 'http' 'hyperfine'
