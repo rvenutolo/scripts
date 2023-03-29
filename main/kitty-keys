@@ -7,7 +7,7 @@ check_no_args "$@"
 
 # chezmoi external files stuff should get this file,
 # which is a script that should have one function: kitty_keys
-readonly kitty_keys_file="${XDG_CONFIG_HOME}/kitty_keys/kitty_keys.sh"
+readonly kitty_keys_file="${XDG_CONFIG_HOME}/kitty/kitty_keys.sh"
 if is_readable_files "${kitty_keys_file}"; then
   source "${kitty_keys_file}"
   kitty_keys
