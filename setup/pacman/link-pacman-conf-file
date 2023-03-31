@@ -5,22 +5,30 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
-readonly target_file="${HOME}/.etc/pacman.conf"
-readonly link_file='/etc/pacman.conf'
-
 if ! executable_exists 'pacman'; then
   exit 0
 fi
+
+if is_arch; then
+  readonly target_file="${HOME}/.etc/pacman.arch.conf"
+elif is_manjaro; then
+  readonly target_file="${HOME}/.etc/pacman.manjaro.conf"
+else
+  log 'pacman exists, but could not determine distro'
+  exit 2
+fi
+readonly link_file='/etc/pacman.conf'
 link_system_file "${target_file}" "${link_file}"
 
-log 'Adding Chaotic AUR keyring and mirror list'
-sudo pacman-key --recv-key 'FBA220DFC880C036' --keyserver 'keyserver.ubuntu.com'
-sudo pacman-key --lsign-key 'FBA220DFC880C036'
-sudo pacman --upgrade --noconfirm \
-    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
-    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
-log 'Added Chaotic AUR keyring and mirror list'
-
-log 'Refreshing pacman package database'
-sudo pacman --sync --refresh
-log 'Refreshed pacman package database'
+if ! pacman-key --list-keys | grep --quiet --fixed-strings 'FBA220DFC880C036'; then
+  log 'Adding Chaotic AUR keyring and mirror list'
+  sudo pacman-key --recv-key 'FBA220DFC880C036' --keyserver 'keyserver.ubuntu.com'
+  sudo pacman-key --lsign-key 'FBA220DFC880C036'
+  sudo pacman --upgrade --noconfirm \
+      'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
+      'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+  log 'Added Chaotic AUR keyring and mirror list'
+  log 'Refreshing pacman package database'
+  sudo pacman --sync --refresh
+  log 'Refreshed pacman package database'
+fi
