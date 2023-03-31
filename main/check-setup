@@ -144,6 +144,7 @@ fi
 if is_arch || is_manjaro; then
   expected_executables+=(
     'aa-enabled'
+    'pacdiff'
     'pacseek'
     'paru'
     'yay'
