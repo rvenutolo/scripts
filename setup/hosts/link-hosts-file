@@ -7,5 +7,4 @@ check_no_args "$@"
 
 readonly target_file="${HOME}/.etc/hosts"
 readonly link_file='/etc/hosts'
-
 link_system_file "${target_file}" "${link_file}"

@@ -5,9 +5,6 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
-readonly target_file="${XDG_CONFIG_HOME}/nfs/storage.exports"
-readonly link_file='/etc/exports.d/storage.exports'
-
 if ! is_desktop || ! is_personal; then
   exit 0
 fi
@@ -15,6 +12,9 @@ if ! executable_exists 'nfsstat'; then
   log 'nfsstat executable not found'
   exit 0
 fi
+
+readonly target_file="${XDG_CONFIG_HOME}/nfs/storage.exports"
+readonly link_file='/etc/exports.d/storage.exports'
 link_system_file "${target_file}" "${link_file}"
 
 if prompt_yn "Re-export NFS server exports?"; then
