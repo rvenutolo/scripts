@@ -48,7 +48,7 @@ SDKMAN_DIR="${SDKMAN_DIR:-"${HOME}/.sdkman"}"
 # cli apps for all boxes
 expected_executables=(
   '7z'
-  'ag' 'age' 'apropos' 'autotrash' 'awk' 'aws' 'aws_completer'
+  'act' 'ag' 'age' 'apropos' 'autotrash' 'awk' 'aws' 'aws_completer'
   'backintime' 'bandwhich' 'bat' 'bc' 'bmon' 'broot' 'btm' 'btop' 'bzip2'
   'cabextract' 'cargo' 'checkbashisms' 'cheat' 'chezmoi' 'choose' 'clamscan' 'clipboard' 'cmake' 'colordiff' 'column'
   'counts' 'cpufetch' 'crontab' 'ctop' 'curl' 'curlie'
