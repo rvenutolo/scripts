@@ -177,7 +177,7 @@ if executable_exists 'tldr' && ! tldr --version | contains_word 'tealdeer'; then
 fi
 
 expected_files=(
-  "${XDG_CONFIG_HOME}/bash/local"
+  "${XDG_CONFIG_HOME}/bash/local.bash"
   "${XDG_CONFIG_HOME}/broot/launcher/bash/br"
   "${HOME}/.ssh/config.private"
   "${SDKMAN_DIR}/bin/sdkman-init.sh"
