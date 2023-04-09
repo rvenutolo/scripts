@@ -6,7 +6,8 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_at_most_1_arg "$@"
 
 if [[ "$#" -eq 0 ]]; then
-  readonly screenshot_file="${HOME}/screenshot_$(date +%Y%m%d_%H%M%S).png"
+  screenshot_file="${HOME}/screenshot_$(date +%Y%m%d_%H%M%S).png"
+  readonly screenshot_file
 else
   readonly screenshot_file="$1"
 fi
