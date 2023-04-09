@@ -147,6 +147,7 @@ if is_arch || is_manjaro; then
     'pacdiff'
     'pacseek'
     'paru'
+    'pkgfile'
     'yay'
   )
 fi
