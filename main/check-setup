@@ -177,6 +177,8 @@ if executable_exists 'tldr' && ! tldr --version | contains_word 'tealdeer'; then
 fi
 
 expected_files=(
+  "${HOME}/.bashrc"
+  "${HOME}/.profile"
   "${XDG_CONFIG_HOME}/bash/local.bash"
   "${XDG_CONFIG_HOME}/broot/launcher/bash/br"
   "${HOME}/.ssh/config.private"
@@ -198,6 +200,17 @@ fi
 for file in "${expected_files[@]}"; do
   if ! is_readable_file "${file}"; then
     echo "Missing file: ${file}"
+  fi
+done
+
+unwanted_files=(
+  "${HOME}/.bash_login"
+  "${HOME}/.bash_logout"
+  "${HOME}/.bash_profile"
+)
+for file in "${unwanted_files[@]}"; do
+  if is_readable_file "${file}"; then
+    echo "Unwanted file: ${file}"
   fi
 done
 
