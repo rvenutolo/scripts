@@ -214,7 +214,8 @@ function local_ip() {
 }
 
 function local_network() {
-  local local_ip_num="$(ipv4_to_num "$(local_ip)")"
+  local local_ip_num
+  local_ip_num="$(ipv4_to_num "$(local_ip)")"
   if [[ $(ipv4_to_num '10.0.0.0') -le "${local_ip_num}" \
       && "${local_ip_num}" -le $(ipv4_to_num '10.255.255.255') ]]; then
     echo '10.0.0.0/8'

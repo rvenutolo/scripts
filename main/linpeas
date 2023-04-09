@@ -7,7 +7,8 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 readonly url='https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas_linux_amd64'
 readonly etag_file="${XDG_CACHE_HOME}/linpeas/etag"
 readonly linpeas_file="${XDG_DATA_HOME}/linpeas"
-readonly linpeas_output="~/linpeas_$(date +%Y%m%d-%H%M%S).txt"
+linpeas_output="${HOME}/linpeas_$(date +%Y%m%d-%H%M%S).txt"
+readonly linpeas_output
 
 mkdir --parents "$(dirname "${etag_file}")"
 mkdir --parents "$(dirname "${linpeas_file}")"
