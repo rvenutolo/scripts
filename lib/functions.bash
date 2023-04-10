@@ -129,6 +129,11 @@ function is_manjaro() {
   [[ "$(os_id)" == 'manjaro' ]]
 }
 
+function is_endeavour() {
+  check_no_args "$@"
+  [[ "$(os_id)" == 'endeavouros' ]]
+}
+
 function is_fedora() {
   check_no_args "$@"
   [[ "$(os_id)" == 'fedora' ]]
