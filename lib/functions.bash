@@ -63,6 +63,13 @@ function check_exactly_3_args() {
   fi
 }
 
+function check_exactly_4_args() {
+  if [[ "$#" -ne 4 ]]; then
+    log "Expected exactly 4 arguments"
+    exit 2
+  fi
+}
+
 function check_for_stdin() {
   if [[ -t 0 ]]; then
     log "Expected STDIN"
