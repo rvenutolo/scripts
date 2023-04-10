@@ -222,9 +222,9 @@ function enable_service() {
     exit 0
   fi
   if [[ "$4" == 'system' ]]; then
-      local service_file="/usr/lib/systemd/system/$1"
+      local service_file="/usr/lib/systemd/system/$2"
     elif [[ "$4" == 'user' ]]; then
-      local service_file="${XDG_CONFIG_HOME}/systemd/user/$1"
+      local service_file="${XDG_CONFIG_HOME}/systemd/user/$2"
     else
       log "unexpected value: $4"
       exit 0
