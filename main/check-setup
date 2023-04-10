@@ -141,7 +141,7 @@ if is_fedora && ! is_headless; then
     'fedy'
   )
 fi
-if is_arch || is_manjaro; then
+if is_arch || is_manjaro || is_endeavour; then
   expected_executables+=(
     'aa-enabled'
     'pacdiff'
@@ -151,7 +151,7 @@ if is_arch || is_manjaro; then
     'yay'
   )
 fi
-if is_arch; then
+if is_arch || is_endeavour; then
   expected_executables+=(
     'reflector'
   )
@@ -275,12 +275,12 @@ if is_personal && is_desktop; then
     'nfsv4-server.service'
   )
 fi
-if is_arch || is_manjaro; then
+if is_arch || is_manjaro || is_endeavour; then
   expected_active_system_services+=(
     'apparmor.service'
   )
 fi
-if is_arch; then
+if is_arch || is_endeavour; then
   expected_active_system_services+=(
     'reflector.service'
   )
