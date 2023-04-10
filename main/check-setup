@@ -278,6 +278,7 @@ fi
 if is_arch || is_manjaro || is_endeavour; then
   expected_active_system_services+=(
     'apparmor.service'
+    'pkgfile-update.timer'
   )
 fi
 if is_arch || is_endeavour; then
