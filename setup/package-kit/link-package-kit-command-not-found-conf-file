@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
+check_no_args "$@"
+
+readonly link_file='/etc/PackageKit/CommandNotFound.conf'
+readonly target_file="${HOME}/.etc/fedora_command_not_found.conf"
+
+if ! is_fedora; then
+  exit 0
+fi
+
+if ! rpm --quiet --query 'PackageKit-command-not-found'; then
+  log 'PackageKit-command-not-found is not installed'
+  exit 0
+fi
+
+link_system_file "${target_file}" "${link_file}"
