@@ -216,7 +216,7 @@ function get_service_file() {
 # $3 required executable
 # $4 'system' or 'user'
 function enable_service() {
-  check_exactly_4_args
+  check_exactly_4_args "$@"
   if ! executable_exists "$3"; then
     log "$3 not found -- Not enabling $1 service"
     exit 0
