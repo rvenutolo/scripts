@@ -5,39 +5,9 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
-readonly required_executable='ssh-agent'
 readonly service_desc='SSH Agent'
 readonly service_unit='ssh-agent.service'
+readonly required_executable='ssh-agent'
 readonly system_or_user='user'
 
-if [[ "${system_or_user}" == 'system' ]]; then
-  readonly service_file="/usr/lib/systemd/system/${service_unit}"
-elif [[ "${system_or_user}" == 'user' ]]; then
-  readonly service_file="${XDG_CONFIG_HOME}/systemd/user/${service_unit}"
-else
-  log "system_or_user unexpected value: ${system_or_user}"
-  exit 0
-fi
-
-if ! executable_exists "${required_executable}"; then
-  log "${required_executable} not found -- Not enabling ${service_desc} service"
-  exit 0
-fi
-
-if [[ ! -f "${service_file}" ]]; then
-  log "Cannot enable ${service_desc} service - service file is missing: ${service_file}"
-  exit 0
-fi
-
-if ! systemctl is-enabled --"${system_or_user}" --quiet "${service_unit}" \
-    && prompt_yn "Enable and start ${service_desc} service?"; then
-  log "Enabling and starting ${service_desc} service"
-  systemctl enable --now --"${system_or_user}" --quiet "${service_unit}"
-  log "Enabled and started ${service_desc} service"
-fi
-if ! systemctl is-active --"${system_or_user}" --quiet "${service_unit}" \
-    && prompt_yn "Start ${service_desc} service?"; then
-  log "Starting ${service_desc} service"
-  systemctl start --"${system_or_user}" --quiet "${service_unit}"
-  log "Started ${service_desc} service"
-fi
+enable_service "${service_desc}" "${service_unit}" "${required_executable}" "${system_or_user}"
