@@ -5,6 +5,10 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
+if ! is_fedora; then
+  exit 0
+fi
+
 if ! executable_exists 'dnf'; then
   log 'dnf executable not found'
   exit 0

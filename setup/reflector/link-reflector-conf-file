@@ -5,10 +5,12 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
+if ! is_arch && ! is_endeavour; then
+  exit 0
+fi
+
 if ! executable_exists 'reflector'; then
-  if is_arch; then
-    log 'reflector executable not found'
-  fi
+  log 'reflector executable not found'
   exit 0
 fi
 
