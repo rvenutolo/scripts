@@ -208,7 +208,7 @@ function is_headless() {
 }
 
 # $1 = ip
-function ip_num() {
+function ipv4_to_num() {
   check_exactly_1_arg "$@"
   IFS=. read -r a b c d <<< "$1"
   echo "$(((a << 24) + (b << 16) + (c << 8) + d))"
@@ -228,12 +228,12 @@ function local_ip() {
 function local_network() {
   check_no_args "$@"
   local ip_num
-  ip_num="$(ip_num "$(local_ip)")"
-  if [[ $(ip_num '10.0.0.0') -le "${ipv4_to_num}" && "${ipv4_to_num}" -le $(ip_num '10.255.255.255') ]]; then
+  ip_num="$(ipv4_to_num "$(local_ip)")"
+  if [[ $(ipv4_to_num '10.0.0.0') -le "${ip_num}" && "${ip_num}" -le $(ipv4_to_num '10.255.255.255') ]]; then
     echo '10.0.0.0/8'
-  elif [[ $(ip_num '172.16.0.0') -le "${ipv4_to_num}" && "${ipv4_to_num}" -le $(ip_num '172.31.255.255') ]]; then
+  elif [[ $(ipv4_to_num '172.16.0.0') -le "${ip_num}" && "${ip_num}" -le $(ipv4_to_num '172.31.255.255') ]]; then
     echo '172.16.0.0/12'
-  elif [[ $(ip_num '192.168.0.0') -le "${ipv4_to_num}" && "${ipv4_to_num}" -le $(ip_num '192.168.255.255') ]]; then
+  elif [[ $(ipv4_to_num '192.168.0.0') -le "${ip_num}" && "${ip_num}" -le $(ipv4_to_num '192.168.255.255') ]]; then
     echo '192.168.0.0/16'
   else
     log "Could not determine local network IPv4 range"
