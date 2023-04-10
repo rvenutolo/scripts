@@ -130,6 +130,11 @@ if is_personal && ! is_headless; then
     'zoom'
   )
 fi
+if is_ubuntu; then
+  expected_executables+=(
+    'nala'
+  )
+fi
 if is_fedora; then
   expected_executables+=(
     'alien'
