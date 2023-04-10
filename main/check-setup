@@ -133,6 +133,7 @@ fi
 if is_ubuntu; then
   expected_executables+=(
     'nala'
+    'pacstall'
   )
 fi
 if is_fedora; then
