@@ -16,6 +16,6 @@ case "${file}" in
   *.xz) xz --verbose "${file}" "$@" ;;
   *.zip) zip --verbose "${file}" "$@" ;;
   *.7z) 7z a "${file}" "$@" ;;
-  *) log "Filetype not recognized: ${file}" && exit 2 ;;
+  *) die "Filetype not recognized: ${file}" ;;
 esac
 log "compressed '${file}'"

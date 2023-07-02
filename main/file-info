@@ -12,6 +12,5 @@ if is_readable_file "$1"; then
   ls -l "$1"
   file "$1"
 else
-  log "$1 is not a readable file"
-  exit 2
+  die "$1 is not a readable file"
 fi

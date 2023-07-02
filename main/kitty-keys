@@ -12,6 +12,5 @@ if is_readable_files "${kitty_keys_file}"; then
   source "${kitty_keys_file}"
   kitty_keys
 else
-  log "${kitty_keys_file} is not a readable file"
-  exit 2
+  die "${kitty_keys_file} is not a readable file"
 fi
