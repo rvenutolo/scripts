@@ -15,7 +15,6 @@ for file; do
     cp --archive -- "${file}" "${target_file}"
     log "${file} -> ${target_file}"
   else
-    log "${file} is not a regular file or directory"
-    exit 2
+    die "${file} is not a regular file or directory"
   fi
 done

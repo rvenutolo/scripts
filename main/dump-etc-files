@@ -22,9 +22,8 @@ while true; do
       break
       ;;
     *)
-      echo "Unexpected option: $1 - this should not happen."
       usage
-      exit 2
+      die "Unexpected option: $1 - this should not happen."
       ;;
   esac
 done

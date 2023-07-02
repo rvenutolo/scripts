@@ -7,73 +7,68 @@ function log() {
   echo "${0##*/}: $*" >&2
 }
 
+function die() {
+  echo -e "DIE: $* (at ${BASH_SOURCE[1]}:${FUNCNAME[1]} line ${BASH_LINENO[0]}.)" >&2
+  exit 1
+}
+
 function check_no_args() {
   if [[ "$#" -ne 0 ]]; then
-    log "Expected no arguments"
-    exit 2
+    die "Expected no arguments"
   fi
 }
 
 function check_at_most_1_arg() {
   if [[ "$#" -gt 1 ]]; then
-    log "Expected at most 1 argument"
-    exit 2
+    die "Expected at most 1 argument"
   fi
 }
 
 function check_exactly_1_arg() {
   if [[ "$#" -ne 1 ]]; then
-    log "Expected exactly 1 argument"
-    exit 2
+    die "Expected exactly 1 argument"
   fi
 }
 
 function check_at_least_1_arg() {
   if [[ "$#" -lt 1 ]]; then
-    log "Expected at least 1 argument"
-    exit 2
+    die "Expected at least 1 argument"
   fi
 }
 
 function check_at_most_2_args() {
   if [[ "$#" -gt 2 ]]; then
-    log "Expected at most 2 arguments"
-    exit 2
+    die "Expected at most 2 arguments"
   fi
 }
 
 function check_exactly_2_args() {
   if [[ "$#" -ne 2 ]]; then
-    log "Expected exactly 2 arguments"
-    exit 2
+    die "Expected exactly 2 arguments"
   fi
 }
 
 function check_at_least_2_args() {
   if [[ "$#" -lt 2 ]]; then
-    log "Expected at least 2 arguments"
-    exit 2
+    die "Expected at least 2 arguments"
   fi
 }
 
 function check_exactly_3_args() {
   if [[ "$#" -ne 3 ]]; then
-    log "Expected exactly 3 arguments"
-    exit 2
+    die "Expected exactly 3 arguments"
   fi
 }
 
 function check_exactly_4_args() {
   if [[ "$#" -ne 4 ]]; then
-    log "Expected exactly 4 arguments"
-    exit 2
+    die "Expected exactly 4 arguments"
   fi
 }
 
 function check_for_stdin() {
   if [[ -t 0 ]]; then
-    log "Expected STDIN"
-    exit 2
+    die "Expected STDIN"
   fi
 }
 
@@ -81,16 +76,14 @@ function check_for_stdin() {
 function check_for_var() {
   check_exactly_1_arg "$@"
   if [[ -z "${!1-}" ]]; then
-    log "$1 not set"
-    exit 2
+    die "$1 not set"
   fi
 }
 
 function check_is_root() {
   check_no_args
   if [[ "${EUID}" != '0' ]]; then
-    log 'Must run as root'
-    exit 2
+    die 'Must run as root'
   fi
 }
 
@@ -236,8 +229,7 @@ function local_network() {
   elif [[ $(ipv4_to_num '192.168.0.0') -le "${ip_num}" && "${ip_num}" -le $(ipv4_to_num '192.168.255.255') ]]; then
     echo '192.168.0.0/16'
   else
-    log "Could not determine local network IPv4 range"
-    exit 2
+    die "Could not determine local network IPv4 range"
   fi
 }
 

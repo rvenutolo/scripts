@@ -23,11 +23,10 @@ for archive in "$@"; do
       *.xz) xz --decompress --verbose "${archive}" ;;
       *.zip) unzip "${archive}" ;;
       *.7z) 7z x "${archive}" ;;
-      *) log "Don't know how to extract '${archive}'" && exit 2 ;;
+      *) die "Don't know how to extract '${archive}'" ;;
     esac
     log "extracted '${archive}'"
   else
-    log "'${archive}' is not a regular file"
-    exit 2
+    die "'${archive}' is not a regular file"
   fi
 done

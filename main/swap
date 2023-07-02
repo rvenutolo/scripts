@@ -13,13 +13,12 @@ if [[ -f "$1" && -f "$2" ]] || [[ -d "$1" && -d "$2" ]]; then
   log "$1 <-> $2"
 else
   if [[ -e "$1" && -e "$2" ]]; then
-    log "Cannot swap file and directory"
+    die "Cannot swap file and directory"
   fi
   if [[ ! -e "$1" ]]; then
-    log "$1 does not exist"
+    die "$1 does not exist"
   fi
   if [[ ! -e "$2" ]]; then
-    log "$2 does not exist"
+    die "$2 does not exist"
   fi
-  exit 2
 fi

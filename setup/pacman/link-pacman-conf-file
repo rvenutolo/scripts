@@ -19,8 +19,7 @@ if is_arch; then
 elif is_manjaro; then
   readonly target_file="${HOME}/.etc/pacman.manjaro.conf"
 else
-  log 'pacman exists, but could not determine distro'
-  exit 2
+  die 'pacman exists, but could not determine distro'
 fi
 readonly link_file='/etc/pacman.conf'
 link_system_file "${target_file}" "${link_file}"

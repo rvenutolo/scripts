@@ -50,8 +50,7 @@ function prompt_for_value() {
 function link_user_file() {
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
-    log "$1 does not exist"
-    exit 2
+    die "$1 does not exist"
   fi
   if [[ -L "$2" && "$(readlink --canonicalize "$2")" == "$(readlink --canonicalize "$1")" ]]; then
     exit 0
@@ -80,8 +79,7 @@ function link_user_file() {
 function link_system_file() {
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
-    log "$1 does not exist"
-    exit 2
+    die "$1 does not exist"
   fi
   if [[ -L "$2" && "$(readlink --canonicalize "$2")" == "$(readlink --canonicalize "$1")" ]]; then
     exit 0
@@ -110,12 +108,10 @@ function link_system_file() {
 function move_user_file() {
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
-    log "$1 does not exist"
-    exit 2
+    die "$1 does not exist"
   fi
   if [[ "$1" == "$2" ]]; then
-    log "File paths are the same"
-    exit 2
+    die "File paths are the same"
   fi
   if [[ -f "$2" ]]; then
     diff --color --unified "$2" "$1" || true
@@ -138,12 +134,10 @@ function move_user_file() {
 function copy_user_file() {
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
-    log "$1 does not exist"
-    exit 2
+    die "$1 does not exist"
   fi
   if [[ "$1" == "$2" ]]; then
-    log "File paths are the same"
-    exit 2
+    die "File paths are the same"
   fi
   if [[ -f "$2" ]]; then
     if cmp --silent "$1" "$2"; then
@@ -170,12 +164,10 @@ function copy_user_file() {
 function copy_system_file() {
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
-    log "$1 does not exist"
-    exit 2
+    die "$1 does not exist"
   fi
   if [[ "$1" == "$2" ]]; then
-    log "File paths are the same"
-    exit 2
+    die "File paths are the same"
   fi
   if [[ -f "$2" ]]; then
     if cmp --silent "$1" "$2"; then
