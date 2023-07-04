@@ -78,7 +78,7 @@ sudo apt-get install --yes \
   qemu qemu-kvm qemu-utils \
   virtinst
 
-if ! systemctl is-enabled --quiet 'libvirtd' ; then
+if ! systemctl is-enabled --quiet 'libvirtd'; then
   sudo systemctl enable --now 'libvirtd'
 fi
 
@@ -125,35 +125,35 @@ sed --in-place 's/sdkman_auto_answer=true/sdkman_auto_answer=false/g' "${HOME}/.
 log 'Installing Nerd Fonts'
 fonts_dir="${HOME}/.local/share/fonts"
 if [[ ! -d "${fonts_dir}" ]]; then
-    mkdir --parents "${fonts_dir}"
+  mkdir --parents "${fonts_dir}"
 fi
 nerd_fonts_version="$(curl -fsLS https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | jq --raw-output '.tag_name')"
 nerd_fonts=(
-    BitstreamVeraSansMono
-    CodeNewRoman
-    ComicShannsMono
-    DroidSansMono
-    FiraCode
-    FiraMono
-    Go-Mono
-    Hack
-    Hasklig
-    Hermit
-    Inconsolata
-    Iosevka
-    IosevkaTerm
-    JetBrainsMono
-    Meslo
-    Mononoki
-    Noto
-    Overpass
-    ProggyClean
-    RobotoMono
-    SourceCodePro
-    SpaceMono
-    Terminus
-    Ubuntu
-    UbuntuMono
+  BitstreamVeraSansMono
+  CodeNewRoman
+  ComicShannsMono
+  DroidSansMono
+  FiraCode
+  FiraMono
+  Go-Mono
+  Hack
+  Hasklig
+  Hermit
+  Inconsolata
+  Iosevka
+  IosevkaTerm
+  JetBrainsMono
+  Meslo
+  Mononoki
+  Noto
+  Overpass
+  ProggyClean
+  RobotoMono
+  SourceCodePro
+  SpaceMono
+  Terminus
+  Ubuntu
+  UbuntuMono
 )
 for font in "${nerd_fonts[@]}"; do
   archive_file="${font}.tar.xz"
