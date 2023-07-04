@@ -65,11 +65,13 @@ sudo apt-get autoremove --yes
 
 log 'Installing apt packages'
 sudo apt-get install --yes \
+  alacritty \
   awsvpnclient \
   bridge-utils \
   cpu-checker \
   flatpak \
   gnome-software-plugin-flatpak \
+  kitty \
   libvirt-daemon libvirt-daemon-system libvirt-clients \
   nala \
   ovmf \
