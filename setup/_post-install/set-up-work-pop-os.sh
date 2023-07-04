@@ -113,11 +113,9 @@ set +u
 # shellcheck disable=SC1091
 source "${HOME}/.sdkman/bin/sdkman-init.sh"
 sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac | while read -r jdk; do
-  log "Installing Java ${jdk}"
   sdk install 'java' "${jdk}"
 done
 for pkg in 'gradle' 'groovy' 'kotlin' 'maven' 'mcs' 'micronaut' 'mvnd' 'pomchecker' 'sbt' 'scala' 'skeletal' 'spark' 'springboot' 'visualvm'; do
-  log "Installing ${pkg}"
   sdk install "${pkg}"
 done
 set -u
@@ -161,7 +159,7 @@ for font in "${nerd_fonts[@]}"; do
   archive_file="${font}.tar.xz"
   output_file="$(mktemp --suffix "_${archive_file}")"
   curl -fsLSo "${output_file}" "https://github.com/ryanoasis/nerd-fonts/releases/download/${nerd_fonts_version}/${archive_file}"
-  tar --extract --file="${output_file}" --directory="${fonts_dir}"
+  tar --extract --file="${output_file}" --directory="${fonts_dir}" --wildcards '*.[ot]tf'
 done
 find "${fonts_dir}" -name '*Windows Compatible*' -delete
 fc-cache --force
