@@ -130,10 +130,26 @@ source "${HOME}/.sdkman/bin/sdkman-init.sh"
 get_sdkman_pkgs | while read -r pkg; do
   if [[ "${pkg}" == 'java' ]]; then
     sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac | while read -r jdk; do
-      sdk install 'java' "${jdk}"
+      # retry due to random timeouts
+      tries=0
+      until sdk install java "${jdk}"; do
+        ((tries += 1))
+        if ((${tries} > 10)); then
+          die "Failed to download in 10 tries: ${jdk}"
+        fi
+        sleep 15
+      done
     done
   else
-    sdk install "${pkg}"
+    # retry due to random timeouts
+    tries=0
+    until sdk install "${pkg}"; do
+      ((tries += 1))
+      if ((${tries} > 10)); then
+        die "Failed to download in 10 tries: ${pkg}"
+      fi
+      sleep 15
+    done
   fi
 done
 set -u
