@@ -81,7 +81,9 @@ sudo apt-get install --yes \
   cpu-checker \
   flatpak \
   gnome-software-plugin-flatpak \
+  gparted \
   kitty \
+  krusader \
   libvirt-daemon libvirt-daemon-system libvirt-clients \
   nala \
   ovmf \
