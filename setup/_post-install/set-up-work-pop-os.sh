@@ -7,6 +7,7 @@ set -euo pipefail
 
 readonly nixpkgs_url='https://raw.githubusercontent.com/rvenutolo/packages/main/nixpkgs.csv'
 readonly flatpaks_url='https://raw.githubusercontent.com/rvenutolo/packages/main/flatpaks.csv'
+readonly sdkman_url='https://raw.githubusercontent.com/rvenutolo/packages/main/sdkman.csv'
 readonly nerd_fonts_url='https://raw.githubusercontent.com/rvenutolo/packages/main/nerd_fonts.csv'
 
 function log() {
@@ -27,6 +28,10 @@ function executable_exists() {
 # $1 = url
 function get_pkgs() {
   curl -fsLS "$1" | awk -F',' '$5 == "y" && $7 == "" { print $2 }'
+}
+
+function get_sdkman_pkgs() {
+  curl -fsLS "${sdkman_url}" | tail --lines='+2' | cut --delimiter=',' --fields='2'
 }
 
 function get_fonts() {
@@ -120,11 +125,14 @@ sed --in-place 's/sdkman_auto_answer=false/sdkman_auto_answer=true/g' "${HOME}/.
 set +u
 # shellcheck disable=SC1091
 source "${HOME}/.sdkman/bin/sdkman-init.sh"
-sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac | while read -r jdk; do
-  sdk install 'java' "${jdk}"
-done
-for pkg in 'gradle' 'groovy' 'kotlin' 'maven' 'mcs' 'micronaut' 'mvnd' 'pomchecker' 'sbt' 'scala' 'skeletal' 'spark' 'springboot' 'visualvm'; do
-  sdk install "${pkg}"
+get_sdkman_pkgs | while read -r pkg; do
+  if [[ "${pkg}" == 'java' ]]; then
+    sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac | while read -r jdk; do
+      sdk install 'java' "${jdk}"
+    done
+  else
+    sdk install "${pkg}"
+  fi
 done
 set -u
 sed --in-place 's/sdkman_auto_answer=true/sdkman_auto_answer=false/g' "${HOME}/.sdkman/etc/config"
