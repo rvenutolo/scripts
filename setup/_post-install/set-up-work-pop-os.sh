@@ -7,6 +7,7 @@ set -euo pipefail
 
 readonly nixpkgs_url='https://raw.githubusercontent.com/rvenutolo/packages/main/nixpkgs.csv'
 readonly flatpaks_url='https://raw.githubusercontent.com/rvenutolo/packages/main/flatpaks.csv'
+readonly nerd_fonts_url='https://raw.githubusercontent.com/rvenutolo/packages/main/nerd_fonts.csv'
 
 function log() {
   echo -e "log [$(date +%T)]: $*" >&2
@@ -26,6 +27,10 @@ function executable_exists() {
 # $1 = url
 function get_pkgs() {
   curl -fsLS "$1" | awk -F',' '$5 == "y" && $7 == "" { print $2 }'
+}
+
+function get_fonts() {
+  curl -fsLS "${nerd_fonts_url}" | tail --lines='+2' | cut --delimiter=',' --fields='2'
 }
 
 if [[ "${EUID}" == 0 ]]; then
@@ -92,6 +97,9 @@ if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]]; then
   sh <(curl -fsLS 'https://nixos.org/nix/install') --no-daemon
 fi
 
+## TODO check on GUI packages - look for .desktop files
+# ls -1 ~/.nix-profile/share/applications/
+# ~/.nix-profile/share/applications/*.desktop | grep -F 'Exec='
 log 'Installing Nix packages'
 # shellcheck disable=SC1091
 source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
@@ -128,34 +136,7 @@ if [[ ! -d "${fonts_dir}" ]]; then
   mkdir --parents "${fonts_dir}"
 fi
 nerd_fonts_version="$(curl -fsLS https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | jq --raw-output '.tag_name')"
-nerd_fonts=(
-  BitstreamVeraSansMono
-  CodeNewRoman
-  ComicShannsMono
-  DroidSansMono
-  FiraCode
-  FiraMono
-  Go-Mono
-  Hack
-  Hasklig
-  Hermit
-  Inconsolata
-  Iosevka
-  IosevkaTerm
-  JetBrainsMono
-  Meslo
-  Mononoki
-  Noto
-  Overpass
-  ProggyClean
-  RobotoMono
-  SourceCodePro
-  SpaceMono
-  Terminus
-  Ubuntu
-  UbuntuMono
-)
-for font in "${nerd_fonts[@]}"; do
+get_fonts | while read -r font; do
   archive_file="${font}.tar.xz"
   output_file="$(mktemp --suffix "_${archive_file}")"
   curl -fsLSo "${output_file}" "https://github.com/ryanoasis/nerd-fonts/releases/download/${nerd_fonts_version}/${archive_file}"
