@@ -165,7 +165,14 @@ nerd_fonts_version="$(curl -fsLS https://api.github.com/repos/ryanoasis/nerd-fon
 get_fonts | while read -r font; do
   archive_file="${font}.tar.xz"
   output_file="$(mktemp --suffix "_${archive_file}")"
-  curl -fsLSo "${output_file}" "https://github.com/ryanoasis/nerd-fonts/releases/download/${nerd_fonts_version}/${archive_file}"
+  tries=0
+  until curl -fsLSo "${output_file}" "https://github.com/ryanoasis/nerd-fonts/releases/download/${nerd_fonts_version}/${archive_file}"; do
+    ((tries += 1))
+    if ((${tries} > 10)); then
+      die "Failed to download in 10 tries: ${font}"
+    fi
+    sleep 15
+  done
   tar --extract --file="${output_file}" --directory="${fonts_dir}" --wildcards '*.[ot]tf'
 done
 find "${fonts_dir}" -name '*Windows Compatible*' -delete
