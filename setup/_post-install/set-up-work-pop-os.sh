@@ -80,7 +80,7 @@ sudo apt-get install --yes \
   bridge-utils \
   cpu-checker \
   flatpak \
-  gnome-software-plugin-flatpak \
+  gnome-extension-manager gnome-software-plugin-flatpak gnome-tweaks \
   gparted \
   kitty \
   krusader \
