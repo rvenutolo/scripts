@@ -52,7 +52,7 @@ if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
   libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb'
   libssl1_deb="$(mktemp --suffix "__$(basename "${libssl1_url}")")"
   curl -fsLSo "${libssl1_deb}" "${libssl1_url}"
-  sudo apt install "${libssl1_deb}"
+  sudo apt-get install "${libssl1_deb}"
 fi
 
 if [[ ! -f '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc' ]]; then
