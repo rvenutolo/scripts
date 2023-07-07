@@ -75,7 +75,7 @@ function check_for_stdin() {
 # $1 = variable name
 function check_for_var() {
   check_exactly_1_arg "$@"
-  if [[ -z "${!1-}" ]]; then
+  if [[ -z "${!1:-}" ]]; then
     die "$1 not set"
   fi
 }
@@ -172,32 +172,32 @@ function contains_word() {
 # $1 = env
 function is_desktop_env() {
   check_exactly_1_arg "$@"
-  echo "${XDG_CURRENT_DESKTOP-}" | contains_word "$1"
+  echo "${XDG_CURRENT_DESKTOP:-}" | contains_word "$1"
 }
 
 function is_personal() {
   check_no_args "$@"
-  [[ "${PERSONAL_OR_WORK-}" == 'personal' ]]
+  [[ "${PERSONAL_OR_WORK:-}" == 'personal' ]]
 }
 
 function is_work() {
   check_no_args "$@"
-  [[ "${PERSONAL_OR_WORK-}" == 'work' ]]
+  [[ "${PERSONAL_OR_WORK:-}" == 'work' ]]
 }
 
 function is_desktop() {
   check_no_args "$@"
-  [[ "${DESKTOP_OR_LAPTOP-}" == 'desktop' ]]
+  [[ "${DESKTOP_OR_LAPTOP:-}" == 'desktop' ]]
 }
 
 function is_laptop() {
   check_no_args "$@"
-  [[ "${DESKTOP_OR_LAPTOP-}" == 'laptop' ]]
+  [[ "${DESKTOP_OR_LAPTOP:-}" == 'laptop' ]]
 }
 
 function is_headless() {
   check_no_args "$@"
-  [[ "${HEADLESS-}" == 'yes' ]]
+  [[ "${HEADLESS:-}" == 'yes' ]]
 }
 
 # $1 = ip
