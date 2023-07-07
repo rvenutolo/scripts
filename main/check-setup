@@ -27,7 +27,7 @@ expected_vars=(
   'WTTR_CITY'
 )
 for var in "${expected_vars[@]}"; do
-  if [[ -z "${!var-}" ]]; then
+  if [[ -z "${!var:-}" ]]; then
     echo "Environment variable not set: ${var}"
   fi
 done
@@ -389,11 +389,11 @@ if is_fedora; then
   expected_dnf_conf_vals=('max_parallel_downloads' 'defaultyes' 'keepcache')
   dnf_conf_text="$(cat '/etc/dnf/dnf.conf')"
   for dnf_conf_val in "${expected_dnf_conf_vals[@]}"; do
-    if [[ -z "$(grep --fixed-strings "${dnf_conf_val}" <<< "${dnf_conf_text}" | cut -d'=' -f2 | xargs)" ]]; then
+    if [[ -z "$(grep --fixed-strings "${dnf_conf_val}" <<< "${dnf_conf_text}" | cut --delimiter='=' --fields='2' | xargs)" ]]; then
       echo "dnf conf ${dnf_conf_val} is not set"
     fi
   done
-  installed_packages="$(dnf list --installed | cut -d' ' -f1)"
+  installed_packages="$(dnf list --installed | cut --delimiter=' ' --fields='1')"
   expected_rpm_fusions_packages=(
     'rpmfusion-free-appstream-data'
     'rpmfusion-free-release'
