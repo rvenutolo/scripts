@@ -104,9 +104,6 @@ if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]]; then
   sh <(curl -fsLS 'https://nixos.org/nix/install') --no-daemon
 fi
 
-## TODO check on GUI packages - look for .desktop files
-# ls -1 ~/.nix-profile/share/applications/
-# ~/.nix-profile/share/applications/*.desktop | grep -F 'Exec='
 log 'Installing Nix packages'
 # shellcheck disable=SC1091
 source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
