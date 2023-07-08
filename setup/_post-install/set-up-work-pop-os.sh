@@ -10,6 +10,31 @@ readonly flatpaks_url='https://raw.githubusercontent.com/rvenutolo/packages/main
 readonly sdkman_url='https://raw.githubusercontent.com/rvenutolo/packages/main/sdkman.csv'
 readonly nerd_fonts_url='https://raw.githubusercontent.com/rvenutolo/packages/main/nerd_fonts.csv'
 
+# $1 = URL
+# $2 = output file (optional)
+function dl() {
+  log "Downloading: $1"
+  if [[ -n "${2:-}" ]]; then
+    tries=0
+    until curl --fail --silent --location --show-error "$1" --output "$2"; do
+      ((tries += 1))
+      if ((${tries} > 10)); then
+        die "Failed to get in 10 tries: ${url}"
+      fi
+      sleep 15
+    done
+  else
+    tries=0
+    until curl --fail --silent --location --show-error "$1"; do
+      ((tries += 1))
+      if ((${tries} > 10)); then
+        die "Failed to get in 10 tries: ${url}"
+      fi
+      sleep 15
+    done
+  fi
+}
+
 function log() {
   echo -e "log [$(date +%T)]: $*" >&2
 }
@@ -22,20 +47,20 @@ function die() {
 # $1 = executable
 function executable_exists() {
   # executables / no builtins, aliases, or functions
-  type -aPf "$1" > /dev/null 2>&1
+  type -aPf "$1" >/dev/null 2>&1
 }
 
 # $1 = url
 function get_pkgs() {
-  curl -fsLS "$1" | awk -F',' '$5 == "y" && $7 == "" { print $2 }'
+  dl "$1" | awk -F',' '$5 == "y" && $7 == "" { print $2 }'
 }
 
 function get_sdkman_pkgs() {
-  curl -fsLS "${sdkman_url}" | tail --lines='+2' | cut --delimiter=',' --fields='2'
+  dl "${sdkman_url}" | tail --lines='+2' | cut --delimiter=',' --fields='2'
 }
 
 function get_fonts() {
-  curl -fsLS "${nerd_fonts_url}" | tail --lines='+2' | cut --delimiter=',' --fields='2'
+  dl "${nerd_fonts_url}" | tail --lines='+2' | cut --delimiter=',' --fields='2'
 }
 
 if [[ "${EUID}" == 0 ]]; then
@@ -47,19 +72,19 @@ sudo --validate
 log 'Setting hostname'
 hostnamectl set-hostname 'silverstar'
 
-if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
+if ! dpkg --status 'libssl1.1' >/dev/null 2>&1; then
   log 'Installing old libssl1.1 package for AWS VPN client'
   libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb'
   libssl1_deb="$(mktemp --suffix "__$(basename "${libssl1_url}")")"
-  curl -fsLSo "${libssl1_deb}" "${libssl1_url}"
+  dl "${libssl1_url}" "${libssl1_deb}"
   sudo apt-get install "${libssl1_deb}"
 fi
 
 if [[ ! -f '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc' ]]; then
-  curl -fsLS 'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc' | sudo tee '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc' > '/dev/null'
+  dl 'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc' | sudo tee '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc' >'/dev/null'
 fi
 if [[ ! -f '/etc/apt/sources.list.d/aws-vpn-client.list' ]]; then
-  echo 'deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu-20.04 main' | sudo tee '/etc/apt/sources.list.d/aws-vpn-client.list' > '/dev/null'
+  echo 'deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu-20.04 main' | sudo tee '/etc/apt/sources.list.d/aws-vpn-client.list' >'/dev/null'
 fi
 
 log 'Removing apt packages'
@@ -101,7 +126,7 @@ if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]]; then
   fi
   sudo chmod 755 '/nix'
   sudo chown --recursive "${USER}:" '/nix'
-  sh <(curl -fsLS 'https://nixos.org/nix/install') --no-daemon
+  sh <(dl 'https://nixos.org/nix/install') --no-daemon
 fi
 
 log 'Installing Nix packages'
@@ -116,7 +141,7 @@ get_pkgs "${flatpaks_url}" | xargs flatpak install --or-update --user --noninter
 
 if [[ ! -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]]; then
   log 'Installing SDKMAN'
-  bash <(curl -fsLS 'https://get.sdkman.io?rcupdate=false')
+  bash <(dl 'https://get.sdkman.io?rcupdate=false')
 fi
 
 log 'Installing SDKMAN packages'
@@ -158,12 +183,12 @@ fonts_dir="${HOME}/.local/share/fonts"
 if [[ ! -d "${fonts_dir}" ]]; then
   mkdir --parents "${fonts_dir}"
 fi
-nerd_fonts_version="$(curl -fsLS https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | jq --raw-output '.tag_name')"
+nerd_fonts_version="$(dl https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | jq --raw-output '.tag_name')"
 get_fonts | while read -r font; do
   archive_file="${font}.tar.xz"
   output_file="$(mktemp --suffix "_${archive_file}")"
   tries=0
-  until curl -fsLSo "${output_file}" "https://github.com/ryanoasis/nerd-fonts/releases/download/${nerd_fonts_version}/${archive_file}"; do
+  until dl "https://github.com/ryanoasis/nerd-fonts/releases/download/${nerd_fonts_version}/${archive_file}" "${output_file}"; do
     ((tries += 1))
     if ((${tries} > 10)); then
       die "Failed to download in 10 tries: ${font}"
@@ -174,6 +199,31 @@ get_fonts | while read -r font; do
 done
 find "${fonts_dir}" -name '*Windows Compatible*' -delete
 fc-cache --force
+
+log 'Updating firmware'
+sudo fwupdmgr refresh
+sudo fwupdmgr update
+
+log 'Setting dconf settings'
+gsettings=(
+  'org.gnome.desktop.datetime automatic-timezone false'
+  'org.gnome.desktop.interface color-scheme prefer-dark'
+  'org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true'
+  'org.gnome.desktop.screensaver lock-delay uint32 30'
+  'org.gnome.desktop.session idle-delay uint32 600'
+  'org.gnome.desktop.wm.preferences button-layout appmenu:minimize,maximize,close'
+  'org.gnome.settings-daemon.plugins.color night-light-enabled true'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 1800'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
+  'org.gnome.shell.extensions.dash-to-dock show-mounts false'
+  'org.gnome.system.location enabled true'
+)
+for line in "${gsettings[@]}"; do
+  IFS=' ' read -r schema key value <<< "${line}"
+  gsettings set "${schema}" "${key}" "${value}"
+done
 
 # shellcheck disable=SC2016
 log 'Finished\nYou may want to run the following:\nsource ${HOME}/.nix-profile/etc/profile.d/nix.sh\nsource ${HOME}/.sdkman/bin/sdkman-init.sh\nchezmoi init --apply rvenutolo'
