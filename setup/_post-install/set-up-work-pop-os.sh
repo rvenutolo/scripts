@@ -210,17 +210,21 @@ fi
 log 'Setting dconf settings'
 gsettings=(
   'org.gnome.desktop.datetime automatic-timezone false'
+  "org.gnome.desktop.input-sources xkb-options ['caps:super']"
   'org.gnome.desktop.interface color-scheme prefer-dark'
+  'org.gnome.desktop.interface clock-show-weekday true'
+  'org.gnome.desktop.interface locate-pointer true'
   'org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true'
   'org.gnome.desktop.screensaver lock-delay uint32 30'
-  'org.gnome.desktop.session idle-delay uint32 600'
+  'org.gnome.desktop.session idle-delay uint32 900'
+  'org.gnome.desktop.wm.preferences action-middle-click-titlebar toggle-shade'
   'org.gnome.desktop.wm.preferences button-layout appmenu:minimize,maximize,close'
+  'org.gnome.mutter center-new-windows true'
   'org.gnome.settings-daemon.plugins.color night-light-enabled true'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 1800'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
-  'org.gnome.shell.extensions.dash-to-dock show-mounts false'
   'org.gnome.system.location enabled true'
 )
 for line in "${gsettings[@]}"; do
