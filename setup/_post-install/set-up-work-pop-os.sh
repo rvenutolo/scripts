@@ -200,9 +200,12 @@ done
 find "${fonts_dir}" -name '*Windows Compatible*' -delete
 fc-cache --force
 
-log 'Updating firmware'
-sudo fwupdmgr refresh
-sudo fwupdmgr update
+# skip this if running in vm for testing
+if [[ ! -f '/dev/sr0' ]]; then
+  log 'Updating firmware'
+  sudo fwupdmgr refresh
+  sudo fwupdmgr update
+fi
 
 log 'Setting dconf settings'
 gsettings=(
