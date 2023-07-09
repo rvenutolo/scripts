@@ -78,6 +78,26 @@ function get_fonts() {
   dl "${nerd_fonts_url}" | tail --lines='+2' | cut --delimiter=',' --fields='2'
 }
 
+# $1 = ip
+function ipv4_to_num() {
+  IFS=. read -r a b c d <<< "$1"
+  echo "$(((a << 24) + (b << 16) + (c << 8) + d))"
+}
+
+function local_network() {
+  local_ip="$(ip -oneline route get to '8.8.8.8' | sed --quiet 's/.*src \([0-9.]\+\).*/\1/p')"
+  ip_num="$(ipv4_to_num "${local_ip}")"
+  if [[ $(ipv4_to_num '10.0.0.0') -le "${ip_num}" && "${ip_num}" -le $(ipv4_to_num '10.255.255.255') ]]; then
+    echo '10.0.0.0/8'
+  elif [[ $(ipv4_to_num '172.16.0.0') -le "${ip_num}" && "${ip_num}" -le $(ipv4_to_num '172.31.255.255') ]]; then
+    echo '172.16.0.0/12'
+  elif [[ $(ipv4_to_num '192.168.0.0') -le "${ip_num}" && "${ip_num}" -le $(ipv4_to_num '192.168.255.255') ]]; then
+    echo '192.168.0.0/16'
+  else
+    die "Could not determine local network IPv4 range"
+  fi
+}
+
 if [[ "${EUID}" == 0 ]]; then
   die "Do not run this script as root"
 fi
@@ -170,6 +190,14 @@ sudo apt-get install --yes \
   virtinst
 
 sudo systemctl enable --now 'libvirtd'
+
+log 'Configuring UFW'
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow from "$(local_network)"
+
+log 'Updating recovery partition'
+pop-upgrade recovery upgrade from-release
 
 ## TODO vnc server
 
