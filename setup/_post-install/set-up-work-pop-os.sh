@@ -148,9 +148,10 @@ sudo apt-get install --yes \
   qemu qemu-kvm qemu-utils \
   virtinst
 
-if ! systemctl is-enabled --quiet 'libvirtd'; then
-  sudo systemctl enable --now 'libvirtd'
-fi
+
+sudo systemctl enable --now 'libvirtd'
+sudo systemctl enable --now 'sshd'
+systemctl enable --now --user 'ssh-agent'
 
 log 'Setting dconf settings'
 gsettings=(
