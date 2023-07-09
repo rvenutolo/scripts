@@ -72,6 +72,13 @@ sudo --validate
 log 'Setting hostname'
 hostnamectl set-hostname 'silverstar'
 
+# skip this if running in vm for testing
+if [[ ! -e '/dev/sr0' ]]; then
+  log 'Updating firmware'
+  sudo fwupdmgr refresh
+  sudo fwupdmgr update
+fi
+
 if ! dpkg --status 'libssl1.1' >/dev/null 2>&1; then
   log 'Installing old libssl1.1 package for AWS VPN client'
   libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb'
@@ -118,6 +125,31 @@ sudo apt-get install --yes \
 if ! systemctl is-enabled --quiet 'libvirtd'; then
   sudo systemctl enable --now 'libvirtd'
 fi
+
+log 'Setting dconf settings'
+gsettings=(
+  'org.gnome.desktop.datetime automatic-timezone false'
+  "org.gnome.desktop.input-sources xkb-options ['caps:super']"
+  'org.gnome.desktop.interface color-scheme prefer-dark'
+  'org.gnome.desktop.interface clock-show-weekday true'
+  'org.gnome.desktop.interface locate-pointer true'
+  'org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true'
+  'org.gnome.desktop.screensaver lock-delay uint32 30'
+  'org.gnome.desktop.session idle-delay uint32 900'
+  'org.gnome.desktop.wm.preferences action-middle-click-titlebar toggle-shade'
+  'org.gnome.desktop.wm.preferences button-layout appmenu:minimize,maximize,close'
+  'org.gnome.mutter center-new-windows true'
+  'org.gnome.settings-daemon.plugins.color night-light-enabled true'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 1800'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
+  'org.gnome.system.location enabled true'
+)
+for line in "${gsettings[@]}"; do
+  IFS=' ' read -r schema key value <<< "${line}"
+  gsettings set "${schema}" "${key}" "${value}"
+done
 
 if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]]; then
   log 'Installing nix package manager'
@@ -199,38 +231,6 @@ get_fonts | while read -r font; do
 done
 find "${fonts_dir}" -name '*Windows Compatible*' -delete
 fc-cache --force
-
-# skip this if running in vm for testing
-if [[ ! -f '/dev/sr0' ]]; then
-  log 'Updating firmware'
-  sudo fwupdmgr refresh
-  sudo fwupdmgr update
-fi
-
-log 'Setting dconf settings'
-gsettings=(
-  'org.gnome.desktop.datetime automatic-timezone false'
-  "org.gnome.desktop.input-sources xkb-options ['caps:super']"
-  'org.gnome.desktop.interface color-scheme prefer-dark'
-  'org.gnome.desktop.interface clock-show-weekday true'
-  'org.gnome.desktop.interface locate-pointer true'
-  'org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true'
-  'org.gnome.desktop.screensaver lock-delay uint32 30'
-  'org.gnome.desktop.session idle-delay uint32 900'
-  'org.gnome.desktop.wm.preferences action-middle-click-titlebar toggle-shade'
-  'org.gnome.desktop.wm.preferences button-layout appmenu:minimize,maximize,close'
-  'org.gnome.mutter center-new-windows true'
-  'org.gnome.settings-daemon.plugins.color night-light-enabled true'
-  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 1800'
-  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
-  'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
-  'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
-  'org.gnome.system.location enabled true'
-)
-for line in "${gsettings[@]}"; do
-  IFS=' ' read -r schema key value <<< "${line}"
-  gsettings set "${schema}" "${key}" "${value}"
-done
 
 # shellcheck disable=SC2016
 log 'Finished\nYou may want to run the following:\nsource ${HOME}/.nix-profile/etc/profile.d/nix.sh\nsource ${HOME}/.sdkman/bin/sdkman-init.sh\nchezmoi init --apply rvenutolo'
