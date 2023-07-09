@@ -133,7 +133,7 @@ dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.n
 # Skip this if running in vm for testing
 if [[ ! -e '/dev/sr0' ]]; then
   log 'Setting hybrid graphics'
-  sudo system76-power graphics hybrid
+  sudo system76-power graphics 'hybrid'
 fi
 
 log 'Setting hostname'
