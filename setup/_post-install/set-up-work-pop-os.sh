@@ -47,7 +47,7 @@ function die() {
 # $1 = executable
 function executable_exists() {
   # executables / no builtins, aliases, or functions
-  type -aPf "$1" >/dev/null 2>&1
+  type -aPf "$1" > /dev/null 2>&1
 }
 
 # $1 = url
@@ -79,7 +79,7 @@ if [[ ! -e '/dev/sr0' ]]; then
   sudo fwupdmgr update
 fi
 
-if ! dpkg --status 'libssl1.1' >/dev/null 2>&1; then
+if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
   log 'Installing old libssl1.1 package for AWS VPN client'
   libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb'
   libssl1_deb="$(mktemp --suffix "__$(basename "${libssl1_url}")")"
