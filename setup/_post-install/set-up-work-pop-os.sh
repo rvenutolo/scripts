@@ -104,6 +104,13 @@ hostnamectl set-hostname 'silverstar'
 log 'Setting user to linger'
 sudo loginctl enable-linger "${USER}"
 
+log 'Adding to user groups'
+groups=('sys' 'wheel' 'kvm' 'input' 'libvirtd')
+for group in "${groups[@]}"; do
+  sudo groupadd --force "${group}"
+  sudo usermod --append --groups "${group}" "${USER}"
+done
+
 # skip this if running in vm for testing
 if [[ ! -e '/dev/sr0' ]]; then
   log 'Updating firmware'
@@ -150,7 +157,6 @@ sudo apt-get install --yes \
   ovmf \
   qemu qemu-kvm qemu-utils \
   virtinst
-
 
 sudo systemctl enable --now 'libvirtd'
 sudo systemctl enable --now 'sshd'
