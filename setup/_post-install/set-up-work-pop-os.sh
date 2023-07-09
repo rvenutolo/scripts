@@ -3,8 +3,6 @@
 # $ bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/setup/_post-install/set-up-work-pop-os.sh')"
 # $ bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/setup/_post-install/set-up-work-pop-os.sh')"
 
-## TODO sytemd-boot config
-
 set -euo pipefail
 
 readonly nixpkgs_url='https://raw.githubusercontent.com/rvenutolo/packages/main/nixpkgs.csv'
@@ -101,6 +99,9 @@ fi
 
 sudo --validate
 
+log 'Setting sudo timeout'
+echo 'Default timestamp_timeout=60' | sudo tee /etc/sudoers.d/timestamp_timeout > /dev/null
+
 log 'Installing age'
 sudo apt-get install age
 
@@ -141,7 +142,7 @@ log 'Setting user to linger'
 sudo loginctl enable-linger "${USER}"
 
 log 'Adding to user groups'
-groups=('sys' 'wheel' 'kvm' 'input' 'libvirtd')
+groups=('sys' 'wheel' 'sudo' 'kvm' 'input' 'libvirtd')
 for group in "${groups[@]}"; do
   sudo groupadd --force "${group}"
   sudo usermod --append --groups "${group}" "${USER}"
