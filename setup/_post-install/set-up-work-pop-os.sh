@@ -128,6 +128,12 @@ for line in "${keys[@]}"; do
   chmod 600 "${HOME}/${dir}/${file}"
 done
 
+# skip this if running in vm for testing
+if [[ ! -e '/dev/sr0' ]]; then
+  log 'Setting hybrid graphics'
+  sudo system76-power graphics hybrid
+fi
+
 log 'Setting hostname'
 hostnamectl set-hostname 'silverstar'
 
