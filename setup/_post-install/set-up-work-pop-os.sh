@@ -154,7 +154,7 @@ done
 if [[ ! -e '/dev/sr0' ]]; then
   log 'Updating firmware'
   sudo fwupdmgr refresh
-  sudo fwupdmgr update
+  sudo fwupdmgr update --offline --assume-yes
 fi
 
 if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
