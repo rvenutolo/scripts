@@ -98,16 +98,6 @@ for line in "${keys[@]}"; do
   dl_decrypt "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${file}" "${HOME}/${dir}/${file}"
 done
 
-log 'Setting locale to en_US.UTF-8'
-if ! grep --quiet '^en_US.UTF-8 UTF-8' '/etc/locale.gen'; then
-  echo 'en_US.UTF-8 UTF-8' | sudo tee --append '/etc/locale.gen' > /dev/null
-fi
-sudo locale-gen
-sudo localectl set-locale 'LANG=en_US.UTF-8'
-
-log 'Setting timedatectl NTP on'
-sudo timedatectl set-ntp on
-
 log 'Setting hostname'
 hostnamectl set-hostname 'silverstar'
 
@@ -169,8 +159,6 @@ sudo apt-get install --yes \
   virtinst
 
 sudo systemctl enable --now 'libvirtd'
-sudo systemctl enable --now 'sshd'
-systemctl enable --now --user 'ssh-agent'
 
 log 'Setting dconf settings'
 gsettings=(
