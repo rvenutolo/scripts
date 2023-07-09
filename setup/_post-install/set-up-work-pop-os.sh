@@ -239,10 +239,10 @@ gsettings=(
   'org.gnome.shell.extensions.pop-shell active-hints true'
   'org.gnome.system.location enabled true'
   # TODO test these
-  'org.gnome.desktop.remote-desktop.rdp enable false' # check if this needs to be true for vnc to work
-  "org.gnome.desktop.remote-desktop.rdp tls-cert ${HOME}/.local/share/gnome-remote-desktop/rdp-tls.crt"
-  "org.gnome.desktop.remote-desktop.rdp tls-key ${HOME}/.local/share/gnome-remote-desktop/rdp-tls.key"
-  'org.gnome.desktop.remote-desktop.rdp view-only false'
+#  'org.gnome.desktop.remote-desktop.rdp enable false' # check if this needs to be true for vnc to work
+#  "org.gnome.desktop.remote-desktop.rdp tls-cert ${HOME}/.local/share/gnome-remote-desktop/rdp-tls.crt"
+#  "org.gnome.desktop.remote-desktop.rdp tls-key ${HOME}/.local/share/gnome-remote-desktop/rdp-tls.key"
+#  'org.gnome.desktop.remote-desktop.rdp view-only false'
   'org.gnome.desktop.remote-desktop.vnc auth-method password'
   'org.gnome.desktop.remote-desktop.vnc enable true'
   'org.gnome.desktop.remote-desktop.vnc view-only false'
