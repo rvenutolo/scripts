@@ -101,6 +101,9 @@ done
 log 'Setting hostname'
 hostnamectl set-hostname 'silverstar'
 
+log 'Setting user to linger'
+sudo loginctl enable-linger "${USER}"
+
 # skip this if running in vm for testing
 if [[ ! -e '/dev/sr0' ]]; then
   log 'Updating firmware'
