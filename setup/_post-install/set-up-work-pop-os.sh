@@ -79,6 +79,9 @@ fi
 
 sudo --validate
 
+log 'Installing age'
+sudo apt-get install age
+
 log 'Getting keys'
 if [[ ! -f "${HOME}/.keys/age.key" ]]; then
   mkdir --parents "${HOME}/.keys"
