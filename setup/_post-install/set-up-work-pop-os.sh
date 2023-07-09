@@ -87,12 +87,8 @@ if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
   sudo apt-get install "${libssl1_deb}"
 fi
 
-if [[ ! -f '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc' ]]; then
-  dl 'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc' | sudo tee '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc' >'/dev/null'
-fi
-if [[ ! -f '/etc/apt/sources.list.d/aws-vpn-client.list' ]]; then
-  echo 'deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu-20.04 main' | sudo tee '/etc/apt/sources.list.d/aws-vpn-client.list' >'/dev/null'
-fi
+dl 'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc' | sudo tee '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc' > '/dev/null'
+echo 'deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu-20.04 main' | sudo tee '/etc/apt/sources.list.d/aws-vpn-client.list' > '/dev/null'
 
 log 'Removing apt packages'
 sudo apt-get remove --yes geary firefox libreoffice-*
