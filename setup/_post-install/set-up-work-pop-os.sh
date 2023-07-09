@@ -201,6 +201,7 @@ sudo apt-get install --yes \
   ubuntu-restricted-extras \
   virtinst
 
+log 'Enabling libvirtd service'
 sudo systemctl enable --now 'libvirtd'
 
 log 'Configuring UFW'
