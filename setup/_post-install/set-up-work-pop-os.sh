@@ -35,6 +35,16 @@ function dl() {
   fi
 }
 
+# $1 = URL
+# $2 = output file (optional)
+function dl_decrypt() {
+  if [[ -n "${2:-}" ]]; then
+    dl "$1" | age --decrypt --identity "${HOME}/.keys/age.key" --output "$2"
+  else
+    dl "$1" | age --decrypt --identity "${HOME}/.keys/age.key"
+  fi
+}
+
 function log() {
   echo -e "log [$(date +%T)]: $*" >&2
 }
@@ -68,6 +78,25 @@ if [[ "${EUID}" == 0 ]]; then
 fi
 
 sudo --validate
+
+log 'Getting keys'
+if [[ ! -f "${HOME}/.keys/age.key" ]]; then
+  mkdir --parents "${HOME}/.keys"
+  dl 'https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/age.key' | age --decrypt --output "${HOME}/.keys/age.key"
+fi
+keys=(
+  'authorized_keys .ssh'
+  'core-dev-general.pem .keys'
+  'id_ed25519 .keys'
+  'id_ed25519.pub .keys'
+  'pihole .keys'
+  'pihole.pub .keys'
+)
+for line in "${keys[@]}"; do
+  IFS=' ' read -r file dir <<< "${line}"
+  mkdir --parents "${dir}"
+  dl_decrypt "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${file}" "${HOME}/${dir}/${file}"
+done
 
 log 'Setting hostname'
 hostnamectl set-hostname 'silverstar'
@@ -103,6 +132,7 @@ sudo apt-get autoremove --yes
 
 log 'Installing apt packages'
 sudo apt-get install --yes \
+  age \
   alacritty \
   awsvpnclient \
   bridge-utils \
@@ -227,6 +257,9 @@ get_fonts | while read -r font; do
 done
 find "${fonts_dir}" -name '*Windows Compatible*' -delete
 fc-cache --force
+
+log 'Getting de-400 connection file'
+dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' '/etc/NetworkManager/system-connections/de-400.nmconnection'
 
 # shellcheck disable=SC2016
 log 'Finished\nYou may want to run the following:\nsource ${HOME}/.nix-profile/etc/profile.d/nix.sh\nsource ${HOME}/.sdkman/bin/sdkman-init.sh\nchezmoi init --apply rvenutolo'
