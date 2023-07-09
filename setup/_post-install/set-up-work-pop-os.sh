@@ -212,9 +212,6 @@ sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw allow from "$(local_network)"
 
-log 'Updating recovery partition'
-pop-upgrade recovery upgrade from-release
-
 log 'Setting dconf settings'
 gsettings=(
   'org.gnome.desktop.datetime automatic-timezone false'
@@ -332,6 +329,9 @@ get_fonts | while read -r font; do
 done
 find "${fonts_dir}" -name '*Windows Compatible*' -delete
 fc-cache --force
+
+log 'Updating recovery partition'
+pop-upgrade recovery upgrade from-release
 
 # shellcheck disable=SC2016
 log 'Finished\nYou may want to run the following:\nsource ${HOME}/.nix-profile/etc/profile.d/nix.sh\nsource ${HOME}/.sdkman/bin/sdkman-init.sh\nchezmoi init --apply rvenutolo'
