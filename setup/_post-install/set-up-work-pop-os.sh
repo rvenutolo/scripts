@@ -105,6 +105,9 @@ fi
 sudo locale-gen
 sudo localectl set-locale 'LANG=en_US.UTF-8'
 
+log 'Setting timedatectl NTP on'
+sudo timedatectl set-ntp on
+
 log 'Setting hostname'
 hostnamectl set-hostname 'silverstar'
 
