@@ -212,8 +212,6 @@ sudo ufw allow from "$(local_network)"
 log 'Updating recovery partition'
 pop-upgrade recovery upgrade from-release
 
-## TODO vnc server
-
 log 'Setting dconf settings'
 gsettings=(
   'org.gnome.desktop.datetime automatic-timezone false'
@@ -221,6 +219,7 @@ gsettings=(
   'org.gnome.desktop.interface color-scheme prefer-dark'
   'org.gnome.desktop.interface clock-show-weekday true'
   'org.gnome.desktop.interface locate-pointer true'
+  'org.gnome.desktop.interface show-battery-percentage true'
   'org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true'
   'org.gnome.desktop.screensaver lock-delay uint32 30'
   'org.gnome.desktop.session idle-delay uint32 900'
@@ -232,7 +231,18 @@ gsettings=(
   'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
+  'org.gnome.shell.extensions.dash-to-dock click-action minimize'
+  'org.gnome.shell.extensions.dash-to-dock intellihide false'
+  'org.gnome.shell.extensions.pop-shell active-hints true'
   'org.gnome.system.location enabled true'
+  # TODO test these
+  'org.gnome.desktop.remote-desktop.rdp enable false' # check if this needs to be true for vnc to work
+  "org.gnome.desktop.remote-desktop.rdp tls-cert ${HOME}/.local/share/gnome-remote-desktop/rdp-tls.crt"
+  "org.gnome.desktop.remote-desktop.rdp tls-key ${HOME}/.local/share/gnome-remote-desktop/rdp-tls.key"
+  'org.gnome.desktop.remote-desktop.rdp view-only false'
+  'org.gnome.desktop.remote-desktop.vnc auth-method password'
+  'org.gnome.desktop.remote-desktop.vnc enable true'
+  'org.gnome.desktop.remote-desktop.vnc view-only false'
 )
 for line in "${gsettings[@]}"; do
   IFS=' ' read -r schema key value <<< "${line}"
