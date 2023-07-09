@@ -182,7 +182,9 @@ sudo apt-get install --yes \
   alacritty \
   awsvpnclient \
   bridge-utils \
+  caffeine \
   cpu-checker \
+  dconf-editor \
   flatpak \
   gnome-software-plugin-flatpak gnome-tweaks \
   gparted \
@@ -190,9 +192,13 @@ sudo apt-get install --yes \
   krusader \
   libvirt-daemon libvirt-daemon-system libvirt-clients \
   nala \
+  nautilus-admin \
   openssh-server \
   ovmf \
+  preload \
   qemu qemu-kvm qemu-utils \
+  synaptic \
+  ubuntu-restricted-extras \
   virtinst
 
 sudo systemctl enable --now 'libvirtd'
