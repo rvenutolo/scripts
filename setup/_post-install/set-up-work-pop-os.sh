@@ -110,6 +110,7 @@ if [[ ! -f "${HOME}/.keys/age.key" ]]; then
   mkdir --parents "${HOME}/.keys"
   dl 'https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/age.key' | age --decrypt --output "${HOME}/.keys/age.key"
 fi
+chmod 700 "${HOME}/.keys"
 chmod 600 "${HOME}/.keys/age.key"
 keys=(
   'authorized_keys .ssh'
