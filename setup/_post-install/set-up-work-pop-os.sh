@@ -3,9 +3,6 @@
 # $ bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/setup/_post-install/set-up-work-pop-os.sh')"
 # $ bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/setup/_post-install/set-up-work-pop-os.sh')"
 
-## TODO check on trim - sudo systemctl status fstrim.timer
-## TODO check on swap - dmesg | grep zswap
-
 ## TODO sytemd-boot config
 
 set -euo pipefail
@@ -131,7 +128,7 @@ done
 log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
 
-# skip this if running in vm for testing
+# Skip this if running in vm for testing
 if [[ ! -e '/dev/sr0' ]]; then
   log 'Setting hybrid graphics'
   sudo system76-power graphics hybrid
@@ -150,12 +147,19 @@ for group in "${groups[@]}"; do
   sudo usermod --append --groups "${group}" "${USER}"
 done
 
-# skip this if running in vm for testing
+# Skip this if running in vm for testing
 if [[ ! -e '/dev/sr0' ]]; then
   log 'Updating firmware'
   sudo fwupdmgr refresh
   sudo fwupdmgr update --offline --assume-yes
 fi
+
+# Do this before package upgrade as that may update the kernel, and then these
+# commands will fail until after a reboot.
+log 'Configuring UFW'
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow from "$(local_network)"
 
 if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
   log 'Installing old libssl1.1 package for AWS VPN client'
@@ -201,16 +205,10 @@ sudo apt-get install --yes \
   preload \
   qemu qemu-kvm qemu-utils \
   synaptic \
-  ubuntu-restricted-extras \
   virtinst
 
 log 'Enabling libvirtd service'
 sudo systemctl enable --now 'libvirtd'
-
-log 'Configuring UFW'
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow from "$(local_network)"
 
 log 'Setting dconf settings'
 gsettings=(
@@ -282,7 +280,7 @@ source "${HOME}/.sdkman/bin/sdkman-init.sh"
 get_sdkman_pkgs | while read -r pkg; do
   if [[ "${pkg}" == 'java' ]]; then
     sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac | while read -r jdk; do
-      # retry due to random timeouts
+      # Retry due to random timeouts
       tries=0
       until sdk install java "${jdk}"; do
         ((tries += 1))
@@ -293,7 +291,7 @@ get_sdkman_pkgs | while read -r pkg; do
       done
     done
   else
-    # retry due to random timeouts
+    # Retry due to random timeouts
     tries=0
     until sdk install "${pkg}"; do
       ((tries += 1))
