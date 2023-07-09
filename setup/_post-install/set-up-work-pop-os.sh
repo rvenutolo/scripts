@@ -161,6 +161,8 @@ sudo apt-get install --yes \
 
 sudo systemctl enable --now 'libvirtd'
 
+## TODO vnc server
+
 log 'Setting dconf settings'
 gsettings=(
   'org.gnome.desktop.datetime automatic-timezone false'
