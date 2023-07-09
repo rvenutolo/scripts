@@ -154,6 +154,7 @@ sudo apt-get install --yes \
   krusader \
   libvirt-daemon libvirt-daemon-system libvirt-clients \
   nala \
+  openssh-server \
   ovmf \
   qemu qemu-kvm qemu-utils \
   virtinst
