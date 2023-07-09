@@ -87,6 +87,7 @@ if [[ ! -f "${HOME}/.keys/age.key" ]]; then
   mkdir --parents "${HOME}/.keys"
   dl 'https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/age.key' | age --decrypt --output "${HOME}/.keys/age.key"
 fi
+chmod 600 "${HOME}/.keys/age.key"
 keys=(
   'authorized_keys .ssh'
   'core-dev-general.pem .keys'
@@ -99,6 +100,7 @@ for line in "${keys[@]}"; do
   IFS=' ' read -r file dir <<< "${line}"
   mkdir --parents "${dir}"
   dl_decrypt "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${file}" "${HOME}/${dir}/${file}"
+  chmod 600 "${HOME}/${dir}/${file}"
 done
 
 log 'Setting hostname'
