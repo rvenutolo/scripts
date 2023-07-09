@@ -237,6 +237,7 @@ gsettings=(
   'org.gnome.shell.extensions.dash-to-dock click-action minimize'
   'org.gnome.shell.extensions.dash-to-dock intellihide false'
   'org.gnome.shell.extensions.pop-shell active-hints true'
+  'org.gnome.shell.weather automatic-location true'
   'org.gnome.system.location enabled true'
   # TODO test these
 #  'org.gnome.desktop.remote-desktop.rdp enable false' # check if this needs to be true for vnc to work
