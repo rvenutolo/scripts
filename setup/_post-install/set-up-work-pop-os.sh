@@ -333,8 +333,5 @@ fc-cache --force
 log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
 
-log 'Updating recovery partition'
-pop-upgrade recovery upgrade from-release
-
 # shellcheck disable=SC2016
 log 'Finished\nYou may want to run the following:\nsource ${HOME}/.nix-profile/etc/profile.d/nix.sh\nsource ${HOME}/.sdkman/bin/sdkman-init.sh\nchezmoi init --apply rvenutolo'
