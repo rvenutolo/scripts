@@ -103,7 +103,7 @@ log 'Setting timezone'
 sudo timedatectl set-timezone 'America/New_York'
 
 log 'Setting sudo timeout'
-echo 'Default timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
+echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
 
 log 'Installing age'
 sudo apt-get install age
