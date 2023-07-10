@@ -271,6 +271,12 @@ source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 export NIXPKGS_ALLOW_UNFREE='1'
 get_pkgs "${nixpkgs_url}" | xargs printf -- 'nixpkgs.%s\n' | xargs nix-env --install --attr
 
+log 'Updating font cache'
+if [[ -d "${HOME}/.nix-profile/share/fonts" ]]; then
+  ln --symbolic --force "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
+fi
+fc-cache --force
+
 log 'Installing flatpaks'
 flatpak remote-add --user --if-not-exists 'flathub' 'https://dl.flathub.org/repo/flathub.flatpakrepo'
 get_pkgs "${flatpaks_url}" | xargs flatpak install --or-update --user --noninteractive
@@ -312,20 +318,6 @@ get_sdkman_pkgs | while read -r pkg; do
 done
 set -u
 sed --in-place 's/sdkman_auto_answer=true/sdkman_auto_answer=false/g' "${HOME}/.sdkman/etc/config"
-
-## TODO can I use nixpkgs instead?
-log 'Installing Nerd Fonts'
-fonts_dir="${HOME}/.local/share/fonts"
-nerd_fonts_version="$(dl https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | jq --raw-output '.tag_name')"
-get_fonts | while read -r font; do
-  archive_file="${font}.tar.xz"
-  temp_archive_file="$(mktemp --suffix "_${archive_file}")"
-  target_dir="${fonts_dir}/nerd-fonts-${nerd_fonts_version}/${font}"
-  dl "https://github.com/ryanoasis/nerd-fonts/releases/download/${nerd_fonts_version}/${archive_file}" "${temp_archive_file}"
-  mkdir --parents "${target_dir}"
-  tar --extract --file="${temp_archive_file}" --directory="${target_dir}" --wildcards '*.[ot]tf'
-done
-fc-cache --force
 
 # shellcheck disable=SC2016
 log 'Finished
