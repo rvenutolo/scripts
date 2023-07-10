@@ -236,7 +236,7 @@ gsettings=(
   'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
   'org.gnome.shell.extensions.dash-to-dock click-action minimize'
   'org.gnome.shell.extensions.dash-to-dock intellihide false'
-  'org.gnome.shell.extensions.pop-shell active-hints true'
+  'org.gnome.shell.extensions.pop-shell active-hint true'
   'org.gnome.shell.weather automatic-location true'
   'org.gnome.system.location enabled true'
   # TODO test these
