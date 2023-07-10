@@ -331,4 +331,8 @@ log 'Updating recovery partition'
 pop-upgrade recovery upgrade from-release
 
 # shellcheck disable=SC2016
-log 'Finished\nYou may want to run the following:\nsource ${HOME}/.nix-profile/etc/profile.d/nix.sh\nsource ${HOME}/.sdkman/bin/sdkman-init.sh\nchezmoi init --apply rvenutolo'
+log 'Finished
+You may want to do any of the following:
+- chezmoi init --apply rvenutolo && source ~/.bashrc
+- copy files from the backup
+- reboot'
