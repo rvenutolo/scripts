@@ -314,17 +314,15 @@ sed --in-place 's/sdkman_auto_answer=true/sdkman_auto_answer=false/g' "${HOME}/.
 ## TODO can I use nixpkgs instead?
 log 'Installing Nerd Fonts'
 fonts_dir="${HOME}/.local/share/fonts"
-if [[ ! -d "${fonts_dir}" ]]; then
-  mkdir --parents "${fonts_dir}"
-fi
 nerd_fonts_version="$(dl https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | jq --raw-output '.tag_name')"
 get_fonts | while read -r font; do
   archive_file="${font}.tar.xz"
-  output_file="$(mktemp --suffix "_${archive_file}")"
-  dl "https://github.com/ryanoasis/nerd-fonts/releases/download/${nerd_fonts_version}/${archive_file}" "${output_file}"
-  tar --extract --file="${output_file}" --directory="${fonts_dir}" --wildcards '*.[ot]tf'
+  temp_archive_file="$(mktemp --suffix "_${archive_file}")"
+  target_dir="${fonts_dir}/nerd-fonts-${nerd_fonts_version}/${font}"
+  dl "https://github.com/ryanoasis/nerd-fonts/releases/download/${nerd_fonts_version}/${archive_file}" "${temp_archive_file}"
+  mkdir --parents "${target_dir}"
+  tar --extract --file="${temp_archive_file}" --directory="${target_dir}" --wildcards '*.[ot]tf'
 done
-find "${fonts_dir}" -name '*Windows Compatible*' -delete
 fc-cache --force
 
 log 'Updating recovery partition'
