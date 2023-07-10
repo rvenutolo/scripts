@@ -99,11 +99,46 @@ fi
 
 sudo --validate
 
+log 'Setting sudo timeout'
+echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
+
 log 'Setting timezone'
 sudo timedatectl set-timezone 'America/New_York'
 
-log 'Setting sudo timeout'
-echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
+log 'Setting hostname'
+hostnamectl set-hostname 'silverstar'
+
+log 'Setting user to linger'
+sudo loginctl enable-linger "${USER}"
+
+log 'Adding to user groups'
+groups=('sys' 'wheel' 'sudo' 'kvm' 'input' 'libvirtd')
+for group in "${groups[@]}"; do
+  sudo groupadd --force "${group}"
+  sudo usermod --append --groups "${group}" "${USER}"
+done
+
+# Do this before package upgrade as that may update the kernel, and then these
+# commands will fail until after a reboot.
+log 'Configuring UFW'
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow from "$(local_network)"
+
+# Skip these if running in vm for testing
+if [[ ! -e '/dev/sr0' ]]; then
+
+  log 'Setting hybrid graphics'
+  sudo system76-power graphics 'hybrid'
+
+  log 'Updating firmware'
+  sudo fwupdmgr refresh
+  sudo fwupdmgr update --offline --assume-yes
+
+  log 'Updating recovery partition'
+  pop-upgrade recovery upgrade from-release
+
+fi
 
 log 'Installing age'
 sudo apt-get install age
@@ -132,39 +167,6 @@ done
 
 log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
-
-# Skip this if running in vm for testing
-if [[ ! -e '/dev/sr0' ]]; then
-  log 'Setting hybrid graphics'
-  sudo system76-power graphics 'hybrid'
-fi
-
-log 'Setting hostname'
-hostnamectl set-hostname 'silverstar'
-
-log 'Setting user to linger'
-sudo loginctl enable-linger "${USER}"
-
-log 'Adding to user groups'
-groups=('sys' 'wheel' 'sudo' 'kvm' 'input' 'libvirtd')
-for group in "${groups[@]}"; do
-  sudo groupadd --force "${group}"
-  sudo usermod --append --groups "${group}" "${USER}"
-done
-
-# Skip this if running in vm for testing
-if [[ ! -e '/dev/sr0' ]]; then
-  log 'Updating firmware'
-  sudo fwupdmgr refresh
-  sudo fwupdmgr update --offline --assume-yes
-fi
-
-# Do this before package upgrade as that may update the kernel, and then these
-# commands will fail until after a reboot.
-log 'Configuring UFW'
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow from "$(local_network)"
 
 if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
   log 'Installing old libssl1.1 package for AWS VPN client'
@@ -324,9 +326,6 @@ get_fonts | while read -r font; do
   tar --extract --file="${temp_archive_file}" --directory="${target_dir}" --wildcards '*.[ot]tf'
 done
 fc-cache --force
-
-log 'Updating recovery partition'
-pop-upgrade recovery upgrade from-release
 
 # shellcheck disable=SC2016
 log 'Finished
