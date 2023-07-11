@@ -153,6 +153,11 @@ done
 # Skip these if running in vm for testing
 if [[ ! -e '/dev/sr0' ]]; then
 
+  log 'Installing fingerprint scanner packages'
+  sudo apt-get install fprintd libpam-fprintd
+  sudo pam-auth-update --enable fprintd
+  fprintd-enroll
+
   log 'Setting hybrid graphics'
   sudo system76-power graphics 'hybrid'
 
