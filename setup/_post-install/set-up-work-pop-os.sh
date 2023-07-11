@@ -280,8 +280,9 @@ get_pkgs "${nixpkgs_url}" | xargs printf -- 'nixpkgs.%s\n' | xargs nix-env --ins
 
 log 'Updating font cache'
 if [[ -d "${HOME}/.nix-profile/share/fonts" ]]; then
-  ln --symbolic --force "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
+  mkdir --parents "${HOME}/.nix-profile/share/fonts"
 fi
+ln --symbolic --force "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
 fc-cache --force
 
 log 'Installing flatpaks'
