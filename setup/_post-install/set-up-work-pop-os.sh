@@ -341,10 +341,16 @@ done
 set -u
 sed --in-place 's/sdkman_auto_answer=true/sdkman_auto_answer=false/g' "${HOME}/.sdkman/etc/config"
 
+source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
+
+# TODO check on .crypt stuff
+chezmoi init --apply 'rvenutolo'
+
+systemctl enable --now --user ssh-agent
+
 # shellcheck disable=SC2016
 log 'Finished
 You may want to do any of the following:
-- source ~/.nix-profile/etc/profile.d/nix.sh
-- chezmoi init --apply rvenutolo && source ~/.bashrc
+- source ~/.bashrc
 - rsync --archive --itemize-changes --human-readable --executability --progress --stats 172.16.0.157:Temp/work-backup ~
 - reboot'
