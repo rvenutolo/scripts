@@ -126,7 +126,7 @@ sudo ufw default allow outgoing
 sudo ufw allow from "$(local_network)"
 
 log 'Installing age'
-sudo apt-get install age
+sudo apt-get install --yes age
 
 log 'Getting keys'
 if [[ ! -f "${HOME}/.keys/age.key" ]]; then
@@ -154,7 +154,7 @@ done
 if [[ ! -e '/dev/sr0' ]]; then
 
   log 'Installing fingerprint scanner packages'
-  sudo apt-get install fprintd libpam-fprintd
+  sudo apt-get install --yes fprintd libpam-fprintd
   sudo pam-auth-update --enable fprintd
   sudo cp '/etc/pam.d/common-auth' '/etc/pam.d/common-auth.orig'
   sudo sed --in-place 's/ max-tries=1 / max-tries=10 /g' '/etc/pam.d/common-auth'
@@ -180,7 +180,7 @@ if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
   libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb'
   libssl1_deb="$(mktemp --suffix "__$(basename "${libssl1_url}")")"
   dl "${libssl1_url}" "${libssl1_deb}"
-  sudo apt-get install "${libssl1_deb}"
+  sudo apt-get install --yes "${libssl1_deb}"
 fi
 
 dl 'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc' | sudo tee '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc' > '/dev/null'
