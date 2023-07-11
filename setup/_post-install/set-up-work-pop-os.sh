@@ -346,6 +346,8 @@ source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 # TODO check on .crypt stuff
 chezmoi init --apply 'rvenutolo'
 
+source "${HOME}/.profile"
+
 systemctl enable --now --user ssh-agent
 
 # shellcheck disable=SC2016
