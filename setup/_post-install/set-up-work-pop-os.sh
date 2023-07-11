@@ -125,21 +125,6 @@ sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw allow from "$(local_network)"
 
-# Skip these if running in vm for testing
-if [[ ! -e '/dev/sr0' ]]; then
-
-  log 'Setting hybrid graphics'
-  sudo system76-power graphics 'hybrid'
-
-  log 'Updating firmware'
-  sudo fwupdmgr refresh
-  sudo fwupdmgr update --offline --assume-yes
-
-  log 'Updating recovery partition'
-  pop-upgrade recovery upgrade from-release
-
-fi
-
 log 'Installing age'
 sudo apt-get install age
 
@@ -164,6 +149,21 @@ for line in "${keys[@]}"; do
   dl_decrypt "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${file}" "${HOME}/${dir}/${file}"
   chmod 600 "${HOME}/${dir}/${file}"
 done
+
+# Skip these if running in vm for testing
+if [[ ! -e '/dev/sr0' ]]; then
+
+  log 'Setting hybrid graphics'
+  sudo system76-power graphics 'hybrid'
+
+  log 'Updating firmware'
+  sudo fwupdmgr refresh
+  sudo fwupdmgr update --offline --assume-yes
+
+  log 'Updating recovery partition'
+  pop-upgrade recovery upgrade from-release
+
+fi
 
 log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
