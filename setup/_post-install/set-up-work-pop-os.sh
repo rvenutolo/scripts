@@ -329,6 +329,7 @@ sed --in-place 's/sdkman_auto_answer=true/sdkman_auto_answer=false/g' "${HOME}/.
 # shellcheck disable=SC2016
 log 'Finished
 You may want to do any of the following:
+- source ~/.nix-profile/etc/profile.d/nix.sh
 - chezmoi init --apply rvenutolo && source ~/.bashrc
-- copy files from the backup
+- rsync --archive --itemize-changes --human-readable --executability --progress --stats 172.16.0.157:Temp/work-backup ~
 - reboot'
