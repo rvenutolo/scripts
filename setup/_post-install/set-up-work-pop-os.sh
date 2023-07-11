@@ -293,7 +293,19 @@ get_pkgs "${flatpaks_url}" | xargs flatpak install --or-update --user --noninter
 
 if [[ ! -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]]; then
   log 'Installing SDKMAN'
-  bash <(dl 'https://get.sdkman.io?rcupdate=false')
+  # Retry due to random timeouts
+  tries=0
+  until dl 'https://get.sdkman.io?rcupdate=false' | bash; do
+    ((tries += 1))
+    if ((${tries} > 10)); then
+      die "Failed to install SDKMAN in 10 tries"
+    fi
+    rm -rf "${HOME}/.sdkman"
+    sleep 15
+  done
+else
+  source "${HOME}/.sdkman/bin/sdkman-init.sh"
+  sdk selfupdate
 fi
 
 log 'Installing SDKMAN packages'
