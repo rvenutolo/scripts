@@ -158,7 +158,9 @@ if [[ ! -e '/dev/sr0' ]]; then
   sudo pam-auth-update --enable fprintd
   sudo cp '/etc/pam.d/common-auth' '/etc/pam.d/common-auth.orig'
   sudo sed --in-place 's/ max-tries=1 / max-tries=10 /g' '/etc/pam.d/common-auth'
-  fprintd-enroll
+  if ! fprintd-list "${USER}" | grep --quiet --fixed-strings 'right-index-finger'; then
+    fprintd-enroll
+  fi
 
   log 'Setting hybrid graphics'
   sudo system76-power graphics 'hybrid'
