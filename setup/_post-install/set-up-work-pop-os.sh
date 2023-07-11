@@ -166,7 +166,7 @@ if [[ ! -e '/dev/sr0' ]]; then
   sudo system76-power graphics 'hybrid'
 
   log 'Updating firmware'
-  sudo fwupdmgr refresh
+  sudo fwupdmgr refresh --force
   sudo fwupdmgr update --offline --assume-yes
 
   log 'Updating recovery partition'
