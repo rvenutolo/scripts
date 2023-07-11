@@ -280,10 +280,12 @@ source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 export NIXPKGS_ALLOW_UNFREE='1'
 get_pkgs "${nixpkgs_url}" | xargs printf -- 'nixpkgs.%s\n' | xargs nix-env --install --attr
 
-log 'Updating font cache'
-mkdir --parents "${HOME}/.local/share/fonts"
-ln --symbolic --force "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
-fc-cache --force
+if [[ ! -h "${HOME}/.local/share/fonts/nix" ]]; then
+  log 'Updating font cache'
+  mkdir --parents "${HOME}/.local/share/fonts"
+  ln --symbolic --force "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
+  fc-cache --force
+fi
 
 log 'Installing flatpaks'
 flatpak remote-add --user --if-not-exists 'flathub' 'https://dl.flathub.org/repo/flathub.flatpakrepo'
