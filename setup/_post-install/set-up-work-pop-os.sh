@@ -348,6 +348,10 @@ chezmoi init --apply 'rvenutolo'
 
 source "${HOME}/.profile"
 
+log 'Updating tldr cache'
+tldr --update
+
+log 'Enabling ssh-agent service'
 systemctl enable --now --user ssh-agent
 
 # shellcheck disable=SC2016
