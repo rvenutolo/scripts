@@ -281,7 +281,7 @@ export NIXPKGS_ALLOW_UNFREE='1'
 get_pkgs "${nixpkgs_url}" | xargs printf -- 'nixpkgs.%s\n' | xargs nix-env --install --attr
 
 log 'Updating font cache'
-mkdir --parents "${HOME}/.nix-profile/share/fonts"
+mkdir --parents "${HOME}/.local/share/fonts"
 ln --symbolic --force "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
 fc-cache --force
 
