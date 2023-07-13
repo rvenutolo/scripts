@@ -99,6 +99,12 @@ fi
 
 sudo --validate
 
+log 'Downloading and running chezmoi'
+dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
+sh '/tmp/dl-chezmoi.sh' -b '/tmp'
+/tmp/chezmoi init --apply 'rvenutolo'
+source "${HOME}/.profile"
+
 log 'Setting sudo timeout'
 echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
 
@@ -124,31 +130,6 @@ log 'Configuring UFW'
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw allow from "$(local_network)"
-
-log 'Installing age'
-sudo apt-get install --yes age
-
-log 'Getting keys'
-if [[ ! -f "${HOME}/.keys/age.key" ]]; then
-  mkdir --parents "${HOME}/.keys"
-  dl 'https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/age.key' | age --decrypt --output "${HOME}/.keys/age.key"
-fi
-chmod 700 "${HOME}/.keys"
-chmod 600 "${HOME}/.keys/age.key"
-keys=(
-  'authorized_keys .ssh'
-  'core-dev-general.pem .keys'
-  'id_ed25519 .keys'
-  'id_ed25519.pub .keys'
-  'pihole .keys'
-  'pihole.pub .keys'
-)
-for line in "${keys[@]}"; do
-  IFS=' ' read -r file dir <<< "${line}"
-  mkdir --parents "${dir}"
-  dl_decrypt "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${file}" "${HOME}/${dir}/${file}"
-  chmod 600 "${HOME}/${dir}/${file}"
-done
 
 # Skip these if running in vm for testing
 if [[ ! -e '/dev/sr0' ]]; then
@@ -345,11 +326,6 @@ set -u
 sed --in-place 's/sdkman_auto_answer=true/sdkman_auto_answer=false/g' "${HOME}/.sdkman/etc/config"
 
 source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
-
-# TODO check on .crypt stuff
-chezmoi init --apply 'rvenutolo'
-
-source "${HOME}/.profile"
 
 log 'Updating tldr cache'
 tldr --update
