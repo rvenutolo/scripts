@@ -105,6 +105,25 @@ fi
 
 sudo --validate
 
+log 'Setting sudo timeout'
+echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
+
+log 'Setting timezone'
+sudo timedatectl set-timezone 'America/New_York'
+
+log 'Setting hostname'
+hostnamectl set-hostname 'silverstar'
+
+log 'Setting user to linger'
+sudo loginctl enable-linger "${USER}"
+
+log 'Adding to user groups'
+groups=('sys' 'wheel' 'sudo' 'kvm' 'input' 'libvirtd')
+for group in "${groups[@]}"; do
+  sudo groupadd --force "${group}"
+  sudo usermod --append --groups "${group}" "${USER}"
+done
+
 log 'Downloading and running chezmoi'
 if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
   dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
@@ -135,24 +154,12 @@ for file in "${home_dir_files_to_copy[@]}"; do
   copy_home_dir_file_from_dt "${file}"
 done
 
-log 'Setting sudo timeout'
-echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
+log 'Getting de-400 connection file'
+dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
+sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
 
-log 'Setting timezone'
-sudo timedatectl set-timezone 'America/New_York'
-
-log 'Setting hostname'
-hostnamectl set-hostname 'silverstar'
-
-log 'Setting user to linger'
-sudo loginctl enable-linger "${USER}"
-
-log 'Adding to user groups'
-groups=('sys' 'wheel' 'sudo' 'kvm' 'input' 'libvirtd')
-for group in "${groups[@]}"; do
-  sudo groupadd --force "${group}"
-  sudo usermod --append --groups "${group}" "${USER}"
-done
+log 'Getting DE VPN config file'
+dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/ovpn/de.ovpn' "${HOME}/de.ovpn"
 
 # Do this before package upgrade as that may update the kernel, and then these
 # commands will fail until after a reboot.
@@ -184,13 +191,6 @@ if [[ ! -e '/dev/sr0' ]]; then
   pop-upgrade recovery upgrade from-release
 
 fi
-
-log 'Getting de-400 connection file'
-dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
-sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
-
-log 'Getting DE VPN config file'
-dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/ovpn/de.ovpn' "${HOME}/de.ovpn"
 
 if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
   log 'Installing old libssl1.1 package for AWS VPN client'
