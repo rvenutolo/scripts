@@ -111,6 +111,9 @@ if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
 fi
 source "${HOME}/.profile"
 
+log 'Enabling ssh-agent service'
+systemctl enable --now --user ssh-agent
+
 log 'Setting sudo timeout'
 echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
 
@@ -336,9 +339,6 @@ source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 
 log 'Updating tldr cache'
 tldr --update
-
-log 'Enabling ssh-agent service'
-systemctl enable --now --user ssh-agent
 
 # shellcheck disable=SC2016
 log 'Finished
