@@ -167,6 +167,9 @@ log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
 sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
 
+log 'Getting DE VPN config file'
+dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/ovpn/de.ovpn' "${HOME}/de.ovpn"
+
 if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
   log 'Installing old libssl1.1 package for AWS VPN client'
   libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb'
