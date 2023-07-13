@@ -122,7 +122,7 @@ systemctl enable --now --user ssh-agent
 
 home_dir_files_to_copy=(
   '.application-deployment'
-  '.bin/create_emr_test_cluster'
+  '.bin/create-emr-test-cluster'
   '.config/AWSVPNClient'
   '.config/google-chrome'
   '.config/JetBrains'
