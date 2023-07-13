@@ -105,7 +105,7 @@ fi
 sudo --validate
 
 log 'Downloading and running chezmoi'
-if [[ ! -f '/tmp/dl-chezmoi' ]]; then
+if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
   dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
 fi
 if [[ ! -f '/tmp/chezmoi' ]]; then
