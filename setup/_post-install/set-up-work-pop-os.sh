@@ -144,7 +144,7 @@ if [[ ! -e '/dev/sr0' ]]; then
   sudo apt-get install --yes fprintd libpam-fprintd
   sudo pam-auth-update --enable fprintd
   sudo cp '/etc/pam.d/common-auth' '/etc/pam.d/common-auth.orig'
-  sudo sed --in-place 's/ max-tries=1 / max-tries=10 /g' '/etc/pam.d/common-auth'
+  sudo sed --in-place "s/ max-tries=[0-9]\+ / max-tries=10 /g" '/etc/pam.d/common-auth'
   if ! fprintd-list "${USER}" | grep --quiet --fixed-strings 'right-index-finger'; then
     fprintd-enroll
   fi
