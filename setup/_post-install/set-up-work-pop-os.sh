@@ -8,6 +8,7 @@ set -euo pipefail
 readonly nixpkgs_url='https://raw.githubusercontent.com/rvenutolo/packages/main/nixpkgs.csv'
 readonly flatpaks_url='https://raw.githubusercontent.com/rvenutolo/packages/main/flatpaks.csv'
 readonly sdkman_url='https://raw.githubusercontent.com/rvenutolo/packages/main/sdkman.csv'
+readonly dt_ip='172.16.0.21'
 
 # $1 = URL
 # $2 = output file (optional)
@@ -94,7 +95,7 @@ function local_network() {
 
 # $1 = path
 function copy_home_dir_file_from_dt() {
-  rsync --archive --itemize-changes --human-readable --executability --progress --stats "172.16.0.21:$1" "${HOME}/$1"
+  rsync --archive --itemize-changes --human-readable --executability --progress --stats "${dt_ip}:$1" "${HOME}/$1"
 }
 
 if [[ "${EUID}" == 0 ]]; then
@@ -114,6 +115,21 @@ if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
   /tmp/chezmoi init --apply 'rvenutolo'
 fi
 source "${HOME}/.profile"
+
+home_dir_files_to_copy=(
+  '.application-deployment'
+  '.bin/create_emr_test_cluster'
+  '.config/AWSVPNClient'
+  '.config/google-chrome'
+  '.config/JetBrains'
+  '.config/Slack'
+  '.de'
+  'carbonblack'
+)
+for file in "${home_dir_files_to_copy[@]}"; do
+  log "Copying ${HOME}/${file} from dt"
+  copy_home_dir_file_from_dt "${file}"
+done
 
 log 'Enabling ssh-agent service'
 systemctl enable --now --user ssh-agent
@@ -320,6 +336,7 @@ set +u
 # shellcheck disable=SC1091
 source "${HOME}/.sdkman/bin/sdkman-init.sh"
 get_sdkman_pkgs | while read -r pkg; do
+  log "Installing ${pkg} with SDKMAN"
   if [[ "${pkg}" == 'java' ]]; then
     sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac | while read -r jdk; do
       # Retry due to random timeouts
@@ -354,21 +371,6 @@ source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 
 log 'Updating tldr cache'
 tldr --update
-
-home_dir_files_to_copy=(
-  '.application-deployment'
-  '.bin/create_emr_test_cluster'
-  '.config/AWSVPNClient'
-  '.config/google-chrome'
-  '.config/JetBrains'
-  '.config/Slack'
-  '.de'
-  'carbonblack'
-)
-for file in "${home_dir_files_to_copy[@]}"; do
-  log "Copying ${HOME}/${file} from dt"
-  copy_home_dir_file_from_dt "${file}"
-done
 
 # shellcheck disable=SC2016
 log 'Finished
