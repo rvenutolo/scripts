@@ -296,9 +296,6 @@ if [[ ! -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]]; then
     rm -rf "${HOME}/.sdkman"
     sleep 15
   done
-else
-  source "${HOME}/.sdkman/bin/sdkman-init.sh"
-  sdk selfupdate
 fi
 
 log 'Installing SDKMAN packages'
