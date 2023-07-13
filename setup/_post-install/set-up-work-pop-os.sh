@@ -100,9 +100,15 @@ fi
 sudo --validate
 
 log 'Downloading and running chezmoi'
-dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
-sh '/tmp/dl-chezmoi.sh' -b '/tmp'
-/tmp/chezmoi init --apply 'rvenutolo'
+if [[ ! -f '/tmp/dl-chezmoi' ]]; then
+  dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
+fi
+if [[ ! -f '/tmp/chezmoi' ]]; then
+  sh '/tmp/dl-chezmoi.sh' -b '/tmp'
+fi
+if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
+  /tmp/chezmoi init --apply 'rvenutolo'
+fi
 source "${HOME}/.profile"
 
 log 'Setting sudo timeout'
