@@ -117,6 +117,9 @@ if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
 fi
 source "${HOME}/.profile"
 
+log 'Enabling ssh-agent service'
+systemctl enable --now --user ssh-agent
+
 home_dir_files_to_copy=(
   '.application-deployment'
   '.bin/create_emr_test_cluster'
@@ -131,9 +134,6 @@ for file in "${home_dir_files_to_copy[@]}"; do
   log "Copying ${HOME}/${file} from dt"
   copy_home_dir_file_from_dt "${file}"
 done
-
-log 'Enabling ssh-agent service'
-systemctl enable --now --user ssh-agent
 
 log 'Setting sudo timeout'
 echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
