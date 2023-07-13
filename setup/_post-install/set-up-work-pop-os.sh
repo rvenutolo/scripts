@@ -286,6 +286,14 @@ fi
 
 if [[ ! -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]]; then
   log 'Installing SDKMAN'
+  if [[ -d "${HOME}/.sdkman" ]]; then
+    # chezmoi will have created ~/.sdkman and the SDKMAN install script assumes
+    # that the presence of this directory means that SDKMAN has already been
+    # installed and will not actually install SDKMAN. This directory should only
+    # contain a symlink to ~/.config/sdkman/config. This symlink will be
+    # re-created later in this script.
+    rm --recursive "${HOME}/.sdkman"
+  fi
   # Retry due to random timeouts
   tries=0
   until dl 'https://get.sdkman.io?rcupdate=false' | bash; do
@@ -329,7 +337,10 @@ get_sdkman_pkgs | while read -r pkg; do
   fi
 done
 set -u
-sed --in-place 's/sdkman_auto_answer=true/sdkman_auto_answer=false/g' "${HOME}/.sdkman/etc/config"
+
+if [[ -f "${HOME}/.config/sdkman/config" ]]; then
+  ln --symbolic --force "${HOME}/.config/sdkman/config" "${HOME}/.sdkman/etc/config"
+fi
 
 source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 
