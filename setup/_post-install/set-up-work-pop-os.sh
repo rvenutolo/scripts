@@ -92,6 +92,11 @@ function local_network() {
   fi
 }
 
+# $1 = path
+function copy_home_dir_file_from_dt() {
+  rsync --archive --itemize-changes --human-readable --executability --progress --stats "172.16.0.21:$1" "${HOME}/$1"
+}
+
 if [[ "${EUID}" == 0 ]]; then
   die "Do not run this script as root"
 fi
@@ -350,9 +355,23 @@ source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 log 'Updating tldr cache'
 tldr --update
 
+home_dir_files_to_copy=(
+  '.application-deployment'
+  '.bin/create_emr_test_cluster'
+  '.config/AWSVPNClient'
+  '.config/google-chrome'
+  '.config/JetBrains'
+  '.config/Slack'
+  '.de'
+  'carbonblack'
+)
+for file in "${home_dir_files_to_copy[@]}"; do
+  log "Copying ${HOME}/${file} from dt"
+  copy_home_dir_file_from_dt "${file}"
+done
+
 # shellcheck disable=SC2016
 log 'Finished
 You may want to do any of the following:
 - source ~/.bashrc
-- rsync --archive --itemize-changes --human-readable --executability --progress --stats 172.16.0.157:Temp/work-backup ~
 - reboot'
