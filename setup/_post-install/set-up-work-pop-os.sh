@@ -95,7 +95,8 @@ function local_network() {
 
 # $1 = path
 function copy_home_dir_file_from_dt() {
-  rsync --archive --itemize-changes --human-readable --executability --progress --stats "${dt_ip}:$1" "${HOME}/$1"
+  mkdir --parents "$(dirname "${HOME}/$1")"
+  rsync --archive --human-readable --executability "${dt_ip}:$1" "${HOME}/$1"
 }
 
 if [[ "${EUID}" == 0 ]]; then
