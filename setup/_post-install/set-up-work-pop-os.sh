@@ -8,7 +8,6 @@ set -euo pipefail
 readonly nixpkgs_url='https://raw.githubusercontent.com/rvenutolo/packages/main/nixpkgs.csv'
 readonly flatpaks_url='https://raw.githubusercontent.com/rvenutolo/packages/main/flatpaks.csv'
 readonly sdkman_url='https://raw.githubusercontent.com/rvenutolo/packages/main/sdkman.csv'
-readonly nerd_fonts_url='https://raw.githubusercontent.com/rvenutolo/packages/main/nerd_fonts.csv'
 
 # $1 = URL
 # $2 = output file (optional)
