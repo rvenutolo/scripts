@@ -14,7 +14,7 @@ readonly aws_cli_extract_dir="${aws_cli_cache_dir}/extracted"
 rm -rf "${aws_cli_zip_file}" "${aws_cli_extract_dir}"
 mkdir --parents "${aws_cli_cache_dir}"
 touch "${aws_cli_etag_file}"
-curl --silent --show-error --location \
+curl --disable --silent --show-error --location \
   --etag-compare "${aws_cli_etag_file}" \
   --etag-save "${aws_cli_etag_file}" \
   --output "${aws_cli_zip_file}" \

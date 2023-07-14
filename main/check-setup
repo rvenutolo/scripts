@@ -8,6 +8,7 @@ sudo --validate
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_no_args "$@"
 
+## TODO less of the custom ones
 expected_vars=(
   'BROWSER'
   'CODE_DIR'
@@ -45,18 +46,20 @@ fi
 XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-"${HOME}/.config"}"
 SDKMAN_DIR="${SDKMAN_DIR:-"${HOME}/.sdkman"}"
 
+# TODO btrfs-assistant btrfsbk nix
+
 # cli apps for all boxes
 expected_executables=(
   '7z'
   'act' 'ag' 'age' 'autotrash' 'awk' 'aws' 'aws_completer'
-  'backintime' 'bandwhich' 'bat' 'bc' 'bmon' 'broot' 'btm' 'btop' 'bzip2'
+  'backintime' 'bandwhich' 'bat' 'bc' 'bmon' 'broot' 'btm' 'btop' 'bzip2' 'bzip3'
   'cabextract' 'cargo' 'checkbashisms' 'cheat' 'chezmoi' 'choose' 'clamscan' 'clipboard' 'cmake' 'colordiff' 'column'
-  'counts' 'cpufetch' 'crontab' 'ctop' 'curl' 'curlie'
+  'cpufetch' 'crontab' 'ctop' 'curl' 'curlie'
   'dash' 'ddh' 'delta' 'diff' 'difft' 'diff-so-fancy' 'dig' 'distrobox' 'dmesg' 'dog' 'doggo' 'dos2unix' 'dotenv-linter'
   'dua' 'duf' 'dust'
-  'editorconfig-checker' 'exa'
+  'editorconfig-checker' 'etckeeper' 'exa'
   'fail2ban-client' 'fclones' 'fcp' 'fd' 'fend' 'ff' 'fff' 'file' 'find' 'fish' 'free' 'fselect' 'fx' 'fzf'
-  'gawk' 'gdu' 'git' 'gitui' 'glances' 'glow' 'go' 'gpg' 'gping' 'gradle' 'grep' 'grex' 'groups' 'groovy' 'gs' 'gtop'
+  'gawk' 'gdu' 'git' 'gitui' 'glances' 'glow' 'go' 'gpg' 'gping' 'gradle' 'grep' 'grex' 'groovy' 'gs' 'gtop'
   'gunzip' 'gzip'
   'hck' 'hx' 'highlight' 'hostname' 'hstr' 'http' 'hyperfine'
   'iconv' 'iftop' 'inotifywait' 'ip'
@@ -65,26 +68,25 @@ expected_executables=(
   'lazydocker' 'lazygit' 'less' 'lf' 'lfs' 'locate' 'lpass' 'lsblk' 'lsof'
   'maldet' 'man' 'mcs' 'mdcat' 'micro' 'mn' 'moar' 'mount' 'mtr' 'mvn' 'mvnd'
   'nano' 'navi' 'ncdu' 'neofetch' 'nmap' 'nnn' 'nvim'
-  'onefetch' 'oneshot' 'openconnect' 'openssl' 'openvpn' 'ouch'
-  'pandoc' 'parallel' 'parquet-tools' 'perl' 'pdu' 'pgrep' 'pigz' 'ping' 'pingg' 'pipr' 'pip3' 'podman'
-  'pomchecker' 'procs' 'proxychains' 'ps' 'psgrep' 'pv' 'px' 'python3'
+  'onefetch' 'oneshot' 'openssl' 'openvpn' 'ouch'
+  'pandoc' 'parallel' 'parquet-tools' 'perl' 'pgrep' 'pigz' 'ping' 'pingg' 'pipr' 'pip3' 'podman'
+  'pomchecker' 'procs' 'ps' 'psgrep' 'pv' 'px' 'python3'
   'qalc' 'qsv' 'quickemu'
   'ranger' 'rename' 'rg' 'riff' 'rnr' 'rsync' 'ruby' 'runiq' 'rustup'
-  'sbt' 'scala' 'screen' 'sd' 'sed' 'shellcheck' 'shellharden' 'shfmt' 'sk' 'skeletal' 'slocate' 'sn' 'snap' 'sntp'
-  'sops' 'spark-submit' 'spring' 'ssh' 'starship' 'su' 'sudo'
-  'tabs2spaces' 'tar' 'tcpdump' 'tldr' 'tmux' 'tokei' 'top' 'topgrade' 'tracepath' 'traceroute' 'trash' 'tree'
+  'sbt' 'scala' 'screen' 'sd' 'sed' 'shellcheck' 'shellharden' 'shfmt' 'sk' 'skeletal' 'slocate' 'sn'
+  'sops' 'spark-submit' 'spring' 'ssh' 'starship'
+  'tar' 'tcpdump' 'tgpt' 'tldr' 'tmux' 'tokei' 'top' 'topgrade' 'tracepath' 'traceroute' 'trash' 'tree'
   'ufw' 'unix2dos' 'unlzma' 'unrar' 'unxz' 'unzip' 'usermod'
   'wget' 'whatis' 'which'
-  'xargs' 'xcp' 'xh' 'xsel' 'xz'
+  'xargs' 'xh' 'xsel' 'xz'
   'zellij' 'zip' 'zoxide' 'zstd'
 )
 # gui apps for all gui boxes
 if ! is_headless; then
   expected_executables+=(
     'alacritty' 'authy'
-    'backintime-qt'
     'cheese' 'clamtk'
-    'filelight' 'filezilla' 'firefox' 'flatpak' 'flatpak-spawn' 'flatseal'
+    'filelight' 'filezilla' 'firefox' 'flatpak' 'flatseal'
     'gimp' 'github-desktop' 'gitkraken' 'google-chrome-stable' 'gparted' 'gufw' 'gummi'
     'hacksaw'
     'intellij-idea-ultimate'
@@ -94,8 +96,8 @@ if ! is_headless; then
     'okular'
     'podman-desktop' 'postman'
     'qdirstat' 'quickgui' 'qutebrowser'
-    'selectdefaultapplication' 'shotgun' 'simplescreenrecorder' 'slack' 'slock' 'spectacle' 'stacer' 'subl'
-    'timeshift' 'torbrowser-launcher'
+    'selectdefaultapplication' 'shotgun' 'simplescreenrecorder' 'slack' 'spectacle' 'stacer' 'subl'
+    'torbrowser-launcher'
     'visualvm' 'vlc' 'vncviewer'
     'wireshark'
   )
@@ -163,6 +165,8 @@ if is_arch || is_endeavour; then
   )
 fi
 
+## TODO check that home dir is btrfs and then add btrfs-assistant snapper (snapper-gui for non-headless)
+
 ## remove my bin dirs from path so scripts that mask commands are no longer on PATH, ex: mvn
 path_remove "${HOME}/.bin"
 path_remove "${HOME}/.bin/other"
@@ -183,6 +187,15 @@ if executable_exists 'tldr' && ! tldr --version | contains_word 'tealdeer'; then
   echo "tldr command is not from tealdeer"
 fi
 
+## TODO check that docker command is from podman-docker
+
+#usr/share/libalpm/hooks/05-snap-pac-pre.hook
+ #usr/share/libalpm/hooks/10-snap-pac-removal.hook
+ #usr/share/libalpm/hooks/zz-snap-pac-post.hook
+
+## TODO check for apt-btrfs-snapshot
+## TODO check for https://archlinux.org/packages/community/any/snap-pac/
+## TODO look into fedora dnf snapshot
 expected_files=(
   "${HOME}/.bashrc"
   "${HOME}/.profile"

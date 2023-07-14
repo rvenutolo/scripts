@@ -13,7 +13,7 @@ readonly linpeas_output
 mkdir --parents "$(dirname "${etag_file}")"
 mkdir --parents "$(dirname "${linpeas_file}")"
 touch "${etag_file}"
-curl --silent --show-error --location \
+curl --disable --silent --show-error --location \
   --etag-compare "${etag_file}" \
   --etag-save "${etag_file}" \
   --output "${linpeas_file}" \
