@@ -16,7 +16,7 @@ function dl() {
   log "Downloading: $1"
   if [[ -n "${2:-}" ]]; then
     tries=0
-    until curl --fail --silent --location --show-error "$1" --output "$2"; do
+    until curl --disable --fail --silent --location --show-error "$1" --output "$2"; do
       ((tries += 1))
       if ((${tries} > 10)); then
         die "Failed to get in 10 tries: ${url}"
@@ -25,7 +25,7 @@ function dl() {
     done
   else
     tries=0
-    until curl --fail --silent --location --show-error "$1"; do
+    until curl --disable --fail --silent --location --show-error "$1"; do
       ((tries += 1))
       if ((${tries} > 10)); then
         die "Failed to get in 10 tries: ${url}"
