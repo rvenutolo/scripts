@@ -124,6 +124,44 @@ for group in "${groups[@]}"; do
   sudo usermod --append --groups "${group}" "${USER}"
 done
 
+log 'Setting dconf settings'
+gsettings=(
+  'org.gnome.desktop.datetime automatic-timezone false'
+  "org.gnome.desktop.input-sources xkb-options ['caps:super']"
+  'org.gnome.desktop.interface color-scheme prefer-dark'
+  'org.gnome.desktop.interface clock-show-weekday true'
+  'org.gnome.desktop.interface locate-pointer true'
+  'org.gnome.desktop.interface show-battery-percentage true'
+  'org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true'
+  'org.gnome.desktop.screensaver lock-delay uint32 30'
+  'org.gnome.desktop.session idle-delay uint32 900'
+  'org.gnome.desktop.wm.preferences action-middle-click-titlebar toggle-shade'
+  'org.gnome.desktop.wm.preferences button-layout appmenu:minimize,maximize,close'
+  'org.gnome.mutter center-new-windows true'
+  'org.gnome.settings-daemon.plugins.color night-light-enabled true'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 1800'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
+  'org.gnome.shell.extensions.dash-to-dock click-action minimize'
+  'org.gnome.shell.extensions.dash-to-dock intellihide false'
+  'org.gnome.shell.extensions.pop-shell active-hint true'
+  'org.gnome.shell.weather automatic-location true'
+  'org.gnome.system.location enabled true'
+  # TODO test these
+#  'org.gnome.desktop.remote-desktop.rdp enable false' # check if this needs to be true for vnc to work
+#  "org.gnome.desktop.remote-desktop.rdp tls-cert ${HOME}/.local/share/gnome-remote-desktop/rdp-tls.crt"
+#  "org.gnome.desktop.remote-desktop.rdp tls-key ${HOME}/.local/share/gnome-remote-desktop/rdp-tls.key"
+#  'org.gnome.desktop.remote-desktop.rdp view-only false'
+  'org.gnome.desktop.remote-desktop.vnc auth-method password'
+  'org.gnome.desktop.remote-desktop.vnc enable true'
+  'org.gnome.desktop.remote-desktop.vnc view-only false'
+)
+for line in "${gsettings[@]}"; do
+  IFS=' ' read -r schema key value <<< "${line}"
+  gsettings set "${schema}" "${key}" "${value}"
+done
+
 log 'Downloading and running chezmoi'
 if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
   dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
@@ -240,44 +278,6 @@ sudo apt-get install --yes \
 
 log 'Enabling libvirtd service'
 sudo systemctl enable --now 'libvirtd'
-
-log 'Setting dconf settings'
-gsettings=(
-  'org.gnome.desktop.datetime automatic-timezone false'
-  "org.gnome.desktop.input-sources xkb-options ['caps:super']"
-  'org.gnome.desktop.interface color-scheme prefer-dark'
-  'org.gnome.desktop.interface clock-show-weekday true'
-  'org.gnome.desktop.interface locate-pointer true'
-  'org.gnome.desktop.interface show-battery-percentage true'
-  'org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true'
-  'org.gnome.desktop.screensaver lock-delay uint32 30'
-  'org.gnome.desktop.session idle-delay uint32 900'
-  'org.gnome.desktop.wm.preferences action-middle-click-titlebar toggle-shade'
-  'org.gnome.desktop.wm.preferences button-layout appmenu:minimize,maximize,close'
-  'org.gnome.mutter center-new-windows true'
-  'org.gnome.settings-daemon.plugins.color night-light-enabled true'
-  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 1800'
-  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
-  'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
-  'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
-  'org.gnome.shell.extensions.dash-to-dock click-action minimize'
-  'org.gnome.shell.extensions.dash-to-dock intellihide false'
-  'org.gnome.shell.extensions.pop-shell active-hint true'
-  'org.gnome.shell.weather automatic-location true'
-  'org.gnome.system.location enabled true'
-  # TODO test these
-#  'org.gnome.desktop.remote-desktop.rdp enable false' # check if this needs to be true for vnc to work
-#  "org.gnome.desktop.remote-desktop.rdp tls-cert ${HOME}/.local/share/gnome-remote-desktop/rdp-tls.crt"
-#  "org.gnome.desktop.remote-desktop.rdp tls-key ${HOME}/.local/share/gnome-remote-desktop/rdp-tls.key"
-#  'org.gnome.desktop.remote-desktop.rdp view-only false'
-  'org.gnome.desktop.remote-desktop.vnc auth-method password'
-  'org.gnome.desktop.remote-desktop.vnc enable true'
-  'org.gnome.desktop.remote-desktop.vnc view-only false'
-)
-for line in "${gsettings[@]}"; do
-  IFS=' ' read -r schema key value <<< "${line}"
-  gsettings set "${schema}" "${key}" "${value}"
-done
 
 if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]]; then
   log 'Installing nix package manager'
