@@ -376,5 +376,5 @@ tldr --update
 # shellcheck disable=SC2016
 log 'Finished
 You may want to do any of the following:
-- source ~/.bashrc
+- source ~/.bashrc && source ~/.nix-profile/etc/profile.d/nix.sh"
 - reboot'
