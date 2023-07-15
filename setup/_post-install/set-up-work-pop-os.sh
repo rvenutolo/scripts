@@ -143,7 +143,8 @@ gsettings=(
   'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
-  'org.gnome.shell favorite-apps [pop-cosmic-launcher.desktop, pop-cosmic-workspaces.desktop, pop-cosmic-applications.desktop, org.gnome.Nautilus.desktop, org.kde.krusader.desktop, com.alacritty.Alacritty.desktop, kitty.desktop, com.jetbrains.IntelliJ-IDEA-Ultimate.desktop, com.jetbrains.DataGrip.desktop, io.github.shiftey.Desktop.desktop, com.axosoft.GitKraken.desktop, awsvpnclient.desktop, com.brave.Browser.desktop, com.slack.Slack.desktop, gnome-control-center.desktop]'
+  ## TODO fix this
+#  'org.gnome.shell favorite-apps [pop-cosmic-launcher.desktop, pop-cosmic-workspaces.desktop, pop-cosmic-applications.desktop, org.gnome.Nautilus.desktop, org.kde.krusader.desktop, com.alacritty.Alacritty.desktop, kitty.desktop, com.jetbrains.IntelliJ-IDEA-Ultimate.desktop, com.jetbrains.DataGrip.desktop, io.github.shiftey.Desktop.desktop, com.axosoft.GitKraken.desktop, awsvpnclient.desktop, com.brave.Browser.desktop, com.slack.Slack.desktop, gnome-control-center.desktop]'
   'org.gnome.shell.extensions.dash-to-dock click-action minimize'
   'org.gnome.shell.extensions.dash-to-dock intellihide false'
   'org.gnome.shell.extensions.pop-shell active-hint true'
@@ -383,6 +384,7 @@ if [[ -f '/usr/share/applications/caffeine-indicator.desktop' ]]; then
   cp '/usr/share/applications/caffeine-indicator.desktop' "${HOME}/.config/autostart"
 fi
 
+log 'Installing GNOME extensions'
 gnome_extensions=(
   'https://extensions.gnome.org/extension/7/removable-drive-menu/'
   'https://extensions.gnome.org/extension/8/places-status-indicator/'
@@ -393,7 +395,7 @@ gnome_extensions=(
   'https://extensions.gnome.org/extension/1319/gsconnect/'
   'https://extensions.gnome.org/extension/1460/vitals/'
 )
-log 'Installing GNOME extensions'
+## TODO try installing nixpkgs.gnome-extensions-cli
 python3 -m pip install --user pipx
 PATH="${PATH}:${HOME}/.local/bin"
 pipx install 'gnome-extensions-cli' --system-site-packages
