@@ -178,6 +178,7 @@ source "${HOME}/.profile"
 log 'Enabling ssh-agent service'
 systemctl enable --now --user ssh-agent
 
+# TODO check on these
 home_dir_files_to_copy=(
   '.application-deployment'
   '.bin/create-emr-test-cluster'
