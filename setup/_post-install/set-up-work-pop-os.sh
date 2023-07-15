@@ -264,6 +264,8 @@ sudo apt-get install --yes \
   cpu-checker \
   dconf-editor \
   flatpak \
+  gnome-shell-extensions \
+  gnome-shell-extension-gsconnect-browsers \
   gnome-software-plugin-flatpak gnome-tweaks \
   gparted \
   kitty \
@@ -274,6 +276,7 @@ sudo apt-get install --yes \
   openssh-server \
   ovmf \
   preload \
+  python3-pip python3-venv \
   qemu qemu-kvm qemu-utils \
   synaptic \
   virtinst
@@ -379,6 +382,26 @@ log 'Adding autostart applications'
 if [[ -f '/usr/share/applications/caffeine-indicator.desktop' ]]; then
   cp '/usr/share/applications/caffeine-indicator.desktop' "${HOME}/.config/autostart"
 fi
+
+gnome_extensions=(
+  'https://extensions.gnome.org/extension/7/removable-drive-menu/'
+  'https://extensions.gnome.org/extension/8/places-status-indicator/'
+  'https://extensions.gnome.org/extension/16/auto-move-windows/'
+  'https://extensions.gnome.org/extension/120/system-monitor/'
+  'https://extensions.gnome.org/extension/602/window-list/'
+  'https://extensions.gnome.org/extension/779/clipboard-indicator/'
+  'https://extensions.gnome.org/extension/1319/gsconnect/'
+  'https://extensions.gnome.org/extension/1460/vitals/'
+)
+log 'Installing GNOME extensions'
+python3 -m pip install --user pipx
+PATH="${PATH}:${HOME}/.local/bin"
+pipx install 'gnome-extensions-cli' --system-site-packages
+for url in "${gnome_extensions[@]}"; do
+  package_num="$(cut --delimiter='/' --fields='5')"
+  log "Installing extension from URL: ${url}"
+  gext install --filesystem "${package_num}"
+done
 
 # shellcheck disable=SC2016
 log 'Finished
