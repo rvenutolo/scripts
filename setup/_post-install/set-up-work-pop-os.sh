@@ -375,6 +375,11 @@ source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 log 'Updating tldr cache'
 tldr --update
 
+log 'Adding autostart applications'
+if [[ -f '/usr/share/applications/caffeine-indicator.desktop' ]]; then
+  cp '/usr/share/applications/caffeine-indicator.desktop' "${HOME}/.config/autostart"
+fi
+
 # shellcheck disable=SC2016
 log 'Finished
 You may want to do any of the following:
