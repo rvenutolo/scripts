@@ -194,10 +194,12 @@ for file in "${home_dir_files_to_copy[@]}"; do
   copy_home_dir_file_from_dt "${file}"
 done
 
+## TODO check on UUID
 log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
 sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
 
+## TODO check if copying .config files is enough and this is not necessary
 log 'Getting DE VPN config file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/ovpn/de.ovpn' "${HOME}/de.ovpn"
 
@@ -371,6 +373,7 @@ source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 log 'Updating tldr cache'
 tldr --update
 
+## TODO check that these work
 log 'Installing GNOME extensions'
 gnome_extensions=(
   'https://extensions.gnome.org/extension/7/removable-drive-menu/'
