@@ -10,10 +10,6 @@ rsync \
   --itemize-changes \
   --human-readable \
   --executability \
-  --partial \
   --progress \
-  --atimes \
   --stats \
-  --links \
-  --ignore-existing \
   "$@"
