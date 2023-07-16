@@ -342,33 +342,24 @@ set +u
 # shellcheck disable=SC1091
 source "${HOME}/.sdkman/bin/sdkman-init.sh"
 get_sdkman_pkgs | while read -r pkg; do
-  # TODO can i wrop all this in an until block?
   log "Installing ${pkg} with SDKMAN"
-  if [[ "${pkg}" == 'java' ]]; then
-    sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac | while read -r jdk; do
-      # Retry due to random timeouts
-      tries=0
-      until sdk install java "${jdk}"; do
-        ((tries += 1))
-        if ((${tries} > 10)); then
-          die "Failed to download in 10 tries: ${jdk}"
-        fi
-        sleep 15
+  base_sleep_time=30
+  tries=0
+  until
+    if [[ "${pkg}" == 'java' ]]; then
+      sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac | while read -r jdk; do
+        sdk install java "${jdk}"
       done
-    done
-  else
-    # Retry due to random timeouts
-    tries=0
-    until sdk install "${pkg}"; do
-      ((tries += 1))
-      if ((${tries} > 10)); then
-        die "Failed to download in 10 tries: ${pkg}"
-      fi
-      sleep 15
-    done
-  fi
-  # TODO include backoff time
-  sleep 10
+    else
+      sdk install "${pkg}"
+    fi
+  do
+    ((tries += 1))
+    if ((${tries} > 10)); then
+      die "Failed to install in 10 tries: ${pkg}"
+    fi
+    sleep "$((base_sleep_time * tries))"
+  done
 done
 set -u
 
