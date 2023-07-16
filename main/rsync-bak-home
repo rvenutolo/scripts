@@ -5,18 +5,11 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_at_least_1_arg "$@"
 
-rsync \
-  --archive \
-  --itemize-changes \
-  --human-readable \
-  --executability \
-  --partial \
-  --progress \
-  --atimes \
-  --stats \
-  --links \
-  --ignore-existing \
+rsync-bak \
   --exclude '.cache/' \
+  --exclude '.groovy/' \
+  --exclude '.ivy2/' \
+  --exclude '.local/share/baloo/' \
   --exclude '.local/share/Trash/' \
   --exclude '.local/share/stack/' \
   --exclude '.m2/repository/' \
