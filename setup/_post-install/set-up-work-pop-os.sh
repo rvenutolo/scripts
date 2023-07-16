@@ -300,7 +300,7 @@ source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 export NIXPKGS_ALLOW_UNFREE='1'
 get_pkgs "${nixpkgs_url}" | xargs printf -- 'nixpkgs.%s\n' | xargs nix-env --install --attr
 
-if [[ ! -h "${HOME}/.local/share/fonts/nix" ]]; then
+if [[ ! -L "${HOME}/.local/share/fonts/nix" ]]; then
   log 'Updating font cache'
   mkdir --parents "${HOME}/.local/share/fonts"
   ln --symbolic --force "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
