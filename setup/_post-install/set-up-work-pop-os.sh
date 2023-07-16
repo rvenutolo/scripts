@@ -277,7 +277,6 @@ sudo apt-get install --yes \
   openssh-server \
   ovmf \
   preload \
-  python3-pip python3-venv \
   qemu qemu-kvm qemu-utils \
   synaptic \
   virtinst
@@ -343,6 +342,7 @@ set +u
 # shellcheck disable=SC1091
 source "${HOME}/.sdkman/bin/sdkman-init.sh"
 get_sdkman_pkgs | while read -r pkg; do
+  # TODO can i wrop all this in an until block?
   log "Installing ${pkg} with SDKMAN"
   if [[ "${pkg}" == 'java' ]]; then
     sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac | while read -r jdk; do
@@ -367,6 +367,8 @@ get_sdkman_pkgs | while read -r pkg; do
       sleep 15
     done
   fi
+  # TODO include backoff time
+  sleep 10
 done
 set -u
 
@@ -379,11 +381,6 @@ source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 log 'Updating tldr cache'
 tldr --update
 
-log 'Adding autostart applications'
-if [[ -f '/usr/share/applications/caffeine-indicator.desktop' ]]; then
-  cp '/usr/share/applications/caffeine-indicator.desktop' "${HOME}/.config/autostart"
-fi
-
 log 'Installing GNOME extensions'
 gnome_extensions=(
   'https://extensions.gnome.org/extension/7/removable-drive-menu/'
@@ -395,15 +392,16 @@ gnome_extensions=(
   'https://extensions.gnome.org/extension/1319/gsconnect/'
   'https://extensions.gnome.org/extension/1460/vitals/'
 )
-## TODO try installing nixpkgs.gnome-extensions-cli
-python3 -m pip install --user pipx
-PATH="${PATH}:${HOME}/.local/bin"
-pipx install 'gnome-extensions-cli' --system-site-packages
 for url in "${gnome_extensions[@]}"; do
-  package_num="$(cut --delimiter='/' --fields='5')"
+  package_num="$(cut --delimiter='/' --fields='5' <<< "${url}")"
   log "Installing extension from URL: ${url}"
-  gext install --filesystem "${package_num}"
+  gext --filesystem install "${package_num}"
 done
+
+log 'Adding autostart applications'
+if [[ -f '/usr/share/applications/caffeine-indicator.desktop' ]]; then
+  cp '/usr/share/applications/caffeine-indicator.desktop' "${HOME}/.config/autostart"
+fi
 
 # shellcheck disable=SC2016
 log 'Finished
