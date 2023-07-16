@@ -143,8 +143,7 @@ gsettings=(
   'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
-  ## TODO fix this
-#  'org.gnome.shell favorite-apps [pop-cosmic-launcher.desktop, pop-cosmic-workspaces.desktop, pop-cosmic-applications.desktop, org.gnome.Nautilus.desktop, org.kde.krusader.desktop, com.alacritty.Alacritty.desktop, kitty.desktop, com.jetbrains.IntelliJ-IDEA-Ultimate.desktop, com.jetbrains.DataGrip.desktop, io.github.shiftey.Desktop.desktop, com.axosoft.GitKraken.desktop, awsvpnclient.desktop, com.brave.Browser.desktop, com.slack.Slack.desktop, gnome-control-center.desktop]'
+  "org.gnome.shell favorite-apps ['pop-cosmic-launcher.desktop','pop-cosmic-workspaces.desktop','pop-cosmic-applications.desktop','org.gnome.Nautilus.desktop','org.kde.krusader.desktop','com.alacritty.Alacritty.desktop','kitty.desktop','com.jetbrains.IntelliJ-IDEA-Ultimate.desktop','com.jetbrains.DataGrip.desktop','io.github.shiftey.Desktop.desktop','com.axosoft.GitKraken.desktop','awsvpnclient.desktop','com.brave.Browser.desktop','com.slack.Slack.desktop','gnome-control-center.desktop']"
   'org.gnome.shell.extensions.dash-to-dock click-action minimize'
   'org.gnome.shell.extensions.dash-to-dock intellihide false'
   'org.gnome.shell.extensions.pop-shell active-hint true'
