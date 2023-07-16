@@ -172,12 +172,10 @@ source "${HOME}/.profile"
 log 'Enabling ssh-agent service'
 systemctl enable --now --user ssh-agent
 
-# TODO check on these
 home_dir_files_to_copy=(
   '.application-deployment'
   '.bin/create-emr-test-cluster'
   '.config/AWSVPNClient'
-#  '.config/google-chrome'
   '.config/JetBrains'
   '.config/Slack'
   '.de'
@@ -188,14 +186,9 @@ for file in "${home_dir_files_to_copy[@]}"; do
   rsync --archive --human-readable --executability --relative "${dt_ip}:${file}" "${HOME}"
 done
 
-## TODO check on UUID
 log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
 sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
-
-## TODO check if copying .config files is enough and this is not necessary
-log 'Getting DE VPN config file'
-dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/ovpn/de.ovpn' "${HOME}/de.ovpn"
 
 # Do this before package upgrade as that may update the kernel, and then these
 # commands will fail until after a reboot.
