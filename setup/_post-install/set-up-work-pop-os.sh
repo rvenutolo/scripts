@@ -93,12 +93,6 @@ function local_network() {
   fi
 }
 
-# $1 = path
-function copy_home_dir_file_from_dt() {
-  mkdir --parents "$(dirname "${HOME}/$1")"
-  rsync --archive --human-readable --executability "${dt_ip}:$1" "${HOME}/$1"
-}
-
 if [[ "${EUID}" == 0 ]]; then
   die "Do not run this script as root"
 fi
@@ -191,7 +185,7 @@ home_dir_files_to_copy=(
 )
 for file in "${home_dir_files_to_copy[@]}"; do
   log "Copying ${HOME}/${file} from dt"
-  copy_home_dir_file_from_dt "${file}"
+  rsync --archive --human-readable --executability --relative "${dt_ip}:${file}" "${HOME}"
 done
 
 ## TODO check on UUID
