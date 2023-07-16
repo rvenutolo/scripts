@@ -208,7 +208,7 @@ sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw allow from "$(local_network)"
 
-# Skip these if running in vm for testing
+# Skip these if running in vm for testing.
 if [[ ! -e '/dev/sr0' ]]; then
 
   log 'Installing fingerprint scanner packages'
