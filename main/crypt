@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
+check_at_least_1_arg "$@"
+
+for file; do
+  if [[ -f "${file}" ]]; then
+    target_file="${CRYPT_DIR}/$(basename -- "${file}")"
+    log "Encrypting: ${file} to: ${target_file}"
+    age --encrypt --recipient="${AGE_PUBLIC_KEY}" --armor --output="${target_file}" -- "${file}"
+  else
+    die "${file} is not file"
+  fi
+done
