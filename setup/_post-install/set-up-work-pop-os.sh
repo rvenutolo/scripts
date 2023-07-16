@@ -379,8 +379,9 @@ for url in "${gnome_extensions[@]}"; do
 done
 
 log 'Adding autostart applications'
+mkdir --parents "${HOME}/.config/autostart"
 if [[ -f '/usr/share/applications/caffeine-indicator.desktop' ]]; then
-  cp '/usr/share/applications/caffeine-indicator.desktop' "${HOME}/.config/autostart"
+  cp '/usr/share/applications/caffeine-indicator.desktop' "${HOME}/.config/autostart/"
 fi
 
 # shellcheck disable=SC2016
