@@ -365,14 +365,8 @@ source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 log 'Updating tldr cache'
 tldr --update
 
-## TODO check that these work
 log 'Installing GNOME extensions'
 gnome_extensions=(
-#  'https://extensions.gnome.org/extension/7/removable-drive-menu/'
-#  'https://extensions.gnome.org/extension/8/places-status-indicator/'
-#  'https://extensions.gnome.org/extension/16/auto-move-windows/'
-  'https://extensions.gnome.org/extension/120/system-monitor/'
-#  'https://extensions.gnome.org/extension/602/window-list/'
   'https://extensions.gnome.org/extension/779/clipboard-indicator/'
   'https://extensions.gnome.org/extension/1319/gsconnect/'
   'https://extensions.gnome.org/extension/1460/vitals/'
