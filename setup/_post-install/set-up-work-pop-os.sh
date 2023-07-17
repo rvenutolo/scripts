@@ -253,6 +253,7 @@ sudo apt-get install --yes \
   cpu-checker \
   dconf-editor \
   flatpak \
+  gir1.2-nautilus-3.0 gir1.2-ebook-1.2 gir1.2-ebookcontacts-1.2 gir1.2-edataserver-1.2 \
   gnome-shell-extensions \
   gnome-shell-extension-gsconnect-browsers \
   gnome-software-plugin-flatpak gnome-tweaks \
@@ -265,6 +266,7 @@ sudo apt-get install --yes \
   openssh-server \
   ovmf \
   preload \
+  python3-nautilus \
   qemu qemu-kvm qemu-utils \
   synaptic \
   virtinst
