@@ -137,6 +137,7 @@ gsettings=(
   'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
+  # TODO check on these
   "org.gnome.shell disabled-extensions ['apps-menu@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'window-list@gnome-shell-extensions.gcampax.github.com']"
   "org.gnome.shell enabled-extensions ['cosmic-dock@system76.com', 'pop-shell@system76.com', 'popx11gestures@system76.com', 'system-monitor@paradoxxx.zero.gmail.com', 'ubuntu-appindicators@ubuntu.com', 'Vitals@CoreCoding.com', 'cosmic-workspaces@system76.com', 'clipboard-indicator@tudmotu.com', 'system76-power@system76.com', 'pop-cosmic@system76.com', 'gsconnect@andyholmes.github.io', 'auto-move-windows@gnome-shell-extensions.gcampax.github.com', 'places-menu@gnome-shell-extensions.gcampax.github.com', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'workspace-indicator@gnome-shell-extensions.gcampax.github.com']"
   "org.gnome.shell favorite-apps ['pop-cosmic-launcher.desktop', 'pop-cosmic-workspaces.desktop', 'pop-cosmic-applications.desktop', 'org.gnome.Nautilus.desktop', 'org.kde.krusader.desktop', 'com.alacritty.Alacritty.desktop', 'kitty.desktop', 'com.jetbrains.IntelliJ-IDEA-Ultimate.desktop', 'com.jetbrains.DataGrip.desktop', 'io.github.shiftey.Desktop.desktop', 'com.axosoft.GitKraken.desktop', 'awsvpnclient.desktop', 'com.brave.Browser.desktop', 'com.slack.Slack.desktop', 'gnome-control-center.desktop']"
@@ -171,6 +172,7 @@ if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
 fi
 source "${HOME}/.profile"
 
+# TODO do i need this?
 log 'Enabling ssh-agent service'
 systemctl enable --now --user ssh-agent
 
@@ -178,6 +180,7 @@ home_dir_files_to_copy=(
   '.application-deployment'
   '.bin/create-emr-test-cluster'
   '.config/AWSVPNClient'
+  # TODO check on this
   '.config/JetBrains'
   '.de'
   # TODO check on this
@@ -380,6 +383,7 @@ done
 log 'Adding autostart applications'
 mkdir --parents "${HOME}/.config/autostart"
 autostart_files=(
+  # TODO check on this
   '/usr/share/applications/caffeine-indicator.desktop'
 )
 for autostart_file in "${autostart_files[@]}"; do
