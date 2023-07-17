@@ -172,6 +172,7 @@ source "${HOME}/.profile"
 log 'Enabling ssh-agent service'
 systemctl enable --now --user ssh-agent
 
+# TODO check if .config/Slack xfer does anything
 home_dir_files_to_copy=(
   '.application-deployment'
   '.bin/create-emr-test-cluster'
