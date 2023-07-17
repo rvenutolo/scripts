@@ -382,9 +382,14 @@ done
 
 log 'Adding autostart applications'
 mkdir --parents "${HOME}/.config/autostart"
-if [[ -f '/usr/share/applications/caffeine-indicator.desktop' ]]; then
-  cp '/usr/share/applications/caffeine-indicator.desktop' "${HOME}/.config/autostart/"
-fi
+autostart_files=(
+  '/usr/share/applications/caffeine-indicator.desktop'
+)
+for autostart_file in "${autostart_files[@]}"; do
+  if [[ -f "${autostart_file}" ]]; then
+    ln --symbolic --force "${autostart_file}" "${HOME}/.config/autostart/"
+  fi
+done
 
 # shellcheck disable=SC2016
 log 'Finished
