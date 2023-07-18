@@ -179,10 +179,7 @@ home_dir_files_to_copy=(
   '.application-deployment'
   '.bin/create-emr-test-cluster'
   '.config/AWSVPNClient'
-  # TODO check on this
-  '.config/JetBrains'
   '.de'
-  # TODO check on this
   '.var/app/com.slack.Slack'
   'carbonblack'
 )
