@@ -379,7 +379,6 @@ done
 log 'Adding autostart applications'
 mkdir --parents "${HOME}/.config/autostart"
 autostart_files=(
-  # TODO check on this
   '/usr/share/applications/caffeine-indicator.desktop'
 )
 for autostart_file in "${autostart_files[@]}"; do
