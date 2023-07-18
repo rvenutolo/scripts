@@ -303,7 +303,7 @@ log 'Installing flatpaks'
 flatpak remote-add --user --if-not-exists 'flathub' 'https://dl.flathub.org/repo/flathub.flatpakrepo'
 get_pkgs "${flatpaks_url}" | xargs flatpak install --or-update --user --noninteractive
 if flatpak list --user --app | grep --quiet --fixed-strings 'com.google.Chrome'; then
-  sudo flatpak override --filesystem="${HOME}/.local/share" 'com.google.Chrome'
+  flatpak override --user --filesystem="${HOME}/.local/share" 'com.google.Chrome'
 fi
 
 if [[ ! -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]]; then
