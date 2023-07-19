@@ -261,6 +261,7 @@ sudo apt-get install --yes \
   gparted \
   kitty \
   krusader \
+  libfuse2 \
   libvirt-daemon libvirt-daemon-system libvirt-clients \
   nala \
   nautilus-admin \
