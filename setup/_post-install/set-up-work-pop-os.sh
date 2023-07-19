@@ -191,30 +191,6 @@ source "${HOME}/.profile"
 log 'Enabling ssh-agent service'
 systemctl enable --now --user ssh-agent
 
-home_dir_files_to_copy=(
-  '.application-deployment'
-  '.bin/create-emr-test-cluster'
-  '.config/AWSVPNClient'
-  '.de'
-  '.var/app/com.slack.Slack'
-  'carbonblack'
-)
-for file in "${home_dir_files_to_copy[@]}"; do
-  log "Copying ${HOME}/${file} from dt"
-  rsync --archive --human-readable --executability --relative "${dt_ip}:${file}" "${HOME}"
-done
-
-log 'Getting de-400 connection file'
-dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
-sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
-
-# Do this before package upgrade as that may update the kernel, and then these
-# commands will fail until after a reboot.
-log 'Configuring UFW'
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow from "$(local_network)"
-
 # Skip these if running in vm for testing.
 if [[ ! -e '/dev/sr0' ]]; then
 
@@ -238,6 +214,30 @@ if [[ ! -e '/dev/sr0' ]]; then
   pop-upgrade recovery upgrade from-release
 
 fi
+
+home_dir_files_to_copy=(
+  '.application-deployment'
+  '.bin/create-emr-test-cluster'
+  '.config/AWSVPNClient'
+  '.de'
+  '.var/app/com.slack.Slack'
+  'carbonblack'
+)
+for file in "${home_dir_files_to_copy[@]}"; do
+  log "Copying ${HOME}/${file} from dt"
+  rsync --archive --human-readable --executability --relative "${dt_ip}:${file}" "${HOME}"
+done
+
+log 'Getting de-400 connection file'
+dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
+sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
+
+# Do this before package upgrade as that may update the kernel, and then these
+# commands will fail until after a reboot.
+log 'Configuring UFW'
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow from "$(local_network)"
 
 if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
   log 'Installing old libssl1.1 package for AWS VPN client'
