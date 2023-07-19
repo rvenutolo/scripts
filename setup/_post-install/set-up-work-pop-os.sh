@@ -114,6 +114,7 @@ AcceptEnv LANG LC_*
 Subsystem sftp /usr/lib/openssh/sftp-server
 AllowUsers ${USER}
 " | sudo tee '/etc/ssh/sshd_config.d/sshd.conf' > '/dev/null'
+sudo chmod 644 '/etc/ssh/sshd_config.d/sshd.conf'
 
 log 'Setting timezone'
 sudo timedatectl set-timezone 'America/New_York'
@@ -244,7 +245,9 @@ if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
 fi
 
 dl 'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc' | sudo tee '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc' > '/dev/null'
+sudo chmod 644 '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc'
 echo 'deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu-20.04 main' | sudo tee '/etc/apt/sources.list.d/aws-vpn-client.list' > '/dev/null'
+sudo chmod 644 '/etc/apt/sources.list.d/aws-vpn-client.list'
 
 log 'Removing apt packages'
 sudo apt-get remove --yes geary firefox libreoffice-*
