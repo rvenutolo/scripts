@@ -102,6 +102,23 @@ sudo --validate
 log 'Setting sudo timeout'
 echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
 
+## TODO check on this
+log 'Creating sshd config file'
+sudo mkdir --parents '/etc/ssh/sshd_config.d'
+echo "LogLevel VERBOSE
+LoginGraceTime 20m
+PermitRootLogin prohibit-password
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+AuthenticationMethods publickey
+UsePAM yes
+X11Forwarding yes
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server
+AllowUsers ${USER}
+" | sudo tee '/etc/ssh/sshd_config.d/sshd.conf' > '/dev/null'
+
 log 'Setting timezone'
 sudo timedatectl set-timezone 'America/New_York'
 
