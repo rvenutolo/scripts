@@ -171,7 +171,6 @@ if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
 fi
 source "${HOME}/.profile"
 
-# TODO do i need this?
 log 'Enabling ssh-agent service'
 systemctl enable --now --user ssh-agent
 
