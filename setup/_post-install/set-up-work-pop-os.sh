@@ -98,7 +98,6 @@ sudo --validate
 log 'Setting sudo timeout'
 echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
 
-## TODO check on this
 log 'Creating sshd config file'
 sudo mkdir --parents '/etc/ssh/sshd_config.d'
 echo "LogLevel VERBOSE
@@ -111,7 +110,6 @@ UsePAM yes
 X11Forwarding yes
 PrintMotd no
 AcceptEnv LANG LC_*
-Subsystem sftp /usr/lib/openssh/sftp-server
 AllowUsers ${USER}
 " | sudo tee '/etc/ssh/sshd_config.d/sshd.conf' > '/dev/null'
 sudo chmod 644 '/etc/ssh/sshd_config.d/sshd.conf'
@@ -186,7 +184,7 @@ fi
 source "${HOME}/.profile"
 
 log 'Enabling ssh-agent service'
-systemctl enable --now --user ssh-agent
+systemctl enable --now --user 'ssh-agent'
 
 # Skip these if running in vm for testing.
 if [[ ! -e '/dev/sr0' ]]; then
@@ -291,6 +289,9 @@ sudo apt-get install --yes \
 
 log 'Enabling libvirtd service'
 sudo systemctl enable --now 'libvirtd'
+
+log 'Enabling sshd service'
+sudo systemctl enable --now 'sshd'
 
 if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]]; then
   log 'Installing nix package manager'
