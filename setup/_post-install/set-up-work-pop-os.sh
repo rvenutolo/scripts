@@ -362,7 +362,7 @@ fi
 if [[ ! -e "${HOME}/.local/bin/jetbrains-toolbox" ]]; then
   log 'Installing JetBrains Toolbox'
   mkdir --parents "${HOME}/.local/share/JetBrains/Toolbox/bin"
-  archive_url="$(dl 'https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release' | grep --perl-regexp --only-matching '"linux":.*?[^\\]",' | awk -F ':' '{ print $3,":"$4 }'| sed 's/[", ]//g')"
+  archive_url="$(dl 'https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release' | jq --raw-output '.TBA[0].downloads.linux.link')"
   dl "${archive_url}" | tar --extract --gzip --directory="${HOME}/.local/share/JetBrains/Toolbox/bin" --strip-components='1'
   chmod +x "${HOME}/.local/share/JetBrains/Toolbox/bin/jetbrains-toolbox"
   mkdir --parents "${HOME}/.local/bin"
