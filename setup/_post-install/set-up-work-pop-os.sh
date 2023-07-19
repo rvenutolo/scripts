@@ -69,10 +69,6 @@ function get_sdkman_pkgs() {
   dl "${sdkman_url}" | tail --lines='+2' | cut --delimiter=',' --fields='2'
 }
 
-function get_fonts() {
-  dl "${nerd_fonts_url}" | tail --lines='+2' | cut --delimiter=',' --fields='2'
-}
-
 # $1 = ip
 function ipv4_to_num() {
   IFS=. read -r a b c d <<< "$1"
