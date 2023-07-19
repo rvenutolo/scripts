@@ -359,6 +359,16 @@ if [[ -f "${HOME}/.config/sdkman/config" ]]; then
   ln --symbolic --force "${HOME}/.config/sdkman/config" "${HOME}/.sdkman/etc/config"
 fi
 
+if [[ ! -e "${HOME}/.local/bin/jetbrains-toolbox" ]]; then
+  log 'Installing JetBrains Toolbox'
+  mkdir --parents "${HOME}/.local/share/JetBrains/Toolbox/bin"
+  archive_url="$(dl 'https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release' | grep --perl-regexp --only-matching '"linux":.*?[^\\]",' | awk -F ':' '{ print $3,":"$4 }'| sed 's/[", ]//g')"
+  dl "${archive_url}" | tar --extract --gzip --directory="${HOME}/.local/share/JetBrains/Toolbox/bin" --strip-components='1'
+  chmod +x "${HOME}/.local/share/JetBrains/Toolbox/bin/jetbrains-toolbox"
+  mkdir --parents "${HOME}/.local/bin"
+  ln --symbolic --force "${HOME}/.local/share/JetBrains/Toolbox/bin/jetbrains-toolbox" "${HOME}/.local/bin/jetbrains-toolbox"
+fi
+
 source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 
 log 'Updating tldr cache'
@@ -391,4 +401,5 @@ done
 log 'Finished
 You may want to do any of the following:
 - source ~/.bashrc && source ~/.nix-profile/etc/profile.d/nix.sh"
+- jetbrains-toolbox
 - reboot'
