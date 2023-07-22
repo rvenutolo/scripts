@@ -240,3 +240,41 @@ function enable_system_service() {
     log "Started $1 system service"
   fi
 }
+
+function get_system_num_for_packages_list() {
+  # PERSONAL DESKTOP - 3
+  # PERSONAL LAPTOP - 4
+  # WORK LAPTOP - 5
+  # SERVER -6
+  (
+    echo '1 - personal desktop'
+    echo '2 - personal laptop'
+    echo '3 - work laptop'
+    echo '4 - personal server'
+  )
+  local computer_num=''
+  while [[ -z "${computper_num}" ]]; do
+    computer_num="$(prompt_for_value 'What computer is this?')"
+    case "${computer_num}" in
+      1 | 2 | 3 | 4)
+        ((computer_num += 2))
+        echo "${computer_num}"
+        ;;
+      *) computer_num='' ;;
+    esac
+  done
+}
+
+# $1 = packages list type (cargo flatpaks nixpkgs snaps)
+function get_packages_list() {
+  check_exactly_1_arg "$@"
+  case "$1" in
+    cargo | flatpaks | nixpkgs | snaps) : ;;
+    *) die "Unexpected package list type: $1" ;;
+  esac
+  local package_list_url
+  package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/$1.csv"
+  local package_list_column
+  package_list_column="$(get_system_num_for_packages_list)"
+  dl "${package_list_url}" | awk -F',' "\$${package_list_column} == \"y\" && \$7 == \"\" { print \$2 }"
+}
