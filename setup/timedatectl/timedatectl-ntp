@@ -5,13 +5,13 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
-if [[ $(timedatectl show) == *'NTP=yes'* ]]; then
+if timedatectl show | grep --quiet 'NTP=yes'; then
   exit 0
 fi
 if ! prompt_yn 'Set timedatectl NTP on?'; then
   exit 0
 fi
 
-log 'Setting timedatectl NTP on'
+log 'Setting time NTP on'
 sudo timedatectl set-ntp on
-log 'Set timedatectl NTP on'
+log 'Set time NTP on'

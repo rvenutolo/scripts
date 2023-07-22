@@ -3,6 +3,7 @@
 set -euo pipefail
 
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
+check_not_root
 
 function usage() {
   echo "Usage: ${0##*/} [-d | --dir DIR] DISTRO..." >&2

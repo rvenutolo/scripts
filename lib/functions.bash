@@ -12,6 +12,12 @@ function die() {
   exit 1
 }
 
+function check_not_root() {
+  if [[ "${EUID}" == 0 ]]; then
+    die "Do not run this script as root"
+  fi
+}
+
 function check_no_args() {
   if [[ "$#" -ne 0 ]]; then
     die "Expected no arguments"

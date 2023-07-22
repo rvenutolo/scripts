@@ -3,6 +3,7 @@
 set -euo pipefail
 
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
+check_not_root
 check_no_args "$@"
 
 readonly target_file="${HOME}/.etc/hosts"
