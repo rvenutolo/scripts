@@ -8,7 +8,5 @@ check_no_args "$@"
 
 readonly service_desc='Autotrash'
 readonly service_unit='autotrash.timer'
-readonly required_executable='autotrash'
-readonly system_or_user='user'
 
-enable_service "${service_desc}" "${service_unit}" "${required_executable}" "${system_or_user}"
+enable_user_service "${service_desc}" "${service_unit}"
