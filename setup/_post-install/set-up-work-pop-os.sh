@@ -182,6 +182,7 @@ fi
 if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
   /tmp/chezmoi init --apply 'rvenutolo'
 fi
+# shellcheck disable=SC1091
 source "${HOME}/.profile"
 
 log 'Enabling ssh-agent service'
@@ -390,6 +391,7 @@ if [[ ! -e "${HOME}/.local/bin/jetbrains-toolbox" ]]; then
   ln --symbolic --force "${HOME}/.local/share/JetBrains/Toolbox/bin/jetbrains-toolbox" "${HOME}/.local/bin/jetbrains-toolbox"
 fi
 
+# shellcheck disable=1091
 source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 
 log 'Updating tldr cache'
