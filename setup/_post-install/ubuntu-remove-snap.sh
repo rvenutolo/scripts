@@ -6,7 +6,7 @@
 set -euo pipefail
 
 function log() {
-  echo -e "log: $*" >&2
+  echo -e "log [$(date +%T)]: $*" >&2
 }
 
 function die() {
