@@ -130,6 +130,9 @@ for group in "${groups[@]}"; do
   sudo usermod --append --groups "${group}" "${USER}"
 done
 
+log 'Enabling gnome-remote-desktop service'
+systemctl enable --now --user 'gnome-remote-desktop'
+
 log 'Setting dconf settings'
 gsettings=(
   'org.gnome.desktop.datetime automatic-timezone false'
@@ -157,11 +160,9 @@ gsettings=(
   'org.gnome.shell.extensions.pop-shell active-hint true'
   'org.gnome.shell.weather automatic-location true'
   'org.gnome.system.location enabled true'
-  # TODO test these
-#  'org.gnome.desktop.remote-desktop.rdp enable false' # check if this needs to be true for vnc to work
-#  "org.gnome.desktop.remote-desktop.rdp tls-cert ${HOME}/.local/share/gnome-remote-desktop/rdp-tls.crt"
-#  "org.gnome.desktop.remote-desktop.rdp tls-key ${HOME}/.local/share/gnome-remote-desktop/rdp-tls.key"
-#  'org.gnome.desktop.remote-desktop.rdp view-only false'
+  # TODO test these - check if rdp enable has to be true for vnc to work
+  'org.gnome.desktop.remote-desktop.rdp enable true'
+  'org.gnome.desktop.remote-desktop.rdp view-only false'
   'org.gnome.desktop.remote-desktop.vnc auth-method password'
   'org.gnome.desktop.remote-desktop.vnc enable true'
   'org.gnome.desktop.remote-desktop.vnc view-only false'
