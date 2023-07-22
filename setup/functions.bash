@@ -189,50 +189,43 @@ function copy_system_file() {
   log "Copied: $1 -> $2"
 }
 
-# $1 service unit
-# $2 'user' or 'system'
-function get_service_file() {
+# $1 service description
+# $2 service unit
+function enable_user_service() {
+  check_not_root
   check_exactly_2_args "$@"
-  if [[ "$2" == 'system' ]]; then
-    echo "/usr/lib/systemd/system/$1"
-  elif [[ "$2" == 'user' ]]; then
-    echo "${XDG_CONFIG_HOME}/systemd/user/$1"
-  else
-    log "unexpected value: $2"
+  local service_file="${XDG_CONFIG_HOME}/systemd/user/$2"
+  if [[ ! -f "${service_file}" ]]; then
+    log "Cannot enable $1 user service - service file is missing: ${service_file}"
     exit 0
+  fi
+  if ! systemctl is-enabled --user --quiet "$2" && prompt_yn "Enable and start $1 user service?"; then
+    log "Enabling and starting $1 user service"
+    systemctl enable --now --user --quiet "$2"
+    log "Enabled and started $1 user service"
+  fi
+  if ! systemctl is-active --user --quiet "$2" && prompt_yn "Start $1 user service?"; then
+    log "Starting $1 user service"
+    systemctl start --user --quiet "$2"
+    log "Started $1 user service"
   fi
 }
 
-# $1 service description
-# $2 service unit
-# $3 required executable
-# $4 'system' or 'user'
-function enable_service() {
-  check_exactly_4_args "$@"
-  if ! executable_exists "$3"; then
-    log "$3 not found -- Not enabling $1 service"
-    exit 0
-  fi
-  if [[ "$4" == 'system' ]]; then
+function enable_system_service() {
+  check_exactly_2_args "$@"
     local service_file="/usr/lib/systemd/system/$2"
-  elif [[ "$4" == 'user' ]]; then
-    local service_file="${XDG_CONFIG_HOME}/systemd/user/$2"
-  else
-    log "unexpected value: $4"
-    exit 0
-  fi
-  if [[ ! -f "${service_file}" ]]; then
-    log "Cannot enable $1 service - service file is missing: ${service_file}"
-    exit 0
-  fi
-  if ! systemctl is-enabled --"$4" --quiet "$2" && prompt_yn "Enable and start $1 service?"; then
-    log "Enabling and starting $1 service"
-    systemctl enable --now --"$4" --quiet "$2"
-    log "Enabled and started $1 service"
-  fi
-  if ! systemctl is-active --"$4" --quiet "$2" && prompt_yn "Start $1 service?"; then
-    log "Starting $1 service"
-    systemctl start --"$4" --quiet "$2"
-    log "Started $1 service"
-  fi
+    if [[ ! -f "${service_file}" ]]; then
+      log "Cannot enable $1 system service - service file is missing: ${service_file}"
+      exit 0
+    fi
+    if ! sudo systemctl is-enabled --systeem --quiet "$2" && prompt_yn "Enable and start $1 system service?"; then
+      log "Enabling and starting $1 system service"
+      systemctl enable --now --system --quiet "$2"
+      log "Enabled and started $1 system service"
+    fi
+    if ! systemctl is-active --system --quiet "$2" && prompt_yn "Start $1 system service?"; then
+      log "Starting $1 system service"
+      systemctl start --system --quiet "$2"
+      log "Started $1 system service"
+    fi
 }
