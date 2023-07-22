@@ -1,7 +1,5 @@
-##shellcheck disable=SC1091
-source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
+# source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 
-# shellcheck disable=SC1091
 #shellcheck disable=SC1091
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 
