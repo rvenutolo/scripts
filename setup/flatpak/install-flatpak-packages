@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
+check_not_root
+check_no_args "$@"
+
+if ! executable_exists 'flatpak'; then
+  log 'flatpak executable not found'
+  exit 0
+fi
+
+log 'Installing flatpak packages'
+get_packages_list 'flatpaks' | xargs flatpak install --or-update --user --noninteractive
+log 'Installed flatpak packages'
