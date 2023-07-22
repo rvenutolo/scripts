@@ -246,13 +246,9 @@ function get_system_num_for_packages_list() {
   # PERSONAL LAPTOP - 4
   # WORK LAPTOP - 5
   # SERVER -6
-  echo '1 - personal desktop'
-  echo '2 - personal laptop'
-  echo '3 - work laptop'
-  echo '4 - personal server'
   local computer_num=''
   while [[ -z "${computer_num}" ]]; do
-    computer_num="$(prompt_for_value 'What computer is this?')"
+    computer_num="$(prompt_for_value 'What computer number is this? (1: personal desktop, 2: personal laptop, 3: work laptop, 4: server)')"
     case "${computer_num}" in
       1 | 2 | 3 | 4)
         ((computer_num += 2))
