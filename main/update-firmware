@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
+check_no_args "$@"
+
+log 'Updating firmware'
+sudo fwupdmgr refresh --force
+sudo fwupdmgr update --offline --assume-yes
+log 'Updated firmware'
