@@ -113,6 +113,12 @@ function command_exists() {
   type -Pf "$1" > /dev/null 2>&1
 }
 
+# $1 = function
+function function_exists() {
+  check_exactly_1_arg "$@"
+  declare -f "$1" > /dev/null 2>&1
+}
+
 function os_id() {
   check_no_args "$@"
   grep --only-matching --perl-regexp '^ID=\K\w+$' '/etc/os-release'
