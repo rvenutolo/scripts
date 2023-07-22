@@ -5,6 +5,6 @@ repository. The executable bit is purposefully not set to avoid accidentally run
 
 ## Expected use:
 ```shell
-$ sudo bash -c "$(wget -qO- -- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/setup/_post-install/script.sh')"
-$ sudo bash -c "$(curl -fsLS -- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/setup/_post-install/script.sh')"
+$ sudo bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/setup/_post-install/script.sh')"
+$ sudo bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/setup/_post-install/script.sh')"
 ```

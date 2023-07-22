@@ -2,9 +2,11 @@
 
 set -euo pipefail
 
+#shellcheck disable=SC1091
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_exactly_1_arg "$@"
 
-readonly file="migs_for_spoke_$(date +%Y%m%d_%H%M%S).csv"
+readonly file
+file="migs_for_spoke_$(date +%Y%m%d_%H%M%S).csv"
 echo 'lastName,firstName,cell' > "${file}"
 awk -F',' -v OFS=',' '$18 == "Member in Good Standing" && ($9) { print $4, $2, $9 }' "$1" | sort >> "${file}"

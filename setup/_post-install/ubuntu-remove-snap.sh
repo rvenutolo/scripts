@@ -39,9 +39,11 @@ function executable_exists() {
 }
 
 log "Removing snaps"
-while [[ "$(snap list 2> '/dev/null' | wc --lines)" > 0 ]]; do
+while [[ "$(snap list 2> '/dev/null' | wc --lines)" -gt 0 ]]; do
   for snap in $(snap list | tail -n '+2' | cut --delimiter=' ' --fields=1); do
-    snap remove --purge "${snap}" &> '/dev/null' && log "Removed snap: ${snap}" || true
+    if snap remove --purge "${snap}" &> '/dev/null'; then
+      log "Removed snap: ${snap}"
+    fi
   done
 done
 
@@ -74,7 +76,7 @@ for dir in '/snap' '/var/snap' '/var/lib/snapd' '/var/cache/snapd' '/root/snap';
     if grep --quiet --fixed-strings --line-regexp "${dir}" <<< "${existing_mounts}"; then
       # if this dir exists in fstab, it is likely because I have a btrfs subvolume mounted at that dir
       log "Removing all files in: ${dir}"
-      rm -rf "${dir}/"*
+      rm -rf "${dir:?}/"*
     else
       log "Removing: ${dir}"
       rm -rf "${dir}"

@@ -5,9 +5,6 @@
 
 set -euo pipefail
 
-readonly nixpkgs_url='https://raw.githubusercontent.com/rvenutolo/packages/main/nixpkgs.csv'
-readonly flatpaks_url='https://raw.githubusercontent.com/rvenutolo/packages/main/flatpaks.csv'
-readonly sdkman_url='https://raw.githubusercontent.com/rvenutolo/packages/main/sdkman.csv'
 readonly dt_ip='172.16.0.21'
 
 # $1 = URL
@@ -58,15 +55,6 @@ function die() {
 function executable_exists() {
   # executables / no builtins, aliases, or functions
   type -aPf "$1" > /dev/null 2>&1
-}
-
-# $1 = url
-function get_pkgs() {
-  dl "$1" | awk -F',' '$5 == "y" && $7 == "" { print $2 }'
-}
-
-function get_sdkman_pkgs() {
-  dl "${sdkman_url}" | tail --lines='+2' | cut --delimiter=',' --fields='2'
 }
 
 # $1 = ip

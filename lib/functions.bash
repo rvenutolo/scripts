@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 #source "${SCRIPTS_DIR}/lib/functions.bash"
-#source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
+##shellcheck disable=SC1091
+source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 
 function log() {
   echo "${0##*/}: $*" >&2

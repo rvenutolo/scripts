@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+#shellcheck disable=SC1091
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_no_args "$@"
 
@@ -9,6 +10,7 @@ check_no_args "$@"
 # which is a script that should have one function: kitty_keys
 readonly kitty_keys_file="${XDG_CONFIG_HOME}/kitty/kitty_keys.sh"
 if is_readable_files "${kitty_keys_file}"; then
+  #shellcheck disable=SC1090
   source "${kitty_keys_file}"
   kitty_keys
 else
