@@ -18,7 +18,7 @@ function dl() {
     tries=0
     until curl --disable --fail --silent --location --show-error "$1" --output "$2"; do
       ((tries += 1))
-      if ((${tries} > 10)); then
+      if ((tries > 10)); then
         die "Failed to get in 10 tries: ${url}"
       fi
       sleep 15
@@ -27,7 +27,7 @@ function dl() {
     tries=0
     until curl --disable --fail --silent --location --show-error "$1"; do
       ((tries += 1))
-      if ((${tries} > 10)); then
+      if ((tries > 10)); then
         die "Failed to get in 10 tries: ${url}"
       fi
       sleep 15
@@ -341,7 +341,7 @@ if [[ ! -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]]; then
   tries=0
   until dl 'https://get.sdkman.io?rcupdate=false' | bash; do
     ((tries += 1))
-    if ((${tries} > 10)); then
+    if ((tries > 10)); then
       die "Failed to install SDKMAN in 10 tries"
     fi
     rm -rf "${HOME}/.sdkman"
@@ -368,7 +368,7 @@ get_sdkman_pkgs | while read -r pkg; do
     fi
   do
     ((tries += 1))
-    if ((${tries} > 10)); then
+    if ((tries > 10)); then
       die "Failed to install in 10 tries: ${pkg}"
     fi
     sleep "$((base_sleep_time * tries))"
