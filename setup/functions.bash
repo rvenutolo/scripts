@@ -229,7 +229,7 @@ function enable_system_service() {
     log "Cannot enable $1 system service - service file is missing: ${service_file}"
     exit 0
   fi
-  if ! sudo systemctl is-enabled --systeem --quiet "$2" && prompt_yn "Enable and start $1 system service?"; then
+  if ! sudo systemctl is-enabled --system --quiet "$2" && prompt_yn "Enable and start $1 system service?"; then
     log "Enabling and starting $1 system service"
     systemctl enable --now --system --quiet "$2"
     log "Enabled and started $1 system service"
