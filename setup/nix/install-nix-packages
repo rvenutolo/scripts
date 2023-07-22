@@ -15,7 +15,7 @@ log 'Installing Nix packages'
 # shellcheck disable=SC1091
 source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 export NIXPKGS_ALLOW_UNFREE='1'
-get_packages_list 'nixpkgs'  | xargs printf -- 'nixpkgs.%s\n' | xargs nix-env --install --attr
+get_packages_list 'nixpkgs' | xargs printf -- 'nixpkgs.%s\n' | xargs nix-env --install --attr
 
 if [[ ! -L "${HOME}/.local/share/fonts/nix" ]]; then
   log 'Updating font cache'
