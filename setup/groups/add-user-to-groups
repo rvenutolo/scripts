@@ -8,7 +8,7 @@ check_no_args "$@"
 
 actual_groups="$(groups "${USER}")"
 readonly actual_groups
-groups=('sys' 'wheel')
+groups=('sudo' 'sys' 'wheel')
 if is_personal && is_desktop; then
   groups+=('kvm' 'input' 'libvirt')
 fi
