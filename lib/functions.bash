@@ -4,7 +4,7 @@
 #source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 
 function log() {
-  echo "${0##*/}: $*" >&2
+  echo -e "[$(date +%T) ${0##*/}] $*" >&2
 }
 
 function die() {
