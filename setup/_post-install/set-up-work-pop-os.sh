@@ -95,43 +95,8 @@ fi
 
 sudo --validate
 
-log 'Setting sudo timeout'
-echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
-
-log 'Creating sshd config file'
-sudo mkdir --parents '/etc/ssh/sshd_config.d'
-echo "LogLevel VERBOSE
-LoginGraceTime 20m
-PermitRootLogin prohibit-password
-PasswordAuthentication no
-KbdInteractiveAuthentication no
-AuthenticationMethods publickey
-UsePAM yes
-X11Forwarding yes
-PrintMotd no
-AcceptEnv LANG LC_*
-AllowUsers ${USER}
-" | sudo tee '/etc/ssh/sshd_config.d/sshd.conf' > '/dev/null'
-sudo chmod 644 '/etc/ssh/sshd_config.d/sshd.conf'
-
-log 'Setting timezone'
-sudo timedatectl set-timezone 'America/New_York'
-
 log 'Setting hostname'
 hostnamectl set-hostname 'silverstar'
-
-log 'Setting user to linger'
-sudo loginctl enable-linger "${USER}"
-
-log 'Adding to user groups'
-groups=('sys' 'wheel' 'sudo' 'kvm' 'input' 'libvirtd')
-for group in "${groups[@]}"; do
-  sudo groupadd --force "${group}"
-  sudo usermod --append --groups "${group}" "${USER}"
-done
-
-log 'Enabling gnome-remote-desktop service'
-systemctl enable --now --user 'gnome-remote-desktop'
 
 log 'Setting dconf settings'
 gsettings=(
@@ -185,8 +150,25 @@ fi
 # shellcheck disable=SC1091
 source "${HOME}/.profile"
 
-log 'Enabling ssh-agent service'
-systemctl enable --now --user 'ssh-agent'
+move-bash-history-file
+remove-bash-logout-file
+move-less-history-file
+set-sudo-timeout
+set-locale
+set-timezone
+set-ntp
+set-user-to-linger
+add-user-to-groups
+configure-ufw
+enable-ufw-service
+enable-ssh-agent-service
+write-sshd-conf
+enable-gnome-remote-desktop-service
+enable-journalctl-vacuum-service
+enable-trash-cleanup-service
+link-fail2ban-jain-local-file
+copy-sysctl-kvals-file
+copy-sysctl-max-user-watches-file
 
 # Skip these if running in vm for testing.
 if [[ ! -e '/dev/sr0' ]]; then
@@ -230,13 +212,6 @@ done
 log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
 sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
-
-# Do this before package upgrade as that may update the kernel, and then these
-# commands will fail until after a reboot.
-log 'Configuring UFW'
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow from "$(local_network)"
 
 if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
   log 'Installing old libssl1.1 package for AWS VPN client'
@@ -291,111 +266,23 @@ sudo apt-get install --yes \
   synaptic \
   virtinst
 
-log 'Enabling libvirtd service'
-sudo systemctl enable --now 'libvirtd'
+install-nix
+install-nix-packages
+add-flatpak-flathub-repo
+install-flatpak-packages
+install-sdkman
+install-sdkman-pacakges
+install-jetbrains-toolbox
 
-# TODO check this
-#log 'Enabling sshd service'
-#sudo systemctl enable --now 'sshd'
-
-if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]]; then
-  log 'Installing nix package manager'
-  if [[ ! -d '/nix' ]]; then
-    sudo mkdir '/nix'
-  fi
-  sudo chmod 755 '/nix'
-  sudo chown --recursive "${USER}:" '/nix'
-  sh <(dl 'https://nixos.org/nix/install') --no-daemon
-fi
-
-log 'Installing Nix packages'
-# shellcheck disable=SC1091
-source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
-export NIXPKGS_ALLOW_UNFREE='1'
-get_pkgs "${nixpkgs_url}" | xargs printf -- 'nixpkgs.%s\n' | xargs nix-env --install --attr
-
-if [[ ! -L "${HOME}/.local/share/fonts/nix" ]]; then
-  log 'Updating font cache'
-  mkdir --parents "${HOME}/.local/share/fonts"
-  ln --symbolic --force "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
-  fc-cache --force
-fi
-
-log 'Installing flatpaks'
-flatpak remote-add --user --if-not-exists 'flathub' 'https://dl.flathub.org/repo/flathub.flatpakrepo'
-get_pkgs "${flatpaks_url}" | xargs flatpak install --or-update --user --noninteractive
-if flatpak list --user --app | grep --quiet --fixed-strings 'com.google.Chrome'; then
-  flatpak override --user --filesystem="${HOME}/.local/share" 'com.google.Chrome'
-fi
-
-if [[ ! -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]]; then
-  log 'Installing SDKMAN'
-  if [[ -d "${HOME}/.sdkman" ]]; then
-    # chezmoi will have created ~/.sdkman and the SDKMAN install script assumes
-    # that the presence of this directory means that SDKMAN has already been
-    # installed and will not actually install SDKMAN. This directory should only
-    # contain a symlink to ~/.config/sdkman/config. This symlink will be
-    # re-created later in this script.
-    rm --recursive "${HOME}/.sdkman"
-  fi
-  # Retry due to random timeouts
-  tries=0
-  until dl 'https://get.sdkman.io?rcupdate=false' | bash; do
-    ((tries += 1))
-    if ((tries > 10)); then
-      die "Failed to install SDKMAN in 10 tries"
-    fi
-    rm -rf "${HOME}/.sdkman"
-    sleep 15
-  done
-fi
-
-log 'Installing SDKMAN packages'
-sed --in-place 's/sdkman_auto_answer=false/sdkman_auto_answer=true/g' "${HOME}/.sdkman/etc/config"
-set +u
-# shellcheck disable=SC1091
-source "${HOME}/.sdkman/bin/sdkman-init.sh"
-get_sdkman_pkgs | while read -r pkg; do
-  log "Installing ${pkg} with SDKMAN"
-  base_sleep_time=30
-  tries=0
-  until
-    if [[ "${pkg}" == 'java' ]]; then
-      sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac | while read -r jdk; do
-        sdk install java "${jdk}"
-      done
-    else
-      sdk install "${pkg}"
-    fi
-  do
-    ((tries += 1))
-    if ((tries > 10)); then
-      die "Failed to install in 10 tries: ${pkg}"
-    fi
-    sleep "$((base_sleep_time * tries))"
-  done
-done
-set -u
-
-if [[ -f "${HOME}/.config/sdkman/config" ]]; then
-  ln --symbolic --force "${HOME}/.config/sdkman/config" "${HOME}/.sdkman/etc/config"
-fi
-
-if [[ ! -e "${HOME}/.local/bin/jetbrains-toolbox" ]]; then
-  log 'Installing JetBrains Toolbox'
-  mkdir --parents "${HOME}/.local/share/JetBrains/Toolbox/bin"
-  archive_url="$(dl 'https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release' | jq --raw-output '.TBA[0].downloads.linux.link')"
-  dl "${archive_url}" | tar --extract --gzip --directory="${HOME}/.local/share/JetBrains/Toolbox/bin" --strip-components='1'
-  chmod +x "${HOME}/.local/share/JetBrains/Toolbox/bin/jetbrains-toolbox"
-  mkdir --parents "${HOME}/.local/bin"
-  ln --symbolic --force "${HOME}/.local/share/JetBrains/Toolbox/bin/jetbrains-toolbox" "${HOME}/.local/bin/jetbrains-toolbox"
-fi
+enable-clamav-service
+enable-cups-service
+enable-fail2ban-service
+enable-libvirtd-service
+enable-sshd-service
+enable-tldr-update-service
 
 # shellcheck disable=1091
 source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
-
-log 'Updating tldr cache'
-tldr --update
 
 log 'Installing GNOME extensions'
 gnome_extensions=(
