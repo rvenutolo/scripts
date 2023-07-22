@@ -234,6 +234,7 @@ sudo apt-get install --yes \
   caffeine \
   cpu-checker \
   dconf-editor \
+  fail2ban \
   flatpak \
   gir1.2-nautilus-3.0 gir1.2-ebook-1.2 gir1.2-ebookcontacts-1.2 gir1.2-edataserver-1.2 \
   gnome-shell-extensions \
