@@ -291,8 +291,9 @@ sudo apt-get install --yes \
 log 'Enabling libvirtd service'
 sudo systemctl enable --now 'libvirtd'
 
-log 'Enabling sshd service'
-sudo systemctl enable --now 'sshd'
+# TODO check this
+#log 'Enabling sshd service'
+#sudo systemctl enable --now 'sshd'
 
 if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]]; then
   log 'Installing nix package manager'
