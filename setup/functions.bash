@@ -1,5 +1,6 @@
 #source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 
+# shellcheck disable=SC1091
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 
 # $1 = question
