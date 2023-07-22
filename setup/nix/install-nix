@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
+check_not_root
+check_no_args "$@"
+
+if [[ -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]]; then
+  log 'Nix package manager already installed'
+  exit 0
+fi
+
+log 'Installing Nix package manager'
+if [[ ! -d '/nix' ]]; then
+  sudo mkdir '/nix'
+fi
+sudo chmod 755 '/nix'
+sudo chown --recursive "${USER}:" '/nix'
+sh <(dl 'https://nixos.org/nix/install') --no-daemon
+log 'Installed Nix package manager'
