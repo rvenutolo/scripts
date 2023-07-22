@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+#shellcheck disable=SC1091
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_for_var 'FILE_MANAGER'
 

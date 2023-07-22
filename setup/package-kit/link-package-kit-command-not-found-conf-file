@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+#shellcheck disable=SC1091
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
