@@ -245,6 +245,45 @@ function local_network() {
   fi
 }
 
+# $1 = URL
+# $2 = output file (optional)
+function dl() {
+  check_at_least_1_arg "$@"
+  check_at_most_2_args "$@"
+  log "Downloading: $1"
+  if [[ -n "${2:-}" ]]; then
+    tries=0
+    until curl --disable --fail --silent --location --show-error "$1" --output "$2"; do
+      ((tries += 1))
+      if ((${tries} > 10)); then
+        die "Failed to get in 10 tries: ${url}"
+      fi
+      sleep 15
+    done
+  else
+    tries=0
+    until curl --disable --fail --silent --location --show-error "$1"; do
+      ((tries += 1))
+      if ((${tries} > 10)); then
+        die "Failed to get in 10 tries: ${url}"
+      fi
+      sleep 15
+    done
+  fi
+}
+
+# $1 = URL
+# $2 = output file (optional)
+function dl_decrypt() {
+  check_at_least_1_arg "$@"
+  check_at_most_2_args "$@"
+  if [[ -n "${2:-}" ]]; then
+    dl "$1" | age --decrypt --identity "${HOME}/.keys/age.key" --output "$2"
+  else
+    dl "$1" | age --decrypt --identity "${HOME}/.keys/age.key"
+  fi
+}
+
 # path_remove "$(this_script_dir)"
 function this_script_dir() {
   check_no_args "$@"
