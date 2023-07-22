@@ -34,14 +34,21 @@ function prompt_yn() {
 }
 
 # $1 = question
-# $2 = default value
+# $2 = default value (optional)
 function prompt_for_value() {
-  check_exactly_2_args "$@"
-  REPLY=''
-  read -rp "$1 [$2]: "
-  if [[ -z "${REPLY}" ]]; then
-    echo "$2"
+  check_at_least_1_arg "$@"
+  check_at_most_2_args "$@"
+  if [[ -n "${2:-}" ]]; then
+    REPLY=''
+    read -rp "$1 [$2]: "
+    if [[ -z "${REPLY}" ]]; then
+      echo "$2"
+    fi
   else
+    REPLY=''
+    while [[ -z "${REPLY}" ]]; do
+      read -rp "$1: "
+    done
     echo "${REPLY}"
   fi
 }
