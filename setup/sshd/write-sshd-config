@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
+check_not_root
+check_no_args "$@"
+
+log 'Creating sshd config file'
+sudo mkdir --parents '/etc/ssh/sshd_config.d'
+echo "LogLevel VERBOSE
+LoginGraceTime 20m
+PermitRootLogin prohibit-password
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+AuthenticationMethods publickey
+UsePAM yes
+X11Forwarding yes
+PrintMotd no
+AcceptEnv LANG LC_*
+AllowUsers ${USER}
+" | sudo tee '/etc/ssh/sshd_config.d/sshd.conf' > '/dev/null'
+sudo chmod 644 '/etc/ssh/sshd_config.d/sshd.conf'
+log 'Created sshd config file'
