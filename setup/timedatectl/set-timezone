@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
+check_at_most_1_arg "$@"
+
+if [[ "$#" -eq 0 ]]; then
+  tz='America/New_York'
+else
+  tz="$1"
+fi
+reaodnly tz
+
+if timedatectl show | grep --quiet "^Timezone=${tz}$"; then
+  exit 0
+fi
+if ! prompt_yn "Set timezone to: ${tz}"; then
+  exit 0
+fi
+
+log "Setting timezone to: ${tz}"
+sudo timedatectl set-timezone "${tz}"
+log "Set timezone to: ${tz}"
