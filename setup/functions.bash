@@ -48,6 +48,7 @@ function prompt_for_value() {
 # $1 = target file
 # $2 = link file
 function link_user_file() {
+  check_not_root
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
     die "$1 does not exist"
@@ -106,6 +107,7 @@ function link_system_file() {
 # $1 = old file location
 # $2 = new file location
 function move_user_file() {
+  check_not_root
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
     die "$1 does not exist"
@@ -132,6 +134,7 @@ function move_user_file() {
 # $1 = old file location
 # $2 = new file location
 function copy_user_file() {
+  check_not_root
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
     die "$1 does not exist"
