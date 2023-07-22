@@ -8,7 +8,5 @@ check_no_args "$@"
 
 readonly service_desc='journalctl-vacuum'
 readonly service_unit='journalctl-vacuum.timer'
-readonly required_executable='journalctl'
-readonly system_or_user='user'
 
-enable_service "${service_desc}" "${service_unit}" "${required_executable}" "${system_or_user}"
+enable_user_service "${service_desc}" "${service_unit}"

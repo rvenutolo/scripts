@@ -7,7 +7,5 @@ check_no_args "$@"
 
 readonly service_desc='UFW'
 readonly service_unit='ufw.service'
-readonly required_executable='ufw'
-readonly system_or_user='system'
 
-enable_service "${service_desc}" "${service_unit}" "${required_executable}" "${system_or_user}"
+enable_system_service "${service_desc}" "${service_unit}"

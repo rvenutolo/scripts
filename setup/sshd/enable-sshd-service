@@ -7,7 +7,5 @@ check_no_args "$@"
 
 readonly service_desc='SSH daemon'
 readonly service_unit='sshd.service'
-readonly required_executable='sshd'
-readonly system_or_user='system'
 
-enable_service "${service_desc}" "${service_unit}" "${required_executable}" "${system_or_user}"
+enable_system_service "${service_desc}" "${service_unit}"

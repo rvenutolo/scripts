@@ -7,7 +7,5 @@ check_no_args "$@"
 
 readonly service_desc='NFS v4'
 readonly service_unit='nfsv4-server.service'
-readonly required_executable='exportfs'
-readonly system_or_user='system'
 
-enable_service "${service_desc}" "${service_unit}" "${required_executable}" "${system_or_user}"
+enable_system_service "${service_desc}" "${service_unit}"

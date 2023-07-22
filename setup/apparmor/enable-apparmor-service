@@ -7,7 +7,5 @@ check_no_args "$@"
 
 readonly service_desc='App Armor'
 readonly service_unit='apparmor.service'
-readonly required_executable='aa-enabled'
-readonly system_or_user='system'
 
-enable_service "${service_desc}" "${service_unit}" "${required_executable}" "${system_or_user}"
+enable_system_service "${service_desc}" "${service_unit}"
