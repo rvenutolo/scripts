@@ -138,6 +138,19 @@ if [[ ! -e '/dev/sr0' ]]; then
 
 fi
 
+log 'Downloading and running chezmoi'
+if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
+  dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
+fi
+if [[ ! -f '/tmp/chezmoi' ]]; then
+  sh '/tmp/dl-chezmoi.sh' -b '/tmp'
+fi
+if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
+  /tmp/chezmoi init --apply 'rvenutolo'
+fi
+
+source "${HOME}/.profile"
+
 home_dir_files_to_copy=(
   '.application-deployment'
   '.bin/create-emr-test-cluster'
@@ -154,19 +167,6 @@ done
 log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
 sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
-
-log 'Downloading and running chezmoi'
-if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
-  dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
-fi
-if [[ ! -f '/tmp/chezmoi' ]]; then
-  sh '/tmp/dl-chezmoi.sh' -b '/tmp'
-fi
-if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
-  /tmp/chezmoi init --apply 'rvenutolo'
-fi
-
-source "${HOME}/.profile"
 
 log 'Setting dconf settings'
 gsettings=(
