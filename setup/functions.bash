@@ -159,10 +159,6 @@ function copy_user_file() {
         exit 0
       fi
     fi
-  else
-    if ! prompt_yn "Copy $1 -> $2?"; then
-      exit 0
-    fi
   fi
   log "Copying: $1 -> $2"
   mkdir --parents "$(dirname "$2")"
@@ -188,10 +184,6 @@ function copy_system_file() {
       if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
         exit 0
       fi
-    fi
-  else
-    if ! prompt_yn "Copy $1 -> $2?"; then
-      exit 0
     fi
   fi
   log "Copying: $1 -> $2"
