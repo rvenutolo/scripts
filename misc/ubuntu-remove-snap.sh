@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# $ sudo bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/setup/_post-install/ubuntu-remove-snap.sh')"
-# $ sudo bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/setup/_post-install/ubuntu-remove-snap.sh')"
+# $ sudo bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/setup/misc/ubuntu-remove-snap.sh')"
+# $ sudo bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/setup/misc/ubuntu-remove-snap.sh')"
 
 set -euo pipefail
 
