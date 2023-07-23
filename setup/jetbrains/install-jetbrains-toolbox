@@ -14,8 +14,8 @@ fi
 
 log 'Installing JetBrains Toolbox'
 mkdir --parents "${HOME}/.local/share/JetBrains/Toolbox/bin"
-readonly archive_url
 archive_url="$(dl 'https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release' | jq --raw-output '.TBA[0].downloads.linux.link')"
+readonly archive_url
 dl "${archive_url}" | tar --extract --gzip --directory="${HOME}/.local/share/JetBrains/Toolbox/bin" --strip-components='1'
 chmod +x "${HOME}/.local/share/JetBrains/Toolbox/bin/jetbrains-toolbox"
 mkdir --parents "${HOME}/.local/bin"
