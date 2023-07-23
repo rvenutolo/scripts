@@ -7,6 +7,15 @@ set -euo pipefail
 
 readonly dt_ip='172.16.0.21'
 
+function log() {
+  echo -e "log [$(date +%T)]: $*" >&2
+}
+
+function die() {
+  echo -e "DIE: $* (at ${BASH_SOURCE[1]}:${FUNCNAME[1]} line ${BASH_LINENO[0]}.)" >&2
+  exit 1
+}
+
 # $1 = URL
 # $2 = output file (optional)
 function dl() {
@@ -40,15 +49,6 @@ function dl_decrypt() {
   else
     dl "$1" | age --decrypt --identity "${HOME}/.keys/age.key"
   fi
-}
-
-function log() {
-  echo -e "log [$(date +%T)]: $*" >&2
-}
-
-function die() {
-  echo -e "DIE: $* (at ${BASH_SOURCE[1]}:${FUNCNAME[1]} line ${BASH_LINENO[0]}.)" >&2
-  exit 1
 }
 
 if [[ "${EUID}" == 0 ]]; then
