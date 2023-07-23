@@ -114,9 +114,6 @@ sudo apt-get install --yes \
   synaptic \
   virtinst
 
-## TODO figure out ssh key passphrase stuff
-eval "$(ssh-agent)"
-
 log 'Downloading and running chezmoi'
 if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
   dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
