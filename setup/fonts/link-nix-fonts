@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
+check_not_root
+check_no_args "$@"
+
+if [[ ! -d "${HOME}/.nix-profile/share/fonts" ]]; then
+  exit 0
+fi
+
+if [[ ! -L "${HOME}/.local/share/fonts/nix" ]]; then
+  log 'Updating font cache to include nixpkgs fonts'
+  mkdir --parents "${HOME}/.local/share/fonts"
+  ln --symbolic --force "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
+  fc-cache --force
+  log 'Updating font cache to include nixpkgs fonts'
+fi
