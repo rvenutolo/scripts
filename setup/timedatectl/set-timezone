@@ -11,7 +11,7 @@ if [[ "$#" -eq 0 ]]; then
 else
   tz="$1"
 fi
-reaodnly tz
+readonly tz
 
 if timedatectl show | grep --quiet "^Timezone=${tz}$"; then
   exit 0
