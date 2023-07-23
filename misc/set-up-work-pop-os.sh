@@ -59,7 +59,6 @@ sudo --validate
 
 echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
 
-# TODO check if this is still necessary for current version
 if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
   log 'Installing old libssl1.1 package for AWS VPN client'
   libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb'
