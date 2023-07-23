@@ -5,7 +5,7 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/functions.bash"
 check_no_args "$@"
 
-find "${SCRIPTS_DIR}/setup" -executable -type f | while read -r script; do
+find "${SCRIPTS_DIR}/setup" -executable -type f | LC_ALL='C' sort | while read -r script; do
   log "Running: ${script}"
   "${script}"
   log "Ran: ${script}"
