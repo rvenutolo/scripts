@@ -256,7 +256,7 @@ function get_system_num_for_packages_list() {
   fi
   local computer_num=''
   while [[ -z "${computer_num}" ]]; do
-    computer_num="$(prompt_for_value 'What computer number is this? (1: personal desktop, 2: personal laptop, 3: work laptop, 4: server)')"
+    computer_num="$(prompt_for_value 'What computer number is this? [1: personal desktop, 2: personal laptop, 3: work laptop, 4: server]')"
     case "${computer_num}" in
       1 | 2 | 3 | 4)
         ((computer_num += 2))
