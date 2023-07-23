@@ -139,7 +139,8 @@ home_dir_files_to_copy=(
 )
 for file in "${home_dir_files_to_copy[@]}"; do
   log "Copying ${HOME}/${file} from dt"
-  rsync --rsh='ssh -o StrictHostKeyChecking=no' --archive --human-readable --executability --relative "${dt_ip}:${file}" "${HOME}"
+#  rsync --rsh='ssh -o StrictHostKeyChecking=no' --archive --human-readable --executability --relative "${dt_ip}:${file}" "${HOME}"
+  rsync --archive --human-readable --executability --relative "${dt_ip}:${file}" "${HOME}"
 done
 
 log 'Getting de-400 connection file'
