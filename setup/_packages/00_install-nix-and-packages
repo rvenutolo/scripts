@@ -7,7 +7,7 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_not_root
 check_no_args "$@"
 
-if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]]; then
+if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]] && prompt_yn 'Install Nix package manager?'; then
   log 'Installing Nix package manager'
   if [[ ! -d '/nix' ]]; then
     sudo mkdir '/nix'
@@ -18,9 +18,11 @@ if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]]; then
   log 'Installed Nix package manager'
 fi
 
-log 'Installing Nix packages'
-# shellcheck disable=SC1091
-source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
-export NIXPKGS_ALLOW_UNFREE='1'
-get_packages_list 'nixpkgs' | xargs printf -- 'nixpkgs.%s\n' | xargs nix-env --install --attr
-log 'Installed Nix packages'
+if [[ -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]] && prompt_yn 'Install Nix packages?'; then
+  log 'Installing Nix packages'
+  # shellcheck disable=SC1091
+  source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
+  export NIXPKGS_ALLOW_UNFREE='1'
+  get_packages_list 'nixpkgs' | xargs printf -- 'nixpkgs.%s\n' | xargs nix-env --install --attr
+  log 'Installed Nix packages'
+fi

@@ -18,6 +18,10 @@ if ! flatpak remotes --user --columns=title | contains_word 'Flathub'; then
   log 'Added Flathub flatpak repo'
 fi
 
+if ! prompt_yn 'Install flatpak packages?'; then
+  exit 0
+fi
+
 log 'Installing flatpak packages'
 get_packages_list 'flatpaks' | xargs flatpak install --or-update --user --noninteractive
 log 'Installed flatpak packages'
