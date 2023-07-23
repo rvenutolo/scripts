@@ -114,8 +114,8 @@ sudo apt-get install --yes \
   synaptic \
   virtinst
 
+## TODO figure out ssh key passphrase stuff
 eval "$(ssh-agent)"
-ssh-add "${HOME}/.keys/id_ed25519"
 
 log 'Downloading and running chezmoi'
 if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
@@ -127,6 +127,8 @@ fi
 if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
   /tmp/chezmoi init --apply 'rvenutolo'
 fi
+
+ssh-add "${HOME}/.keys/id_ed25519"
 
 source "${HOME}/.profile"
 
