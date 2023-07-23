@@ -92,6 +92,7 @@ sudo apt-get install --yes \
   dconf-editor \
   fail2ban \
   flatpak \
+  git \
   gir1.2-nautilus-3.0 gir1.2-ebook-1.2 gir1.2-ebookcontacts-1.2 gir1.2-edataserver-1.2 \
   gnome-shell-extensions \
   gnome-shell-extension-gsconnect-browsers \
@@ -103,7 +104,7 @@ sudo apt-get install --yes \
   libvirt-daemon libvirt-daemon-system libvirt-clients \
   nala \
   nautilus-admin \
-  openssh-server \
+  openssh-client openssh-server \
   ovmf \
   preload \
   python3-nautilus \
