@@ -3,12 +3,19 @@
 #shellcheck disable=SC1091
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 
+function auto_answer() {
+  [[ -n "${SCRIPTS_AUTO_ANSWER:-}" ]]
+}
+
 # $1 = question
 function prompt_ny() {
   check_exactly_1_arg "$@"
+  if auto_answer; then
+    exit 1
+  fi
   REPLY=''
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
-    read -rp "$1 [Y/n]: "
+    read -rp "$1 [y/N]: "
     if [[ ${REPLY} == [yY] ]]; then
       REPLY='y'
     elif [[ "${REPLY}" == '' || "${REPLY}" == [nN] ]]; then
@@ -21,6 +28,9 @@ function prompt_ny() {
 # $1 = question
 function prompt_yn() {
   check_exactly_1_arg "$@"
+  if auto_answer; then
+    exit 0
+  fi
   REPLY=''
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
     read -rp "$1 [Y/n]: "
@@ -38,6 +48,10 @@ function prompt_yn() {
 function prompt_for_value() {
   check_at_least_1_arg "$@"
   check_at_most_2_args "$@"
+  if auto_answer && [[ -n "${2:-}" ]]; then
+    echo "$2"
+    exit 0
+  fi
   if [[ -n "${2:-}" ]]; then
     REPLY=''
     read -rp "$1 [$2]: "
@@ -75,11 +89,8 @@ function link_user_file() {
     fi
   fi
   log "Linking: $1 -> $2"
-  if [[ -f "$2" ]]; then
-    rm "$2"
-  fi
   mkdir --parents "$(dirname "$2")"
-  ln --symbolic "$1" "$2"
+  ln --symbolic --force "$1" "$2"
   log "Linked: $1 -> $2"
 }
 
@@ -104,11 +115,8 @@ function link_system_file() {
     fi
   fi
   log "Linking: $1 -> $2"
-  if [[ -f "$2" ]]; then
-    sudo rm "$2"
-  fi
   sudo mkdir --parents "$(dirname "$2")"
-  sudo ln --symbolic "$1" "$2"
+  sudo ln --symbolic --force "$1" "$2"
   log "Linked: $1 -> $2"
 }
 
@@ -159,6 +167,10 @@ function copy_user_file() {
         exit 0
       fi
     fi
+  else
+    if ! prompt_yn "Copy $1 -> $2?"; then
+      exit 0
+    fi
   fi
   log "Copying: $1 -> $2"
   mkdir --parents "$(dirname "$2")"
@@ -185,6 +197,10 @@ function copy_system_file() {
         exit 0
       fi
     fi
+  else
+    if ! prompt_yn "Copy $1 -> $2?"; then
+      exit 0
+    fi
   fi
   log "Copying: $1 -> $2"
   sudo mkdir --parents "$(dirname "$2")"
@@ -202,12 +218,12 @@ function enable_user_service() {
     log "Cannot enable $1 user service - service file is missing: ${service_file}"
     exit 0
   fi
-  if ! systemctl is-enabled --user --quiet "$2"; then
+  if ! systemctl is-enabled --user --quiet "$2" && prompt_yn "Enable and start $1 user service?"; then
     log "Enabling and starting $1 user service"
     systemctl enable --now --user --quiet "$2"
     log "Enabled and started $1 user service"
   fi
-  if ! systemctl is-active --user --quiet "$2"; then
+  if ! systemctl is-active --user --quiet "$2" && prompt_yn "Start $1 user service?"; then
     log "Starting $1 user service"
     systemctl start --user --quiet "$2"
     log "Started $1 user service"
@@ -221,12 +237,12 @@ function enable_system_service() {
     log "Cannot enable $1 system service - service file is missing: ${service_file}"
     exit 0
   fi
-  if ! sudo systemctl is-enabled --system --quiet "$2"; then
+  if ! sudo systemctl is-enabled --system --quiet "$2" && prompt_yn "Enable and start $1 system service?"; then
     log "Enabling and starting $1 system service"
     systemctl enable --now --system --quiet "$2"
     log "Enabled and started $1 system service"
   fi
-  if ! systemctl is-active --system --quiet "$2"; then
+  if ! systemctl is-active --system --quiet "$2" && prompt_yn "Start $1 system service?"; then
     log "Starting $1 system service"
     systemctl start --system --quiet "$2"
     log "Started $1 system service"
@@ -236,7 +252,8 @@ function enable_system_service() {
 function get_system_num_for_packages_list() {
   if [[ -n "${PACKAGE_LISTS_COMP_NUM:-}" ]]; then
     echo "$((PACKAGE_LISTS_COMP_NUM + 2))"
-  else
+    exit 0
+  fi
   local computer_num=''
   while [[ -z "${computer_num}" ]]; do
     computer_num="$(prompt_for_value 'What computer number is this? (1: personal desktop, 2: personal laptop, 3: work laptop, 4: server)')"
@@ -248,7 +265,6 @@ function get_system_num_for_packages_list() {
       *) computer_num='' ;;
     esac
   done
-  fi
 }
 
 # $1 = packages list type (cargo flatpaks nixpkgs snaps)
