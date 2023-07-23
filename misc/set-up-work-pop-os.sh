@@ -115,31 +115,7 @@ sudo apt-get install --yes \
   synaptic \
   virtinst
 
-# Skip these if running in vm for testing.
-if [[ ! -e '/dev/sr0' ]]; then
-
-  log 'Installing fingerprint scanner packages'
-  sudo apt-get install --yes fprintd libpam-fprintd
-  sudo pam-auth-update --enable fprintd
-  if [[ ! -f '/etc/pam.d/common-auth.orig' ]]; then
-    sudo cp '/etc/pam.d/common-auth' '/etc/pam.d/common-auth.orig'
-  fi
-  sudo sed --in-place "s/ max-tries=[0-9]\+ / max-tries=10 /g" '/etc/pam.d/common-auth'
-  if ! fprintd-list "${USER}" | grep --quiet --fixed-strings 'right-index-finger'; then
-    fprintd-enroll
-  fi
-
-  log 'Setting hybrid graphics'
-  sudo system76-power graphics 'hybrid'
-
-  log 'Updating firmware'
-  sudo fwupdmgr refresh --force
-  sudo fwupdmgr update --offline --assume-yes
-
-  log 'Updating recovery partition'
-  pop-upgrade recovery upgrade from-release
-
-fi
+eval "$(ssh-agent)"
 
 log 'Downloading and running chezmoi'
 if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
