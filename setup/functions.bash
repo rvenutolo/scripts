@@ -210,12 +210,12 @@ function enable_user_service() {
     log "Cannot enable $1 user service - service file is missing: ${service_file}"
     exit 0
   fi
-  if ! systemctl is-enabled --user --quiet "$2" && prompt_yn "Enable and start $1 user service?"; then
+  if ! systemctl is-enabled --user --quiet "$2"; then
     log "Enabling and starting $1 user service"
     systemctl enable --now --user --quiet "$2"
     log "Enabled and started $1 user service"
   fi
-  if ! systemctl is-active --user --quiet "$2" && prompt_yn "Start $1 user service?"; then
+  if ! systemctl is-active --user --quiet "$2"; then
     log "Starting $1 user service"
     systemctl start --user --quiet "$2"
     log "Started $1 user service"
@@ -229,12 +229,12 @@ function enable_system_service() {
     log "Cannot enable $1 system service - service file is missing: ${service_file}"
     exit 0
   fi
-  if ! sudo systemctl is-enabled --system --quiet "$2" && prompt_yn "Enable and start $1 system service?"; then
+  if ! sudo systemctl is-enabled --system --quiet "$2"; then
     log "Enabling and starting $1 system service"
     systemctl enable --now --system --quiet "$2"
     log "Enabled and started $1 system service"
   fi
-  if ! systemctl is-active --system --quiet "$2" && prompt_yn "Start $1 system service?"; then
+  if ! systemctl is-active --system --quiet "$2"; then
     log "Starting $1 system service"
     systemctl start --system --quiet "$2"
     log "Started $1 system service"
@@ -242,11 +242,7 @@ function enable_system_service() {
 }
 
 function get_system_num_for_packages_list() {
-  # PERSONAL DESKTOP - 3
-  # PERSONAL LAPTOP - 4
-  # WORK LAPTOP - 5
-  # SERVER -6
-  local computer_num=''
+  local computer_num="${PACKAGE_LISTS_COMP_NUM:-}"
   while [[ -z "${computer_num}" ]]; do
     computer_num="$(prompt_for_value 'What computer number is this? (1: personal desktop, 2: personal laptop, 3: work laptop, 4: server)')"
     case "${computer_num}" in
