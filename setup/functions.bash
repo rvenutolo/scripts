@@ -242,7 +242,10 @@ function enable_system_service() {
 }
 
 function get_system_num_for_packages_list() {
-  local computer_num="${PACKAGE_LISTS_COMP_NUM:-}"
+  if [[ -n "${PACKAGE_LISTS_COMP_NUM:-}" ]]; then
+    echo "$((PACKAGE_LISTS_COMP_NUM + 2))"
+  else
+  local computer_num=''
   while [[ -z "${computer_num}" ]]; do
     computer_num="$(prompt_for_value 'What computer number is this? (1: personal desktop, 2: personal laptop, 3: work laptop, 4: server)')"
     case "${computer_num}" in
@@ -253,6 +256,7 @@ function get_system_num_for_packages_list() {
       *) computer_num='' ;;
     esac
   done
+  fi
 }
 
 # $1 = packages list type (cargo flatpaks nixpkgs snaps)
