@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
+check_not_root
+check_no_args "$@"
+
+readonly target_file="${HOME}/.etc/sshd.conf"
+readonly link_file='/etc/ssh/sshd_config.d/sshd.conf'
+link_system_file "${target_file}" "${link_file}"

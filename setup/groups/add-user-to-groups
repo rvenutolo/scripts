@@ -13,14 +13,16 @@ readonly user_groups
 all_groups="$(getent group | cut --delimiter=':' --fields='1')"
 readonly all_groups
 
-groups=('docker' 'kvm' 'input' 'libvirt' 'sudo' 'sys' 'wheel')
-readonly groups
+readonly groups=('docker' 'kvm' 'input' 'libvirt' 'sudo' 'sys' 'wheel')
 
 for group in "${groups[@]}"; do
   if ! contains_word "${group}" <<< "${all_groups}"; then
     continue
   fi
   if contains_word "${group}" <<< "${user_groups}"; then
+    continue
+  fi
+  if ! prompt_yn "Add ${USER} to group: ${group}?"; then
     continue
   fi
   log "Adding user to group: ${group}"

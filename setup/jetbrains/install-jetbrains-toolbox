@@ -8,7 +8,9 @@ check_not_root
 check_no_args "$@"
 
 if [[ -f "${HOME}/.local/bin/jetbrains-toolbox" ]]; then
-  log 'JetBrains Toolbox already installed'
+  exit 0
+fi
+if ! prompt_yn 'Install JetBrains Toolbox?'; then
   exit 0
 fi
 

@@ -15,6 +15,10 @@ if ! executable_exists 'dnf'; then
   exit 0
 fi
 
+if ! prompt_yn 'Add RPM Fusion repos?'; then
+  exit 0
+fi
+
 for repo in 'rpmfusion-free-release' 'rpmfusion-nonfree-release'; do
   if ! dnf list --installed "${repo}" > /dev/null 2>&1 && prompt_yn "Add ${repo} repository?"; then
     sudo dnf install "https://mirrors.rpmfusion.org/free/fedora/${repo}-$(rpm --eval='%fedora').noarch.rpm"

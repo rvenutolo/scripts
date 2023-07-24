@@ -10,6 +10,9 @@ check_no_args "$@"
 if [[ "$(loginctl show-user "${USER}" --property='Linger')" == 'Linger=yes' ]]; then
   exit 0
 fi
+if ! prompt_yn "Set ${USER} to linger?"; then
+  exit 0
+fi
 
 log 'Setting user to linger'
 sudo loginctl enable-linger "${USER}"

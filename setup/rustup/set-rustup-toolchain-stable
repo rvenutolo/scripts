@@ -8,7 +8,6 @@ check_not_root
 check_no_args "$@"
 
 if ! executable_exists 'rustup'; then
-  log 'rustup executable not found'
   exit 0
 fi
 if [[ "$(rustup toolchain list)" == 'stable'* ]]; then
