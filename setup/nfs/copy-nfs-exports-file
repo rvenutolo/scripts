@@ -16,7 +16,7 @@ fi
 
 readonly target_file="${XDG_CONFIG_HOME}/nfs/storage.exports"
 readonly link_file='/etc/exports.d/storage.exports'
-link_system_file "${target_file}" "${link_file}"
+copy_system_file "${target_file}" "${link_file}"
 
 if ! prompt_yn 'Re-export NFS server exports?'; then
   exit 0

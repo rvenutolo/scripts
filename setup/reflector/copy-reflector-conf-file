@@ -18,4 +18,4 @@ fi
 
 readonly target_file="${HOME}/.etc/reflector.conf"
 readonly link_file='/etc/xdg/reflector/reflector.conf'
-link_system_file "${target_file}" "${link_file}"
+copy_system_file "${target_file}" "${link_file}"

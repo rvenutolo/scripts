@@ -17,4 +17,4 @@ if ! rpm --quiet --query 'PackageKit-command-not-found'; then
   exit 0
 fi
 
-link_system_file "${target_file}" "${link_file}"
+copy_system_file "${target_file}" "${link_file}"

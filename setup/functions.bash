@@ -94,32 +94,6 @@ function link_user_file() {
   log "Linked: $1 -> $2"
 }
 
-# $1 = target file
-# $2 = link file
-function link_system_file() {
-  check_exactly_2_args "$@"
-  if [[ ! -f "$1" ]]; then
-    die "$1 does not exist"
-  fi
-  if [[ -L "$2" && "$(readlink --canonicalize "$2")" == "$(readlink --canonicalize "$1")" ]]; then
-    exit 0
-  fi
-  if [[ -f "$2" ]]; then
-    diff --color --unified "$2" "$1" || true
-    if ! prompt_yn "$2 exists - Link: $1 -> $2?"; then
-      exit 0
-    fi
-  else
-    if ! prompt_yn "Link: $1 -> $2?"; then
-      exit 0
-    fi
-  fi
-  log "Linking: $1 -> $2"
-  sudo mkdir --parents "$(dirname "$2")"
-  sudo ln --symbolic --force "$1" "$2"
-  log "Linked: $1 -> $2"
-}
-
 # $1 = old file location
 # $2 = new file location
 function move_user_file() {

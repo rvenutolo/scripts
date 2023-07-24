@@ -23,7 +23,7 @@ else
   die 'pacman exists, but could not determine distro'
 fi
 readonly link_file='/etc/pacman.conf'
-link_system_file "${target_file}" "${link_file}"
+copy_system_file "${target_file}" "${link_file}"
 
 if pacman-key --list-keys | grep --quiet --fixed-strings 'FBA220DFC880C036'; then
   exit 0
