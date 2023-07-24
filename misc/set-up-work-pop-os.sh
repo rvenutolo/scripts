@@ -123,8 +123,6 @@ if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
   /tmp/chezmoi init --apply 'rvenutolo'
 fi
 
-ssh-add "${HOME}/.keys/id_ed25519"
-
 source "${HOME}/.profile"
 
 log 'Copying files from dt'
