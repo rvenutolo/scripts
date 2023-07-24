@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
+check_not_root
+check_no_args "$@"
+
+if [[ ! -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN?'; then
+  log 'Installing SDKMAN'
+  if [[ -d "${HOME}/.sdkman" ]]; then
+    # chezmoi will have created ~/.sdkman and the SDKMAN install script assumes
+    # that the presence of this directory means that SDKMAN has already been
+    # installed and will not actually install SDKMAN. This directory should only
+    # contain a symlink to ~/.config/sdkman/config. This symlink will be
+    # re-created later in this script.
+    rm --recursive "${HOME}/.sdkman"
+  fi
+  # Retry due to random timeouts
+  base_sleep_time=30
+  tries=0
+  until dl 'https://get.sdkman.io?rcupdate=false' | bash; do
+    ((tries += 1))
+    if ((tries > 10)); then
+      die "Failed to install SDKMAN in 10 tries"
+    fi
+    rm -rf "${HOME}/.sdkman"
+    sleep "$((base_sleep_time * tries))"
+  done
+  log 'Installed SDKMAN'
+fi
+
+if [[ -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN packages?'; then
+  log 'Installing SDKMAN packages'
+  cp "${HOME}/.sdkman/etc/config" "${HOME}/.sdkman/etc/config.orig"
+  sed --in-place 's/sdkman_auto_answer=false/sdkman_auto_answer=true/g' "${HOME}/.sdkman/etc/config"
+  set +u
+  # shellcheck disable=SC1091
+  source "${HOME}/.sdkman/bin/sdkman-init.sh"
+  readonly sdkman_url='https://raw.githubusercontent.com/rvenutolo/packages/main/sdkman.csv'
+  dl "${sdkman_url}" | tail --lines='+2' | cut --delimiter=',' --fields='2' | while read -r pkg; do
+    log "Installing ${pkg} with SDKMAN"
+    base_sleep_time=30
+    tries=0
+    until
+      if [[ "${pkg}" == 'java' ]]; then
+        sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac | while read -r jdk; do
+          sdk install java "${jdk}"
+        done
+      else
+        sdk install "${pkg}"
+      fi
+    do
+      ((tries += 1))
+      if ((tries > 10)); then
+        die "Failed to install in 10 tries: ${pkg}"
+      fi
+      sleep "$((base_sleep_time * tries))"
+    done
+  done
+  set -u
+  mv "${HOME}/.sdkman/etc/config.orig" "${HOME}/.sdkman/etc/config"
+  log 'Installed SDKMAN packages'
+fi
+
+if [[ -f "${HOME}/.config/sdkman/config" ]]; then
+  ln --symbolic --force "${HOME}/.config/sdkman/config" "${HOME}/.sdkman/etc/config"
+fi
