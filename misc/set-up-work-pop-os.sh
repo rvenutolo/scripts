@@ -143,6 +143,43 @@ log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
 sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
 
+log 'Setting hostname'
+hostnamectl set-hostname 'silverstar'
+
+log 'Running setup scripts'
+temp_scripts_dir="$(mktemp --directory)"
+cp -r "${SCRIPTS_DIR}/"* "${temp_scripts_dir}"
+## TODO check on this - can i update packages without updating kernel, then update kernel later?
+# disable ufw scripts so they don't run as they'll fail if there was a kernel update (i think)
+chmod -x "${temp_scripts_dir}/setup/ufw/"*
+SCRIPTS_DIR="${temp_scripts_dir}" PACKAGE_LISTS_COMPUTER_NUMBER='3' SCRIPTS_AUTO_ANSWER='y' "${temp_scripts_dir}/setup/run-setup-scripts"
+
+# shellcheck disable=1091
+source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
+
+log 'Installing GNOME extensions'
+gnome_extensions=(
+  'https://extensions.gnome.org/extension/779/clipboard-indicator/'
+  'https://extensions.gnome.org/extension/1319/gsconnect/'
+  'https://extensions.gnome.org/extension/1460/vitals/'
+)
+for url in "${gnome_extensions[@]}"; do
+  package_num="$(cut --delimiter='/' --fields='5' <<< "${url}")"
+  log "Installing extension from URL: ${url}"
+  gext --filesystem install "${package_num}"
+done
+
+log 'Adding autostart applications'
+mkdir --parents "${HOME}/.config/autostart"
+autostart_files=(
+  '/usr/share/applications/caffeine-indicator.desktop'
+)
+for autostart_file in "${autostart_files[@]}"; do
+  if [[ -f "${autostart_file}" ]]; then
+    ln --symbolic --force "${autostart_file}" "${HOME}/.config/autostart/"
+  fi
+done
+
 log 'Setting dconf settings'
 gsettings=(
   'org.gnome.desktop.datetime automatic-timezone false'
@@ -180,43 +217,6 @@ gsettings=(
 for line in "${gsettings[@]}"; do
   IFS=' ' read -r schema key value <<< "${line}"
   gsettings set "${schema}" "${key}" "${value}"
-done
-
-log 'Setting hostname'
-hostnamectl set-hostname 'silverstar'
-
-log 'Running setup scripts'
-temp_scripts_dir="$(mktemp --directory)"
-cp -r "${SCRIPTS_DIR}/"* "${temp_scripts_dir}"
-## TODO check on this - can i update packages without updating kernel, then update kernel later?
-# disable ufw scripts so they don't run as they'll fail if there was a kernel update (i think)
-chmod -x "${temp_scripts_dir}/setup/ufw/"*
-SCRIPTS_DIR="${temp_scripts_dir}" PACKAGE_LISTS_COMPUTER_NUMBER='3' SCRIPTS_AUTO_ANSWER='y' "${temp_scripts_dir}/setup/run-setup-scripts"
-
-# shellcheck disable=1091
-source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
-
-log 'Installing GNOME extensions'
-gnome_extensions=(
-  'https://extensions.gnome.org/extension/779/clipboard-indicator/'
-  'https://extensions.gnome.org/extension/1319/gsconnect/'
-  'https://extensions.gnome.org/extension/1460/vitals/'
-)
-for url in "${gnome_extensions[@]}"; do
-  package_num="$(cut --delimiter='/' --fields='5' <<< "${url}")"
-  log "Installing extension from URL: ${url}"
-  gext --filesystem install "${package_num}"
-done
-
-log 'Adding autostart applications'
-mkdir --parents "${HOME}/.config/autostart"
-autostart_files=(
-  '/usr/share/applications/caffeine-indicator.desktop'
-)
-for autostart_file in "${autostart_files[@]}"; do
-  if [[ -f "${autostart_file}" ]]; then
-    ln --symbolic --force "${autostart_file}" "${HOME}/.config/autostart/"
-  fi
 done
 
 # Skip these if running in vm for testing.
