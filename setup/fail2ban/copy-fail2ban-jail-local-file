@@ -14,4 +14,4 @@ fi
 
 readonly target_file="${HOME}/.etc/fail2ban-jail.local"
 readonly link_file='/etc/fail2ban/jail.local'
-link_system_file "${target_file}" "${link_file}"
+copy_system_file "${target_file}" "${link_file}"
