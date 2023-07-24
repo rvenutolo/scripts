@@ -233,15 +233,15 @@ if [[ ! -e '/dev/sr0' ]]; then
     fprintd-enroll
   fi
 
+  log 'Updating recovery partition'
+  pop-upgrade recovery upgrade from-release
+
   log 'Setting hybrid graphics'
   sudo system76-power graphics 'hybrid'
 
   log 'Updating firmware'
   sudo fwupdmgr refresh --force
   sudo fwupdmgr update --offline --assume-yes
-
-  log 'Updating recovery partition'
-  pop-upgrade recovery upgrade from-release
 
 fi
 
