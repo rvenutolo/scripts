@@ -112,14 +112,16 @@ sudo apt-get install --yes \
   synaptic \
   virtinst
 
-log 'Downloading and running chezmoi'
 if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
+  log 'Downloading chezmoi'
   dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
 fi
 if [[ ! -f '/tmp/chezmoi' ]]; then
+  log 'Installing chezmoi'
   sh '/tmp/dl-chezmoi.sh' -b '/tmp'
 fi
 if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
+  log 'Initializing chezmoi'
   /tmp/chezmoi init --apply 'rvenutolo'
 fi
 
