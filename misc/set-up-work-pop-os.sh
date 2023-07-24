@@ -5,8 +5,6 @@
 
 set -euo pipefail
 
-readonly dt_ip='172.16.0.21'
-
 function log() {
   echo -e "log [$(date +%T)]: $*" >&2
 }
@@ -129,6 +127,7 @@ ssh-add "${HOME}/.keys/id_ed25519"
 
 source "${HOME}/.profile"
 
+log 'Copying files from dt'
 home_dir_files_to_copy=(
   '.application-deployment'
   '.bin/create-emr-test-cluster'
@@ -137,11 +136,8 @@ home_dir_files_to_copy=(
   '.var/app/com.slack.Slack'
   'carbonblack'
 )
-for file in "${home_dir_files_to_copy[@]}"; do
-  log "Copying ${HOME}/${file} from dt"
-#  rsync --rsh='ssh -o StrictHostKeyChecking=no' --archive --human-readable --executability --relative "${dt_ip}:${file}" "${HOME}"
-  rsync --archive --human-readable --executability --relative "${dt_ip}:${file}" "${HOME}"
-done
+printf '%s\n' "${home_dir_files_to_copy[@]}" > '/tmp/home_dir_files_to_copy'
+rsync --archive --executability --recursive --files-from='/tmp/home_dir_files_to_copy' '172.16.0.21:' "${HOME}"
 
 log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
