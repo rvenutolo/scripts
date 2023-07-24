@@ -18,8 +18,10 @@ readonly target_file="${XDG_CONFIG_HOME}/nfs/storage.exports"
 readonly link_file='/etc/exports.d/storage.exports'
 link_system_file "${target_file}" "${link_file}"
 
-if prompt_yn 'Re-export NFS server exports?'; then
-  log 'Re-exporting NFS exports'
-  sudo exportfs -arv
-  log 'Re-exported NFS exports'
+if ! prompt_yn 'Re-export NFS server exports?'; then
+  exit 0
 fi
+
+log 'Re-exporting NFS exports'
+sudo exportfs -arv
+log 'Re-exported NFS exports'

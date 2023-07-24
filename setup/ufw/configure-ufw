@@ -6,35 +6,34 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
-## TODO un-comment
-#if ! executable_exists 'ufw'; then
-#  log 'ufw executable not found'
-#  exit 0
-#fi
-#
-#local_network_cidr="$(local_network)"
-#readonly local_network_cidr
-#
-#if ! sudo ufw status verbose | contains_word 'deny (incoming)'; then
-#  if prompt_yn 'Set UFW to deny incoming?'; then
-#    sudo ufw default deny incoming
-#  fi
-#fi
-#
-#if ! sudo ufw status verbose | contains_word 'allow (outgoing)'; then
-#  if prompt_yn 'Set UFW to allow outgoing?'; then
-#    sudo ufw default allow outgoing
-#  fi
-#fi
-#
-#if ! grep --perl-regexp --quiet --ignore-case "anywhere\s+allow in\s+${local_network_cidr}" <<< "$(sudo ufw status verbose)"; then
-#  if prompt_yn "Set UFW to allow from ${local_network_cidr}?"; then
-#    sudo ufw allow from "${local_network_cidr}"
-#  fi
-#fi
-#
-#if ! sudo ufw status verbose | contains_word 'status: active'; then
-#  if prompt_yn 'Enable UFW?'; then
-#    sudo ufw enable
-#  fi
-#fi
+if ! executable_exists 'ufw'; then
+  log 'ufw executable not found'
+  exit 0
+fi
+
+local_network_cidr="$(local_network)"
+readonly local_network_cidr
+
+if ! sudo ufw status verbose | contains_word 'deny (incoming)'; then
+  if prompt_yn 'Set UFW to deny incoming?'; then
+    sudo ufw default deny incoming
+  fi
+fi
+
+if ! sudo ufw status verbose | contains_word 'allow (outgoing)'; then
+  if prompt_yn 'Set UFW to allow outgoing?'; then
+    sudo ufw default allow outgoing
+  fi
+fi
+
+if ! grep --perl-regexp --quiet --ignore-case "anywhere\s+allow in\s+${local_network_cidr}" <<< "$(sudo ufw status verbose)"; then
+  if prompt_yn "Set UFW to allow from ${local_network_cidr}?"; then
+    sudo ufw allow from "${local_network_cidr}"
+  fi
+fi
+
+if ! sudo ufw status verbose | contains_word 'status: active'; then
+  if prompt_yn 'Enable UFW?'; then
+    sudo ufw enable
+  fi
+fi

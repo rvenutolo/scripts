@@ -12,7 +12,6 @@ readonly target_file="${HOME}/.etc/fedora_command_not_found.conf"
 if ! is_fedora; then
   exit 0
 fi
-
 if ! rpm --quiet --query 'PackageKit-command-not-found'; then
   log 'PackageKit-command-not-found is not installed'
   exit 0

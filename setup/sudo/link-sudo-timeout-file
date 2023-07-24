@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
+check_not_root
+check_no_args "$@"
+
+readonly target_file="${HOME}/.etc/sudo_timestamp_timeout"
+readonly link_file='/etc/sudoers.d/timestamp_timeout'
+link_system_file "${target_file}" "${link_file}"
