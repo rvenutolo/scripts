@@ -227,8 +227,8 @@ function enable_system_service() {
 }
 
 function get_system_num_for_packages_list() {
-  if [[ -n "${PACKAGE_LISTS_COMP_NUM:-}" ]]; then
-    echo "$((PACKAGE_LISTS_COMP_NUM + 2))"
+  if [[ -n "${PACKAGE_LISTS_COMPUTER_NUMBER:-}" ]]; then
+    echo "$((PACKAGE_LISTS_COMPUTER_NUMBER + 2))"
     exit 0
   fi
   local computer_num=''
