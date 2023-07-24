@@ -4,16 +4,17 @@
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 
 function auto_answer() {
+  ## TODO fix this
   [[ -n "${SCRIPTS_AUTO_ANSWER:-}" ]]
 }
 
 # $1 = question
 function prompt_ny() {
   check_exactly_1_arg "$@"
-  if auto_answer; then
-    exit 1
-  fi
   REPLY=''
+  if auto_answer; then
+    REPLY='n'
+  fi
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
     read -rp "$1 [y/N]: "
     if [[ ${REPLY} == [yY] ]]; then
@@ -28,10 +29,10 @@ function prompt_ny() {
 # $1 = question
 function prompt_yn() {
   check_exactly_1_arg "$@"
-  if auto_answer; then
-    exit 0
-  fi
   REPLY=''
+  if auto_answer; then
+    REPLY='y'
+  fi
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
     read -rp "$1 [Y/n]: "
     if [[ "${REPLY}" == '' || ${REPLY} == [yY] ]]; then
@@ -48,16 +49,18 @@ function prompt_yn() {
 function prompt_for_value() {
   check_at_least_1_arg "$@"
   check_at_most_2_args "$@"
-  if auto_answer && [[ -n "${2:-}" ]]; then
-    echo "$2"
-    exit 0
-  fi
   if [[ -n "${2:-}" ]]; then
     REPLY=''
-    read -rp "$1 [$2]: "
-    if [[ -z "${REPLY}" ]]; then
-      echo "$2"
+    if auto_answer; then
+      REPLY="$2"
     fi
+    if [[ "${REPLY}" == '' ]]; then
+      read -rp "$1 [$2]: "
+      if [[ "${REPLY}" == '' ]]; then
+        REPLY="$2"
+      fi
+    fi
+    echo "${REPLY}"
   else
     REPLY=''
     while [[ -z "${REPLY}" ]]; do
