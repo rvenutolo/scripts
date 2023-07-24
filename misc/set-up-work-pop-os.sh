@@ -190,7 +190,7 @@ temp_scripts_dir="$(mktemp --directory)"
 cp -r "${SCRIPTS_DIR}/"* "${temp_scripts_dir}"
 # disable ufw scripts so they don't run as they'll fail if there was a kernel update (i think)
 chmod -x "${temp_scripts_dir}/setup/ufw/"*
-SCRIPTS_DIR="${temp_scripts_dir}" "${temp_scripts_dir}/setup/run-setup-scripts"
+SCRIPTS_DIR="${temp_scripts_dir}" PACKAGE_LISTS_COMPUTER_NUMBER='3' SCRIPTS_AUTO_ANSWER='y' "${temp_scripts_dir}/setup/run-setup-scripts"
 
 # shellcheck disable=1091
 source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
