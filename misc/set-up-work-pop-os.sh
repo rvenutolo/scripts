@@ -188,6 +188,7 @@ hostnamectl set-hostname 'silverstar'
 log 'Running setup scripts'
 temp_scripts_dir="$(mktemp --directory)"
 cp -r "${SCRIPTS_DIR}/"* "${temp_scripts_dir}"
+## TODO check on this - can i update packages without updating kernel, then update kernel later?
 # disable ufw scripts so they don't run as they'll fail if there was a kernel update (i think)
 chmod -x "${temp_scripts_dir}/setup/ufw/"*
 SCRIPTS_DIR="${temp_scripts_dir}" PACKAGE_LISTS_COMPUTER_NUMBER='3' SCRIPTS_AUTO_ANSWER='y' "${temp_scripts_dir}/setup/run-setup-scripts"
