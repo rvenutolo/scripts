@@ -21,4 +21,4 @@ log 'Updating font cache to include nixpkgs fonts'
 mkdir --parents "${HOME}/.local/share/fonts"
 ln --symbolic --force "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
 fc-cache --force
-log 'Updating font cache to include nixpkgs fonts'
+log 'Updated font cache to include nixpkgs fonts'
