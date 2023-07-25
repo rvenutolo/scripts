@@ -145,16 +145,29 @@ sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
 log 'Setting hostname'
 hostnamectl set-hostname 'silverstar'
 
+export PACKAGE_LISTS_COMPUTER_NUMBER='3'
+export SCRIPTS_AUTO_ANSWER='y'
+bash "${SCRIPTS_DIR}/setup/_packages/00_install-nix-and-packages"
+bash "${SCRIPTS_DIR}/setup/_packages/01_install-flatpak-packages"
+bash "${SCRIPTS_DIR}/setup/_packages/02_install-sdkman-and-packages"
+
+die 'stopping'
+
+export PACKAGE_LISTS_COMPUTER_NUMBER='3'
+export SCRIPTS_AUTO_ANSWER='y'
+
+source "${HOME}/.profile"
+# shellcheck disable=1091
+source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
+
 log 'Running setup scripts'
 temp_scripts_dir="$(mktemp --directory)"
 cp -r "${SCRIPTS_DIR}/"* "${temp_scripts_dir}"
 ### TODO check on this - can i update packages without updating kernel, then update kernel later?
 ## disable ufw scripts so they don't run as they'll fail if there was a kernel update (i think)
 #chmod -x "${temp_scripts_dir}/setup/ufw/"*
-SCRIPTS_DIR="${temp_scripts_dir}" PACKAGE_LISTS_COMPUTER_NUMBER='3' SCRIPTS_AUTO_ANSWER='y' "${temp_scripts_dir}/setup/run-setup-scripts"
-
-# shellcheck disable=1091
-source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
+chmod -x "${temp_scripts_dir}/setup/_packages/"*
+SCRIPTS_DIR="${temp_scripts_dir}" "${temp_scripts_dir}/setup/run-setup-scripts"
 
 log 'Installing GNOME extensions'
 gnome_extensions=(
