@@ -4,7 +4,6 @@
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 
 function auto_answer() {
-  ## TODO fix this
   [[ -n "${SCRIPTS_AUTO_ANSWER:-}" ]]
 }
 
