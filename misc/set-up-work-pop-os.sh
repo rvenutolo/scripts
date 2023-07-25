@@ -70,6 +70,9 @@ sudo chmod 644 '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc'
 echo 'deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu-20.04 main' | sudo tee '/etc/apt/sources.list.d/aws-vpn-client.list' > '/dev/null'
 sudo chmod 644 '/etc/apt/sources.list.d/aws-vpn-client.list'
 
+log 'Updating apt package list'
+sudo apt-get update
+
 # UFW commands won't work if there is a pending kernel update. To work around
 # this, don't update existing packages until later in the script.
 log 'Installing apt packages'
@@ -213,9 +216,6 @@ done
 log 'Removing apt packages'
 sudo apt-get remove --yes geary firefox libreoffice-*
 sudo apt-get autoremove --yes
-
-log 'Updating apt package list'
-sudo apt-get update
 
 log 'Upgrading existing apt packages'
 sudo apt-get dist-upgrade --yes
