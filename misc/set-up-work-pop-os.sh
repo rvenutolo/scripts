@@ -58,13 +58,6 @@ sudo --validate
 log 'Setting sudo timeout'
 echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
 
-log 'Writing ssh known hosts file'
-mkdir --parents "${HOME}/.ssh"
-echo '|1|DrHi0dza40xoxmaOmWTjQ7EwNOg=|o26Lq/h9+IGtARKBHUrFSy5T0qc= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
-|1|DoY+GQeI6P78rxlhFP2uFVxN4Dc=|I0FMftA9AdCOzsLCX84BITTvo1Y= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
-|1|tUheifLXKM2bhe1vxdzMPTuDyY8=|6Z341meaCr50ky78WCcwYKz0PKw= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGZKSJG7ZqXvqmDDb5g67MO+Vl5plp2FWSHiC9httDZX
-|1|adUn9N5gSzUsE/419c3y5uTSd98=|6WTtT4KiPgx9LFXuntXibjx5cqY= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBJ4phSQ9JIaT74NDlPXGTc9HpeMf9liBGlXNF4QAaZxj9DvTpVrf1OTwlp7XA5h/RDK7UDTPxB3c6AcuqXVcKVc=' > "${HOME}/.ssh/known_hosts"
-
 if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
   log 'Installing old libssl1.1 package for AWS VPN client'
   libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb'
@@ -128,6 +121,13 @@ if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
 fi
 
 source "${HOME}/.profile"
+
+log 'Writing ssh known hosts file'
+echo '|1|DrHi0dza40xoxmaOmWTjQ7EwNOg=|o26Lq/h9+IGtARKBHUrFSy5T0qc= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+|1|DoY+GQeI6P78rxlhFP2uFVxN4Dc=|I0FMftA9AdCOzsLCX84BITTvo1Y= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+|1|tUheifLXKM2bhe1vxdzMPTuDyY8=|6Z341meaCr50ky78WCcwYKz0PKw= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGZKSJG7ZqXvqmDDb5g67MO+Vl5plp2FWSHiC9httDZX
+|1|adUn9N5gSzUsE/419c3y5uTSd98=|6WTtT4KiPgx9LFXuntXibjx5cqY= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBJ4phSQ9JIaT74NDlPXGTc9HpeMf9liBGlXNF4QAaZxj9DvTpVrf1OTwlp7XA5h/RDK7UDTPxB3c6AcuqXVcKVc=' > "${HOME}/.ssh/known_hosts"
+chmod 600 "${HOME}/.ssh/known_hosts"
 
 log 'Copying files from dt'
 home_dir_files_to_copy=(
@@ -233,6 +233,8 @@ for line in "${gsettings[@]}"; do
   IFS=' ' read -r schema key value <<< "${line}"
   gsettings set "${schema}" "${key}" "${value}"
 done
+
+die 'stopping'
 
 log 'Removing apt packages'
 sudo apt-get remove --yes geary firefox libreoffice-*
