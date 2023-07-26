@@ -58,6 +58,79 @@ sudo --validate
 log 'Setting sudo timeout'
 echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
 
+if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
+  log 'Downloading chezmoi'
+  dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
+fi
+if [[ ! -f '/tmp/chezmoi' ]]; then
+  log 'Installing chezmoi'
+  sh '/tmp/dl-chezmoi.sh' -b '/tmp'
+fi
+if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
+  log 'Initializing chezmoi'
+  /tmp/chezmoi init --apply 'rvenutolo'
+fi
+
+source "${HOME}/.profile"
+
+log 'Copying files from dt'
+home_dir_files_to_copy=(
+  '.application-deployment'
+  '.bin/create-emr-test-cluster'
+  '.config/AWSVPNClient'
+  '.de'
+  '.var/app/com.slack.Slack'
+  'carbonblack'
+)
+printf '%s\n' "${home_dir_files_to_copy[@]}" > '/tmp/home_dir_files_to_copy'
+rsync --archive --executability --recursive --files-from='/tmp/home_dir_files_to_copy' '172.16.0.21:' "${HOME}"
+
+log 'Getting de-400 connection file'
+dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
+sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
+
+log 'Setting hostname'
+hostnamectl set-hostname 'silverstar'
+
+log 'Setting dconf settings'
+gsettings=(
+  'org.gnome.desktop.datetime automatic-timezone false'
+  "org.gnome.desktop.input-sources xkb-options ['caps:super']"
+  'org.gnome.desktop.interface color-scheme prefer-dark'
+  'org.gnome.desktop.interface clock-show-weekday true'
+  'org.gnome.desktop.interface locate-pointer true'
+  'org.gnome.desktop.interface show-battery-percentage true'
+  'org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true'
+  'org.gnome.desktop.screensaver lock-delay uint32 30'
+  'org.gnome.desktop.session idle-delay uint32 900'
+  'org.gnome.desktop.wm.preferences action-middle-click-titlebar toggle-shade'
+  'org.gnome.desktop.wm.preferences button-layout appmenu:minimize,maximize,close'
+  'org.gnome.mutter center-new-windows true'
+  'org.gnome.settings-daemon.plugins.color night-light-enabled true'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 1800'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
+  "org.gnome.shell disabled-extensions ['apps-menu@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'window-list@gnome-shell-extensions.gcampax.github.com']"
+  "org.gnome.shell enabled-extensions ['cosmic-dock@system76.com', 'pop-shell@system76.com', 'popx11gestures@system76.com', 'system-monitor@paradoxxx.zero.gmail.com', 'ubuntu-appindicators@ubuntu.com', 'Vitals@CoreCoding.com', 'cosmic-workspaces@system76.com', 'clipboard-indicator@tudmotu.com', 'system76-power@system76.com', 'pop-cosmic@system76.com', 'gsconnect@andyholmes.github.io', 'auto-move-windows@gnome-shell-extensions.gcampax.github.com', 'places-menu@gnome-shell-extensions.gcampax.github.com', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'workspace-indicator@gnome-shell-extensions.gcampax.github.com']"
+  "org.gnome.shell favorite-apps ['pop-cosmic-launcher.desktop', 'pop-cosmic-workspaces.desktop', 'pop-cosmic-applications.desktop', 'org.gnome.Nautilus.desktop', 'org.kde.krusader.desktop', 'com.alacritty.Alacritty.desktop', 'kitty.desktop', 'com.jetbrains.IntelliJ-IDEA-Ultimate.desktop', 'com.jetbrains.DataGrip.desktop', 'io.github.shiftey.Desktop.desktop', 'com.axosoft.GitKraken.desktop', 'awsvpnclient.desktop', 'com.brave.Browser.desktop', 'com.slack.Slack.desktop', 'gnome-control-center.desktop']"
+  'org.gnome.shell.extensions.dash-to-dock click-action minimize'
+  'org.gnome.shell.extensions.dash-to-dock intellihide false'
+  'org.gnome.shell.extensions.pop-shell active-hint true'
+  'org.gnome.shell.weather automatic-location true'
+  'org.gnome.system.location enabled true'
+  # TODO test these - check if rdp enable has to be true for vnc to work
+  'org.gnome.desktop.remote-desktop.rdp enable true'
+  'org.gnome.desktop.remote-desktop.rdp view-only false'
+  'org.gnome.desktop.remote-desktop.vnc auth-method password'
+  'org.gnome.desktop.remote-desktop.vnc enable true'
+  'org.gnome.desktop.remote-desktop.vnc view-only false'
+)
+for line in "${gsettings[@]}"; do
+  IFS=' ' read -r schema key value <<< "${line}"
+  gsettings set "${schema}" "${key}" "${value}"
+done
+
 if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
   log 'Installing old libssl1.1 package for AWS VPN client'
   libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb'
@@ -71,11 +144,22 @@ sudo chmod 644 '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc'
 echo 'deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu-20.04 main' | sudo tee '/etc/apt/sources.list.d/aws-vpn-client.list' > '/dev/null'
 sudo chmod 644 '/etc/apt/sources.list.d/aws-vpn-client.list'
 
-log 'Updating apt package list'
+# Hold some packages where updates to them interfere with other scripts run later.
+log 'Holding some linux/initramfs packages'
+sudo apt-mark hold linux-* initramfs-* > '/dev/null'
+
+log 'Removing apt packages'
+sudo apt-get remove --yes geary firefox libreoffice-*
+
+log 'Running apt update'
 sudo apt-get update
 
-# UFW commands won't work if there is a pending kernel update. To work around
-# this, don't update existing packages until later in the script.
+log 'Running apt update'
+sudo apt-get upgrade --yes
+
+log 'Running apt autoremove'
+sudo apt-get autoremove --yes
+
 log 'Installing apt packages'
 sudo apt-get install --yes \
   age \
@@ -107,52 +191,13 @@ sudo apt-get install --yes \
   synaptic \
   virtinst
 
-if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
-  log 'Downloading chezmoi'
-  dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
-fi
-if [[ ! -f '/tmp/chezmoi' ]]; then
-  log 'Installing chezmoi'
-  sh '/tmp/dl-chezmoi.sh' -b '/tmp'
-fi
-if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
-  log 'Initializing chezmoi'
-  /tmp/chezmoi init --apply 'rvenutolo'
-fi
-
-source "${HOME}/.profile"
-
-log 'Writing ssh known hosts file'
-echo '|1|DrHi0dza40xoxmaOmWTjQ7EwNOg=|o26Lq/h9+IGtARKBHUrFSy5T0qc= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
-|1|DoY+GQeI6P78rxlhFP2uFVxN4Dc=|I0FMftA9AdCOzsLCX84BITTvo1Y= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
-|1|tUheifLXKM2bhe1vxdzMPTuDyY8=|6Z341meaCr50ky78WCcwYKz0PKw= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGZKSJG7ZqXvqmDDb5g67MO+Vl5plp2FWSHiC9httDZX
-|1|adUn9N5gSzUsE/419c3y5uTSd98=|6WTtT4KiPgx9LFXuntXibjx5cqY= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBJ4phSQ9JIaT74NDlPXGTc9HpeMf9liBGlXNF4QAaZxj9DvTpVrf1OTwlp7XA5h/RDK7UDTPxB3c6AcuqXVcKVc=' > "${HOME}/.ssh/known_hosts"
-chmod 600 "${HOME}/.ssh/known_hosts"
-
-log 'Copying files from dt'
-home_dir_files_to_copy=(
-  '.application-deployment'
-  '.bin/create-emr-test-cluster'
-  '.config/AWSVPNClient'
-  '.de'
-  '.var/app/com.slack.Slack'
-  'carbonblack'
-)
-printf '%s\n' "${home_dir_files_to_copy[@]}" > '/tmp/home_dir_files_to_copy'
-rsync --archive --executability --recursive --files-from='/tmp/home_dir_files_to_copy' '172.16.0.21:' "${HOME}"
-
-log 'Getting de-400 connection file'
-dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
-sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
-
-log 'Setting hostname'
-hostnamectl set-hostname 'silverstar'
-
 export PACKAGE_LISTS_COMPUTER_NUMBER='3'
 export SCRIPTS_AUTO_ANSWER='y'
-bash "${SCRIPTS_DIR}/setup/_packages/00_install-nix-and-packages"
-bash "${SCRIPTS_DIR}/setup/_packages/01_install-flatpak-packages"
-bash "${SCRIPTS_DIR}/setup/_packages/02_install-sdkman-and-packages"
+LC_COLLATE='C'
+for script in "${SCRIPTS_DIR}/setup/_packages/"*; do
+  log "Running: ${script}"
+  "$script"
+done
 
 die 'stopping'
 
@@ -195,53 +240,15 @@ for autostart_file in "${autostart_files[@]}"; do
   fi
 done
 
-log 'Setting dconf settings'
-gsettings=(
-  'org.gnome.desktop.datetime automatic-timezone false'
-  "org.gnome.desktop.input-sources xkb-options ['caps:super']"
-  'org.gnome.desktop.interface color-scheme prefer-dark'
-  'org.gnome.desktop.interface clock-show-weekday true'
-  'org.gnome.desktop.interface locate-pointer true'
-  'org.gnome.desktop.interface show-battery-percentage true'
-  'org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true'
-  'org.gnome.desktop.screensaver lock-delay uint32 30'
-  'org.gnome.desktop.session idle-delay uint32 900'
-  'org.gnome.desktop.wm.preferences action-middle-click-titlebar toggle-shade'
-  'org.gnome.desktop.wm.preferences button-layout appmenu:minimize,maximize,close'
-  'org.gnome.mutter center-new-windows true'
-  'org.gnome.settings-daemon.plugins.color night-light-enabled true'
-  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 1800'
-  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
-  'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
-  'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
-  "org.gnome.shell disabled-extensions ['apps-menu@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'window-list@gnome-shell-extensions.gcampax.github.com']"
-  "org.gnome.shell enabled-extensions ['cosmic-dock@system76.com', 'pop-shell@system76.com', 'popx11gestures@system76.com', 'system-monitor@paradoxxx.zero.gmail.com', 'ubuntu-appindicators@ubuntu.com', 'Vitals@CoreCoding.com', 'cosmic-workspaces@system76.com', 'clipboard-indicator@tudmotu.com', 'system76-power@system76.com', 'pop-cosmic@system76.com', 'gsconnect@andyholmes.github.io', 'auto-move-windows@gnome-shell-extensions.gcampax.github.com', 'places-menu@gnome-shell-extensions.gcampax.github.com', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'workspace-indicator@gnome-shell-extensions.gcampax.github.com']"
-  "org.gnome.shell favorite-apps ['pop-cosmic-launcher.desktop', 'pop-cosmic-workspaces.desktop', 'pop-cosmic-applications.desktop', 'org.gnome.Nautilus.desktop', 'org.kde.krusader.desktop', 'com.alacritty.Alacritty.desktop', 'kitty.desktop', 'com.jetbrains.IntelliJ-IDEA-Ultimate.desktop', 'com.jetbrains.DataGrip.desktop', 'io.github.shiftey.Desktop.desktop', 'com.axosoft.GitKraken.desktop', 'awsvpnclient.desktop', 'com.brave.Browser.desktop', 'com.slack.Slack.desktop', 'gnome-control-center.desktop']"
-  'org.gnome.shell.extensions.dash-to-dock click-action minimize'
-  'org.gnome.shell.extensions.dash-to-dock intellihide false'
-  'org.gnome.shell.extensions.pop-shell active-hint true'
-  'org.gnome.shell.weather automatic-location true'
-  'org.gnome.system.location enabled true'
-  # TODO test these - check if rdp enable has to be true for vnc to work
-  'org.gnome.desktop.remote-desktop.rdp enable true'
-  'org.gnome.desktop.remote-desktop.rdp view-only false'
-  'org.gnome.desktop.remote-desktop.vnc auth-method password'
-  'org.gnome.desktop.remote-desktop.vnc enable true'
-  'org.gnome.desktop.remote-desktop.vnc view-only false'
-)
-for line in "${gsettings[@]}"; do
-  IFS=' ' read -r schema key value <<< "${line}"
-  gsettings set "${schema}" "${key}" "${value}"
-done
-
 die 'stopping'
 
-log 'Removing apt packages'
-sudo apt-get remove --yes geary firefox libreoffice-*
-sudo apt-get autoremove --yes
+log 'Un-holding some linux/initramfs packages'
+sudo apt-mark unhold linux-* initramfs-* > '/dev/null'
 
-log 'Upgrading existing apt packages'
+log 'Running apt dist upgrade'
 sudo apt-get dist-upgrade --yes
+
+log 'Running apt autoremove'
 sudo apt-get autoremove --yes
 
 # Skip these if running in vm for testing.
