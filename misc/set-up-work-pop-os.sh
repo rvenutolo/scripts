@@ -167,6 +167,7 @@ sudo apt-get install --yes \
   awsvpnclient \
   bridge-utils \
   caffeine \
+  clamav \
   cpu-checker \
   dconf-editor \
   fail2ban \
@@ -183,12 +184,14 @@ sudo apt-get install --yes \
   libvirt-daemon libvirt-daemon-system libvirt-clients \
   nala \
   nautilus-admin \
+  nfs-kernel-server \
   openssh-client openssh-server \
   ovmf \
   preload \
   python3-nautilus \
   qemu qemu-kvm qemu-utils \
   synaptic \
+  ufw \
   virtinst
 
 export PACKAGE_LISTS_COMPUTER_NUMBER='3'
