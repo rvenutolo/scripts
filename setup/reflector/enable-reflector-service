@@ -6,11 +6,6 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
-if ! is_arch && ! is_endeavour; then
-  exit 0
+if executable_exists 'reflector'; then
+  enable_system_service_unit 'reflector.service'
 fi
-
-readonly service_desc='Reflector'
-readonly service_unit='reflector.service'
-
-enable_system_service "${service_desc}" "${service_unit}"

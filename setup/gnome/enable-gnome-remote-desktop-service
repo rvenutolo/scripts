@@ -7,7 +7,6 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_not_root
 check_no_args "$@"
 
-readonly service_desc='gnome-remote-desktop'
-readonly service_unit='gnome-remote-desktop.service'
-
-enable_user_service "${service_desc}" "${service_unit}"
+if executable_exists 'gnome-session'; then
+  enable_user_service_unit 'gnome-remote-desktop.service'
+fi

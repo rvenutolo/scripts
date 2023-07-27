@@ -6,7 +6,6 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
-readonly service_desc='App Armor'
-readonly service_unit='apparmor.service'
-
-enable_system_service "${service_desc}" "${service_unit}"
+if executable_exists 'ap-enabled'; then
+  enable_system_service_unit 'apparmor.service'
+fi
