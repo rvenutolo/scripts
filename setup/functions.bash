@@ -198,7 +198,7 @@ function enable_user_service() {
     log "Enabling and starting $1 user service"
     systemctl enable --now --user --quiet "$2"
     log "Enabled and started $1 user service"
-    if ! systemctl status --user --quiet "$2"; then
+    if systemctl is-failed --user --quiet "$2"; then
       log "System service failed: $2"
       systemctl status --user "$2"
     fi
@@ -216,7 +216,7 @@ function enable_system_service() {
     log "Enabling and starting $1 system service"
     sudo systemctl enable --now --system --quiet "$2"
     log "Enabled and started $1 system service"
-    if ! systemctl status --system --quiet "$2"; then
+    if systemctl is-failed --system --quiet "$2"; then
       log "System service failed: $2"
       systemctl status --system "$2"
     fi
