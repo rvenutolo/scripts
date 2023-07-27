@@ -6,7 +6,6 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
-readonly service_desc='NFS v4'
-readonly service_unit='nfsv4-server.service'
-
-enable_system_service "${service_desc}" "${service_unit}"
+if executable_exists 'nfsstat'; then
+  enable_system_service_unit 'nfsv4-server.service'
+fi

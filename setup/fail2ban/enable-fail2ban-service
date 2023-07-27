@@ -6,7 +6,6 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
-readonly service_desc='fail2ban'
-readonly service_unit='fail2ban.service'
-
-enable_system_service "${service_desc}" "${service_unit}"
+if executable_exists 'fail2ban-client'; then
+  enable_system_service_unit 'fail2ban.service'
+fi

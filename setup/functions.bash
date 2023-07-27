@@ -184,42 +184,24 @@ function copy_system_file() {
   log "Copied: $1 -> $2"
 }
 
-# $1 service description
-# $2 service unit
-function enable_user_service() {
+# $1 = service unit
+function enable_user_service_unit() {
   check_not_root
-  check_exactly_2_args "$@"
-  local service_file="${XDG_CONFIG_HOME}/systemd/user/$2"
-  if [[ ! -f "${service_file}" ]]; then
-    log "Cannot enable $1 user service - service file is missing: ${service_file}"
-    exit 0
-  fi
-  if ! systemctl is-enabled --user --quiet "$2" && prompt_yn "Enable and start $1 user service?"; then
+  check_exactly_1_arg "$@"
+  if ! systemctl is-enabled --user --quiet "$1" && prompt_yn "Enable and start $1 user service?"; then
     log "Enabling and starting $1 user service"
-    systemctl enable --now --user --quiet "$2"
+    systemctl enable --now --user --quiet "$1"
     log "Enabled and started $1 user service"
-    if systemctl is-failed --user --quiet "$2"; then
-      log "System service failed: $2"
-      systemctl status --user "$2"
-    fi
   fi
 }
 
-function enable_system_service() {
-  check_exactly_2_args "$@"
-  local service_file="/usr/lib/systemd/system/$2"
-  if [[ ! -f "${service_file}" ]]; then
-    log "Cannot enable $1 system service - service file is missing: ${service_file}"
-    exit 0
-  fi
-  if ! systemctl is-enabled --system --quiet "$2" && prompt_yn "Enable and start $1 system service?"; then
+# $1 = service unit
+function enable_system_service_unit() {
+  check_exactly_1_arg "$@"
+  if ! systemctl is-enabled --system --quiet "$1" && prompt_yn "Enable and start $1 system service?"; then
     log "Enabling and starting $1 system service"
-    sudo systemctl enable --now --system --quiet "$2"
+    sudo systemctl enable --now --system --quiet "$1"
     log "Enabled and started $1 system service"
-    if systemctl is-failed --system --quiet "$2"; then
-      log "System service failed: $2"
-      systemctl status --system "$2"
-    fi
   fi
 }
 

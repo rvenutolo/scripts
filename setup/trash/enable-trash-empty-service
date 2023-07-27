@@ -7,7 +7,6 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_not_root
 check_no_args "$@"
 
-readonly service_desc='trash-cli empty'
-readonly service_unit='trash-empty.timer'
-
-enable_user_service "${service_desc}" "${service_unit}"
+if executable_exists 'trash-empty'; then
+  enable_user_service_unit 'trash-empty.timer'
+fi

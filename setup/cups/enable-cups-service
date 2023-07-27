@@ -6,7 +6,6 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
-readonly service_desc='CUPS'
-readonly service_unit='cups.service'
-
-enable_system_service "${service_desc}" "${service_unit}"
+if executable_exists 'cupsd'; then
+  enable_system_service_unit 'cups.service'
+fi

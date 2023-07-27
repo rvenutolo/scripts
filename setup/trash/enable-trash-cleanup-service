@@ -7,7 +7,4 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_not_root
 check_no_args "$@"
 
-readonly service_desc='Trash cleanup'
-readonly service_unit='trash-cleanup.timer'
-
-enable_user_service "${service_desc}" "${service_unit}"
+enable_user_service_unit 'trash-cleanup.timer'
