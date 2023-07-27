@@ -211,9 +211,6 @@ source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 log 'Running setup scripts'
 temp_scripts_dir="$(mktemp --directory)"
 cp -r "${SCRIPTS_DIR}/"* "${temp_scripts_dir}"
-### TODO check on this - can i update packages without updating kernel, then update kernel later?
-## disable ufw scripts so they don't run as they'll fail if there was a kernel update (i think)
-#chmod -x "${temp_scripts_dir}/setup/ufw/"*
 chmod -x "${temp_scripts_dir}/setup/_packages/"*
 SCRIPTS_DIR="${temp_scripts_dir}" "${temp_scripts_dir}/setup/run-setup-scripts"
 
