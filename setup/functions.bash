@@ -195,7 +195,7 @@ service_exists() {
 
 # $1 = service unit file
 function user_service_unit_file_exists() {
-  systemctl --user list-unit-file --all --quiet "$1" > /dev/null
+  systemctl --user list-unit-files --all --quiet "$1" > /dev/null
 }
 
 # $1 = service unit file
@@ -215,7 +215,7 @@ function enable_user_service_unit() {
 
 # $1 = service unit file
 function system_service_unit_file_exists() {
-  systemctl --system list-unit-file --all --quiet "$1" > /dev/null
+  systemctl --system list-unit-files --all --quiet "$1" > /dev/null
 }
 
 # $1 = service unit file
