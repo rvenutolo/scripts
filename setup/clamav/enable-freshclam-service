@@ -6,6 +6,6 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
-if executable_exists 'clamscan'; then
-  enable_system_service_unit 'clamav-daemon.service'
+if executable_exists 'freshclam'; then
+  enable_system_service_unit 'clamav-freshclam.service'
 fi

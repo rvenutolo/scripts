@@ -7,6 +7,4 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_not_root
 check_no_args "$@"
 
-if executable_exists 'ssh-agent'; then
-  enable_user_service_unit 'ssh-agent.service'
-fi
+enable_user_service_unit 'ssh-agent.service'
