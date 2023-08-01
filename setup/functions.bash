@@ -184,24 +184,51 @@ function copy_system_file() {
   log "Copied: $1 -> $2"
 }
 
-# $1 = service unit
+service_exists() {
+    local n=$1
+    if [[ $(systemctl list-units --all --type=service --full --no-legend "$n.service" | sed 's/^\s*//g' | cut -f1 -d' ') == $n.service ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# $1 = service unit file
+function user_service_unit_file_exists() {
+  systemctl --user list-unit-file --all --quiet "$1" > /dev/null
+}
+
+# $1 = service unit file
 function enable_user_service_unit() {
   check_not_root
   check_exactly_1_arg "$@"
-  if ! systemctl is-enabled --user --quiet "$1" && prompt_yn "Enable and start $1 user service?"; then
-    log "Enabling and starting $1 user service"
-    systemctl enable --now --user --quiet "$1"
-    log "Enabled and started $1 user service"
+  if user_service_unit_file_exists "$1"; then
+    if ! systemctl is-enabled --user --quiet "$1" && prompt_yn "Enable and start $1 user service?"; then
+      log "Enabling and starting $1 user service"
+      systemctl enable --now --user --quiet "$1"
+      log "Enabled and started $1 user service"
+    fi
+  else
+    log "User service unit files does not exist: $1"
   fi
 }
 
-# $1 = service unit
+# $1 = service unit file
+function system_service_unit_file_exists() {
+  systemctl --system list-unit-file --all --quiet "$1" > /dev/null
+}
+
+# $1 = service unit file
 function enable_system_service_unit() {
   check_exactly_1_arg "$@"
-  if ! systemctl is-enabled --system --quiet "$1" && prompt_yn "Enable and start $1 system service?"; then
-    log "Enabling and starting $1 system service"
-    sudo systemctl enable --now --system --quiet "$1"
-    log "Enabled and started $1 system service"
+  if system_service_unit_file_exists "$1"; then
+    if ! systemctl is-enabled --system --quiet "$1" && prompt_yn "Enable and start $1 system service?"; then
+      log "Enabling and starting $1 system service"
+      sudo systemctl enable --now --system --quiet "$1"
+      log "Enabled and started $1 system service"
+    fi
+  else
+    log "System service unit files does not exist: $1"
   fi
 }
 
