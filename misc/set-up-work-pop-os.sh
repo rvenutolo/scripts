@@ -203,11 +203,6 @@ for script in "${SCRIPTS_DIR}/setup/_packages/"*; do
   "$script"
 done
 
-die 'stopping'
-
-export PACKAGE_LISTS_COMPUTER_NUMBER='3'
-export SCRIPTS_AUTO_ANSWER='y'
-
 source "${HOME}/.profile"
 # shellcheck disable=1091
 source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
@@ -240,8 +235,6 @@ for autostart_file in "${autostart_files[@]}"; do
     ln --symbolic --force "${autostart_file}" "${HOME}/.config/autostart/"
   fi
 done
-
-die 'stopping'
 
 log 'Un-holding some linux/initramfs packages'
 sudo apt-mark unhold linux-* initramfs-* > '/dev/null'
