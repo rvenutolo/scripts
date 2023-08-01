@@ -187,6 +187,7 @@ sudo apt-get install --yes \
   nfs-kernel-server \
   openssh-client openssh-server \
   ovmf \
+  plocate \
   preload \
   python3-nautilus \
   qemu qemu-kvm qemu-utils \
