@@ -83,7 +83,7 @@ home_dir_files_to_copy=(
   'carbonblack'
 )
 printf '%s\n' "${home_dir_files_to_copy[@]}" > '/tmp/home_dir_files_to_copy'
-rsync --archive --executability --recursive --files-from='/tmp/home_dir_files_to_copy' '172.16.0.21:' "${HOME}"
+#rsync --archive --executability --recursive --files-from='/tmp/home_dir_files_to_copy' '172.16.0.21:' "${HOME}"
 
 log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
