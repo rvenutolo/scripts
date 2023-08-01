@@ -195,12 +195,9 @@ sudo apt-get install --yes \
   ufw \
   virtinst
 
-export PACKAGE_LISTS_COMPUTER_NUMBER='3'
-export SCRIPTS_AUTO_ANSWER='y'
-LC_COLLATE='C'
-for script in "${SCRIPTS_DIR}/setup/_packages/"*; do
+for script in "${SCRIPTS_DIR}/packages/"*; do
   log "Running: ${script}"
-  "$script"
+  PACKAGE_LISTS_COMPUTER_NUMBER='3' SCRIPTS_AUTO_ANSWER='y' "$script"
 done
 
 source "${HOME}/.profile"
@@ -208,10 +205,7 @@ source "${HOME}/.profile"
 source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 
 log 'Running setup scripts'
-temp_scripts_dir="$(mktemp --directory)"
-cp -r "${SCRIPTS_DIR}/"* "${temp_scripts_dir}"
-chmod -x "${temp_scripts_dir}/setup/_packages/"*
-SCRIPTS_DIR="${temp_scripts_dir}" "${temp_scripts_dir}/setup/run-setup-scripts"
+SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/setup/run-setup-scripts"
 
 log 'Installing GNOME extensions'
 gnome_extensions=(
