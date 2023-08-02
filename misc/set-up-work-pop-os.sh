@@ -58,6 +58,15 @@ sudo --validate
 log 'Setting sudo timeout'
 echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
 
+sudo apt-get update
+
+if ! sudo apt-get --just-print dist-upgrade | grep --quiet '^0 upgraded'; then
+  die "Update/upgrade packages before running this script: sudo apt-get dist-upgrade --yes"
+fi
+if [[ -f '/var/run/reboot-required' ]]; then
+  die "Reboot before running this script"
+fi
+
 if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
   log 'Downloading chezmoi'
   dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
@@ -131,26 +140,31 @@ for line in "${gsettings[@]}"; do
   gsettings set "${schema}" "${key}" "${value}"
 done
 
-# Hold some packages where updates to them interfere with other scripts run later.
-log 'Holding some linux/initramfs packages'
-sudo apt-mark hold linux-* initramfs-* > '/dev/null'
+if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
+  log 'Installing old libssl1.1 package for AWS VPN client'
+  libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb'
+  libssl1_deb="$(mktemp --suffix "__$(basename "${libssl1_url}")")"
+  dl "${libssl1_url}" "${libssl1_deb}"
+  sudo apt-get install --yes "${libssl1_deb}"
+fi
+
+dl 'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc' | sudo tee '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc' > '/dev/null'
+sudo chmod 644 '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc'
+echo 'deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu-20.04 main' | sudo tee '/etc/apt/sources.list.d/aws-vpn-client.list' > '/dev/null'
+sudo chmod 644 '/etc/apt/sources.list.d/aws-vpn-client.list'
 
 log 'Removing apt packages'
 sudo apt-get remove --yes geary firefox libreoffice-*
-
-log 'Running apt update'
-sudo apt-get update
-
-log 'Running apt update'
-sudo apt-get upgrade --yes
 
 log 'Running apt autoremove'
 sudo apt-get autoremove --yes
 
 log 'Installing apt packages'
+sudo apt update
 sudo apt-get install --yes \
   age \
   alacritty \
+  awsvpnclient \
   bridge-utils \
   caffeine \
   clamav \
@@ -216,15 +230,6 @@ for autostart_file in "${autostart_files[@]}"; do
   fi
 done
 
-log 'Un-holding some linux/initramfs packages'
-sudo apt-mark unhold linux-* initramfs-* > '/dev/null'
-
-log 'Running apt dist upgrade'
-sudo apt-get dist-upgrade --yes
-
-log 'Running apt autoremove'
-sudo apt-get autoremove --yes
-
 # Skip these if running in vm for testing.
 if [[ ! -e '/dev/sr0' ]]; then
 
@@ -251,39 +256,9 @@ if [[ ! -e '/dev/sr0' ]]; then
 
 fi
 
-echo '
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-if ! dpkg --status libssl1.1 > /dev/null 2>&1; then
-  echo Installing old libssl1.1 package for AWS VPN client
-  libssl1_url=http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb
-  libssl1_deb="$(mktemp --suffix "__$(basename "${libssl1_url}")")"
-  curl --disable --fail --silent --location --show-error "${libssl1_url}" --output "${libssl1_deb}"
-  sudo apt-get install --yes "${libssl1_deb}"
-fi
-
-if [[ ! -f /etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc ]]; then
-  curl --disable --fail --silent --location --show-error https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc | sudo tee /etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc > /dev/null
-  sudo chmod 644 /etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc
-fi
-
-if [[ ! -f /etc/apt/sources.list.d/aws-vpn-client.list ]]; then
-  echo deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu-20.04 main | sudo tee /etc/apt/sources.list.d/aws-vpn-client.list > /dev/null
-  sudo chmod 644 /etc/apt/sources.list.d/aws-vpn-client.list
-fi
-
-if ! dpkg --list awsvpnclient &> /dev/null; then
-  sudo apt-get install awsvpnclient
-fi
-' > "${HOME}/install-awsvpnclient.bash"
-chmod +x "${HOME}/install-awsvpnclient.bash"
-
 # shellcheck disable=SC2016
 log 'Finished
 You may want to do any of the following:
 - source ~/.bashrc && source ~/.nix-profile/etc/profile.d/nix.sh"
 - jetbrains-toolbox
-- reboot
-- ~/install-awsvpnclient.bash'
+- reboot'
