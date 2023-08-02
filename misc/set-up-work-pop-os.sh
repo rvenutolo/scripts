@@ -61,7 +61,8 @@ echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeou
 sudo apt-get update
 
 if ! sudo apt-get --just-print dist-upgrade | grep --quiet '^0 upgraded'; then
-  die "Update/upgrade packages before running this script: sudo apt-get dist-upgrade --yes"
+  sudo touch '/var/run/reboot-required'
+  die "Update/upgrade packages and reboot before running this script: sudo apt-get dist-upgrade --yes && sudo reboot"
 fi
 if [[ -f '/var/run/reboot-required' ]]; then
   die "Reboot before running this script"
