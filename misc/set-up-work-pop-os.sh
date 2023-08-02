@@ -82,18 +82,6 @@ fi
 
 source "${HOME}/.profile"
 
-log 'Copying files from backup'
-home_dir_files_to_copy=(
-  '.application-deployment'
-  '.bin/create-emr-test-cluster'
-  '.config/AWSVPNClient'
-  '.de'
-  '.var/app/com.slack.Slack'
-  'carbonblack'
-)
-printf '%s\n' "${home_dir_files_to_copy[@]}" > '/tmp/home_dir_files_to_copy'
-rsync --archive --executability --recursive --files-from='/tmp/home_dir_files_to_copy' '172.16.0.157:/backup/work/home' "${HOME}"
-
 log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
 sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
@@ -232,6 +220,18 @@ done
 
 # Skip these if running in vm for testing.
 if [[ ! -e '/dev/sr0' ]]; then
+
+  log 'Copying files from backup'
+  home_dir_files_to_copy=(
+    '.application-deployment'
+    '.bin/create-emr-test-cluster'
+    '.config/AWSVPNClient'
+    '.de'
+    '.var/app/com.slack.Slack'
+    'carbonblack'
+  )
+  printf '%s\n' "${home_dir_files_to_copy[@]}" > '/tmp/home_dir_files_to_copy'
+  rsync --archive --executability --recursive --files-from='/tmp/home_dir_files_to_copy' '172.16.0.157:/backup/work/home' "${HOME}"
 
   log 'Installing fingerprint scanner packages'
   sudo apt-get install --yes fprintd libpam-fprintd
