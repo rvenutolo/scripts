@@ -38,20 +38,30 @@ if [[ -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN pa
   set +u
   # shellcheck disable=SC1091
   source "${HOME}/.sdkman/bin/sdkman-init.sh"
-  readonly sdkman_url='https://raw.githubusercontent.com/rvenutolo/packages/main/sdkman.csv'
-  dl "${sdkman_url}" | tail --lines='+2' | cut --delimiter=',' --fields='2' | while read -r pkg; do
+  # This collects the latest packages per java version
+  declare -A java_versions
+  while read -r jdk; do
+    version="$(cut --delimiter='.' --fields='1' <<< "${jdk}")"
+    java_versions["${version}"]="${jdk}"
+  done < <(sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac)
+  while read -r jdk; do
+    log "Installing ${jdk} with SDKMAN"
+    base_sleep_time=30
+    tries=0
+    until sdk install java "${jdk}"; do
+      ((tries += 1))
+      if ((tries > 10)); then
+        die "Failed to install in 10 tries: ${jdk}"
+      fi
+      sleep "$((base_sleep_time * tries))"
+    done
+  done < <(printf '%s\n' "${java_versions[@]}" | sort --field-separator='.' --key='1' --numeric-sort)
+  readonly sdkman_packages_url='https://raw.githubusercontent.com/rvenutolo/packages/main/sdkman.csv'
+  dl "${sdkman_packages_url}" | tail --lines='+2' | cut --delimiter=',' --fields='2' | while read -r pkg; do
     log "Installing ${pkg} with SDKMAN"
     base_sleep_time=30
     tries=0
-    until
-      if [[ "${pkg}" == 'java' ]]; then
-        sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac | while read -r jdk; do
-          sdk install java "${jdk}"
-        done
-      else
-        sdk install "${pkg}"
-      fi
-    do
+    until sdk install "${pkg}"; do
       ((tries += 1))
       if ((tries > 10)); then
         die "Failed to install in 10 tries: ${pkg}"
