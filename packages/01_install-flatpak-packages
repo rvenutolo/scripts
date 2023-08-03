@@ -25,3 +25,7 @@ fi
 log 'Installing flatpak packages'
 get_packages_list 'flatpaks' | xargs flatpak install --user --noninteractive
 log 'Installed flatpak packages'
+
+if flatpak list --user --app | grep --quiet --fixed-strings 'com.google.Chrome'; then
+  flatpak override --user --filesystem="${HOME}/.local/share" 'com.google.Chrome'
+fi
