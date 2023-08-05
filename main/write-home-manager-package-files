@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
+check_no_args "$@"
+
+mkdir --parents "${HOME_MANAGER_DIR}"
+
+readonly pkgs_file="${PACKAGES_DIR}/nixpkgs.csv"
+awk -F',' '$3 == "y" && $7 == "" { print $2 }' "${pkgs_file}" > "${HOME_MANAGER_DIR}/personal-desktop.pkgs"
+awk -F',' '$4 == "y" && $7 == "" { print $2 }' "${pkgs_file}" > "${HOME_MANAGER_DIR}/personal-laptop.pkgs"
+awk -F',' '$5 == "y" && $7 == "" { print $2 }' "${pkgs_file}" > "${HOME_MANAGER_DIR}/work-laptop.pkgs"
+awk -F',' '$6 == "y" && $7 == "" { print $2 }' "${pkgs_file}" > "${HOME_MANAGER_DIR}/server.pkgs"
