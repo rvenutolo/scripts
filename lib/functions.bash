@@ -194,27 +194,27 @@ function is_desktop_env() {
 
 function is_personal() {
   check_no_args "$@"
-  [[ "${PERSONAL_OR_WORK:-}" == 'personal' ]]
+  [[ "$(hostname)" == "${PERSONAL_DESKTOP_HOSTNAME}" || "$(hostname)" == "${PERSONAL_LAPTOP_HOSTNAME}" ]]
 }
 
 function is_work() {
   check_no_args "$@"
-  [[ "${PERSONAL_OR_WORK:-}" == 'work' ]]
+  [[ "$(hostname)" == "${WORK_LAPTOP_HOSTNAME}" ]]
 }
 
 function is_desktop() {
   check_no_args "$@"
-  [[ "${DESKTOP_OR_LAPTOP:-}" == 'desktop' ]]
+  [[ "$(hostname)" == "${PERSONAL_DESKTOP_HOSTNAME}" ]]
 }
 
 function is_laptop() {
   check_no_args "$@"
-  [[ "${DESKTOP_OR_LAPTOP:-}" == 'laptop' ]]
+  [[ "$(hostname)" == "${PERSONAL_LAPTOP_HOSTNAME}" || "$(hostname)" == "${WORK_LAPTOP_HOSTNAME}" ]]
 }
 
 function is_headless() {
   check_no_args "$@"
-  [[ "${HEADLESS:-}" == 'yes' ]]
+  echo "${SERVER_HOSTNAMES}" | contains_word "$(hostname)"
 }
 
 # $1 = ip
