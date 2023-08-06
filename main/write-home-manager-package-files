@@ -6,10 +6,19 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_no_args "$@"
 
-mkdir --parents "${HOME_MANAGER_DIR}"
-
+if is_personal && is_desktop; then
+  col_num=3
+elif is_personal && is_laptop; then
+  col_num=4
+elif is_work && is_latop; then
+  col_num=5
+elif is_headless; then
+  col_num=6
+else
+  die "Could not determine which computer this is"
+fi
+readonly col_num
 readonly pkgs_file="${PACKAGES_DIR}/nixpkgs.csv"
-awk -F',' '$3 == "y" && $7 == "" { print $2 }' "${pkgs_file}" > "${HOME_MANAGER_DIR}/personal-desktop.pkgs"
-awk -F',' '$4 == "y" && $7 == "" { print $2 }' "${pkgs_file}" > "${HOME_MANAGER_DIR}/personal-laptop.pkgs"
-awk -F',' '$5 == "y" && $7 == "" { print $2 }' "${pkgs_file}" > "${HOME_MANAGER_DIR}/work-laptop.pkgs"
-awk -F',' '$6 == "y" && $7 == "" { print $2 }' "${pkgs_file}" > "${HOME_MANAGER_DIR}/server.pkgs"
+
+mkdir --parents "${HOME_MANAGER_DIR}"
+dl "${NIXPKGS_PACKAGES_URL}" | awk -F',' "\$${col_num} == \"y\" && \$7 == \"\" { print \$2 }" > "${HOME_MANAGER_DIR}/packages"
