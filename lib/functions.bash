@@ -154,6 +154,11 @@ function is_ubuntu() {
   [[ "$(os_id)" == 'ubuntu' ]]
 }
 
+function is_pop() {
+  check_no_args "$@"
+  [[ "$(os_id)" == 'pop' ]]
+}
+
 # $1 = path to remove
 function path_remove() {
   check_exactly_1_arg "$@"
