@@ -222,6 +222,10 @@ for autostart_file in "${autostart_files[@]}"; do
   fi
 done
 
+log 'Setting Chrome as default web browser'
+xdg-mime default 'com.google.Chrome.desktop' 'x-scheme-handler/https' 'x-scheme-handler/http'
+xdg-settings set 'default-web-browser' 'com.google.Chrome.desktop'
+
 # Skip these if running in vm for testing.
 if [[ ! -e '/dev/sr0' ]]; then
 
