@@ -185,12 +185,12 @@ function copy_system_file() {
 }
 
 service_exists() {
-    local n=$1
-    if [[ $(systemctl list-units --all --type=service --full --no-legend "$n.service" | sed 's/^\s*//g' | cut -f1 -d' ') == $n.service ]]; then
-        return 0
-    else
-        return 1
-    fi
+  local n=$1
+  if [[ $(systemctl list-units --all --type=service --full --no-legend "$n.service" | sed 's/^\s*//g' | cut -f1 -d' ') == $n.service ]]; then
+    return 0
+  else
+    return 1
+  fi
 }
 
 # $1 = service unit file
