@@ -116,6 +116,7 @@ gsettings=(
   'org.gnome.shell.extensions.dash-to-dock intellihide false'
   'org.gnome.shell.extensions.pop-shell active-hint true'
   'org.gnome.shell.weather automatic-location true'
+  "org.gnome.shell.weather locations [<(uint32 2, <('Atlanta', 'KATL', true, [(0.58713361238621309, -1.4735281501968716)], [(0.5890310819891037, -1.4728481350137095)])>)>]"
   'org.gnome.system.location enabled true'
   # TODO test these - check if rdp enable has to be true for vnc to work
   'org.gnome.desktop.remote-desktop.rdp enable true'
