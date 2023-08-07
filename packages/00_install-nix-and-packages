@@ -23,7 +23,7 @@ fi
 if [[ -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]] && prompt_yn 'Install Nix home-manager and packages?'; then
   log 'Installing Nix home-manager and packages'
   ## TODO have nix call this
-  write-home-manager-package-files
+  write-home-manager-packages
   nix run nixpkgs#home-manager -- switch --flake "${HOME_MANAGER_DIR}"
   log 'Installed Nix home-manager and packages'
 fi
