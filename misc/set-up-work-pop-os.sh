@@ -189,7 +189,7 @@ sudo apt-get install --yes \
 
 for script in "${SCRIPTS_DIR}/packages/"*; do
   log "Running: ${script}"
-  PACKAGE_LISTS_COMPUTER_NUMBER='3' SCRIPTS_AUTO_ANSWER='y' "$script"
+  SCRIPTS_AUTO_ANSWER='y' "$script"
 done
 
 source "${HOME}/.profile"
