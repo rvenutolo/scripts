@@ -178,6 +178,7 @@ sudo apt-get install --yes \
   openssh-client openssh-server \
   ovmf \
   plocate \
+  podman \
   preload \
   python3-nautilus \
   qemu qemu-kvm qemu-utils \
