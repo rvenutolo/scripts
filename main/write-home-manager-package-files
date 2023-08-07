@@ -20,5 +20,9 @@ fi
 readonly col_num
 readonly pkgs_file="${PACKAGES_DIR}/nixpkgs.csv"
 
-mkdir --parents "${HOME_MANAGER_DIR}"
-dl "${NIXPKGS_PACKAGES_URL}" | awk -F',' "\$${col_num} == \"y\" && \$7 == \"\" { print \$2 }" > "${HOME_MANAGER_DIR}/packages"
+mkdir --parents "$(dirname "${HOME_MANAGER_PACKAGES_JSON}")"
+(
+  echo "["
+  dl "${NIXPKGS_PACKAGES_URL}" | awk -F',' "\$${col_num} == \"y\" && \$7 == \"\" { print \$2 }" | sed --expression='s/^/  "/' --expression='s/$/"/' --expression='$!s/$/,/'
+  echo "]"
+) > "${HOME_MANAGER_PACKAGES_JSON}"
