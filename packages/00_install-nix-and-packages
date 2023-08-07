@@ -15,13 +15,13 @@ if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]] && prompt_yn 'Install 
   sudo chmod 755 '/nix'
   sudo chown --recursive "${USER}:" '/nix'
   dl 'https://nixos.org/nix/install' | sh -s -- --no-daemon
-  # shellcheck disable=SC1091
-  source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
   log 'Installed Nix'
 fi
 
 if [[ -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]] && prompt_yn 'Install Nix home-manager and packages?'; then
   log 'Installing Nix home-manager and packages'
+  # shellcheck disable=SC1091
+  source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
   ## TODO have nix call this
   write-home-manager-packages
   nix run nixpkgs#home-manager -- switch --flake "${HOME_MANAGER_DIR}"
