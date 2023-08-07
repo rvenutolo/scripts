@@ -7,22 +7,23 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../setup/functions.bash"
 check_not_root
 check_no_args "$@"
 
-if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]] && prompt_yn 'Install Nix package manager?'; then
-  log 'Installing Nix package manager'
+if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]] && prompt_yn 'Install Nix?'; then
+  log 'Installing Nix'
   if [[ ! -d '/nix' ]]; then
     sudo mkdir '/nix'
   fi
   sudo chmod 755 '/nix'
   sudo chown --recursive "${USER}:" '/nix'
-  sh <(dl 'https://nixos.org/nix/install') --no-daemon
-  log 'Installed Nix package manager'
-fi
-
-if [[ -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]] && prompt_yn 'Install Nix packages?'; then
-  log 'Installing Nix packages'
+  dl 'https://nixos.org/nix/install' | sh -s -- --no-daemon
   # shellcheck disable=SC1091
   source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
-  export NIXPKGS_ALLOW_UNFREE='1'
-  get_packages_list 'nixpkgs' | xargs printf -- 'nixpkgs.%s\n' | xargs nix-env --install --attr
-  log 'Installed Nix packages'
+  log 'Installed Nix'
+fi
+
+if [[ -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]] && prompt_yn 'Install Nix home-manager and packages?'; then
+  log 'Installing Nix home-manager and packages'
+  ## TODO have nix call this
+  write-home-manager-package-files
+  nix run nixpkgs#home-manager -- switch --flake "${HOME_MANAGER_DIR}"
+  log 'Installed Nix home-manager and packages'
 fi
