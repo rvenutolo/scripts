@@ -232,24 +232,6 @@ function enable_system_service_unit() {
   fi
 }
 
-function get_system_num_for_packages_list() {
-  if [[ -n "${PACKAGE_LISTS_COMPUTER_NUMBER:-}" ]]; then
-    echo "$((PACKAGE_LISTS_COMPUTER_NUMBER + 2))"
-    exit 0
-  fi
-  local computer_num=''
-  while [[ -z "${computer_num}" ]]; do
-    computer_num="$(prompt_for_value 'What computer number is this? [1: personal desktop, 2: personal laptop, 3: work laptop, 4: server]')"
-    case "${computer_num}" in
-      1 | 2 | 3 | 4)
-        ((computer_num += 2))
-        echo "${computer_num}"
-        ;;
-      *) computer_num='' ;;
-    esac
-  done
-}
-
 # $1 = packages list type (cargo flatpaks nixpkgs snaps)
 function get_packages_list() {
   check_exactly_1_arg "$@"
@@ -257,9 +239,17 @@ function get_packages_list() {
     cargo | flatpaks | nixpkgs | snaps) : ;;
     *) die "Unexpected package list type: $1" ;;
   esac
-  local package_list_url
-  package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/$1.csv"
-  local package_list_column
-  package_list_column="$(get_system_num_for_packages_list)"
+  local package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/$1.csv"
+  if is_personal && is_desktop; then
+    local package_list_column=3
+  elif is_personal && is_laptop; then
+    local package_list_column=4
+  elif is_work && is_laptop; then
+    local package_list_column=5
+  elif is_headless; then
+    local package_list_column=6
+  else
+    die "Could not determine which computer this is"
+  fi
   dl "${package_list_url}" | awk -F',' "\$${package_list_column} == \"y\" && \$7 == \"\" { print \$2 }"
 }
