@@ -58,6 +58,9 @@ sudo --validate
 log 'Setting sudo timeout'
 echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
 
+log 'Setting hostname'
+hostnamectl set-hostname 'silverstar'
+
 sudo apt-get update
 
 if ! sudo apt-get --just-print dist-upgrade | grep --quiet '^0 upgraded'; then
@@ -86,9 +89,6 @@ source "${HOME}/.profile"
 log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
 sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
-
-log 'Setting hostname'
-hostnamectl set-hostname 'silverstar'
 
 log 'Setting dconf settings'
 gsettings=(
