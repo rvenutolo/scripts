@@ -183,6 +183,7 @@ sudo apt-get install --yes \
   python3-nautilus \
   qemu qemu-kvm qemu-utils \
   synaptic \
+  uidmap \
   ufw \
   virtinst
 
