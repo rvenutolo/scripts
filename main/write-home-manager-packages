@@ -7,7 +7,7 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_no_args "$@"
 
 if is_personal && is_desktop; then
-  readonly package_list_column=3
+  readonly package_list_column=5
 elif is_personal && is_laptop; then
   readonly package_list_column=4
 elif is_work && is_laptop; then
@@ -23,8 +23,12 @@ mkdir --parents "$(dirname "${HOME_MANAGER_PACKAGES_FILE}")"
   echo "{ pkgs, ... }:"
   echo ""
   echo "{"
-  echo "  home.packages = ["
-  dl "${NIXPKGS_PACKAGES_URL}" | awk -F',' "\$${package_list_column} == \"y\" && \$7 == \"\" { print \"    pkgs.\" \$2 }"
+  echo "  home.packages = with pkgs; ["
+  dl "${NIXPKGS_PACKAGES_URL}" | awk -F',' "{
+    if (\$${package_list_column} == \"y\")
+      if (\$7 == \"\") print \"    \" \$2
+      else print \"    # \" \$2 \" -- \" \$7
+  }"
   echo "  ];"
   echo "}"
 ) > "${HOME_MANAGER_PACKAGES_FILE}"
