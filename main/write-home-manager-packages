@@ -7,21 +7,24 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_no_args "$@"
 
 if is_personal && is_desktop; then
-    readonly package_list_column=3
-  elif is_personal && is_laptop; then
-    readonly package_list_column=4
-  elif is_work && is_laptop; then
-    readonly package_list_column=5
-  elif is_headless; then
-    readonly package_list_column=6
-  else
-    die "Could not determine which computer this is"
-  fi
-readonly pkgs_file="${PACKAGES_DIR}/nixpkgs.csv"
+  readonly package_list_column=3
+elif is_personal && is_laptop; then
+  readonly package_list_column=4
+elif is_work && is_laptop; then
+  readonly package_list_column=5
+elif is_headless; then
+  readonly package_list_column=6
+else
+  die "Could not determine which computer this is"
+fi
 
-mkdir --parents "$(dirname "${HOME_MANAGER_PACKAGES_JSON}")"
+mkdir --parents "$(dirname "${HOME_MANAGER_PACKAGES_FILE}")"
 (
-  echo "["
-  dl "${NIXPKGS_PACKAGES_URL}" | awk -F',' "\$${package_list_column} == \"y\" && \$7 == \"\" { print \$2 }" | sed --expression='s/^/  "/' --expression='s/$/"/' --expression='$!s/$/,/'
-  echo "]"
-) > "${HOME_MANAGER_PACKAGES_JSON}"
+  echo "{ pkgs, ... }:"
+  echo ""
+  echo "{"
+  echo "  home.packages = ["
+  dl "${NIXPKGS_PACKAGES_URL}" | awk -F',' "\$${package_list_column} == \"y\" && \$7 == \"\" { print \"    pkgs.\" \$2 }"
+  echo "  ];"
+  echo "}"
+) > "${HOME_MANAGER_PACKAGES_FILE}"
