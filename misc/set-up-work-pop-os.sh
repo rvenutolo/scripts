@@ -118,12 +118,6 @@ gsettings=(
   'org.gnome.shell.weather automatic-location true'
   "org.gnome.shell.weather locations [<(uint32 2, <('Atlanta', 'KATL', true, [(0.58713361238621309, -1.4735281501968716)], [(0.5890310819891037, -1.4728481350137095)])>)>]"
   'org.gnome.system.location enabled true'
-  # TODO test these - check if rdp enable has to be true for vnc to work
-  'org.gnome.desktop.remote-desktop.rdp enable true'
-  'org.gnome.desktop.remote-desktop.rdp view-only false'
-  'org.gnome.desktop.remote-desktop.vnc auth-method password'
-  'org.gnome.desktop.remote-desktop.vnc enable true'
-  'org.gnome.desktop.remote-desktop.vnc view-only false'
 )
 for line in "${gsettings[@]}"; do
   IFS=' ' read -r schema key value <<< "${line}"
