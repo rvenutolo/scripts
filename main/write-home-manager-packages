@@ -7,7 +7,7 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_no_args "$@"
 
 if is_personal && is_desktop; then
-  readonly package_list_column=5
+  readonly package_list_column=3
 elif is_personal && is_laptop; then
   readonly package_list_column=4
 elif is_work && is_laptop; then
