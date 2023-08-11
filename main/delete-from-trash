@@ -13,6 +13,11 @@ readonly trash_dir="${XDG_DATA_HOME}/Trash"
 readonly trash_files_dir="${trash_dir}/files"
 readonly trash_info_dir="${trash_dir}/info"
 
+if [[ ! -d "${trash_info_dir}" ]]; then
+  # trash dir won't exist until something is trashed
+  exit 0
+fi
+
 for info_file in "${trash_info_dir}/"*.trashinfo; do
   orig_file="$(grep --only-matching --perl-regexp '^Path=\K.*' "${info_file}")"
   for pattern in "$@"; do
