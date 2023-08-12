@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
+check_exactly_2_args "$@"
+
+readonly etags_dir="${XDG_CACHE_HOME}/etags"
+mkdir --parents "${etags_dir}"
+
+readonly etag_file="${etags_dir}/$(echo "$1" | tr --complement '[:alnum:]._-' '_').etag"
+
+if [[ ! -f "$2" ]]; then
+  curl --disable --fail --silent --location --etag-save "${etag_file}" "$1" --output "$2"
+else
+  curl --disable --fail --silent --location --etag-compare "${etag_file}" --etag-save "${etag_file}" "$1" --output "$2"
+fi
