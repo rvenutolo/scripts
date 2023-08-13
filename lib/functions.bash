@@ -217,6 +217,16 @@ function is_headless() {
   echo "${SERVER_HOSTNAMES}" | contains_word "$(hostname)"
 }
 
+# wrapper around curl to disable reading the config that is intended for interactive use
+function curl() {
+  command curl --disable "$@"
+}
+
+# wrapper around wget to disable reading the config that is intended for interactive use
+function wget() {
+  command wget --no-config "$@"
+}
+
 # $1 = ip
 function ipv4_to_num() {
   check_exactly_1_arg "$@"
@@ -258,7 +268,7 @@ function dl() {
   log "Downloading: $1"
   if [[ -n "${2:-}" ]]; then
     tries=0
-    until curl --disable --fail --silent --location --show-error "$1" --output "$2"; do
+    until curl --fail --silent --location --show-error "$1" --output "$2"; do
       ((tries += 1))
       if ((tries > 10)); then
         die "Failed to get in 10 tries: ${url}"
@@ -267,7 +277,7 @@ function dl() {
     done
   else
     tries=0
-    until curl --disable --fail --silent --location --show-error "$1"; do
+    until curl --fail --silent --location --show-error "$1"; do
       ((tries += 1))
       if ((tries > 10)); then
         die "Failed to get in 10 tries: ${url}"
@@ -293,14 +303,4 @@ function dl_decrypt() {
 function this_script_dir() {
   check_no_args "$@"
   cd -- "$(dirname -- "${BASH_SOURCE[1]}")" &> /dev/null && pwd
-}
-
-# wrapper around curl to disable reading the config that is intended for interactive use
-function curl() {
-  command curl --disable "$@"
-}
-
-# wrapper around wget to disable reading the config that is intended for interactive use
-function wget() {
-  command wget --no-config "$@"
 }
