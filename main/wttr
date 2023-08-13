@@ -7,7 +7,7 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_at_most_1_arg "$@"
 
 if [[ "$#" -eq 0 ]]; then
-  curl --disable "wttr.in/${WTTR_CITY}"
+  curl "wttr.in/${WTTR_CITY}"
 else
-  curl --disable "wttr.in/$1"
+  curl "wttr.in/$1"
 fi
