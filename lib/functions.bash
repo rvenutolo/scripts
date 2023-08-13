@@ -294,3 +294,13 @@ function this_script_dir() {
   check_no_args "$@"
   cd -- "$(dirname -- "${BASH_SOURCE[1]}")" &> /dev/null && pwd
 }
+
+# wrapper around curl to disable reading the config that is intended for interactive use
+function curl() {
+  command curl --disable "$@"
+}
+
+# wrapper around wget to disable reading the config that is intended for interactive use
+function wget() {
+  command wget --no-config "$@"
+}
