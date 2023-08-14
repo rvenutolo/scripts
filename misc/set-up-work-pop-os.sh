@@ -84,6 +84,7 @@ if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
   /tmp/chezmoi init --apply 'rvenutolo'
 fi
 
+#shellcheck disable=SC1091
 source "${HOME}/.profile"
 
 log 'Getting de-400 connection file'
@@ -186,7 +187,6 @@ for script in "${SCRIPTS_DIR}/packages/"*; do
   SCRIPTS_AUTO_ANSWER='y' "$script"
 done
 
-source "${HOME}/.profile"
 # shellcheck disable=1091
 source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 
