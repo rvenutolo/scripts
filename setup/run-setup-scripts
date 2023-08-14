@@ -2,19 +2,20 @@
 
 set -euo pipefail
 
+#shellcheck disable=SC1091
 source "$(dirname -- "${BASH_SOURCE[0]}")/functions.bash"
 check_no_args "$@"
 check_not_root
 
 sudo --validate
 
-setup_scripts_dir="${SCRIPTS_DIR}/setup"
+readonly setup_scripts_dir="${SCRIPTS_DIR}/setup"
 LC_COLLATE='C'
 for script in "${setup_scripts_dir}"/**/*; do
   # don't attempt to execute any READMEs or scripts that intentionally have their executability turned off
   if [[ -x "${script}" ]]; then
-    log "Running: ${script#${setup_scripts_dir}/}"
+    log "Running: ${script#"${setup_scripts_dir}"/}"
     "$script"
-    log "Ran: ${script#${setup_scripts_dir}/}"
+    log "Ran: ${script#"${setup_scripts_dir}"/}"
   fi
 done

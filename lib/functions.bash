@@ -119,6 +119,7 @@ function function_exists() {
   declare -f "$1" > /dev/null 2>&1
 }
 
+#shellcheck disable=SC2120
 function os_id() {
   check_no_args "$@"
   grep --only-matching --perl-regexp '^ID=\K\w+$' '/etc/os-release'
@@ -240,6 +241,7 @@ function num_to_ipv4() {
   echo "$(($1 >> 24 & 0xff)).$(($1 >> 16 & 0xff)).$(($1 >> 8 & 0xff)).$(($1 & 0xff))"
 }
 
+#shellcheck disable=SC2120
 function local_ip() {
   check_no_args "$@"
   ip -oneline route get to '8.8.8.8' | sed --quiet 's/.*src \([0-9.]\+\).*/\1/p'
@@ -271,7 +273,7 @@ function dl() {
     until curl --fail --silent --location --show-error "$1" --output "$2"; do
       ((tries += 1))
       if ((tries > 10)); then
-        die "Failed to get in 10 tries: ${url}"
+        die "Failed to get in 10 tries: $1"
       fi
       sleep 15
     done
@@ -280,7 +282,7 @@ function dl() {
     until curl --fail --silent --location --show-error "$1"; do
       ((tries += 1))
       if ((tries > 10)); then
-        die "Failed to get in 10 tries: ${url}"
+        die "Failed to get in 10 tries: $1"
       fi
       sleep 15
     done
