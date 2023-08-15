@@ -6,6 +6,8 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_exactly_1_arg "$@"
 
+# Download the input file from Periscope
+
 file="migs_for_spoke_$(date +%Y%m%d_%H%M%S).csv"
 readonly file
 echo 'lastName,firstName,cell' > "${file}"
