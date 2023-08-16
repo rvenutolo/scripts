@@ -48,8 +48,8 @@ sudo apt-get install --yes \
   openssh-client openssh-server \
   plocate \
   ufw \
-  unzip \
-  wget
+  wget \
+  zip unzip
 
 log 'Running apt dist-upgrade'
 apt-get dist-upgrade --yes
