@@ -103,6 +103,7 @@ sudo apt-get install --yes \
   openssh-client openssh-server \
   plocate \
   ufw \
+  unzip \
   wget
 
 for script in "${SCRIPTS_DIR}/packages/"*; do
