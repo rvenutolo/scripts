@@ -20,7 +20,7 @@ fi
 
 if ! id --user 'rvenutolo' > /dev/null 2>&1; then
   useradd --create-home --groups 'adm,sudo' --comment 'Rick Venutolo' 'rvenutolo'
-  passwd 'rvenutolo'
+  until passwd 'rvenutolo'; do :; done
 fi
 
 log 'Updating packages'
