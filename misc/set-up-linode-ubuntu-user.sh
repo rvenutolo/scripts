@@ -23,7 +23,7 @@ function dl() {
     until curl --disable --fail --silent --location --show-error "$1" --output "$2"; do
       ((tries += 1))
       if ((tries > 10)); then
-        die "Failed to get in 10 tries: ${url}"
+        die "Failed to get in 10 tries: $1"
       fi
       sleep 15
     done
@@ -32,7 +32,7 @@ function dl() {
     until curl --disable --fail --silent --location --show-error "$1"; do
       ((tries += 1))
       if ((tries > 10)); then
-        die "Failed to get in 10 tries: ${url}"
+        die "Failed to get in 10 tries: $1"
       fi
       sleep 15
     done
