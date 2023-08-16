@@ -19,6 +19,7 @@ if [[ "${EUID}" != 0 ]]; then
 fi
 
 if ! id --user 'rvenutolo' > /dev/null 2>&1; then
+  log 'Creating rvenutolo'
   useradd --create-home --groups 'adm,sudo' --comment 'Rick Venutolo' 'rvenutolo'
   until passwd 'rvenutolo'; do :; done
 fi
