@@ -10,3 +10,7 @@ check_no_args "$@"
 readonly src_file="${HOME}/.etc/sshd.conf"
 readonly dest_file='/etc/ssh/sshd_config.d/sshd.conf'
 copy_system_file "${src_file}" "${dest_file}"
+
+if systemctl is-enabled --user --quiet 'sshd'; then
+  sudo systemctl restart sshd
+fi
