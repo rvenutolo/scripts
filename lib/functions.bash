@@ -213,7 +213,7 @@ function is_laptop() {
   [[ "$(hostname)" == "${PERSONAL_LAPTOP_HOSTNAME}" || "$(hostname)" == "${WORK_LAPTOP_HOSTNAME}" ]]
 }
 
-function is_headless() {
+function is_server() {
   check_no_args "$@"
   echo "${SERVER_HOSTNAMES}" | contains_word "$(hostname)"
 }
