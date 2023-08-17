@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
+check_no_args "$@"
+
+if executable_exists 'dockerd'; then
+  enable_system_service_unit 'docker.service'
+fi
