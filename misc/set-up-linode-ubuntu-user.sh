@@ -55,12 +55,6 @@ if [[ -f '/var/run/reboot-required' ]]; then
   die "Reboot before running this script"
 fi
 
-log 'Setting sudo timeout'
-echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > /dev/null
-
-log 'Setting hostname'
-sudo hostnamectl set-hostname 'alpha'
-
 if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
   log 'Downloading chezmoi'
   dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
