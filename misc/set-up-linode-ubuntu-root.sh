@@ -45,17 +45,19 @@ log 'Installing apt packages'
 apt-get update
 apt-get install --yes \
   age \
+  apt-transport-https \
   ca-certificates \
   curl \
-  docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
+  docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose docker-compose-plugin \
   fail2ban \
   git \
-  gnupg \
+  gnupg gnupg-agent \
   nala \
   nano \
   micro \
   openssh-client openssh-server \
   plocate \
+  software-properties-common \
   ufw \
   wget \
   zip unzip
