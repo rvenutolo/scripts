@@ -76,10 +76,11 @@ for script in "${SCRIPTS_DIR}/packages/"*; do
   SCRIPTS_AUTO_ANSWER='y' "$script"
 done
 
-## shellcheck disable=1091
-#source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
+# shellcheck disable=1091
+source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 
-#log 'Running setup scripts'
+log 'Running setup scripts'
 #SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/setup/run-setup-scripts"
+"${SCRIPTS_DIR}/setup/run-setup-scripts"
 
 log 'Done'
