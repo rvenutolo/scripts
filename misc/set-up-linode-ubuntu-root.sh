@@ -18,6 +18,15 @@ if [[ "${EUID}" != 0 ]]; then
   die "Run this script as root"
 fi
 
+log 'Setting timezone'
+timedatectl set-timezone 'America/New_York'
+
+log 'Setting hostname'
+hostnamectl set-hostname 'alpha'
+
+log 'Setting sudo timeout'
+echo 'Defaults timestamp_timeout=60' | tee '/etc/sudoers.d/timestamp_timeout' > /dev/null
+
 if ! id --user 'rvenutolo' > /dev/null 2>&1; then
   log 'Creating rvenutolo'
   useradd --create-home --groups 'adm,sudo' --comment 'Rick Venutolo' 'rvenutolo'
