@@ -7,6 +7,10 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../setup/functions.bash"
 check_not_root
 check_no_args "$@"
 
+if is_server; then
+  exit 0
+fi
+
 if ! executable_exists 'flatpak'; then
   log 'flatpak executable not found'
   exit 0
