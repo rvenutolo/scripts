@@ -15,3 +15,5 @@ fi
 readonly src_file="${HOME}/.etc/fail2ban-jail.local"
 readonly dest_file='/etc/fail2ban/jail.local'
 copy_system_file "${src_file}" "${dest_file}"
+
+restart_system_service_if_enabled 'fail2ban.service'
