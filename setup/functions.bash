@@ -246,7 +246,7 @@ function get_packages_list() {
     local package_list_column=4
   elif is_work && is_laptop; then
     local package_list_column=5
-  elif is_headless; then
+  elif is_server; then
     local package_list_column=6
   else
     die "Could not determine which computer this is"
