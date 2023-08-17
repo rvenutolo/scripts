@@ -12,6 +12,6 @@ if ! executable_exists 'fail2ban-server'; then
   exit 0
 fi
 
-readonly target_file="${HOME}/.etc/fail2ban-jail.local"
-readonly link_file='/etc/fail2ban/jail.local'
-copy_system_file "${target_file}" "${link_file}"
+readonly src_file="${HOME}/.etc/fail2ban-jail.local"
+readonly dest_file='/etc/fail2ban/jail.local'
+copy_system_file "${src_file}" "${dest_file}"

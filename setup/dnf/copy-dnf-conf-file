@@ -6,9 +6,6 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
-readonly link_file='/etc/dnf/dnf.conf'
-readonly target_file="${HOME}/.etc/dnf.conf"
-
 if ! is_fedora; then
   exit 0
 fi
@@ -17,4 +14,6 @@ if ! executable_exists 'dnf'; then
   exit 0
 fi
 
-copy_system_file "${target_file}" "${link_file}"
+readonly src_file="${HOME}/.etc/dnf.conf"
+readonly dest_file='/etc/dnf/dnf.conf'
+copy_system_file "${src_file}" "${dest_file}"

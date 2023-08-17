@@ -7,6 +7,6 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_not_root
 check_no_args "$@"
 
-readonly target_file="${HOME}/.etc/sshd.conf"
-readonly link_file='/etc/ssh/sshd_config.d/sshd.conf'
-copy_system_file "${target_file}" "${link_file}"
+readonly src_file="${HOME}/.etc/sshd.conf"
+readonly dest_file='/etc/ssh/sshd_config.d/sshd.conf'
+copy_system_file "${src_file}" "${dest_file}"

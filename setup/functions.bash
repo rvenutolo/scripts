@@ -154,8 +154,8 @@ function copy_user_file() {
   log "Copied: $1 -> $2"
 }
 
-# $1 = old file location
-# $2 = new file location
+# $1 = source file
+# $2 = destination file
 function copy_system_file() {
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
