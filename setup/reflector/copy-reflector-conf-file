@@ -19,3 +19,5 @@ fi
 readonly src_file="${HOME}/.etc/reflector.conf"
 readonly dest_file='/etc/xdg/reflector/reflector.conf'
 copy_system_file "${src_file}" "${dest_file}"
+
+restart_system_service_if_enabled 'reflector.service'

@@ -184,15 +184,6 @@ function copy_system_file() {
   log "Copied: $1 -> $2"
 }
 
-service_exists() {
-  local n=$1
-  if [[ $(systemctl list-units --all --type=service --full --no-legend "$n.service" | sed 's/^\s*//g' | cut -f1 -d' ') == $n.service ]]; then
-    return 0
-  else
-    return 1
-  fi
-}
-
 # $1 = service unit file
 function user_service_unit_file_exists() {
   systemctl --user list-unit-files --all --quiet "$1" > /dev/null
@@ -207,6 +198,21 @@ function enable_user_service_unit() {
       log "Enabling and starting $1 user service"
       systemctl enable --now --user --quiet "$1"
       log "Enabled and started $1 user service"
+    fi
+  else
+    log "User service unit files does not exist: $1"
+  fi
+}
+
+# $1 = service unit file
+function restart_user_service_if_enabled() {
+  check_not_root
+  check_exactly_1_arg "$@"
+  if user_service_unit_file_exists "$1"; then
+    if ! systemctl is-enabled --user --quiet "$1" && prompt_yn "Restart $1 user service?"; then
+      log "Restarting $1 user service"
+      systemctl restart --user --quiet "$1"
+      log "Restarted $1 user service"
     fi
   else
     log "User service unit files does not exist: $1"
@@ -229,6 +235,29 @@ function enable_system_service_unit() {
     fi
   else
     log "System service unit files does not exist: $1"
+  fi
+}
+
+# $1 = service unit file
+function restart_system_service_if_enabled() {
+  check_exactly_1_arg "$@"
+  if system_service_unit_file_exists "$1"; then
+    if ! systemctl is-enabled --system --quiet "$1" && prompt_yn "Restart $1 system service?"; then
+      log "Restarting $1 system service"
+      sudo systemctl restart --system --quiet "$1"
+      log "Restarted $1 system service"
+    fi
+  else
+    log "System service unit files does not exist: $1"
+  fi
+}
+
+function reload_sysctl_conf() {
+  check_no_args "$@"
+  if prompt_yn 'Reload sysctl configuration?'; then
+    log 'Reloading sysctl configuration'
+    sudo sysctl --system --quiet
+    log 'Reloaded sysctl configuration'
   fi
 }
 
