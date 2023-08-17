@@ -149,6 +149,7 @@ sudo apt update
 sudo apt-get install --yes \
   age \
   alacritty \
+  apt-transport-https \
   awsvpnclient \
   bridge-utils \
   caffeine \
