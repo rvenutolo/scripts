@@ -16,19 +16,39 @@ readonly local_network_cidr
 
 if ! sudo ufw status verbose | contains_word 'deny (incoming)'; then
   if prompt_yn 'Set UFW to deny incoming?'; then
-    sudo ufw default deny incoming
+    sudo ufw default deny 'incoming'
+  fi
+fi
+
+## TODO only allow incoming traffic from tailscale network
+if is_server; then
+  if ! grep --perl-regexp --quiet --ignore-case "22/tcp\s+allow in\s+anywhere" <<< "$(sudo ufw status verbose)"; then
+    if prompt_yn "Set UFW to allow SSH?"; then
+      sudo ufw allow 'ssh/tcp'
+    fi
+  fi
+  ## TODO disable http and only allow https?
+  if ! grep --perl-regexp --quiet --ignore-case "80/tcp\s+allow in\s+anywhere" <<< "$(sudo ufw status verbose)"; then
+    if prompt_yn "Set UFW to allow HTTP"; then
+      sudo ufw allow 'http/tcp'
+    fi
+  fi
+  if ! grep --perl-regexp --quiet --ignore-case "443/tcp\s+allow in\s+anywhere" <<< "$(sudo ufw status verbose)"; then
+    if prompt_yn "Set UFW to allow HTTPS"; then
+      sudo ufw allow 'https/tcp'
+    fi
+  fi
+else
+  if ! grep --perl-regexp --quiet --ignore-case "anywhere\s+allow in\s+${local_network_cidr}" <<< "$(sudo ufw status verbose)"; then
+    if prompt_yn "Set UFW to allow from ${local_network_cidr}?"; then
+      sudo ufw allow from "${local_network_cidr}"
+    fi
   fi
 fi
 
 if ! sudo ufw status verbose | contains_word 'allow (outgoing)'; then
   if prompt_yn 'Set UFW to allow outgoing?'; then
-    sudo ufw default allow outgoing
-  fi
-fi
-
-if ! grep --perl-regexp --quiet --ignore-case "anywhere\s+allow in\s+${local_network_cidr}" <<< "$(sudo ufw status verbose)"; then
-  if prompt_yn "Set UFW to allow from ${local_network_cidr}?"; then
-    sudo ufw allow from "${local_network_cidr}"
+    sudo ufw default allow 'outgoing'
   fi
 fi
 
