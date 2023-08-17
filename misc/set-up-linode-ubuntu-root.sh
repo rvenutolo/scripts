@@ -35,15 +35,15 @@ fi
 
 log 'Adding Docker to package sources'
 # https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
-sudo install --mode='0755' --directory '/etc/apt/keyrings'
-curl --disable --fail --silent --location --show-error 'https://download.docker.com/linux/ubuntu/gpg' | sudo gpg --dearmor -o '/etc/apt/keyrings/docker.gpg'
-sudo chmod a+r '/etc/apt/keyrings/docker.gpg'
+install --mode='0755' --directory '/etc/apt/keyrings'
+curl --disable --fail --silent --location --show-error 'https://download.docker.com/linux/ubuntu/gpg' | gpg --dearmor -o '/etc/apt/keyrings/docker.gpg'
+chmod a+r '/etc/apt/keyrings/docker.gpg'
 # shellcheck disable=SC1091
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(source /etc/os-release && echo "${VERSION_CODENAME}") stable" | sudo tee '/etc/apt/sources.list.d/docker.list' > /dev/null
 
 log 'Installing apt packages'
-sudo apt-get update
-sudo apt-get install --yes \
+apt-get update
+apt-get install --yes \
   age \
   ca-certificates \
   curl \
