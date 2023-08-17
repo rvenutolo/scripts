@@ -29,7 +29,7 @@ echo 'Defaults timestamp_timeout=60' | tee '/etc/sudoers.d/timestamp_timeout' > 
 
 if ! id --user 'rvenutolo' > /dev/null 2>&1; then
   log 'Creating rvenutolo'
-  useradd --create-home --groups 'adm,sudo' --comment 'Rick Venutolo' 'rvenutolo'
+  useradd --create-home --groups 'sudo' --comment 'Rick Venutolo' 'rvenutolo'
   until passwd 'rvenutolo'; do :; done
 fi
 
