@@ -16,6 +16,6 @@ if ! executable_exists 'reflector'; then
   exit 0
 fi
 
-readonly target_file="${HOME}/.etc/reflector.conf"
-readonly link_file='/etc/xdg/reflector/reflector.conf'
-copy_system_file "${target_file}" "${link_file}"
+readonly src_file="${HOME}/.etc/reflector.conf"
+readonly dest_file='/etc/xdg/reflector/reflector.conf'
+copy_system_file "${src_file}" "${dest_file}"

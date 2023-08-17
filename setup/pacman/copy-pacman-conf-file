@@ -16,14 +16,14 @@ if ! executable_exists 'pacman'; then
 fi
 
 if is_arch; then
-  readonly target_file="${HOME}/.etc/pacman.arch.conf"
+  readonly src_file="${HOME}/.etc/pacman.arch.conf"
 elif is_manjaro; then
-  readonly target_file="${HOME}/.etc/pacman.manjaro.conf"
+  readonly src_file="${HOME}/.etc/pacman.manjaro.conf"
 else
   die 'pacman exists, but could not determine distro'
 fi
-readonly link_file='/etc/pacman.conf'
-copy_system_file "${target_file}" "${link_file}"
+readonly dest_file='/etc/pacman.conf'
+copy_system_file "${src_file}" "${dest_file}"
 
 if pacman-key --list-keys | grep --quiet --fixed-strings 'FBA220DFC880C036'; then
   exit 0
