@@ -39,7 +39,7 @@ install --mode='0755' --directory '/etc/apt/keyrings'
 curl --disable --fail --silent --location --show-error 'https://download.docker.com/linux/ubuntu/gpg' | gpg --dearmor -o '/etc/apt/keyrings/docker.gpg'
 chmod a+r '/etc/apt/keyrings/docker.gpg'
 # shellcheck disable=SC1091
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(source /etc/os-release && echo "${VERSION_CODENAME}") stable" | sudo tee '/etc/apt/sources.list.d/docker.list' > /dev/null
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release --codename --short) stable" | tee '/etc/apt/sources.list.d/docker.list' > /dev/null
 
 log 'Installing apt packages'
 apt-get update
