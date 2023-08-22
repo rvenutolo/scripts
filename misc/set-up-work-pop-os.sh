@@ -138,6 +138,12 @@ sudo chmod 644 '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc'
 echo 'deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu-20.04 main' | sudo tee '/etc/apt/sources.list.d/aws-vpn-client.list' > '/dev/null'
 sudo chmod 644 '/etc/apt/sources.list.d/aws-vpn-client.list'
 
+sudo install --mode='0755' --directory '/usr/share/keyrings'
+curl --disable --fail --silent --location --show-error 'https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg' | sudo tee '/usr/share/keyrings/tailscale-archive-keyring.gpg' > /dev/null
+sudo chmod 644 '/usr/share/keyrings/tailscale-archive-keyring.gpg'
+curl --disable --fail --silent --location --show-error 'https://pkgs.tailscale.com/stable/ubuntu/jammy.tailscale-keyring.list' | sudo tee '/etc/apt/sources.list.d/tailscale.list' > /dev/null
+sudo chmod 644 '/etc/apt/sources.list.d/tailscale.list'
+
 log 'Removing apt packages'
 sudo apt-get remove --yes geary firefox libreoffice-*
 
@@ -179,6 +185,7 @@ sudo apt-get install --yes \
   python3-nautilus \
   qemu qemu-kvm qemu-utils \
   synaptic \
+  tailscale \
   uidmap \
   ufw \
   virtinst
