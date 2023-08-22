@@ -11,9 +11,6 @@ if ! executable_exists 'ufw'; then
   exit 0
 fi
 
-local_network_cidr="$(local_network)"
-readonly local_network_cidr
-
 if ! sudo ufw status verbose | contains_word 'deny (incoming)'; then
   if prompt_yn 'Set UFW to deny incoming?'; then
     sudo ufw default deny 'incoming'
@@ -27,6 +24,8 @@ if ! grep --perl-regexp --quiet --ignore-case 'anywhere on tailscale0\s+allow in
 fi
 
 if ! is_server; then
+  local_network_cidr="$(local_network)"
+  readonly local_network_cidr
   if ! grep --perl-regexp --quiet --ignore-case "anywhere\s+allow in\s+${local_network_cidr}" <<< "$(sudo ufw status verbose)"; then
     if prompt_yn "Set UFW to allow from ${local_network_cidr}?"; then
       sudo ufw allow from "${local_network_cidr}"
