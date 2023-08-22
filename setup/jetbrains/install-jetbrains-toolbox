@@ -7,6 +7,10 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_not_root
 check_no_args "$@"
 
+if is_server; then
+  exit 0
+fi
+
 readonly toolbox_install_dir="${HOME}/.local/share/JetBrains/Toolbox/bin"
 readonly toolbox_install_binary="${toolbox_install_dir}/jetbrains-toolbox"
 readonly toolbox_release_info_url='https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release'

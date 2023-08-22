@@ -7,6 +7,10 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_not_root
 check_no_args "$@"
 
+if is_server; then
+  exit 0
+fi
+
 readonly joplin_install_dir="${HOME}/.local/share/joplin"
 readonly joplin_install_binary="${joplin_install_dir}/joplin"
 readonly joplin_install_script_url='https://raw.githubusercontent.com/laurent22/joplin/dev/Joplin_install_and_update.sh'
