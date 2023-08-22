@@ -7,6 +7,10 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_not_root
 check_no_args "$@"
 
+if [[ ! -d '/etc/ssh/sshd_config.d' ]]; then
+  die '/etc/ssh/sshd_config.d does not exist'
+fi
+
 readonly src_file="${HOME}/.etc/sshd.conf"
 readonly dest_file='/etc/ssh/sshd_config.d/sshd.conf'
 copy_system_file "${src_file}" "${dest_file}"
