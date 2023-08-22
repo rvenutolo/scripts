@@ -7,6 +7,10 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_not_root
 check_no_args "$@"
 
+if is_server; then
+  exit 0
+fi
+
 readonly src_file="${HOME}/.etc/sysctl-max_user_watches.conf"
 readonly dest_file='/etc/sysctl.d/max_user_watches.conf'
 
