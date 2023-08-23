@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
+check_not_root
+check_no_args "$@"
+
+readonly src_file="${HOME}/.etc/sudo-disable-admin-flag"
+readonly dest_file='/etc/sudoers.d/disable-admin-flag'
+copy_system_file "${src_file}" "${dest_file}"
