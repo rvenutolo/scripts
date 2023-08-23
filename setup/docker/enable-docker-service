@@ -9,3 +9,7 @@ check_no_args "$@"
 if executable_exists 'dockerd'; then
   enable_system_service_unit 'docker.service'
 fi
+
+if executable_exists 'containerd'; then
+  enable_system_service_unit 'containerd.service'
+fi
