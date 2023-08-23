@@ -14,6 +14,6 @@ if ! rpm --quiet --query 'PackageKit-command-not-found'; then
   exit 0
 fi
 
-readonly src_file="${HOME}/.etc/fedora_command_not_found.conf"
+readonly src_file="${HOME}/.etc/fedora-command-not-found.conf"
 readonly dest_file='/etc/PackageKit/CommandNotFound.conf'
 copy_system_file "${src_file}" "${dest_file}"
