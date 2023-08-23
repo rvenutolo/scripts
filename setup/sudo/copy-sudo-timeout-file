@@ -7,6 +7,6 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_not_root
 check_no_args "$@"
 
-readonly src_file="${HOME}/.etc/sudo_timestamp_timeout"
-readonly dest_file='/etc/sudoers.d/timestamp_timeout'
+readonly src_file="${HOME}/.etc/sudo-timestamp-timeout"
+readonly dest_file='/etc/sudoers.d/timestamp-timeout'
 copy_system_file "${src_file}" "${dest_file}"
