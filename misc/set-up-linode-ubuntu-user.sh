@@ -83,4 +83,23 @@ log 'Running setup scripts'
 #SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/setup/run-setup-scripts"
 "${SCRIPTS_DIR}/setup/run-setup-scripts"
 
+log 'Starting Portainer'
+# TODO docker compose? -- https://www.youtube.com/watch?v=7oUjfsaR0NU
+docker volume create 'portainer_data'
+docker run --detach \
+  --publish '9443:9443' \
+  --publish '8000:8000' \
+  --name 'portainer' \
+  --restart='unless-stopped' \
+  --volume '/var/run/docker.sock:/var/run/docker.sock' \
+  --volume 'portainer_data:/data' \
+  'portainer/portainer-ce:latest'
+
+log 'Installing CasaOS'
+curl --disable --fail --silent --location --show-error 'https://get.casaos.io' | sudo bash
+
+## TODO joplin server
+
+## TODO check sudo ss -atpu
+
 log 'Done'

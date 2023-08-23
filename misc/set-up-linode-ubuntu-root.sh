@@ -24,22 +24,21 @@ timedatectl set-timezone 'America/New_York'
 log 'Setting hostname'
 hostnamectl set-hostname 'alpha'
 
-log 'Setting sudo timeout'
-echo 'Defaults timestamp_timeout=60' | tee '/etc/sudoers.d/timestamp_timeout' > /dev/null
-
-if ! id --user 'rvenutolo' > /dev/null 2>&1; then
-  log 'Creating rvenutolo'
-  useradd --create-home --groups 'sudo' --comment 'Rick Venutolo' 'rvenutolo'
-  until passwd 'rvenutolo'; do :; done
-fi
-
-log 'Adding Docker to package sources'
+log 'Adding Docker key and repository'
 # https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
 install --mode='0755' --directory '/etc/apt/keyrings'
 curl --disable --fail --silent --location --show-error 'https://download.docker.com/linux/ubuntu/gpg' | gpg --dearmor -o '/etc/apt/keyrings/docker.gpg'
-chmod a+r '/etc/apt/keyrings/docker.gpg'
+chmod 644 '/etc/apt/keyrings/docker.gpg'
 # shellcheck disable=SC1091
 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release --codename --short) stable" | tee '/etc/apt/sources.list.d/docker.list' > /dev/null
+
+log 'Adding Tailscale key and repository'
+# https://tailscale.com/download/linux/ubuntu-2204
+install --mode='0755' --directory '/usr/share/keyrings'
+curl --disable --fail --silent --location --show-error 'https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg' | tee '/usr/share/keyrings/tailscale-archive-keyring.gpg' > /dev/null
+chmod 644 '/usr/share/keyrings/tailscale-archive-keyring.gpg'
+curl --disable --fail --silent --location --show-error 'https://pkgs.tailscale.com/stable/ubuntu/jammy.tailscale-keyring.list' | tee '/etc/apt/sources.list.d/tailscale.list' > /dev/null
+chmod 644 '/etc/apt/sources.list.d/tailscale.list'
 
 log 'Installing apt packages'
 apt-get update
@@ -58,6 +57,7 @@ apt-get install --yes \
   openssh-client openssh-server \
   plocate \
   software-properties-common \
+  tailscale \
   ufw \
   wget \
   zip unzip
@@ -65,5 +65,10 @@ apt-get install --yes \
 log 'Running apt dist-upgrade'
 apt-get dist-upgrade --yes
 
-log 'Done -- Rebooting'
-reboot
+if ! id --user 'rvenutolo' > /dev/null 2>&1; then
+  log 'Creating rvenutolo'
+  useradd --create-home --shell '/usr/bin/bash' --groups 'sudo,docker' --comment 'Rick Venutolo' 'rvenutolo'
+  until passwd 'rvenutolo'; do :; done
+fi
+
+log 'Done - Reboot, if necessary'
