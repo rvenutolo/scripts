@@ -23,16 +23,6 @@ if ! grep --perl-regexp --quiet --ignore-case 'anywhere on tailscale0\s+allow in
   fi
 fi
 
-if ! is_server; then
-  local_network_cidr="$(local_network)"
-  readonly local_network_cidr
-  if ! grep --perl-regexp --quiet --ignore-case "anywhere\s+allow in\s+${local_network_cidr}" <<< "$(sudo ufw status verbose)"; then
-    if prompt_yn "Set UFW to allow from ${local_network_cidr}?"; then
-      sudo ufw allow from "${local_network_cidr}"
-    fi
-  fi
-fi
-
 if ! sudo ufw status verbose | contains_word 'allow (outgoing)'; then
   if prompt_yn 'Set UFW to allow outgoing?'; then
     sudo ufw default allow 'outgoing'
