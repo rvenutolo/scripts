@@ -57,7 +57,7 @@ if [[ -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN pa
     done
   done < <(printf '%s\n' "${java_versions[@]}" | sort --field-separator='.' --key='1' --numeric-sort)
   readonly sdkman_packages_url='https://raw.githubusercontent.com/rvenutolo/packages/main/sdkman.csv'
-  dl "${sdkman_packages_url}" | tail --lines='+2' | cut --delimiter=',' --fields='2' | while read -r pkg; do
+  get_packages_list 'sdkman' | while read -r pkg; do
     log "Installing ${pkg}"
     base_sleep_time=30
     tries=0
