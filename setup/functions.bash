@@ -265,7 +265,7 @@ function reload_sysctl_conf() {
 function get_packages_list() {
   check_exactly_1_arg "$@"
   case "$1" in
-    cargo | flatpaks | nixpkgs | snaps) : ;;
+    cargo | flatpaks | nixpkgs | snaps | sdkman) : ;;
     *) die "Unexpected package list type: $1" ;;
   esac
   local package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/$1.csv"
