@@ -102,3 +102,5 @@ curl --disable --fail --silent --location --show-error 'https://get.casaos.io' |
 ## TODO check sudo ss -atpu
 
 log 'Done'
+log 'Run: source ~/.bashrc'
+log "Go to: http://$(tailscale ip -4)/"
