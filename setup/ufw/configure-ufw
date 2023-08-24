@@ -31,7 +31,6 @@ fi
 
 if ! sudo ufw status verbose | contains_word 'status: active'; then
   if prompt_yn 'Enable UFW?'; then
-    # using 'until' here because I tend to hit enter (instead of 'y') when prompted with question
-    until sudo ufw enable; do :; done
+    sudo ufw enable
   fi
 fi
