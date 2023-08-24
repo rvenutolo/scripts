@@ -31,6 +31,6 @@ fi
 
 if ! sudo ufw status verbose | contains_word 'status: active'; then
   if prompt_yn 'Enable UFW?'; then
-    sudo ufw enable
+    sudo ufw --force enable
   fi
 fi
