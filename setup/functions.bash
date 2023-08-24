@@ -280,5 +280,5 @@ function get_packages_list() {
   else
     die "Could not determine which computer this is"
   fi
-  dl "${package_list_url}" | awk -F',' "\$${package_list_column} == \"y\" && \$7 == \"\" { print \$2 }"
+  dl "${package_list_url}" | awk -F ',' -v "col_num=${package_list_column}" '$col_num == "y" && $7 == "" { print $2 }'
 }
