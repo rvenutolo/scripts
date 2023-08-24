@@ -40,8 +40,11 @@ chmod 644 '/usr/share/keyrings/tailscale-archive-keyring.gpg'
 curl --disable --fail --silent --location --show-error 'https://pkgs.tailscale.com/stable/ubuntu/jammy.tailscale-keyring.list' | tee '/etc/apt/sources.list.d/tailscale.list' > /dev/null
 chmod 644 '/etc/apt/sources.list.d/tailscale.list'
 
-log 'Installing apt packages'
+log 'Running apt dist-upgrade'
 apt-get update
+apt-get dist-upgrade --yes
+
+log 'Installing apt packages'
 apt-get install --yes \
   age \
   apt-transport-https \
@@ -61,9 +64,6 @@ apt-get install --yes \
   ufw \
   wget \
   zip unzip
-
-log 'Running apt dist-upgrade'
-apt-get dist-upgrade --yes
 
 if ! id --user 'rvenutolo' > /dev/null 2>&1; then
   log 'Creating rvenutolo'
