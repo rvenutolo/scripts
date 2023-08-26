@@ -4,28 +4,29 @@
 # args are grep patterns
 
 set -euo pipefail
+shopt -s nullglob
 
 #shellcheck disable=SC1091
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_at_least_1_arg "$@"
 
-readonly trash_dir="${XDG_DATA_HOME}/Trash"
-readonly trash_files_dir="${trash_dir}/files"
-readonly trash_info_dir="${trash_dir}/info"
-
-if [[ ! -d "${trash_info_dir}" ]]; then
-  # trash dir won't exist until something is trashed
-  exit 0
-fi
-
-for info_file in "${trash_info_dir}/"*.trashinfo; do
-  orig_file="$(grep --only-matching --perl-regexp '^Path=\K.*' "${info_file}")"
-  for pattern in "$@"; do
-    if (grep --quiet --ignore-case "${pattern}" <<< "${orig_file}"); then
-      trash_file="${info_file/${trash_info_dir}/${trash_files_dir}}"
-      trash_file="${trash_file/.trashinfo/}"
-      rm -rf "${info_file}" "${trash_file}"
-      break
-    fi
+(
+  echo "${XDG_DATA_HOME}/Trash"
+  find / -maxdepth '1' -type 'd' -user "${USER}" | while read -r dir; do
+    find "${dir}" -type 'd' -name ".Trash-${UID}"
+  done
+) | while read -r trash_dir; do
+  trash_files_dir="${trash_dir}/files"
+  trash_info_dir="${trash_dir}/info"
+  for info_file in "${trash_info_dir}/"*.trashinfo; do
+    orig_file="$(grep --only-matching --perl-regexp '^Path=\K.*' "${info_file}")"
+    for pattern in "$@"; do
+      if (grep --quiet --ignore-case --extended-regexp "${pattern}" <<< "${orig_file}"); then
+        trash_file="${info_file/${trash_info_dir}/${trash_files_dir}}"
+        trash_file="${trash_file/.trashinfo/}"
+        rm -rf "${info_file}" "${trash_file}"
+        break
+      fi
+    done
   done
 done
