@@ -215,7 +215,7 @@ function is_laptop() {
 
 function is_server() {
   check_no_args "$@"
-  echo "${SERVER_HOSTNAMES}" | contains_word "$(hostname)"
+  [[ "$(hostname)" != "${PERSONAL_DESKTOP_HOSTNAME}" && "$(hostname)" != "${PERSONAL_LAPTOP_HOSTNAME}" && "$(hostname)" != "${WORK_LAPTOP_HOSTNAME}" ]]
 }
 
 # wrapper around curl to disable reading the config that is intended for interactive use
