@@ -22,7 +22,7 @@ log 'Setting timezone'
 timedatectl set-timezone 'America/New_York'
 
 log 'Setting hostname'
-hostnamectl set-hostname 'alpha'
+hostnamectl set-hostname 'meatball'
 
 log 'Adding Docker key and repository'
 # https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
