@@ -11,8 +11,8 @@ if is_server; then
   exit 0
 fi
 
-readonly src_file="${HOME}/.etc/sysctl-max_user_watches.conf"
-readonly dest_file='/etc/sysctl.d/max_user_watches.conf'
+readonly src_file="${HOME}/.etc/sysctl-max-user-watches.conf"
+readonly dest_file='/etc/sysctl.d/max-user-watches.conf'
 
 # Copy instead of symlink - see 'protected_symlinks' in https://www.kernel.org/doc/Documentation/sysctl/fs.txt
 copy_system_file "${src_file}" "${dest_file}"
