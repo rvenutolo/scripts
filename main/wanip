@@ -6,4 +6,4 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_no_args "$@"
 
-curl -w '\n' 'ifconfig.me/ip'
+curl --ipv4 -w '\n' 'ifconfig.me/ip'
