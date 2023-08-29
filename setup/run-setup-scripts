@@ -9,6 +9,10 @@ check_not_root
 
 sudo --validate
 
+if [[ -f "${HOME}/.profile" ]]; then
+  source "${HOME}/.profile"
+fi
+
 readonly setup_scripts_dir="${SCRIPTS_DIR}/setup"
 LC_COLLATE='C'
 for script in "${setup_scripts_dir}"/**/*; do
