@@ -133,16 +133,26 @@ if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
   sudo apt-get install --yes "${libssl1_deb}"
 fi
 
+log 'Adding AWS VPN Client key and repository'
 dl 'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc' | sudo tee '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc' > '/dev/null'
 sudo chmod 644 '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc'
 echo 'deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu-20.04 main' | sudo tee '/etc/apt/sources.list.d/aws-vpn-client.list' > '/dev/null'
 sudo chmod 644 '/etc/apt/sources.list.d/aws-vpn-client.list'
 
+log 'Adding Tailscale key and repository'
 sudo install --mode='0755' --directory '/usr/share/keyrings'
 curl --disable --fail --silent --location --show-error 'https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg' | sudo tee '/usr/share/keyrings/tailscale-archive-keyring.gpg' > /dev/null
 sudo chmod 644 '/usr/share/keyrings/tailscale-archive-keyring.gpg'
 curl --disable --fail --silent --location --show-error 'https://pkgs.tailscale.com/stable/ubuntu/jammy.tailscale-keyring.list' | sudo tee '/etc/apt/sources.list.d/tailscale.list' > /dev/null
 sudo chmod 644 '/etc/apt/sources.list.d/tailscale.list'
+
+log 'Adding Docker key and repository'
+# https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
+sudo install --mode='0755' --directory '/etc/apt/keyrings'
+curl --disable --fail --silent --location --show-error 'https://download.docker.com/linux/ubuntu/gpg' | sudo gpg --dearmor -o '/etc/apt/keyrings/docker.gpg'
+sudo chmod 644 '/etc/apt/keyrings/docker.gpg'
+# shellcheck disable=SC1091
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release --codename --short) stable" | sudo tee '/etc/apt/sources.list.d/docker.list' > /dev/null
 
 log 'Removing apt packages'
 sudo apt-get remove --yes geary firefox libreoffice-*
@@ -158,10 +168,13 @@ sudo apt-get install --yes \
   apt-transport-https \
   awsvpnclient \
   bridge-utils \
+  ca-certificates \
   caffeine \
   clamav \
   cpu-checker \
+  curl \
   dconf-editor \
+  docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose docker-compose-plugin \
   fail2ban \
   flatpak \
   git \
@@ -169,14 +182,17 @@ sudo apt-get install --yes \
   gnome-shell-extensions \
   gnome-shell-extension-gsconnect-browsers \
   gnome-software-plugin-flatpak gnome-tweaks \
+  gnupg gnupg-agent \
   gparted \
   kitty \
   krusader \
   libfuse2 \
   libvirt-daemon libvirt-daemon-system libvirt-clients \
   nala \
+  nano \
   nautilus-admin \
   nfs-kernel-server \
+  micro \
   openssh-client openssh-server \
   ovmf \
   plocate \
@@ -184,11 +200,14 @@ sudo apt-get install --yes \
   preload \
   python3-nautilus \
   qemu qemu-kvm qemu-utils \
+  software-properties-common \
   synaptic \
   tailscale \
   uidmap \
   ufw \
-  virtinst
+  wget \
+  virtinst \
+  zip unzip
 
 for script in "${SCRIPTS_DIR}/packages/"*; do
   log "Running: ${script}"
