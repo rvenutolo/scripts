@@ -5,7 +5,6 @@ set -euo pipefail
 #shellcheck disable=SC1091
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_at_least_1_arg "$@"
-## TODO check this
 check_for_stdin
 
 # ex:
