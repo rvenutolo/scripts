@@ -75,9 +75,9 @@ if executable_exists 'flatpak' && ! flatpak remotes | contains_word 'flathub'; t
   echo 'Flathub flatpak repo is not installed'
 fi
 
-## check that the `trash` command is from trash-d and not trash-cli
-if executable_exists 'trash' && ! trash --version | contains_word 'trash-d'; then
-  echo "trash command is not from trash-d"
+## check that the `trash` command is from trash-cli and not trash-d
+if executable_exists 'trash' && ! trash help | contains_word 'https://github.com/andreafrancia/trash-cli/issues'; then
+  echo "trash command is not from trash-cli"
 fi
 
 ## check that the `tldr` command is from tealdeer
