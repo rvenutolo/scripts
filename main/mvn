@@ -8,18 +8,18 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 # remove this dir from the path so executing `mvn` doesn't execute this script
 path_remove "$(this_script_dir)"
 
-dir="$PWD"
-project_root="$PWD"
-while [[ "$dir" != / ]]; do
-  if [[ -f "$dir/pom.xml" || -f "$dir/mvnw" ]]; then
-    readonly project_root="$dir"
+dir="${PWD}"
+project_root="${PWD}"
+while [[ "${dir}" != / ]]; do
+  if [[ -f "${dir}/pom.xml" || -f "${dir}/mvnw" ]]; then
+    readonly project_root="${dir}"
     break
   fi
   dir="$(dirname -- "${dir}")"
 done
 readonly project_root
 
-if [[ -x "$project_root/mvnw" ]]; then
+if [[ -x "${project_root}/mvnw" ]]; then
   log 'Executing mvnw instead of mvn'
   "${project_root}/mvnw" "$@"
 elif executable_exists 'mvnd'; then
