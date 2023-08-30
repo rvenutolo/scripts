@@ -76,7 +76,7 @@ if executable_exists 'flatpak' && ! flatpak remotes | contains_word 'flathub'; t
 fi
 
 ## check that the `trash` command is from trash-cli and not trash-d
-if executable_exists 'trash' && ! trash help | contains_word 'https://github.com/andreafrancia/trash-cli/issues'; then
+if executable_exists 'trash' && ! trash --help | contains_word 'https://github.com/andreafrancia/trash-cli/issues'; then
   echo "trash command is not from trash-cli"
 fi
 
