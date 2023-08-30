@@ -10,174 +10,70 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_not_root
 check_no_args "$@"
 
-## TODO less of the custom ones
+expected_locale='LANG=en_US.UTF-8'
+if ! localectl | grep --quiet --fixed-strings "${expected_locale}"; then
+  echo "Locale is not: ${expected_locale}"
+fi
+
+if ! timedatectl show | grep --quiet 'NTP=yes'; then
+  echo "timedatectl NTP is not on"
+fi
+
+expected_tz='America/New_York'
+if ! timedatectl show | grep --quiet "^Timezone=${expected_tz}$"; then
+  exit 0
+fi
+
+if ! loginctl show-user "${USER}" --property=Linger | contains_word 'yes'; then
+  echo "${USER} is not set to linger"
+fi
+
+user_groups="$(groups "${USER}")"
+all_groups="$(getent group | cut --delimiter=':' --fields='1')"
+groups=('adm' 'admin' 'docker' 'kvm' 'input' 'libvirt' 'libvirtd' 'sudo' 'sys' 'wheel')
+for group in "${groups[@]}"; do
+  if ! contains_word "${group}" <<< "${all_groups}"; then
+    continue
+  fi
+  if contains_word "${group}" <<< "${user_groups}"; then
+    continue
+  fi
+  echo "User is not in group: ${group}"
+done
+
 expected_vars=(
-  'BROWSER'
-  'CODE_DIR'
-  'DE'
-  'DESKTOP_OR_LAPTOP'
   'EDITOR'
   'FILE_MANAGER'
-  'GOPATH'
-  'HEADLESS'
-  'JAVA_HOME'
-  'LANG'
   'MANPAGER'
   'PAGER'
-  'PERSONAL_OR_WORK'
+  'XDG_CACHE_HOME'
+  'XDG_CONFIG_HOME'
+  'XDG_DATA_HOME'
+  'XDG_STATE_HOME'
+  'XDG_DATA_DIRS'
+  'SCRIPTS_DIR'
+  'CODE_DIR'
   'SDKMAN_DIR'
-  'VISUAL'
-  'WTTR_CITY'
 )
 for var in "${expected_vars[@]}"; do
   if [[ -z "${!var:-}" ]]; then
     echo "Environment variable not set: ${var}"
   fi
 done
-if [[ -n "${DESKTOP_OR_LAPTOP}" && "${DESKTOP_OR_LAPTOP}" != 'desktop' && "${DESKTOP_OR_LAPTOP}" != 'laptop' ]]; then
-  echo "DESKTOP_OR_LAPTOP is not set to 'desktop' or 'laptop'"
-fi
-if [[ -n "${PERSONAL_OR_WORK}" && "${PERSONAL_OR_WORK}" != 'personal' && "${PERSONAL_OR_WORK}" != 'work' ]]; then
-  echo "PERSONAL_OR_WORK is not set to 'personal' or 'work'"
-fi
-if [[ -n "${HEADLESS}" && "${HEADLESS}" != 'yes' && "${HEADLESS}" != 'no' ]]; then
-  echo "HEADLESS is not set to 'yes' or 'no'"
-fi
 
 # set these if not set
 XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-"${HOME}/.config"}"
 SDKMAN_DIR="${SDKMAN_DIR:-"${HOME}/.sdkman"}"
+CODE_DIR="${CODE_DIR:-"${HOME}/Code"}"
+SCRIPTS_DIR="${SCRIPTS_DIR:-"${CODE_DIR}/Personal/scripts"}"
 
-# TODO btrfs-assistant btrfsbk nix
+## remove from path so scripts that mask commands are no longer on PATH, ex: mvn
+path_remove "${SCRIPTS_DIR}/main"
+path_remove "${SCRIPTS_DIR}/other"
 
-# cli apps for all boxes
-expected_executables=(
-  '7z'
-  'act' 'ag' 'age' 'autotrash' 'awk' 'aws' 'aws_completer'
-  'backintime' 'bandwhich' 'bat' 'bc' 'bmon' 'broot' 'btm' 'btop' 'bzip2' 'bzip3'
-  'cabextract' 'cargo' 'checkbashisms' 'cheat' 'chezmoi' 'choose' 'clamscan' 'clipboard' 'cmake' 'colordiff' 'column'
-  'cpufetch' 'crontab' 'ctop' 'curl' 'curlie'
-  'dash' 'ddh' 'delta' 'diff' 'difft' 'diff-so-fancy' 'dig' 'distrobox' 'dmesg' 'dog' 'doggo' 'dos2unix' 'dotenv-linter'
-  'dua' 'duf' 'dust'
-  'editorconfig-checker' 'etckeeper' 'exa'
-  'fail2ban-client' 'fclones' 'fcp' 'fd' 'fend' 'ff' 'fff' 'file' 'find' 'fish' 'free' 'fselect' 'fx' 'fzf'
-  'gawk' 'gdu' 'git' 'gitui' 'glances' 'glow' 'go' 'gpg' 'gping' 'gradle' 'grep' 'grex' 'groovy' 'gs' 'gtop'
-  'gunzip' 'gzip'
-  'hck' 'hx' 'highlight' 'hostname' 'hstr' 'http' 'hyperfine'
-  'iconv' 'iftop' 'inotifywait' 'ip'
-  'java' 'javac' 'jless' 'jq' 'just'
-  'kill' 'kotlin'
-  'lazydocker' 'lazygit' 'less' 'lf' 'lfs' 'locate' 'lpass' 'lsblk' 'lsof'
-  'maldet' 'man' 'mcs' 'mdcat' 'micro' 'mn' 'moar' 'mount' 'mtr' 'mvn' 'mvnd'
-  'nano' 'navi' 'ncdu' 'neofetch' 'nmap' 'nnn' 'nvim'
-  'onefetch' 'oneshot' 'openssl' 'openvpn' 'ouch'
-  'pandoc' 'parallel' 'parquet-tools' 'perl' 'pgrep' 'pigz' 'ping' 'pingg' 'pipr' 'pip3' 'podman'
-  'pomchecker' 'procs' 'ps' 'psgrep' 'pv' 'px' 'python3'
-  'qalc' 'qsv' 'quickemu'
-  'ranger' 'rename' 'rg' 'riff' 'rnr' 'rsync' 'ruby' 'runiq' 'rustup'
-  'sbt' 'scala' 'screen' 'sd' 'sed' 'shellcheck' 'shellharden' 'shfmt' 'sk' 'skeletal' 'slocate' 'sn'
-  'sops' 'spark-submit' 'spring' 'ssh' 'starship'
-  'tar' 'tcpdump' 'tgpt' 'tldr' 'tmux' 'tokei' 'top' 'topgrade' 'tracepath' 'traceroute' 'trash' 'tree'
-  'ufw' 'unix2dos' 'unlzma' 'unrar' 'unxz' 'unzip' 'usermod'
-  'wget' 'whatis' 'which'
-  'xargs' 'xh' 'xsel' 'xz'
-  'zellij' 'zip' 'zoxide' 'zstd'
-)
-# gui apps for all gui boxes
-if ! is_headless; then
-  expected_executables+=(
-    'alacritty' 'authy'
-    'cheese' 'clamtk'
-    'filelight' 'filezilla' 'firefox' 'flatpak' 'flatseal'
-    'gimp' 'github-desktop' 'gitkraken' 'google-chrome-stable' 'gparted' 'gufw' 'gummi'
-    'hacksaw'
-    'intellij-idea-ultimate'
-    'kate' 'kcalc' 'kitty'
-    'libreoffice'
-    'magnus' 'meld' 'mpv'
-    'okular'
-    'podman-desktop' 'postman'
-    'qdirstat' 'quickgui' 'qutebrowser'
-    'selectdefaultapplication' 'shotgun' 'simplescreenrecorder' 'slack' 'spectacle' 'stacer' 'subl'
-    'torbrowser-launcher'
-    'visualvm' 'vlc' 'vncviewer'
-    'wireshark'
-  )
+if executable_exists 'flatpak' && ! flatpak remotes | contains_word 'flathub'; then
+  echo 'Flathub flatpak repo is not installed'
 fi
-# cli apps for personal boxes
-if is_personal; then
-  expected_executables+=(
-    'dnuos'
-    'eyeD3'
-    'flac' 'flac2all' 'flac2mp3.pl'
-    'lame'
-    'magick' 'mediainfo' 'mogrify' 'mp3splt'
-    'sox' 'speedtest'
-  )
-fi
-# gui apps for personal gui boxes
-if is_personal && ! is_headless; then
-  expected_executables+=(
-    'bottles'
-    'clapper'
-    'discord' 'dosbox'
-    'easytag' 'emby-server'
-    'kid3'
-    'lutris'
-    'mediainfo-gui'
-    'picard' 'protontricks' 'protonup' 'puddletag'
-    'qbittorrent'
-    'skypeforlinux' 'soundkonverter' 'steam' 'strawberry'
-    'tageditor'
-    'ventoy' 'virt-manager' 'virsh'
-    'winetricks'
-    'zoom'
-  )
-fi
-if is_ubuntu; then
-  expected_executables+=(
-    'nala'
-    'pacstall'
-  )
-fi
-if is_fedora; then
-  expected_executables+=(
-    'alien'
-    'sestatus'
-  )
-fi
-if is_fedora && ! is_headless; then
-  expected_executables+=(
-    'fedy'
-  )
-fi
-if is_arch || is_manjaro || is_endeavour; then
-  expected_executables+=(
-    'aa-enabled'
-    'pacdiff'
-    'pacseek'
-    'paru'
-    'pkgfile'
-    'yay'
-  )
-fi
-if is_arch || is_endeavour; then
-  expected_executables+=(
-    'reflector'
-  )
-fi
-
-## TODO check that home dir is btrfs and then add btrfs-assistant snapper (snapper-gui for non-headless)
-
-## remove my bin dirs from path so scripts that mask commands are no longer on PATH, ex: mvn
-path_remove "${HOME}/.bin"
-path_remove "${HOME}/.bin/other"
-
-for executable in "${expected_executables[@]}"; do
-  if ! executable_exists "${executable}" > /dev/null 2>&1; then
-    echo "Executable not available: ${executable}"
-  fi
-done
 
 ## check that the `trash` command is from trash-d and not trash-cli
 if executable_exists 'trash' && ! trash --version | contains_word 'trash-d'; then
@@ -189,35 +85,48 @@ if executable_exists 'tldr' && ! tldr --version | contains_word 'tealdeer'; then
   echo "tldr command is not from tealdeer"
 fi
 
-## TODO check that docker command is from podman-docker
+if executable_exists 'ufw'; then
+  ufw_status="$(sudo ufw status verbose)"
+  readonly ufw_status
+  if ! contains_word 'Status: active' <<< "${ufw_status}"; then
+    echo "UFW is not active"
+  fi
+  if ! contains_word 'deny (incoming)' <<< "${ufw_status}"; then
+    echo "UFW is not denying incoming by default"
+  fi
+  if ! contains_word 'allow (outgoing)' <<< "${ufw_status}"; then
+    echo "UFW is not allowing outgoing by default"
+  fi
+fi
 
-#usr/share/libalpm/hooks/05-snap-pac-pre.hook
-#usr/share/libalpm/hooks/10-snap-pac-removal.hook
-#usr/share/libalpm/hooks/zz-snap-pac-post.hook
+if executable_exists 'aa-enabled' && ! aa-enabled | contains_word 'yes'; then
+  echo "AppArmor is not enabled"
+fi
 
-## TODO check for apt-btrfs-snapshot
-## TODO check for https://archlinux.org/packages/community/any/snap-pac/
-## TODO look into fedora dnf snapshot
+if executable_exists 'sestatus' && sestatus | grep --quiet --perl-regexp --ignore-case 'selinux status:\s+enabled'; then
+  echo "SELinux is not enabled"
+fi
+
 expected_files=(
+  "${HOME}/.bash_profile"
   "${HOME}/.bashrc"
   "${HOME}/.profile"
   "${XDG_CONFIG_HOME}/bash/local.bash"
-  "${XDG_CONFIG_HOME}/broot/launcher/bash/br"
   "${HOME}/.ssh/config.private"
   "${SDKMAN_DIR}/bin/sdkman-init.sh"
-  '/usr/share/git/completion/git-prompt.sh'
   '/etc/fail2ban/jail.local'
+  '/etc/ssh/sshd_config.d/sshd.conf'
+  '/etc/sudoers.d/disable-admin-flag'
+  '/etc/sudoers.d/timestamp-timeout'
 )
 if is_personal; then
   expected_files+=(
     '/etc/sysctl.d/kvals.conf'
-    '/etc/sysctl.d/max_user_watches.conf'
+    '/etc/sysctl.d/max-user-watches.conf'
   )
 fi
 if is_personal && is_desktop; then
-  expected_files+=(
-    '/etc/exports.d/storage.exports'
-  )
+  expected_files+=('/etc/exports.d/storage.exports')
 fi
 for file in "${expected_files[@]}"; do
   if ! is_readable_file "${file}"; then
@@ -228,7 +137,8 @@ done
 unwanted_files=(
   "${HOME}/.bash_login"
   "${HOME}/.bash_logout"
-  "${HOME}/.bash_profile"
+  "${HOME}/.bash_history"
+  "${HOME}/.lesshst"
 )
 for file in "${unwanted_files[@]}"; do
   if is_readable_file "${file}"; then
@@ -236,7 +146,7 @@ for file in "${unwanted_files[@]}"; do
   fi
 done
 
-if ! is_headless; then
+if ! is_server; then
   expected_fonts=(
     'Code New Roman'
     'Fantasque Sans Mono'
@@ -261,7 +171,6 @@ if ! is_headless; then
 
   if executable_exists 'fc-list'; then
     installed_fonts="$(fc-list : family)"
-    readonly installed_fonts
     for font in "${expected_fonts[@]}"; do
       if ! contains_word "${font}" <<< "${installed_fonts}" \
         && ! contains_word "${font}TTF" <<< "${installed_fonts}" \
@@ -275,37 +184,40 @@ if ! is_headless; then
   fi
 fi
 
-if executable_exists 'loginctl' && ! loginctl show-user "${USER}" --property=Linger | contains_word 'yes'; then
-  echo "${USER} is not set to linger"
-fi
-
 expected_active_system_services=(
-  'clamav-daemon.service'
-  'cups.service'
   'fail2ban.service'
   'sshd.service'
   'ufw.service'
 )
-if is_personal; then
-  expected_active_system_services+=(
-    'crashplan-pro.service'
-  )
+if ! is_server; then
+  expected_active_system_services+=('cups.service')
+fi
+if executable_exists 'ap-enabled'; then
+  expected_active_system_services+=('apparmor.service')
+fi
+if executable_exists 'freshclam'; then
+  expected_active_system_services+=('clamav-freshclam.service')
+fi
+if executable_exists 'CrashPlanDesktop'; then
+  expected_active_system_services+=('crashplan-pro.service')
+fi
+if executable_exists 'dockerd'; then
+  expected_active_system_services+=('docker.service')
+fi
+if executable_exists 'containerd'; then
+  expected_active_system_services+=('containerd.service')
+fi
+if executable_exists 'pkgfile'; then
+  expected_active_system_services+=('pkgfile-update.timer')
+fi
+if executable_exists 'reflector'; then
+  expected_active_system_services+=('reflector.timer')
+fi
+if executable_exists 'tailscaled'; then
+  expected_active_system_services+=('tailscaled.service')
 fi
 if is_personal && is_desktop; then
-  expected_active_system_services+=(
-    'nfsv4-server.service'
-  )
-fi
-if is_arch || is_manjaro || is_endeavour; then
-  expected_active_system_services+=(
-    'apparmor.service'
-    'pkgfile-update.timer'
-  )
-fi
-if is_arch || is_endeavour; then
-  expected_active_system_services+=(
-    'reflector.service'
-  )
+  expected_active_system_services+=('nfsv4-server.service')
 fi
 for service in "${expected_active_system_services[@]}"; do
   if ! systemctl is-active --quiet "${service}"; then
@@ -314,10 +226,8 @@ for service in "${expected_active_system_services[@]}"; do
 done
 
 expected_enabled_system_services=()
-if is_personal && is_desktop; then
-  expected_enabled_system_services+=(
-    'libvirtd.service'
-  )
+if executable_exists 'libvirtd'; then
+  expected_enabled_system_services+=('libvirtd.service')
 fi
 for service in "${expected_enabled_system_services[@]}"; do
   if ! systemctl is-enabled --quiet "${service}"; then
@@ -326,11 +236,11 @@ for service in "${expected_enabled_system_services[@]}"; do
 done
 
 expected_active_user_services=(
-  'autotrash.timer'
   'journalctl-vacuum.timer'
   'ssh-agent.service'
   'tldr-update.timer'
   'trash-cleanup.timer'
+  'trash-empty.timer'
 )
 for service in "${expected_active_user_services[@]}"; do
   if ! systemctl is-active --user --quiet "${service}"; then
@@ -345,26 +255,7 @@ for service in "${expected_enabled_user_services[@]}"; do
   fi
 done
 
-expected_groups=(
-  'sys'
-  'wheel'
-)
-if is_personal && is_desktop; then
-  expected_services+=(
-    'kvm'
-    'input'
-    'libvirt'
-  )
-fi
-actual_groups="$(groups "${USER}")"
-readonly actual_groups
-for group in "${expected_groups[@]}"; do
-  if ! contains_word "${group}" <<< "${actual_groups}"; then
-    echo "User is not in group: ${group}"
-  fi
-done
-
-if ! is_headless; then
+if ! is_server; then
   expected_kvals=(
     'vm.dirty_background_ratio 5'
     'vm.dirty_ratio 5'
@@ -378,21 +269,8 @@ if ! is_headless; then
   done
 fi
 
-if executable_exists 'rustup' && [[ "$(rustup toolchain list)" != stable* ]]; then
-  echo "rust toolchain is not 'stable'"
-fi
-
-if [[ $(timedatectl show) != *'NTP=yes'* ]]; then
-  echo 'timedatectl set-ntp is not set'
-fi
-
-if executable_exists 'flatpak' && ! flatpak remotes | contains_word 'flathub'; then
-  echo 'Flathub flatpak repo is not installed'
-fi
-
 if executable_exists 'pacman'; then
   pacman_conf_text="$(cat '/etc/pacman.conf')"
-  readonly pacman_conf_text
   for pacman_repo in 'multilib' 'chaotic-aur'; do
     if ! grep --quiet --fixed-strings "[${pacman_repo}]" <<< "${pacman_conf_text}"; then
       echo "Pacman ${pacman_repo} repo is missing"
@@ -420,26 +298,4 @@ if is_fedora; then
       echo "${rpm_fusion_pacakge} is not installed"
     fi
   done
-fi
-
-if executable_exists 'ufw'; then
-  ufw_status="$(sudo ufw status verbose)"
-  readonly ufw_status
-  if ! contains_word 'Status: active' <<< "${ufw_status}"; then
-    echo "UFW is not active"
-  fi
-  if ! contains_word 'deny (incoming)' <<< "${ufw_status}"; then
-    echo "UFW is not denying incoming by default"
-  fi
-  if ! contains_word 'allow (outgoing)' <<< "${ufw_status}"; then
-    echo "UFW is not allowing outgoing by default"
-  fi
-fi
-
-if executable_exists 'aa-enabled' && ! aa-enabled | contains_word 'yes'; then
-  echo "AppArmor is not enabled"
-fi
-
-if executable_exists 'sestatus' && sestatus | grep --quiet --perl-regexp --ignore-case 'selinux status:\s+enabled'; then
-  echo "SELinux is not enabled"
 fi
