@@ -43,7 +43,6 @@ done
 
 expected_vars=(
   'EDITOR'
-  'FILE_MANAGER'
   'MANPAGER'
   'PAGER'
   'XDG_CACHE_HOME'
