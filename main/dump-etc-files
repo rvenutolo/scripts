@@ -40,7 +40,6 @@ fi
 
 for distro in "${distros[@]}"; do
   log "Dumping /etc from ${distro} to ${dir}/${distro}"
-  ## TODO use podman, if available
   docker run --rm --volume "${dir}/${distro}:/host" "${distro}:latest" sh -c 'cp -r /etc /host'
   log "Dumped /etc from ${distro} to ${dir}/${distro}"
 done
