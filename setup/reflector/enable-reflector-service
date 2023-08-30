@@ -7,5 +7,5 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../functions.bash"
 check_no_args "$@"
 
 if executable_exists 'reflector'; then
-  enable_system_service_unit 'reflector.service'
+  enable_system_service_unit 'reflector.timer'
 fi
