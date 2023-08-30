@@ -4,11 +4,28 @@ set -euo pipefail
 
 #shellcheck disable=SC1091
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
-check_for_var 'FILE_MANAGER'
+check_at_most_1_arg "$@"
+
+disown_proc='n'
+if executable_exists 'xdg-open'; then
+  fm='xdg-open'
+  disown_proc='y'
+elif executable_exists 'lf'; then
+  fm='lf'
+elif executable_exists 'ranger'; then
+  fm='ranger'
+elif executable_exists 'fff'; then
+  fm='fff'
+else
+  die "Could not find a file manager"
+fi
+readonly fm disown_proc
 
 if [[ "$#" -eq 0 ]]; then
-  "${FILE_MANAGER}" . > /dev/null 2>&1 &
+  "${fm}" . > /dev/null 2>&1 &
 else
-  "${FILE_MANAGER}" "$@" > /dev/null 2>&1 &
+  "${fm}" "$@" > /dev/null 2>&1 &
 fi
-disown
+if [[ "${disown_proc}" == 'y' ]]; then
+  disown
+fi
