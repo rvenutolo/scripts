@@ -10,6 +10,7 @@ check_not_root
 sudo --validate
 
 if [[ -f "${HOME}/.profile" ]]; then
+  # shellcheck disable=SC1091
   source "${HOME}/.profile"
 fi
 
