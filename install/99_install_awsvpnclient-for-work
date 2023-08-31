@@ -29,7 +29,7 @@ fi
 readonly repo_url='https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo'
 readonly public_key_url="${repo_url}/awsvpnclient_public_key.asc"
 readonly public_key_file='/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc'
-reaodnly apt_list_file='/etc/apt/sources.list.d/aws-vpn-client.list'
+readonly apt_list_file='/etc/apt/sources.list.d/aws-vpn-client.list'
 dl "${public_key_url}" | sudo tee "${public_key_file}" > '/dev/null'
 sudo chmod 644 "${public_key_file}"
 echo "deb [arch=amd64] ${repo_url} ubuntu-20.04 main" | sudo tee "${apt_list_file}" > '/dev/null'
