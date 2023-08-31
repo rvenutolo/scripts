@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "$(dirname -- "${BASH_SOURCE[0]}")/../setup/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if ! is_work; then
+  exit 0
+fi
+if [[ -f '/opt/awsvpnclient' ]]; then
+  exit 0
+fi
+if ! prompt_yn 'Install AWS VPN Client?'; then
+  exit 0
+fi
+
+if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
+  log 'Installing old libssl1.1 package for AWS VPN client'
+  readonly libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb'
+  readonly libssl1_deb="$(mktemp --suffix "__$(basename "${libssl1_url}")")"
+  dl "${libssl1_url}" "${libssl1_deb}"
+  sudo apt-get install --yes "${libssl1_deb}"
+  log 'Installed old libssl1.1 package for AWS VPN client'
+fi
+
+readonly repo_url='https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo'
+readonly public_key_url="${repo_url}/awsvpnclient_public_key.asc"
+readonly public_key_file='/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc'
+reaodnly apt_list_file='/etc/apt/sources.list.d/aws-vpn-client.list'
+dl "${public_key_url}" | sudo tee "${public_key_file}" > '/dev/null'
+sudo chmod 644 "${public_key_file}"
+echo "deb [arch=amd64] ${repo_url} ubuntu-20.04 main" | sudo tee "${apt_list_file}" > '/dev/null'
+sudo chmod 644 "${apt_list_file}"
+
+log 'Installing AWS VPN Client'
+sudo apt-get update
+sudo apt-get install --yes awsvpnclient
+log 'Installed AWS VPN Client'
+
+## TODO add conf file?
