@@ -295,9 +295,9 @@ function dl_decrypt() {
   check_at_least_1_arg "$@"
   check_at_most_2_args "$@"
   if [[ -n "${2:-}" ]]; then
-    dl "$1" | age --decrypt --identity "${HOME}/.keys/age.key" --output "$2"
+    dl "$1" | age --decrypt --identity "${AGE_PRIVATE_KEY_FILE}" --output "$2"
   else
-    dl "$1" | age --decrypt --identity "${HOME}/.keys/age.key"
+    dl "$1" | age --decrypt --identity "${AGE_PRIVATE_KEY_FILE}"
   fi
 }
 
