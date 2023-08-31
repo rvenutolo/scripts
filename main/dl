@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
+check_at_least_1_arg "$@"
+check_at_most_2_args "$@"
+
+log "Downloading: $1"
+if [[ -n "${2:-}" ]]; then
+  tries=0
+  until curl --fail --silent --location --show-error "$1" --output "$2"; do
+    ((tries += 1))
+    if ((tries > 10)); then
+      die "Failed to get in 10 tries: $1"
+    fi
+    sleep 15
+  done
+else
+  tries=0
+  until curl --fail --silent --location --show-error "$1"; do
+    ((tries += 1))
+    if ((tries > 10)); then
+      die "Failed to get in 10 tries: $1"
+    fi
+    sleep 15
+  done
+fi
