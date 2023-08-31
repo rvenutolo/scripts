@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "$(dirname -- "${BASH_SOURCE[0]}")/../setup/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if executable_exists 'tailscale'; then
+  exit 0
+fi
+if ! prompt_yn 'Install Tailscale?'; then
+  exit 0
+fi
+
+log 'Installing Tailscale'
+dl 'https://tailscale.com/install.sh' | sh
+log 'Intalled Tailscale'
