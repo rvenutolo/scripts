@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "$(dirname -- "${BASH_SOURCE[0]}")/../setup/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if executable_exists 'dockerd'; then
+  exit 0
+fi
+if ! prompt_yn 'Install Docker Engine?'; then
+  exit 0
+fi
+
+log 'Installing Docker Engine'
+# https://docs.docker.com/engine/install/
+if is_arch || is_endeavour; then
+  sudo pacman --sync 'docker' 'docker-compose'
+elif is_fedora; then
+  sudo dnf --assumeyes install 'dnf-plugins-core'
+  sudo dnf config-manager --add-repo 'https://download.docker.com/linux/fedora/docker-ce.repo'
+  sudo dnf install 'docker-ce' 'docker-ce-cli' 'containerd.io' 'docker-buildx-plugin' 'docker-compose-plugin'
+elif is_debian || is_ubuntu || is_pop; then
+  if is_debian; then
+    readonly platform='debian'
+  else
+    readonly platform='ubuntu'
+  fi
+  sudo apt-get install 'ca-certificates' 'curl' 'gnupg'
+  sudo install --mode='0755' --directory '/etc/apt/keyrings'
+  dl 'https://download.docker.com/linux/debian/gpg' | sudo gpg --dearmor -o '/etc/apt/keyrings/docker.gpg'
+  sudo 644 '/etc/apt/keyrings/docker.gpg'
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/${platform} $(lsb_release --codename --short) stable" | sudo tee '/etc/apt/sources.list.d/docker.list' > '/dev/null'
+  sudo apt-get update
+  sudo apt-get install 'docker-ce' 'docker-ce-cli' 'containerd.io' 'docker-buildx-plugin' 'docker-compose-plugin'
+else
+  die "Don't know how to install Docker Engine on $(os_id)"
+fi
+log 'Installed Docker Engine'
