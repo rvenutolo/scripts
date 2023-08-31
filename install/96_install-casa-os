@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "$(dirname -- "${BASH_SOURCE[0]}")/../setup/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if ! is_server; then
+  exit 0
+fi
+if executable_exists 'casaos'; then
+  exit 0
+fi
+if ! prompt_yn 'Install CasaOS?'; then
+  exit 0
+fi
+
+log 'Installing CasaOS'
+dl 'https://get.casaos.io' | sudo bash
+log 'Installed CasaOS'
