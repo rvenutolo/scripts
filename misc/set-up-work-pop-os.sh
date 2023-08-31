@@ -209,7 +209,7 @@ sudo apt-get install --yes \
   virtinst \
   zip unzip
 
-for script in "${SCRIPTS_DIR}/packages/"*; do
+for script in "${SCRIPTS_DIR}/install/"*; do
   log "Running: ${script}"
   SCRIPTS_AUTO_ANSWER='y' "$script"
 done
