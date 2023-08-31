@@ -125,27 +125,6 @@ for line in "${gsettings[@]}"; do
   gsettings set "${schema}" "${key}" "${value}"
 done
 
-if ! dpkg --status 'libssl1.1' > /dev/null 2>&1; then
-  log 'Installing old libssl1.1 package for AWS VPN client'
-  libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb'
-  libssl1_deb="$(mktemp --suffix "__$(basename "${libssl1_url}")")"
-  dl "${libssl1_url}" "${libssl1_deb}"
-  sudo apt-get install --yes "${libssl1_deb}"
-fi
-
-log 'Adding AWS VPN Client key and repository'
-dl 'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc' | sudo tee '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc' > '/dev/null'
-sudo chmod 644 '/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc'
-echo 'deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu-20.04 main' | sudo tee '/etc/apt/sources.list.d/aws-vpn-client.list' > '/dev/null'
-sudo chmod 644 '/etc/apt/sources.list.d/aws-vpn-client.list'
-
-log 'Adding Tailscale key and repository'
-sudo install --mode='0755' --directory '/usr/share/keyrings'
-curl --disable --fail --silent --location --show-error 'https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg' | sudo tee '/usr/share/keyrings/tailscale-archive-keyring.gpg' > /dev/null
-sudo chmod 644 '/usr/share/keyrings/tailscale-archive-keyring.gpg'
-curl --disable --fail --silent --location --show-error 'https://pkgs.tailscale.com/stable/ubuntu/jammy.tailscale-keyring.list' | sudo tee '/etc/apt/sources.list.d/tailscale.list' > /dev/null
-sudo chmod 644 '/etc/apt/sources.list.d/tailscale.list'
-
 log 'Adding Docker key and repository'
 # https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
 sudo install --mode='0755' --directory '/etc/apt/keyrings'
@@ -166,7 +145,6 @@ sudo apt-get install --yes \
   age \
   alacritty \
   apt-transport-https \
-  awsvpnclient \
   bridge-utils \
   ca-certificates \
   caffeine \
@@ -202,7 +180,6 @@ sudo apt-get install --yes \
   qemu qemu-kvm qemu-utils \
   software-properties-common \
   synaptic \
-  tailscale \
   uidmap \
   ufw \
   wget \

@@ -32,14 +32,6 @@ chmod 644 '/etc/apt/keyrings/docker.gpg'
 # shellcheck disable=SC1091
 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release --codename --short) stable" | tee '/etc/apt/sources.list.d/docker.list' > /dev/null
 
-log 'Adding Tailscale key and repository'
-# https://tailscale.com/download/linux/ubuntu-2204
-install --mode='0755' --directory '/usr/share/keyrings'
-curl --disable --fail --silent --location --show-error 'https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg' | tee '/usr/share/keyrings/tailscale-archive-keyring.gpg' > /dev/null
-chmod 644 '/usr/share/keyrings/tailscale-archive-keyring.gpg'
-curl --disable --fail --silent --location --show-error 'https://pkgs.tailscale.com/stable/ubuntu/jammy.tailscale-keyring.list' | tee '/etc/apt/sources.list.d/tailscale.list' > /dev/null
-chmod 644 '/etc/apt/sources.list.d/tailscale.list'
-
 log 'Running apt dist-upgrade'
 apt-get update
 apt-get dist-upgrade --yes
@@ -60,7 +52,6 @@ apt-get install --yes \
   openssh-client openssh-server \
   plocate \
   software-properties-common \
-  tailscale \
   ufw \
   wget \
   zip unzip
