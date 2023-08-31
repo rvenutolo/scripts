@@ -82,9 +82,6 @@ source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
 log 'Running setup scripts'
 SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/setup/run-setup-scripts"
 
-log 'Installing CasaOS'
-curl --disable --fail --silent --location --show-error 'https://get.casaos.io' | sudo bash
-
 #log 'Starting Portainer'
 ## TODO docker compose? -- https://www.youtube.com/watch?v=7oUjfsaR0NU
 #docker volume create 'portainer_data'
