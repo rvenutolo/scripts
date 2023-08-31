@@ -71,7 +71,7 @@ fi
 #shellcheck disable=SC1091
 source "${HOME}/.profile"
 
-for script in "${SCRIPTS_DIR}/packages/"*; do
+for script in "${SCRIPTS_DIR}/install/"*; do
   log "Running: ${script}"
   SCRIPTS_AUTO_ANSWER='y' "$script"
 done
