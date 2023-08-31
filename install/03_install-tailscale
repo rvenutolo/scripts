@@ -16,4 +16,4 @@ fi
 
 log 'Installing Tailscale'
 dl 'https://tailscale.com/install.sh' | sh
-log 'Intalled Tailscale'
+log 'Installed Tailscale'
