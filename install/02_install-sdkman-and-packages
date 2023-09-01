@@ -20,7 +20,7 @@ if [[ ! -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN?
   # Retry due to random timeouts
   base_sleep_time=30
   tries=0
-  until dl 'https://get.sdkman.io?rcupdate=false' | bash; do
+  until download 'https://get.sdkman.io?rcupdate=false' | bash; do
     ((tries += 1))
     if ((tries > 10)); then
       die "Failed to install SDKMAN in 10 tries"
