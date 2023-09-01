@@ -18,7 +18,7 @@ if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]] && prompt_yn 'Install 
   log 'Installed Nix'
 fi
 
-if [[ -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]] && prompt_yn 'Install Nix home-manager and packages?'; then
+if [[ -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" && ! -f "${HOME_MANAGER_DIR}/flake.lock" ]] && prompt_yn 'Install Nix home-manager and packages?'; then
   log 'Installing Nix home-manager and packages'
   # shellcheck disable=SC1091
   source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
