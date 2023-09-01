@@ -14,7 +14,7 @@ if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]] && prompt_yn 'Install 
   fi
   sudo chmod 755 '/nix'
   sudo chown --recursive "${USER}:" '/nix'
-  dl 'https://nixos.org/nix/install' | sh -s -- --no-daemon
+  download 'https://nixos.org/nix/install' | sh -s -- --no-daemon
   log 'Installed Nix'
 fi
 

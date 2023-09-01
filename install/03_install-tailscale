@@ -15,5 +15,5 @@ if ! prompt_yn 'Install Tailscale?'; then
 fi
 
 log 'Installing Tailscale'
-dl 'https://tailscale.com/install.sh' | sh
+download 'https://tailscale.com/install.sh' | sh
 log 'Installed Tailscale'

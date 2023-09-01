@@ -18,5 +18,5 @@ if ! prompt_yn 'Install CasaOS?'; then
 fi
 
 log 'Installing CasaOS'
-dl 'https://get.casaos.io' | sudo bash
+download 'https://get.casaos.io' | sudo bash
 log 'Installed CasaOS'

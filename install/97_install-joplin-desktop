@@ -27,7 +27,7 @@ fi
 log 'Installing Joplin Desktop'
 mkdir --parents "${joplin_install_dir}"
 mkdir --parents "${local_bin_dir}"
-dl "${joplin_install_script_url}" | sed \
+download "${joplin_install_script_url}" | sed \
   --expression="s|*.AppImage|$(basename "${joplin_install_binary}")|g" \
   --expression="s|~/.joplin|${joplin_install_dir}|g" \
   --expression="s|\${HOME}/.joplin|${joplin_install_dir}|g" \
