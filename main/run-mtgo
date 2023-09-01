@@ -3,17 +3,10 @@
 set -euox pipefail
 
 readonly url='https://raw.githubusercontent.com/pauleve/docker-mtgo/master/run-mtgo'
-readonly etag_file="${XDG_CACHE_HOME}/docker-mtgo/etag"
 readonly run_mtgo_file="${XDG_DATA_HOME}/docker-mtgo/run-mtgo"
 
-mkdir --parents "$(dirname "${etag_file}")"
 mkdir --parents "$(dirname "${run_mtgo_file}")"
-touch "${etag_file}"
-curl --silent --show-error --location \
-  --etag-compare "${etag_file}" \
-  --etag-save "${etag_file}" \
-  --output "${run_mtgo_file}" \
-  "${url}"
+etag-dl "${url}" "${run_mtgo_file}"
 chmod +x "${run_mtgo_file}"
 
 # TODO winecfg (--winecfg)
