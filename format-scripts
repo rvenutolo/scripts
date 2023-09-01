@@ -2,14 +2,11 @@
 
 set -euo pipefail
 
+#shellcheck disable=SC1091
 source "$(dirname -- "${BASH_SOURCE[0]}")/lib/functions.bash"
 check_no_args "$@"
+check_not_root
 
-shfmt \
-  --list \
-  --indent 2 \
-  --case-indent \
-  --binary-next-line \
-  --space-redirects \
-  --write \
-  "$(this_script_dir)/lib" "$(this_script_dir)/main" "$(this_script_dir)/setup"
+shfmt --find "$(this_script_dir)" \
+  | grep --invert-match '/other/' \
+  | xargs shfmt --list --indent '2' --case-indent --binary-next-line --space-redirects --write
