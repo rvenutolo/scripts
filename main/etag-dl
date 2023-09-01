@@ -13,7 +13,7 @@ etag_file="${etags_dir}/$(echo "$1" | tr --complement '[:alnum:]._-' '_').etag"
 readonly etag_file
 
 if [[ ! -f "$2" ]]; then
-  curl --fail --silent --location --etag-save "${etag_file}" "$1" --output "$2"
+  curl --etag-save "${etag_file}" "$1" --output "$2"
 else
-  curl --fail --silent --location --etag-compare "${etag_file}" --etag-save "${etag_file}" "$1" --output "$2"
+  curl --etag-compare "${etag_file}" --etag-save "${etag_file}" "$1" --output "$2"
 fi
