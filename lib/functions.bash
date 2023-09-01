@@ -225,13 +225,13 @@ function is_server() {
 }
 
 # wrapper around curl to disable reading the config that is intended for interactive use
-function curl() {
-  command curl --disable --fail --silent --location --show-error "$@"
+function curl_wrapper() {
+  curl --disable --fail --silent --location --show-error "$@"
 }
 
 # wrapper around wget to disable reading the config that is intended for interactive use
-function wget() {
-  command wget --no-config "$@"
+function wget_wrapper() {
+  wget --no-config "$@"
 }
 
 # $1 = ip
