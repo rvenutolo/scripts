@@ -226,7 +226,7 @@ function is_server() {
 
 # wrapper around curl to disable reading the config that is intended for interactive use
 function curl() {
-  command curl --disable "$@"
+  command curl --disable --fail --silent --location --show-error "$@"
 }
 
 # wrapper around wget to disable reading the config that is intended for interactive use
