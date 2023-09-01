@@ -6,7 +6,7 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
 check_no_args "$@"
 
-curl --ipv4 ipinfo.io \
+curl_wrapper --ipv4 ipinfo.io \
   | jq 'del(.readme)' \
   | jq -r 'to_entries[]|"\(.key)|\(.value)"' \
   | column --table --separator '|'
