@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-#source "${SCRIPTS_DIR}/lib/functions.bash"
-#source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
+#source "${SCRIPTS_DIR}/functions.bash"
 
 function log() {
   echo -e "[$(date +%T) ${0##*/}] $*" >&2

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 #shellcheck disable=SC1091
-source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
+source "${SCRIPTS_DIR}/functions.bash"
 
 readonly url='https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas_linux_amd64'
 readonly linpeas_file="${XDG_DATA_HOME}/linpeas"
