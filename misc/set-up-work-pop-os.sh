@@ -55,21 +55,72 @@ fi
 
 sudo --validate
 
-log 'Setting sudo timeout'
-echo 'Defaults timestamp_timeout=60' | sudo tee '/etc/sudoers.d/timestamp_timeout' > '/dev/null'
-
-log 'Setting hostname'
-hostnamectl set-hostname 'silverstar'
-
 sudo apt-get update
 
 if ! sudo apt-get --just-print dist-upgrade | grep --quiet '^0 upgraded'; then
   sudo touch '/var/run/reboot-required'
-  die "Update/upgrade packages and reboot before running this script: sudo apt-get dist-upgrade --yes && sudo reboot"
+  die "Update/upgrade packages and reboot before running this script: \nsudo apt-get dist-upgrade --yes && sudo apt-get autoremove --yes && sudo reboot"
 fi
 if [[ -f '/var/run/reboot-required' ]]; then
   die "Reboot before running this script"
 fi
+
+log 'Setting timezone'
+sudo timedatectl set-timezone 'America/New_York'
+
+log 'Setting hostname'
+hostnamectl set-hostname 'silverstar'
+
+log 'Removing apt packages'
+sudo apt-get remove --yes geary firefox libreoffice-*
+
+log 'Running apt autoremove'
+sudo apt-get autoremove --yes
+
+log 'Installing apt packages'
+sudo apt-get install --yes \
+  age \
+  alacritty \
+  apt-transport-https \
+  bridge-utils \
+  ca-certificates \
+  caffeine \
+  clamav \
+  cpu-checker \
+  curl \
+  dconf-editor \
+  fail2ban \
+  flatpak \
+  git \
+  gir1.2-nautilus-3.0 gir1.2-ebook-1.2 gir1.2-ebookcontacts-1.2 gir1.2-edataserver-1.2 \
+  gnome-shell-extensions \
+  gnome-shell-extension-gsconnect-browsers \
+  gnome-software-plugin-flatpak gnome-tweaks \
+  gnupg gnupg-agent \
+  gparted \
+  kitty \
+  krusader \
+  libfuse2 \
+  libvirt-daemon libvirt-daemon-system libvirt-clients \
+  nala \
+  nano \
+  nautilus-admin \
+  nfs-kernel-server \
+  micro \
+  openssh-client openssh-server \
+  ovmf \
+  plocate \
+  podman \
+  preload \
+  python3-nautilus \
+  qemu qemu-kvm qemu-utils \
+  software-properties-common \
+  synaptic \
+  uidmap \
+  ufw \
+  wget \
+  virtinst \
+  zip unzip
 
 if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
   log 'Downloading chezmoi'
@@ -86,6 +137,12 @@ fi
 
 #shellcheck disable=SC1091
 source "${HOME}/.profile"
+
+log 'Running install scripts'
+SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-install-scripts"
+
+log 'Running setup scripts'
+SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-setup-scripts"
 
 log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
@@ -124,78 +181,6 @@ for line in "${gsettings[@]}"; do
   IFS=' ' read -r schema key value <<< "${line}"
   gsettings set "${schema}" "${key}" "${value}"
 done
-
-log 'Adding Docker key and repository'
-# https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
-sudo install --mode='0755' --directory '/etc/apt/keyrings'
-curl --disable --fail --silent --location --show-error 'https://download.docker.com/linux/ubuntu/gpg' | sudo gpg --dearmor -o '/etc/apt/keyrings/docker.gpg'
-sudo chmod 644 '/etc/apt/keyrings/docker.gpg'
-# shellcheck disable=SC1091
-echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release --codename --short) stable" | sudo tee '/etc/apt/sources.list.d/docker.list' > /dev/null
-
-log 'Removing apt packages'
-sudo apt-get remove --yes geary firefox libreoffice-*
-
-log 'Running apt autoremove'
-sudo apt-get autoremove --yes
-
-log 'Installing apt packages'
-sudo apt update
-sudo apt-get install --yes \
-  age \
-  alacritty \
-  apt-transport-https \
-  bridge-utils \
-  ca-certificates \
-  caffeine \
-  clamav \
-  cpu-checker \
-  curl \
-  dconf-editor \
-  docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose docker-compose-plugin \
-  fail2ban \
-  flatpak \
-  git \
-  gir1.2-nautilus-3.0 gir1.2-ebook-1.2 gir1.2-ebookcontacts-1.2 gir1.2-edataserver-1.2 \
-  gnome-shell-extensions \
-  gnome-shell-extension-gsconnect-browsers \
-  gnome-software-plugin-flatpak gnome-tweaks \
-  gnupg gnupg-agent \
-  gparted \
-  kitty \
-  krusader \
-  libfuse2 \
-  libvirt-daemon libvirt-daemon-system libvirt-clients \
-  nala \
-  nano \
-  nautilus-admin \
-  nfs-kernel-server \
-  micro \
-  openssh-client openssh-server \
-  ovmf \
-  plocate \
-  podman \
-  preload \
-  python3-nautilus \
-  qemu qemu-kvm qemu-utils \
-  software-properties-common \
-  synaptic \
-  uidmap \
-  ufw \
-  wget \
-  virtinst \
-  zip unzip
-
-for script in "${SCRIPTS_DIR}/install/"*; do
-  log "Running: ${script}"
-  SCRIPTS_AUTO_ANSWER='y' "$script"
-done
-
-# shellcheck disable=1091
-source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
-
-log 'Running setup scripts'
-SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/setup/run-setup-scripts"
 
 log 'Installing GNOME extensions'
 gnome_extensions=(
