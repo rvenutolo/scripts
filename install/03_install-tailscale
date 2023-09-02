@@ -15,5 +15,11 @@ if ! prompt_yn 'Install Tailscale?'; then
 fi
 
 log 'Installing Tailscale'
+if is_ubuntu && [[ "$(lsb_release --codename --short)" == 'jammy' ]]; then
+  # https://techoverflow.net/2022/08/26/how-to-fix-apt-error-no_pubkey-458ca832957f5868/
+  download 'https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg' | sudo tee '/usr/share/keyrings/tailscale-archive-keyring.gpg' >/dev/null
+  download 'https://pkgs.tailscale.com/stable/ubuntu/jammy.tailscale-keyring.list' | sudo tee '/etc/apt/sources.list.d/tailscale.list' > /dev/null
+  sudo apt-get update
+fi
 download 'https://tailscale.com/install.sh' | sh
 log 'Installed Tailscale'
