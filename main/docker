@@ -3,7 +3,7 @@
 set -euo pipefail
 
 #shellcheck disable=SC1091
-source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
+source "${SCRIPTS_DIR}/functions.bash"
 
 # remove this dir from the path so executing `docker` doesn't execute this script
 path_remove "$(this_script_dir)"

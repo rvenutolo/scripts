@@ -3,7 +3,7 @@
 set -euo pipefail
 
 #shellcheck disable=SC1091
-source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
+source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
 flac2mp3.pl --quiet --lameargs='-V0 --noreplaygain --nohist --quiet' --processes="$(nproc)" . .

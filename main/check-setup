@@ -6,7 +6,7 @@ set -euo pipefail
 sudo --validate
 
 #shellcheck disable=SC1091
-source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/functions.bash"
+source "${SCRIPTS_DIR}/functions.bash"
 check_not_root
 check_no_args "$@"
 
