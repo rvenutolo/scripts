@@ -141,8 +141,8 @@ source "${HOME}/.profile"
 log 'Running install scripts'
 SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-install-scripts"
 
-log 'Running setup scripts'
-SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-setup-scripts"
+log 'Running set up scripts'
+SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-set-up-scripts"
 
 log 'Getting de-400 connection file'
 dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
