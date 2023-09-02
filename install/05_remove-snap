@@ -46,7 +46,7 @@ log 'Writing /etc/apt/preferences.d/disable-snap.pref'
   echo 'Package: snapd'
   echo 'Pin: release a=*'
   echo 'Pin-Priority: -10'
-} | tee '/etc/apt/preferences.d/disable-snap.pref' > '/dev/null'
+} | sudo tee '/etc/apt/preferences.d/disable-snap.pref' > '/dev/null'
 
 log 'Updating apt package index'
 apt-get update
