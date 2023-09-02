@@ -49,7 +49,7 @@ log 'Writing /etc/apt/preferences.d/disable-snap.pref'
 } | sudo tee '/etc/apt/preferences.d/disable-snap.pref' > '/dev/null'
 
 log 'Updating apt package index'
-apt-get update
+sudo apt-get update
 log 'Updated apt package index'
 
 existing_mounts="$(grep --invert '^\s*#' '/etc/fstab' | awk '{ print $2 }')"
