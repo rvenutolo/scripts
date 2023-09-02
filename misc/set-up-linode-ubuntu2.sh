@@ -83,6 +83,7 @@ sudo apt-get install --yes \
   ufw \
   wget \
   zip unzip
+sudo apt-get autoremove --yes
 
 if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
   log 'Downloading chezmoi'
