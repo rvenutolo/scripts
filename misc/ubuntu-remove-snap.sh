@@ -56,7 +56,7 @@ log "Masking snapd"
 systemctl mask snapd
 
 log "Removing snapd package"
-apt remove --autoremove --yes snapd
+sudo apt-get remove --autoremove --yes snapd
 
 log "Writing /etc/apt/preferences.d/disable-snap.pref"
 {
@@ -66,7 +66,7 @@ log "Writing /etc/apt/preferences.d/disable-snap.pref"
 } | tee '/etc/apt/preferences.d/disable-snap.pref' > '/dev/null'
 
 log "Updating apt"
-apt update
+sudo apt-get update
 
 existing_mounts="$(grep --invert '^\s*#' /etc/fstab | awk '{ print $2 }')"
 readonly existing_mounts
@@ -98,12 +98,12 @@ for dir in "/home/"*; do
 done
 
 if prompt_yn 'Install Flatpak?'; then
-  apt install --yes flatpak
+  sudo apt-get install --yes flatpak
   flatpak remote-add --if-not-exists 'flathub' 'https://flathub.org/repo/flathub.flatpakrepo'
   if executable_exists 'plasmashell'; then
-    apt install --yes plasma-discover-backend-flatpak
+    sudo apt-get install --yes plasma-discover-backend-flatpak
   fi
   if executable_exists 'gnome-shell'; then
-    apt install --yes gnome-software-plugin-flatpak
+    sudo apt-get install --yes gnome-software-plugin-flatpak
   fi
 fi
