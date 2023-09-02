@@ -101,16 +101,11 @@ fi
 #shellcheck disable=SC1091
 source "${HOME}/.profile"
 
-for script in "${SCRIPTS_DIR}/install/"*; do
-  log "Running: ${script}"
-  SCRIPTS_AUTO_ANSWER='y' "$script"
-done
-
-# shellcheck disable=1091
-source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
+log 'Running install scripts'
+SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-install-scripts"
 
 log 'Running setup scripts'
-SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/setup/run-setup-scripts"
+SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-setup-scripts"
 
 #log 'Starting Portainer'
 ## TODO docker compose? -- https://www.youtube.com/watch?v=7oUjfsaR0NU
