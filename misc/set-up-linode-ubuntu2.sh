@@ -125,4 +125,3 @@ SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-setup-scripts"
 
 log 'Done'
 log 'Run: source ~/.bashrc'
-log "Go to: http://$(tailscale ip -4)/"
