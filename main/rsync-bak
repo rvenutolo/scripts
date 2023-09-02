@@ -6,11 +6,21 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_at_least_2_args "$@"
 
+# --archive : --recursive --links --perms --times --group --owner --device --specials
+#             --recursive recurse into directories
+#             --links copy symlinks as symlinks
+#             --perms preserve permissions
+#             --times preserve modification times
+#             --group preserve group
+#             --owner preserver owner (super-user only)
+#             --device preserve device files (super-user only)
+#             --specials preserve special files
+# --human-readable : output numbers in a human-readable format
+# --executability : preserve executability
+# --stats: give some file-transfer stats
 rsync \
   --archive \
-  --itemize-changes \
   --human-readable \
   --executability \
-  --progress \
   --stats \
   "$@"
