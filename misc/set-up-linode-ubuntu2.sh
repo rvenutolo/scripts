@@ -53,7 +53,7 @@ sudo apt-get update
 
 if ! sudo apt-get --just-print dist-upgrade | grep --quiet '^0 upgraded'; then
   sudo touch '/var/run/reboot-required'
-  die "Update/upgrade packages and reboot before running this script: sudo apt-get dist-upgrade --yes && sudo reboot"
+  die "Update/upgrade packages and reboot before running this script: \nsudo apt-get dist-upgrade --yes && sudo apt-get autoremove --yes && sudo reboot"
 fi
 if [[ -f '/var/run/reboot-required' ]]; then
   die "Reboot before running this script"
