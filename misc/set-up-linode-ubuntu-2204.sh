@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
-# $ bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-linode-ubuntu-user.sh')"
-# $ bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-linode-ubuntu-user.sh')"
+# $ bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-linode-ubuntu-2204.sh')"
+# $ bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-linode-ubuntu-2204.sh')"
+
+# Create user:
+# useradd --create-home --shell '/usr/bin/bash' --groups 'sudo' --comment 'Rick Venutolo' 'rvenutolo'
+# passwd 'rvenutolo'
 
 set -euo pipefail
 
@@ -49,11 +53,37 @@ sudo apt-get update
 
 if ! sudo apt-get --just-print dist-upgrade | grep --quiet '^0 upgraded'; then
   sudo touch '/var/run/reboot-required'
-  die "Update/upgrade packages and reboot before running this script: sudo apt-get dist-upgrade --yes && sudo reboot"
+  die "Update/upgrade packages and reboot before running this script: \nsudo apt-get dist-upgrade --yes && sudo apt-get autoremove --yes && sudo reboot"
 fi
 if [[ -f '/var/run/reboot-required' ]]; then
   die "Reboot before running this script"
 fi
+
+log 'Setting timezone'
+sudo timedatectl set-timezone 'America/New_York'
+
+log 'Setting hostname'
+sudo hostnamectl set-hostname 'meatball'
+
+log 'Installing apt packages'
+sudo apt-get install --yes \
+  age \
+  apt-transport-https \
+  ca-certificates \
+  curl \
+  fail2ban \
+  git \
+  gnupg gnupg-agent \
+  nala \
+  nano \
+  micro \
+  openssh-client openssh-server \
+  plocate \
+  software-properties-common \
+  ufw \
+  wget \
+  zip unzip
+sudo apt-get autoremove --yes
 
 if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
   log 'Downloading chezmoi'
@@ -71,16 +101,11 @@ fi
 #shellcheck disable=SC1091
 source "${HOME}/.profile"
 
-for script in "${SCRIPTS_DIR}/install/"*; do
-  log "Running: ${script}"
-  SCRIPTS_AUTO_ANSWER='y' "$script"
-done
-
-# shellcheck disable=1091
-source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
+log 'Running install scripts'
+SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-install-scripts"
 
 log 'Running setup scripts'
-SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/setup/run-setup-scripts"
+SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-setup-scripts"
 
 #log 'Starting Portainer'
 ## TODO docker compose? -- https://www.youtube.com/watch?v=7oUjfsaR0NU
@@ -100,4 +125,3 @@ SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/setup/run-setup-scripts"
 
 log 'Done'
 log 'Run: source ~/.bashrc'
-log "Go to: http://$(tailscale ip -4)/"
