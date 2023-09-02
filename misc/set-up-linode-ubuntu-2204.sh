@@ -104,8 +104,8 @@ source "${HOME}/.profile"
 log 'Running install scripts'
 SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-install-scripts"
 
-log 'Running setup scripts'
-SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-setup-scripts"
+log 'Running set up scripts'
+SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-set-up-scripts"
 
 #log 'Starting Portainer'
 ## TODO docker compose? -- https://www.youtube.com/watch?v=7oUjfsaR0NU
