@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_at_most_1_arg "$@"
+
+if [[ "$#" -eq 0 ]]; then
+  readonly dir='.'
+else
+  readonly dir="$1"
+fi
+
+find "${dir}" -printf '%u:%g\n' | sort --field-separator=':' --unique
