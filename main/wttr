@@ -7,7 +7,8 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_at_most_1_arg "$@"
 
 if [[ "$#" -eq 0 ]]; then
-  download "wttr.in/${WTTR_CITY}"
+  readonly city="${WTTR_CITY}"
 else
-  download "wttr.in/$1"
+  readonly city="$1"
 fi
+download "wttr.in/${city}"
