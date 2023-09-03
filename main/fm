@@ -22,10 +22,12 @@ fi
 readonly fm disown_proc
 
 if [[ "$#" -eq 0 ]]; then
-  "${fm}" . > /dev/null 2>&1 &
+  readonly dir='.'
 else
-  "${fm}" "$@" > /dev/null 2>&1 &
+  readonly dir="$1"
 fi
+"${fm}" "${dir}" > /dev/null 2>&1 &
+
 if [[ "${disown_proc}" == 'y' ]]; then
   disown
 fi
