@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_at_most_1_arg "$@"
+
+if [[ -n "${1:-}" ]]; then
+  readonly profile="$1"
+else
+  readonly profile='de-core-dev'
+fi
+
+aws sso login --sso-session 'de' --profile "${profile}"
+aws --profile "${profile}" sts get-caller-identity
+echo "run: export AWS_PROFILE='${profile}'"
