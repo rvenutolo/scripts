@@ -1,0 +1,305 @@
+#!/usr/bin/env groovy
+
+import groovy.transform.Immutable
+
+@Immutable
+class AltInfo {
+    String desc
+    String url
+}
+
+def alts = [
+    ack            : new AltInfo(
+        desc: 'A grep-like tool tailored to working with large trees of source code',
+        url: 'https://beyondgrep.com/'
+    ),
+    ag             : new AltInfo(
+        desc: 'A code-searching tool similar to ack, but faster',
+        url: 'https://github.com/ggreer/the_silver_searcher/'
+    ),
+    bat            : new AltInfo(
+        desc: 'A cat(1) clone with syntax highlighting and Git integration',
+        url: 'https://github.com/sharkdp/bat'
+    ),
+    btm            : new AltInfo(
+        desc: 'A cross-platform graphical process/system monitor with a customizable interface',
+        url: 'https://github.com/ClementTsang/bottom'
+    ),
+    broot          : new AltInfo(
+        desc: 'An interactive tree view, a fuzzy search, a balanced BFS descent and customizable commands',
+        url: 'https://dystroy.org/broot/'
+    ),
+    btop           : new AltInfo(
+        desc: 'A monitor of resources',
+        url: 'https://github.com/aristocratos/btop'
+    ),
+    choose         : new AltInfo(
+        desc: 'A human-friendly and fast alternative to cut and (sometimes) awk',
+        url: 'https://github.com/theryangeary/choose'
+    ),
+    colordiff      : new AltInfo(
+        desc: 'Wrapper for \'diff\' that produces the same output but with pretty \'syntax\' highlighting',
+        url: 'https://www.colordiff.org/'
+    ),
+    curlie         : new AltInfo(
+        desc: 'Frontend to curl that adds the ease of use of httpie, without compromising on features and ' +
+            'performance',
+        url: 'https://curlie.io/'
+    ),
+    delta          : new AltInfo(
+        desc: 'A syntax-highlighting pager for git',
+        url: 'https://github.com/dandavison/delta'
+    ),
+    'diff-so-fancy': new AltInfo(
+        desc: 'Good-looking diffs filter for git',
+        url: 'https://github.com/so-fancy/diff-so-fancy'
+    ),
+    difft          : new AltInfo(
+        desc: 'A syntax-aware diff',
+        url: 'https://github.com/Wilfred/difftastic'
+    ),
+    doggo          : new AltInfo(
+        desc: 'Command-line DNS Client for Humans. Written in Golang',
+        url: 'https://github.com/mr-karan/doggo'
+    ),
+    dog            : new AltInfo(
+        desc: 'Command-line DNS client',
+        url: 'https://dns.lookup.dog/'
+    ),
+    dua            : new AltInfo(
+        desc: 'A tool to conveniently learn about the disk usage of directories',
+        url: 'https://github.com/Byron/dua-cli'
+    ),
+    duf            : new AltInfo(
+        desc: 'Disk Usage/Free Utility',
+        url: 'https://github.com/muesli/duf/'
+    ),
+    dust           : new AltInfo(
+        desc: 'du + rust = dust. Like du but more intuitive',
+        url: 'https://github.com/bootandy/dust'
+    ),
+    dysk           : new AltInfo(
+        desc: 'Get information on your mounted disks',
+        url: 'https://github.com/Canop/dysk'
+    ),
+    exa            : new AltInfo(
+        desc: 'Replacement for \'ls\' written in Rust',
+        url: 'https://the.exa.website/'
+    ),
+    fcp            : new AltInfo(
+        desc: 'A significantly faster alternative to the classic Unix cp(1) command',
+        url: 'https://github.com/svetlitski/fcp'
+    ),
+    fd             : new AltInfo(
+        desc: 'A simple, fast and user-friendly alternative to find',
+        url: 'https://github.com/sharkdp/fd'
+    ),
+    fselect        : new AltInfo(
+        desc: 'Find files with SQL-like queries',
+        url: 'https://github.com/jhspetersson/fselect'
+    ),
+    fx             : new AltInfo(
+        desc: 'Terminal JSON viewer',
+        url: 'https://github.com/antonmedv/fx'
+    ),
+    gdu            : new AltInfo(
+        desc: 'Disk usage analyzer with console interface',
+        url: 'https://github.com/dundee/gdu'
+    ),
+    gh             : new AltInfo(
+        desc: 'GitHub CLI tool',
+        url: 'https://cli.github.com/'
+    ),
+    gitui          : new AltInfo(
+        desc: 'Blazing fast terminal-ui for Git written in Rust',
+        url: 'https://github.com/extrawurst/gitui'
+    ),
+    glances        : new AltInfo(
+        desc: 'Cross-platform curses-based monitoring tool',
+        url: 'https://nicolargo.github.io/glances/'
+    ),
+    gotop          : new AltInfo(
+        desc: 'A terminal based graphical activity monitor inspired by gtop and vtop',
+        url: 'https://github.com/xxxserxxx/gotop'
+    ),
+    gping          : new AltInfo(
+        desc: 'Ping, but with a graph',
+        url: 'https://github.com/orf/gping'
+    ),
+    gron           : new AltInfo(
+        desc: 'Make JSON greppable!',
+        url: 'https://github.com/tomnomnom/gron'
+    ),
+    gtop           : new AltInfo(
+        desc: 'System monitoring dashboard for the terminal',
+        url: 'https://github.com/aksakalli/gtop'
+    ),
+    hck            : new AltInfo(
+        desc: 'A close to drop in replacement for cut that can use a regex delimiter instead of a fixed string',
+        url: 'https://github.com/sstadick/hck'
+    ),
+    htop           : new AltInfo(
+        desc: 'An interactive process viewer',
+        url: 'https://htop.dev/'
+    ),
+    httpie         : new AltInfo(
+        desc: 'A command line HTTP client whose goal is to make CLI human-friendly',
+        url: 'https://httpie.org/'
+    ),
+    jless          : new AltInfo(
+        desc: 'A command-line pager for JSON data',
+        url: 'https://jless.io/'
+    ),
+    jqp            : new AltInfo(
+        desc: 'A TUI playground to experiment with jq',
+        url: 'https://github.com/noahgorstein/jqp'
+    ),
+    lazydocker     : new AltInfo(
+        desc: 'A simple terminal UI for both docker and docker-compose',
+        url: 'https://github.com/jesseduffield/lazydocker'
+    ),
+    lazygit        : new AltInfo(
+        desc: 'Simple terminal UI for git commands',
+        url: 'https://github.com/jesseduffield/lazygit'
+    ),
+    lsd            : new AltInfo(
+        desc: 'The next gen ls command',
+        url: 'https://github.com/lsd-rs/lsd'
+    ),
+    mdcat          : new AltInfo(
+        desc: 'cat for markdown',
+        url: 'https://github.com/swsnr/mdcat'
+    ),
+    moar           : new AltInfo(
+        desc: 'Nice-to-use pager for humans',
+        url: 'https://github.com/walles/moar'
+    ),
+    mosh           : new AltInfo(
+        desc: 'Mobile shell (ssh replacement)',
+        url: 'https://mosh.org/'
+    ),
+    ncdu           : new AltInfo(
+        desc: 'Disk usage analyzer with an ncurses interface',
+        url: 'https://dev.yorhel.nl/ncdu'
+    ),
+    pigz           : new AltInfo(
+        desc: 'A parallel implementation of gzip for multi-core machines',
+        url: 'https://www.zlib.net/pigz/'
+    ),
+    'podman-tui'   : new AltInfo(
+        desc: 'Podman Terminal UI',
+        url: 'https://github.com/containers/podman-tui'
+    ),
+    procs          : new AltInfo(
+        desc: 'A modern replacement for ps written in Rust',
+        url: 'https://github.com/dalance/procs'
+    ),
+    riff           : new AltInfo(
+        desc: 'A diff filter highlighting which line parts have changed',
+        url: 'https://github.com/walles/riff'
+    ),
+    ripgrep        : new AltInfo(
+        desc: 'A utility that combines the usability of The Silver Searcher with the raw speed of grep',
+        url: 'https://github.com/BurntSushi/ripgrep'
+    ),
+    runiq          : new AltInfo(
+        desc: 'An efficient way to filter duplicate lines from input, à la uniq',
+        url: 'https://github.com/whitfin/runiq'
+    ),
+    sd             : new AltInfo(
+        desc: 'Intuitive find & replace CLI (sed alternative)',
+        url: 'https://github.com/chmln/sd'
+    ),
+    sshs           : new AltInfo(
+        desc: 'Terminal user interface for SSH',
+        url: 'https://github.com/quantumsheep/sshs'
+    ),
+    systeroid      : new AltInfo(
+        desc: 'More powerful alternative to sysctl(8) with a terminal user interface',
+        url: 'https://github.com/orhun/systeroid'
+    ),
+    tig            : new AltInfo(
+        desc: 'Text-mode interface for git',
+        url: 'https://jonas.github.io/tig/'
+    ),
+    'trash-cli'    : new AltInfo(
+        desc: 'Command line interface to the freedesktop.org trashcan',
+        url: 'https://github.com/andreafrancia/trash-cli'
+    ),
+    ugrep          : new AltInfo(
+        desc: 'Ultra fast grep with interactive query UI',
+        url: 'https://github.com/Genivia/ugrep'
+    ),
+    xh             : new AltInfo(
+        desc: 'Friendly and fast tool for sending HTTP requests',
+        url: 'https://github.com/ducaale/xh'
+    ),
+    yq             : new AltInfo(
+        desc: 'Portable command-line YAML processor',
+        url: 'https://mikefarah.gitbook.io/yq/'
+    ),
+    zellij         : new AltInfo(
+        desc: 'A terminal workspace with batteries included',
+        url: 'https://zellij.dev/'
+    ),
+    zoxide         : new AltInfo(
+        desc: 'A fast cd command that learns your habits',
+        url: 'https://github.com/ajeetdsouza/zoxide'
+    ),] as Map<String, AltInfo>
+
+def map = [
+    awk   : ['choose'],
+    cat   : ['bat', 'mdcat'],
+    cd    : ['zoxide'],
+    cp    : ['fcp'],
+    curl  : ['curlie', 'httpie', 'xh'],
+    cut   : ['choose', 'hck'],
+    df    : ['duf', 'dysk'],
+    diff  : ['colordiff', 'delta', 'diff-so-fancy', 'difft', 'riff'],
+    dig   : ['dog', 'doggo'],
+    docker: ['lazydocker'],
+    du    : ['dua', 'dust', 'gdu', 'ncdu'],
+    find  : ['fd', 'fselect'],
+    git   : ['gh', 'gitui', 'lazygit', 'tig'],
+    grep  : ['ack', 'ag', 'gron', 'ripgrep', 'ugrep'],
+    gzip  : ['pigz'],
+    jq    : ['fx', 'jless', 'jqp', 'yq'],
+    less  : ['moar'],
+    ls    : ['exa', 'lsd'],
+    ping  : ['gping'],
+    podman: ['podman-tui'],
+    ps    : ['procs'],
+    rm    : ['trash-cli'],
+    sed   : ['sd'],
+    ssh   : ['mosh', 'sshs'],
+    sysctl: ['systeroid'],
+    tmux  : ['zellij'],
+    tree  : ['broot'],
+    top   : ['btm', 'btop', 'glances', 'gotop', 'gtop', 'htop'],
+    uniq  : ['runiq']
+] as Map<String, Collection<String>>
+
+if (args) {
+    args.each { app ->
+        if (!map[app]) {
+            throw new IllegalArgumentException(
+                "${app} is not an expected app -- Expected: ${map.keySet().toSorted().join(', ')}"
+            )
+        }
+    }
+}
+
+((args ? args : map.keySet()) as Collection<String>).toSorted().each { app ->
+    println('-' * 80)
+    println(app)
+    println('-' * 80)
+    map[app].toSorted().each { altApp ->
+        def altAppInfo = alts[altApp]
+        if (!altAppInfo) {
+            throw new IllegalStateException("No alt app with name: ${altApp}")
+        }
+        println("  ${altApp} -- ${altAppInfo.url}")
+        println("    ${altAppInfo.desc}")
+        println('')
+    }
+}
