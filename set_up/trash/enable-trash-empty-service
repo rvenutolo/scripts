@@ -7,6 +7,8 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_not_root
 check_no_args "$@"
 
-if executable_exists 'trash-empty'; then
-  enable_user_service_unit 'trash-empty.timer'
+if ! executable_exists 'trash-empty'; then
+  exit 0
 fi
+
+enable_user_service_unit 'trash-empty.timer'

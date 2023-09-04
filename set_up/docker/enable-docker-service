@@ -6,10 +6,14 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-if executable_exists 'dockerd'; then
-  enable_system_service_unit 'docker.service'
+if ! executable_exists 'dockerd'; then
+  exit 0
 fi
 
-if executable_exists 'containerd'; then
-  enable_system_service_unit 'containerd.service'
+enable_system_service_unit 'docker.service'
+
+if ! executable_exists 'containerd'; then
+  exit 0
 fi
+
+enable_system_service_unit 'containerd.service'

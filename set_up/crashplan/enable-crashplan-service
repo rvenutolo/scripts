@@ -6,6 +6,8 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-if executable_exists 'CrashPlanDesktop'; then
-  enable_system_service_unit 'crashplan-pro.service'
+if ! executable_exists 'CrashPlanDesktop'; then
+  exit 0
 fi
+
+enable_system_service_unit 'crashplan-pro.service'
