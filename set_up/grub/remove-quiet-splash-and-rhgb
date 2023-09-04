@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+if ! executable_exists 'grub-mkconfig' && ! executable_exists 'grub2-mkconfig'; then
+  exit 0
+fi
+
+# These pairing of commands and GRUB output config file may not always be
+# correct, but seems to be consistent with the distros I've looked at recently.
+if executable_exists 'grub-mkconfig'; then
+  readonly grub_mkconfig_cmd='grub-mkconfig'
+  readonly grub_config_file='/boot/grub/grub.cfg'
+else
+  readonly grub_mkconfig_cmd='grub2-mkconfig'
+  readonly grub_config_file='/boot/grub2/grub.cfg'
+fi
+if [[ ! -f "${grub_config_file}" ]]; then
+  die "Could not find GRUB config file at: ${grub_config_file}"
+fi
+
+readonly grub_default_file='/etc/default/grub'
+if [[ ! -f "${grub_default_file}" ]]; then
+  die "Unable to find file: ${grub_default_file}"
+fi
+
+readonly kernel_options_to_remove=(
+  'rhgb'
+  'quiet'
+  'splash'
+)
+
+contains_options_to_remove='n'
+while read -r line; do
+  if grep --quiet --perl-regexp '^\s*(GRUB_CMDLINE_LINUX_DEFAULT)|(GRUB_CMDLINE_LINUX)\s*=' <<< "${line}"; then
+    options="$(cut --delimiter='"' --fields='2' <<< "${line}")"
+    for kernel_option in "${kernel_options_to_remove[@]}"; do
+      if echo "${options}" | contains_word "${kernel_option}"; then
+        contains_options_to_remove='y'
+        break
+      fi
+    done
+    if [[ "${contains_options_to_remove}" == 'y' ]]; then
+      break
+    fi
+  fi
+done < "${grub_default_file}"
+
+if [[ "${contains_options_to_remove}" == 'n' ]]; then
+  exit 0
+fi
+readonly kernel_options_to_remove_string="${kernel_options_to_remove[*]}"
+if ! prompt_yn "Remove GRUB kernel options: ${kernel_options_to_remove_string// /, }"; then
+  exit 0
+fi
+
+sudo cp "${grub_default_file}" "${grub_default_file}.orig"
+sudo truncate --size='0' "${grub_default_file}"
+while read -r line; do
+  line_to_write="${line}"
+  if grep --quiet --perl-regexp '^\s*(GRUB_CMDLINE_LINUX)|(GRUB_CMDLINE_LINUX_DEFAULT)\s*=' <<< "${line}"; then
+    for kernel_option in "${kernel_options_to_remove[@]}"; do
+      line_to_write="$(sed "s/${kernel_option}//g" <<< "${line_to_write}")"
+    done
+    line_to_write="$(sed 's/\s*"\s*/"/g ; s/\s\+/ /g' <<< "${line_to_write}")"
+  fi
+  echo "${line_to_write}" | sudo tee --append "${grub_default_file}" > '/dev/null'
+done < "${grub_default_file}.orig"
+
+sudo "${grub_mkconfig_cmd}" --output="${grub_config_file}"
