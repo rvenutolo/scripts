@@ -6,6 +6,8 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-if executable_exists 'tailscaled'; then
-  enable_system_service_unit 'tailscaled.service'
+if ! executable_exists 'tailscaled'; then
+  exit 0
 fi
+
+enable_system_service_unit 'tailscaled.service'
