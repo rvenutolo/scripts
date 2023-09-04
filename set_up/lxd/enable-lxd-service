@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+if ! executable_exists 'lxd'; then
+  exit 0
+fi
+
+enable_system_service_unit 'lxd.socket'
+enable_system_service_unit 'lxd.service'
