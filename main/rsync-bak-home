@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_at_least_1_arg "$@"
+
+rsync-bak \
+  --exclude 'Music' \
+  --exclude 'Temp' \
+  --exclude 'Videos' \
+  --exclude 'VMs' \
+  --exclude '.local/share/Trash' \
+  --exclude '.local/share/Steam' \
+  --exclude '.local/share/stack' \
+  --exclude '.local/share/baloo' \
+  --exclude '.m2/repository' \
+  --exclude '.sdkman' \
+  "${HOME}" "$@"
