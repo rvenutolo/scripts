@@ -122,13 +122,9 @@ sudo apt-get install --yes \
   virtinst \
   zip unzip
 
-if [[ ! -f '/tmp/dl-chezmoi.sh' ]]; then
-  log 'Downloading chezmoi'
-  dl 'get.chezmoi.io' '/tmp/dl-chezmoi.sh'
-fi
 if [[ ! -f '/tmp/chezmoi' ]]; then
   log 'Installing chezmoi'
-  sh '/tmp/dl-chezmoi.sh' -b '/tmp'
+  bash -c "$(dl 'get.chezmoi.io')" -- -b '/tmp'
 fi
 if [[ ! -f "${HOME}/.config/bash/rc.bash" ]]; then
   log 'Initializing chezmoi'
