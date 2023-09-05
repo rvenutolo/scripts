@@ -14,5 +14,17 @@ if ! prompt_yn 'Install Tailscale?'; then
   exit 0
 fi
 
+# If during execution of the install script, you get the following message,
+# check the curlrc configuration file for `-w \n`.
+#
+# Get:5 https://pkgs.tailscale.com/stable/ubuntu jammy InRelease
+# Err:5 https://pkgs.tailscale.com/stable/ubuntu jammy InRelease
+#   The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 458CA832957F5868
+#
+#  - The install script calls `curl`.
+#  - The script does not the `--disable` flag to ignore the curlrc config file.
+#  - If `-w \n` is set the in the curlc config file, it will append a newline to curl's output.
+#  - This extra newline ultimately causes the pubkey issue.
+log 'Installing Tailscale'
 download 'https://tailscale.com/install.sh' | sh
 log 'Installed Tailscale'
