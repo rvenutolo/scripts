@@ -23,4 +23,5 @@ rsync \
   --human-readable \
   --executability \
   --stats \
+  --progress \
   "$@"
