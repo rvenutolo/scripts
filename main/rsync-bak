@@ -18,6 +18,7 @@ check_at_least_2_args "$@"
 # --human-readable : output numbers in a human-readable format
 # --executability : preserve executability
 # --stats: give some file-transfer stats
+# --progress: show progress during transfer
 rsync \
   --archive \
   --human-readable \
