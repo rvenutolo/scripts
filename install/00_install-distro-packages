@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if executable_exists 'apt-get'; then
+  packages=(
+    'age'
+    'apt-transport-https'
+    'bridge-utils'
+    'ca-certificates'
+    'clamav'
+    'curl'
+    'fail2ban'
+    'git'
+    'gnupg'
+    'gnupg-agent'
+    'libfuse2'
+    'libvirt-daemon'
+    'libvirt-daemon-system'
+    'libvirt-clients'
+    'nala'
+    'nano'
+    'nfs-kernel-server'
+    'micro'
+    'openssh-client'
+    'openssh-server'
+    'ovmf'
+    'plocate'
+    'qemu'
+    'qemu-kvm'
+    'qemu-utils'
+    'software-properties-common'
+    'ufw'
+    'unzip'
+    'virtinst'
+    'wget'
+    'zip'
+  )
+  if ! is_server; then
+    packages+=(
+      'alacritty'
+      'flatpak'
+      'gparted'
+      'kitty'
+      'synaptic'
+    )
+  fi
+  if is_gnome; then
+    packages+=(
+      'caffeine'
+      'dconf-editor'
+      'nautilus-admin'
+      'gir1.2-nautilus-3.0'
+      'gir1.2-ebook-1.2'
+      'gir1.2-ebookcontacts-1.2'
+      'gir1.2-edataserver-1.2'
+      'gnome-shell-extensions'
+      'gnome-shell-extension-gsconnect'
+      'gnome-shell-extension-gsconnect-browsers'
+      'gnome-software-plugin-flatpak'
+      'gnome-tweaks'
+      'python3-nautilus'
+    )
+  fi
+  ## TODO KDE
+  sudo apt-get install --yes "${packages[@]}"
+elif executable_exists 'dnf'; then
+  packages=(
+    'age'
+    'bridge-utils'
+    'ca-certificates'
+    'clamav'
+    'curl'
+    'edk2'
+    'fail2ban'
+    'git'
+    'gnupg2'
+    'libvirt'
+    'nano'
+    'nfs-utils'
+    'micro'
+    'openssh'
+    'plocate'
+    'qemu'
+    'ufw'
+    'unzip'
+    'wget'
+    'zip'
+  )
+  if ! is_server; then
+    packages+=(
+      'alacritty'
+      'flatpak'
+      'gparted'
+      'kitty'
+    )
+  fi
+  if is_gnome; then
+    packages+=(
+      'dconf-editor'
+      'gnome-extensions-app'
+      'gnome-shell-extension-caffeine'
+      'gnome-shell-extension-gsconnect'
+      'gnome-tweaks'
+    )
+  fi
+  ## TODO KDE
+  sudo dnf install --assumeyes "${packages[@]}"
+elif executable_exists 'pacman'; then
+  packages=(
+    'age'
+    'bridge-utils'
+    'ca-certificates'
+    'clamav'
+    'curl'
+    'edk2-ovmf'
+    'fail2ban'
+    'git'
+    'gnupg'
+    'libvirt'
+    'nano'
+    'nfs-utils'
+    'micro'
+    'openssh'
+    'plocate'
+    'qemu-full'
+    'ufw'
+    'unzip'
+    'wget'
+    'zip'
+  )
+  if ! is_server; then
+    packages+=(
+      'alacritty'
+      'flatpak'
+      'gparted'
+      'kitty'
+    )
+  fi
+  if is_gnome; then
+    packages+=(
+      'dconf-editor'
+      'gnome-extensions-app'
+      'gnome-shell-extensions'
+      'gnome-tweaks'
+    )
+  fi
+  ## TODO KDE
+  sudo pacman --sync --refresh --needed --noconfirm "${packages[@]}"
+else
+  die 'Unknown package manager'
+fi
