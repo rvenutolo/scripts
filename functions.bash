@@ -158,6 +158,16 @@ function is_pop() {
   [[ "$(os_id)" == 'pop' ]]
 }
 
+function is_leap() {
+  check_no_args "$@"
+  [[ "$(os_id)" == 'opensuse-leap' ]]
+}
+
+function is_tumbleweed() {
+  check_no_args "$@"
+  [[ "$(os_id)" == 'opensuse-tumbleweed' ]]
+}
+
 # $1 = path to remove
 function path_remove() {
   check_exactly_1_arg "$@"
