@@ -117,6 +117,58 @@ function function_exists() {
   declare -f "$1" > /dev/null 2>&1
 }
 
+# $1 = path to remove
+function path_remove() {
+  check_exactly_1_arg "$@"
+  PATH=$(echo -n "$PATH" | awk -v RS=: -v ORS=: '$0 != "'"$1"'"' | sed 's/:$//')
+}
+
+# $1 = path to append
+function path_append() {
+  check_exactly_1_arg "$@"
+  path_remove "$1" && PATH="$PATH:$1"
+}
+
+# $1 = path to prepend
+function path_prepend() {
+  check_exactly_1_arg "$@"
+  path_remove "$1" && PATH="$1:$PATH"
+}
+
+# expected to pipe to this function, ex: groups | contains_word 'wheel'
+# $1 = word
+function contains_word() {
+  # expected to pipe to this function
+  check_exactly_1_arg "$@"
+  check_for_stdin
+  grep --quiet --fixed-strings --ignore-case --word-regex "$1"
+}
+
+function is_personal() {
+  check_no_args "$@"
+  [[ "$(hostname)" == "${PERSONAL_DESKTOP_HOSTNAME}" || "$(hostname)" == "${PERSONAL_LAPTOP_HOSTNAME}" ]]
+}
+
+function is_work() {
+  check_no_args "$@"
+  [[ "$(hostname)" == "${WORK_LAPTOP_HOSTNAME}" ]]
+}
+
+function is_desktop() {
+  check_no_args "$@"
+  [[ "$(hostname)" == "${PERSONAL_DESKTOP_HOSTNAME}" ]]
+}
+
+function is_laptop() {
+  check_no_args "$@"
+  [[ "$(hostname)" == "${PERSONAL_LAPTOP_HOSTNAME}" || "$(hostname)" == "${WORK_LAPTOP_HOSTNAME}" ]]
+}
+
+function is_server() {
+  check_no_args "$@"
+  [[ "$(hostname)" != "${PERSONAL_DESKTOP_HOSTNAME}" && "$(hostname)" != "${PERSONAL_LAPTOP_HOSTNAME}" && "$(hostname)" != "${WORK_LAPTOP_HOSTNAME}" ]]
+}
+
 #shellcheck disable=SC2120
 function os_id() {
   check_no_args "$@"
@@ -168,62 +220,25 @@ function is_tumbleweed() {
   [[ "$(os_id)" == 'opensuse-tumbleweed' ]]
 }
 
-# $1 = path to remove
-function path_remove() {
-  check_exactly_1_arg "$@"
-  PATH=$(echo -n "$PATH" | awk -v RS=: -v ORS=: '$0 != "'"$1"'"' | sed 's/:$//')
-}
-
-# $1 = path to append
-function path_append() {
-  check_exactly_1_arg "$@"
-  path_remove "$1" && PATH="$PATH:$1"
-}
-
-# $1 = path to prepend
-function path_prepend() {
-  check_exactly_1_arg "$@"
-  path_remove "$1" && PATH="$1:$PATH"
-}
-
-# expected to pipe to this function, ex: groups | contains_word 'wheel'
-# $1 = word
-function contains_word() {
-  # expected to pipe to this function
-  check_exactly_1_arg "$@"
-  check_for_stdin
-  grep --quiet --fixed-strings --ignore-case --word-regex "$1"
-}
-
 # $1 = env
 function is_desktop_env() {
   check_exactly_1_arg "$@"
   echo "${XDG_CURRENT_DESKTOP:-}" | contains_word "$1"
 }
 
-function is_personal() {
+function is_kde() {
   check_no_args "$@"
-  [[ "$(hostname)" == "${PERSONAL_DESKTOP_HOSTNAME}" || "$(hostname)" == "${PERSONAL_LAPTOP_HOSTNAME}" ]]
+  [[ "${XDG_CURRENT_DESKTOP:-}" == 'KDE' ]]
 }
 
-function is_work() {
+function is_gnome() {
   check_no_args "$@"
-  [[ "$(hostname)" == "${WORK_LAPTOP_HOSTNAME}" ]]
+  [[ "${XDG_CURRENT_DESKTOP:-}" == 'GNOME' ]] || [[ "${XDG_CURRENT_DESKTOP:-}" == 'ubuntu:GNOME' ]]
 }
 
-function is_desktop() {
+function is_pop_shell() {
   check_no_args "$@"
-  [[ "$(hostname)" == "${PERSONAL_DESKTOP_HOSTNAME}" ]]
-}
-
-function is_laptop() {
-  check_no_args "$@"
-  [[ "$(hostname)" == "${PERSONAL_LAPTOP_HOSTNAME}" || "$(hostname)" == "${WORK_LAPTOP_HOSTNAME}" ]]
-}
-
-function is_server() {
-  check_no_args "$@"
-  [[ "$(hostname)" != "${PERSONAL_DESKTOP_HOSTNAME}" && "$(hostname)" != "${PERSONAL_LAPTOP_HOSTNAME}" && "$(hostname)" != "${WORK_LAPTOP_HOSTNAME}" ]]
+  [[ "${XDG_CURRENT_DESKTOP:-}" == 'pop:GNOME' ]]
 }
 
 # wrapper around curl to disable reading the config that is intended for interactive use
