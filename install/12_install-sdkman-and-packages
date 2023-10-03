@@ -7,15 +7,15 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_not_root
 check_no_args "$@"
 
-if [[ ! -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN?'; then
+if [[ ! -f "${SDKMAN_DIR}/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN?'; then
   log 'Installing SDKMAN'
-  if [[ -d "${HOME}/.sdkman" ]]; then
+  if [[ -d "${SDKMAN_DIR}" ]]; then
     # chezmoi will have created ~/.sdkman and the SDKMAN install script assumes
     # that the presence of this directory means that SDKMAN has already been
     # installed and will not actually install SDKMAN. This directory should only
     # contain a symlink to ~/.config/sdkman/config. This symlink will be
     # re-created later in this script.
-    rm --recursive "${HOME}/.sdkman"
+    rm --recursive "${SDKMAN_DIR}"
   fi
   # Retry due to random timeouts
   base_sleep_time=30
@@ -25,19 +25,19 @@ if [[ ! -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN?
     if ((tries > 10)); then
       die "Failed to install SDKMAN in 10 tries"
     fi
-    rm -rf "${HOME}/.sdkman"
+    rm -rf "${SDKMAN_DIR}"
     sleep "$((base_sleep_time * tries))"
   done
   log 'Installed SDKMAN'
 fi
 
-if [[ -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN packages?'; then
+if [[ -f "${SDKMAN_DIR}/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN packages?'; then
   log 'Installing SDKMAN packages'
-  cp "${HOME}/.sdkman/etc/config" "${HOME}/.sdkman/etc/config.orig"
-  sed --in-place 's/sdkman_auto_answer=false/sdkman_auto_answer=true/g' "${HOME}/.sdkman/etc/config"
+  cp "${SDKMAN_DIR}/etc/config" "${SDKMAN_DIR}/etc/config.orig"
+  sed --in-place 's/sdkman_auto_answer=false/sdkman_auto_answer=true/g' "${SDKMAN_DIR}/etc/config"
   set +u
   # shellcheck disable=SC1091
-  source "${HOME}/.sdkman/bin/sdkman-init.sh"
+  source "${SDKMAN_DIR}/bin/sdkman-init.sh"
   # This collects the latest packages per java version
   declare -A java_versions
   while read -r jdk; do
@@ -69,10 +69,10 @@ if [[ -f "${HOME}/.sdkman/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN pa
     done
   done
   set -u
-  mv "${HOME}/.sdkman/etc/config.orig" "${HOME}/.sdkman/etc/config"
+  mv "${SDKMAN_DIR}/etc/config.orig" "${SDKMAN_DIR}/etc/config"
   log 'Installed SDKMAN packages'
 fi
 
 if [[ -f "${HOME}/.config/sdkman/config" ]]; then
-  ln --symbolic --force "${HOME}/.config/sdkman/config" "${HOME}/.sdkman/etc/config"
+  ln --symbolic --force "${HOME}/.config/sdkman/config" "${SDKMAN_DIR}/etc/config"
 fi
