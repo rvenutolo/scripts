@@ -41,4 +41,8 @@ sudo apt-get update
 sudo apt-get install --yes awsvpnclient
 log 'Installed AWS VPN Client'
 
-## TODO add conf file?
+log 'Downloading AWS VPN OVPN file'
+readonly de_ovpn_file_url='https://raw.githubusercontent.com/rvenutolo/crypt/main/ovpn/de.ovpn'
+readonly de_ovpn_file="${HOME}/de.ovpn"
+download-decrypt "${de_ovpn_file_url}" "${de_ovpn_file}"
+log 'Downloaded AWS VPN OVPN file'
