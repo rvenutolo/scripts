@@ -10,7 +10,7 @@ check_no_args "$@"
 if ! is_work; then
   exit 0
 fi
-if [[ -f '/opt/awsvpnclient' ]]; then
+if [[ -d '/opt/awsvpnclient' ]]; then
   exit 0
 fi
 if ! prompt_yn 'Install AWS VPN Client?'; then
