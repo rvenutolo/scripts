@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+## TODO rework this script
+exit 0
+
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
 check_not_root
