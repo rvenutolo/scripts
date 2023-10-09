@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if ! is_work; then
+  exit 0
+fi
+#if [[ -d '/opt/carbonblack' ]]; then
+ # exit 0
+#fi
+if ! prompt_yn 'Install Carbon Black EDR?'; then
+  exit 0
+fi
+
+log 'Downloading Carbon Black EDR'
+readonly temp_dir="$(mktemp --directory)"
+readonly cb_tar_url='https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/cb-2.13.3.tar'
+readonly cb_tar_file="${temp_dir}/cb.tar"
+download-decrypt "${cb_tar_url}" "${cb_tar_file}"
+readonly cb_key_url='https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de_cb.key'
+readonly cb_key_file="${temp_dir}/de_cb.key"
+download-decrypt "${cb_key_url}" "${cb_key_file}"
+log 'Downloaded Carbon Black EDR'
+
+log 'Installing Carbon Black EDR'
+tar --extract --verbose --file "${cb_tar_file}" --directory="${temp_dir}"
+sudo "${temp_dir}/install.sh" "$(cat "${cb_key_file}")"
+log 'Installed Carbon Black EDR'
