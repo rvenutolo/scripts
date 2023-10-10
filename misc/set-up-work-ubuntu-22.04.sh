@@ -153,13 +153,16 @@ xdg-settings set 'default-web-browser' 'com.google.Chrome.desktop'
 # Skip these if running in vm for testing.
 if [[ ! -e '/dev/sr0' ]]; then
 
+  log 'Installing system76-power'
+  sudo add-apt-repository 'ppa:system76-dev/stable' --yes
+  sudo apt-get install system76-power gnome-shell-extension-system76-power gnome-shell-extension-prefs
+  sudo system76-power graphics 'hybrid'
+
   log 'Updating firmware'
   sudo fwupdmgr refresh --force
   sudo fwupdmgr update --offline --assume-yes
 
 fi
-
-## TODO hybrid graphics
 
 # shellcheck disable=SC2016
 log 'Finished
