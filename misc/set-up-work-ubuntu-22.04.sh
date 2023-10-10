@@ -33,16 +33,16 @@ fi
 log 'Setting hostname'
 hostnamectl set-hostname 'silverstar'
 
-#log 'Removing apt packages'
-#sudo apt-get remove --yes geary firefox libreoffice-*
-#
-#log 'Running apt autoremove'
-#sudo apt-get autoremove --yes
+log 'Removing apt packages'
+sudo apt-get remove --yes firefox
 
+log 'Running apt autoremove'
+sudo apt-get autoremove --yes
 
 log 'Installing apt packages'
 sudo add-apt-repository 'ppa:aslatter/ppa' --yes
 sudo apt-get install --yes \
+  "$(nvidia-detector)" \
   age \
   alacritty \
   apt-transport-https \
@@ -153,40 +153,13 @@ xdg-settings set 'default-web-browser' 'com.google.Chrome.desktop'
 # Skip these if running in vm for testing.
 if [[ ! -e '/dev/sr0' ]]; then
 
-  log 'Copying files from backup'
-  home_dir_files_to_copy=(
-    '.application-deployment'
-    '.bin/create-emr-test-cluster'
-    '.config/AWSVPNClient'
-    '.de'
-    '.var/app/com.slack.Slack'
-    'carbonblack'
-  )
-  printf '%s\n' "${home_dir_files_to_copy[@]}" > '/tmp/home_dir_files_to_copy'
-  rsync --archive --executability --recursive --files-from='/tmp/home_dir_files_to_copy' '172.16.0.157:/backup/work/home' "${HOME}"
-
-  log 'Installing fingerprint scanner packages'
-  sudo apt-get install --yes fprintd libpam-fprintd
-  sudo pam-auth-update --enable fprintd
-  if [[ ! -f '/etc/pam.d/common-auth.orig' ]]; then
-    sudo cp '/etc/pam.d/common-auth' '/etc/pam.d/common-auth.orig'
-  fi
-  sudo sed --in-place "s/ max-tries=[0-9]\+ / max-tries=10 /g" '/etc/pam.d/common-auth'
-  if ! fprintd-list "${USER}" | grep --quiet --fixed-strings 'right-index-finger'; then
-    fprintd-enroll
-  fi
-
-  log 'Updating recovery partition'
-  pop-upgrade recovery upgrade from-release
-
-  log 'Setting hybrid graphics'
-  sudo system76-power graphics 'hybrid'
-
   log 'Updating firmware'
   sudo fwupdmgr refresh --force
   sudo fwupdmgr update --offline --assume-yes
 
 fi
+
+## TODO hybrid graphics
 
 # shellcheck disable=SC2016
 log 'Finished
