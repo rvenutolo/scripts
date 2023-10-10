@@ -137,32 +137,47 @@ log 'Running set up scripts'
 
 log 'Setting dconf settings'
 gsettings=(
+  'org.gnome.desktop.background picture-uri-dark file:///usr/share/backgrounds/Optical_Fibers_in_Dark_by_Elena_Stravoravdi.jpg'
+  'org.gnome.desktop.background primary-color #000000'
+  'org.gnome.desktop.background secondary-color #000000'
   'org.gnome.desktop.datetime automatic-timezone false'
   "org.gnome.desktop.input-sources xkb-options ['caps:super']"
-  'org.gnome.desktop.interface color-scheme prefer-dark'
+  'org.gnome.desktop.interface clock-format 12h'
   'org.gnome.desktop.interface clock-show-weekday true'
+  'org.gnome.desktop.interface color-scheme prefer-dark'
+  'org.gnome.desktop.interface gtk-theme Yaru-blue-dark'
+  'org.gnome.desktop.interface icon-theme Yaru-blue'
   'org.gnome.desktop.interface locate-pointer true'
   'org.gnome.desktop.interface show-battery-percentage true'
+  'org.gnome.desktop.media-handling autorun-never true'
+  "org.gnome.desktop.notifications application-children ['org-gnome-software', 'gnome-power-panel']"
+  'org.gnome.desktop.peripherals.touchpad natural-scroll false'
+  'org.gnome.desktop.peripherals.touchpad speed 0.2'
   'org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true'
   'org.gnome.desktop.screensaver lock-delay uint32 30'
+  'org.gnome.desktop.screensaver picture-uri file:///usr/share/backgrounds/Optical_Fibers_in_Dark_by_Elena_Stravoravdi.jpg'
+  'org.gnome.desktop.screensaver primary-color #000000'
+  'org.gnome.desktop.screensaver secondary-color #000000'
   'org.gnome.desktop.session idle-delay uint32 900'
   'org.gnome.desktop.wm.preferences action-middle-click-titlebar toggle-shade'
   'org.gnome.desktop.wm.preferences button-layout appmenu:minimize,maximize,close'
+  'org.gnome.gedit.preferences.editor scheme Yaru-dark'
   'org.gnome.mutter center-new-windows true'
   'org.gnome.settings-daemon.plugins.color night-light-enabled true'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 1800'
+  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 7200'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
-#  "org.gnome.shell disabled-extensions ['apps-menu@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'window-list@gnome-shell-extensions.gcampax.github.com']"
-#  "org.gnome.shell enabled-extensions ['cosmic-dock@system76.com', 'pop-shell@system76.com', 'popx11gestures@system76.com', 'system-monitor@paradoxxx.zero.gmail.com', 'ubuntu-appindicators@ubuntu.com', 'Vitals@CoreCoding.com', 'cosmic-workspaces@system76.com', 'clipboard-indicator@tudmotu.com', 'system76-power@system76.com', 'pop-cosmic@system76.com', 'gsconnect@andyholmes.github.io', 'auto-move-windows@gnome-shell-extensions.gcampax.github.com', 'places-menu@gnome-shell-extensions.gcampax.github.com', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'workspace-indicator@gnome-shell-extensions.gcampax.github.com']"
-#  "org.gnome.shell favorite-apps ['pop-cosmic-launcher.desktop', 'pop-cosmic-workspaces.desktop', 'pop-cosmic-applications.desktop', 'org.gnome.Nautilus.desktop', 'org.kde.krusader.desktop', 'com.alacritty.Alacritty.desktop', 'kitty.desktop', 'io.github.shiftey.Desktop.desktop', 'com.axosoft.GitKraken.desktop', 'awsvpnclient.desktop', 'com.brave.Browser.desktop', 'com.google.Chrome.desktop', 'com.slack.Slack.desktop', 'gnome-control-center.desktop']"
   'org.gnome.shell.extensions.dash-to-dock click-action minimize'
   'org.gnome.shell.extensions.dash-to-dock intellihide false'
-#  'org.gnome.shell.extensions.pop-shell active-hint true'
+  'org.gnome.shell.extensions.ding show-home false'
+  'org.gnome.shell.extensions.ding show-trash false'
+  "org.gnome.shell favorite-apps ['org.gnome.Nautilus.desktop', 'com.alacritty.Alacritty.desktop', 'kitty.desktop', 'com.google.Chrome.desktop', 'com.slack.Slack.desktop', 'org.kde.kate.desktop', 'jetbrains-idea-999b9024-908d-49d8-9161-20fb056d49b6.desktop', 'jetbrains-datagrip-207e01d1-8176-441d-ba23-0f1702bc4b2f.desktop', 'io.github.shiftey.Desktop.desktop', 'com.axosoft.GitKraken.desktop', 'org.gnome.tweaks.desktop', 'gnome-control-center.desktop']"
   'org.gnome.shell.weather automatic-location true'
   "org.gnome.shell.weather locations [<(uint32 2, <('Atlanta', 'KATL', true, [(0.58713361238621309, -1.4735281501968716)], [(0.5890310819891037, -1.4728481350137095)])>)>]"
   'org.gnome.system.location enabled true'
+  'org.gtk.Settings.FileChooser clock-format 12h'
 )
 for line in "${gsettings[@]}"; do
   IFS=' ' read -r schema key value <<< "${line}"
@@ -203,4 +218,5 @@ fi
 log 'Finished
 You may want to do any of the following:
 - source ~/.bash_profile"
+- jetbrains-toolbox
 - reboot'
