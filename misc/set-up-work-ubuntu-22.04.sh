@@ -14,6 +14,41 @@ function die() {
   exit 1
 }
 
+# $1 = URL
+# $2 = output file (optional)
+function dl() {
+  log "Downloading: $1"
+  if [[ -n "${2:-}" ]]; then
+    tries=0
+    until curl --disable --fail --silent --location --show-error "$1" --output "$2"; do
+      ((tries += 1))
+      if ((tries > 10)); then
+        die "Failed to get in 10 tries: $1"
+      fi
+      sleep 15
+    done
+  else
+    tries=0
+    until curl --disable --fail --silent --location --show-error "$1"; do
+      ((tries += 1))
+      if ((tries > 10)); then
+        die "Failed to get in 10 tries: $1"
+      fi
+      sleep 15
+    done
+  fi
+}
+
+# $1 = URL
+# $2 = output file (optional)
+function dl_decrypt() {
+  if [[ -n "${2:-}" ]]; then
+    dl "$1" | age --decrypt --identity "${HOME}/.keys/age.key" --output "$2"
+  else
+    dl "$1" | age --decrypt --identity "${HOME}/.keys/age.key"
+  fi
+}
+
 if [[ "${EUID}" == 0 ]]; then
   die "Do not run this script as root"
 fi
