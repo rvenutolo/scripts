@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_not_root
+check_no_args "$@"
+
+function can_reach_archiva() {
+  check_no_args
+  [[ "$(curl --disable --head --fail --silent --location --write-out '%{http_code}\n' 'http://archiva.digitalenvoy.net/' --output '/dev/null' 2> '/dev/null')" == '200' ]]
+}
+
+if ! is_work; then
+  exit 0
+fi
+
+until can_reach_archiva; do
+  log 'Cannot reach Archiva'
+  log 'Connect to the VPN and continue'
+  if auto_answer; then
+    log 'Skipping application deployment files'
+    exit 0
+  fi
+  if ! prompt_yn 'Continue?'; then
+    exit 0
+  fi
+done
+
+echo '# Archiva root URL
+archiva.url = http://archiva.digitalenvoy.net/
+
+# Name of the snapshot repository
+archiva.repository.snapshot = snapshots
+
+# Name of the release repository
+archiva.repository.release = internal
+' > "${HOME}/.application-deployment"
+
+mkdir --parents "${DE_APPS_DIR}"
+
+readonly de_apps=(
+  'application-deployment 2.3.0 -dist.zip'
+  'de-util 1.5.0.0 -dist.zip'
+  'ws-cli 1.2.1.0 -dist.zip'
+  'netacuity-textfile-creator 2.6.1.2 .tar.gz'
+)
+for line in "${de_apps[@]}"; do
+  IFS=' ' read -r app_name app_version app_file_type <<< "${line}"
+  archive_file_url="http://archiva.digitalenvoy.net/repository/internal/digitalenvoy/${app_name}/${app_version}/${app_name}-${app_version}${app_file_type}"
+  archive_file="$(mktemp --directory)/${app_name}-${app_version}${app_file_type}"
+  app_dir="${DE_APPS_DIR}/${app_name}"
+  target_dir="${app_dir}/${app_name}-${app_version}"
+  target_symlink="${app_dir}/current"
+  if [[ -d "${target_dir}" ]]; then
+    continue
+  fi
+  log "Installing ${app_name} v${app_version}"
+  download "${archive_file_url}" "${archive_file}"
+  mkdir --parents "${target_dir}"
+  if [[ "${app_file_type}" == '-dist.zip' ]]; then
+    unzip -q "${archive_file}" -d "${app_dir}"
+  elif [[ "${app_file_type}" == '.tar.gz' ]]; then
+    tar --extract --gzip --file "${archive_file}" --directory="${target_dir}"
+  else
+    die "Unexpected file type: ${app_file_type}"
+  fi
+  ln --symbolic --relative "${target_dir}" "${target_symlink}"
+  log "Installed ${app_name} v${app_version}"
+done
