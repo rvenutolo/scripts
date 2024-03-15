@@ -190,6 +190,7 @@ gnome_extensions=(
   'https://extensions.gnome.org/extension/779/clipboard-indicator/'
   'https://extensions.gnome.org/extension/1319/gsconnect/'
   'https://extensions.gnome.org/extension/1460/vitals/'
+  'https://extensions.gnome.org/extension/750/openweather/'
 )
 for url in "${gnome_extensions[@]}"; do
   package_num="$(cut --delimiter='/' --fields='5' <<< "${url}")"
