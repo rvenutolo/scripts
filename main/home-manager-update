@@ -7,5 +7,5 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
 write-home-manager-packages
-nix flake update --flake "${HOME_MANAGER_DIR}/flake.nix"
+nix flake update --flake "${HOME_MANAGER_DIR}"
 home-manager-switch
