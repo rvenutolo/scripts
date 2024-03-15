@@ -84,6 +84,7 @@ sudo apt-get install --yes \
   bridge-utils \
   ca-certificates \
   caffeine \
+  chrome-gnome-shell \
   clamav \
   cpu-checker \
   curl \
