@@ -258,6 +258,7 @@ if ! is_server; then
   expected_kvals=(
     'vm.dirty_background_ratio 5'
     'vm.dirty_ratio 5'
+    'vm.max_map_count 2147483642'
     'vm.swappiness 10'
   )
   for kvals in "${expected_kvals[@]}"; do
