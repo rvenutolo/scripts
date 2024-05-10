@@ -6,4 +6,4 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-home-manager generations | head --lines=2 | tac | cut --delimiter=' ' --fields='7' | xargs 'nix store diff-closures'
+home-manager generations | head --lines=2 | tac | cut --delimiter=' ' --fields='7' | xargs nix store diff-closures
