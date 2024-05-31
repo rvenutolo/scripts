@@ -10,4 +10,4 @@ if ! executable_exists 'freshclam'; then
   exit 0
 fi
 
-enable_system_service_unit 'clamav-freshclam.service'
+enable_user_service_unit 'freshclam.service'
