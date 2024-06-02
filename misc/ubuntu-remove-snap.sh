@@ -23,7 +23,7 @@ function prompt_yn() {
   REPLY=''
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
     read -rp "$1 [Y/n]: "
-    if [[ "${REPLY}" == '' || ${REPLY} == [yY] ]]; then
+    if [[ "${REPLY}" == '' || "${REPLY}" == [yY] ]]; then
       REPLY='y'
     elif [[ "${REPLY}" == [nN] ]]; then
       REPLY='n'

@@ -316,7 +316,7 @@ function prompt_ny() {
   fi
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
     read -rp "$1 [y/N]: "
-    if [[ ${REPLY} == [yY] ]]; then
+    if [[ "${REPLY}" == [yY] ]]; then
       REPLY='y'
     elif [[ "${REPLY}" == '' || "${REPLY}" == [nN] ]]; then
       REPLY='n'
@@ -334,7 +334,7 @@ function prompt_yn() {
   fi
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
     read -rp "$1 [Y/n]: "
-    if [[ "${REPLY}" == '' || ${REPLY} == [yY] ]]; then
+    if [[ "${REPLY}" == '' || "${REPLY}" == [yY] ]]; then
       REPLY='y'
     elif [[ "${REPLY}" == [nN] ]]; then
       REPLY='n'
