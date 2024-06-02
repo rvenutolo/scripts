@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if ! prompt_yn 'Update distro packages?'; then
+  exit 0
+fi
+
+if executable_exists 'apt'; then
+  sudo apt update
+  sudo apt upgrade --yes
+elif executable_exists 'dnf'; then
+  sudo dnf upgrade
+elif executable_exists 'pacman'; then
+  sudo pacman --sync --refresh --sysupgrade
+fi
