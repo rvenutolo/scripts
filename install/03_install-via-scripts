@@ -23,16 +23,16 @@ function wget() {
 }
 export -f wget
 
-for script_info in "$(get_install_scripts)"; do
+while read -r script_info; do
   IFS=' ' read -r name executable url <<< "${script_info}"
   if executable_exists "${executable}"; then
-    log "${name} is already installed"
-    continue
-  fi
-  if ! prompt_yn "Install ${name}?"; then
-    continue
-  fi
-  log "Installing ${name} from ${url}"
-  download "${url}" | sh
-  log "Installed ${name} from ${url}"
-done
+      log "${name} is already installed"
+      continue
+    fi
+    if ! prompt_yn "Install ${name}?"; then
+      continue
+    fi
+    log "Installing ${name} from ${url}"
+    download "${url}" | sh
+    log "Installed ${name} from ${url}"
+done <<< "$(get_install_scripts)"
