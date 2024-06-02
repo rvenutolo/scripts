@@ -13,7 +13,7 @@ fi
 
 # wrapper around curl to disable reading the config that is intended for interactive use
 function curl() {
-  comman curl --disable "$@"
+  command curl --disable "$@"
 }
 export -f curl
 
