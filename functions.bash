@@ -565,7 +565,7 @@ function reload_sysctl_conf() {
 function get_universal_packages() {
   check_exactly_1_arg "$@"
   case "$1" in
-    flatpaks | nixpkgs| sdkman) : ;;
+    flatpaks | nixpkgs | sdkman) : ;;
     *) die "Unexpected package list type: $1" ;;
   esac
   local package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/$1.csv"
@@ -592,17 +592,17 @@ function get_distro_packages() {
     die "No packages list for $1 $2"
   fi
   if is_personal && is_desktop; then
-      local package_list_column=2
-    elif is_personal && is_laptop; then
-      local package_list_column=3
-    elif is_work && is_laptop; then
-      local package_list_column=4
-    elif is_server; then
-      local package_list_column=5
-    else
-      die "Could not determine which computer this is"
-    fi
-    download "${package_list_url}" | awk -F ',' -v "col_num=${package_list_column}" '$col_num == "y" && $6 == "" { print $1 }'
+    local package_list_column=2
+  elif is_personal && is_laptop; then
+    local package_list_column=3
+  elif is_work && is_laptop; then
+    local package_list_column=4
+  elif is_server; then
+    local package_list_column=5
+  else
+    die "Could not determine which computer this is"
+  fi
+  download "${package_list_url}" | awk -F ',' -v "col_num=${package_list_column}" '$col_num == "y" && $6 == "" { print $1 }'
 }
 
 function get_install_scripts() {
