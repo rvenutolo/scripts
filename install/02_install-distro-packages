@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if ! prompt_yn 'Install distro packages?'; then
+  exit 0
+fi
+
+readonly packages=($(get_distro_packages "$(os_id)" "$(os_codename)"))
+
+if executable_exists 'apt'; then
+  sudo apt install --yes "${packages[@]}"
+elif executable_exists 'dnf'; then
+  sudo dnf install --assumeyes "${packages[@]}"
+elif executable_exists 'pacman'; then
+  sudo pacman --needed --noconfirm "${packages[@]}"
+fi
