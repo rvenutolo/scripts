@@ -7,7 +7,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_not_root
 check_no_args "$@"
 
-if ! executable_exits 'appman' && prompt_yn 'Install AppMan?'; then
+if ! executable_exists 'appman' && prompt_yn 'Install AppMan?'; then
   log 'Installing AppMan'
   readonly appman_location="${HOME}/.local/bin/appman"
   download 'https://raw.githubusercontent.com/ivan-hc/AM/main/APP-MANAGER' "${appman_location}"
