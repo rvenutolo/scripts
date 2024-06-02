@@ -23,9 +23,8 @@ function wget() {
 }
 export -f wget
 
-readonly install_scripts="$(get_install_scripts)"
-
-while IFS=' ' read -r name executable url; do
+for script_info in $(get_install_scripts); do
+  IFS='|' read -r name executable url <<< "${script_info}"
   if executable_exists "${executable}"; then
     log "${name} is already installed"
     continue
@@ -35,6 +34,5 @@ while IFS=' ' read -r name executable url; do
   fi
   log "Installing ${name} from ${url}"
   download "${url}" | sh
-  log "Install script exit code: $?"
   log "Installed ${name} from ${url}"
-done <<< "${install_scripts}"
+done
