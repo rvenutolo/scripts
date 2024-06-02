@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if ! executable_exits 'appman' && prompt_yn 'Install AppMan?'; then
+  log 'Installing AppMan'
+  readonly appman_location="${HOME}/.local/bin/appman"
+  download 'https://raw.githubusercontent.com/ivan-hc/AM/main/APP-MANAGER' "${appman_location}"
+  chmod +x "${appman_location}"
+  log 'Installed AppMan'
+fi
+
+if ! executable_exists 'appman' || ! prompt_yn 'Install AppMan packages'; then
+  exit 0
+fi
+
+log 'Installing AppMan packages'
+get_universal_packages 'appman' | xargs appman install
+log 'Installed AppMan packages'
