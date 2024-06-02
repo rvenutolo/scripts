@@ -23,8 +23,7 @@ function wget() {
 }
 export -f wget
 
-readonly scripts=($(get_install_scripts))
-for script_info in "${scripts[@]}"; do
+for script_info in "$(get_install_scripts)"; do
   IFS=' ' read -r name executable url <<< "${script_info}"
   if executable_exists "${executable}"; then
     log "${name} is already installed"
