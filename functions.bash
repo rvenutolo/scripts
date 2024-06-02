@@ -619,5 +619,5 @@ function get_install_scripts() {
   else
     die "Could not determine which computer this is"
   fi
-  download "${package_list_url}" | awk -F ',' -v "col_num=${package_list_column}" '$col_num == "y" && $8 == "" { print $2, $3, $4 }'
+  download "${package_list_url}" | awk -F ',' -v "col_num=${package_list_column}" '$col_num == "y" && $8 == "" { print $1, $2, $3 }'
 }
