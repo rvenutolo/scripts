@@ -609,15 +609,15 @@ function get_install_scripts() {
   check_no_args
   local package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/scripts.csv"
   if is_personal && is_desktop; then
-    local package_list_column=5
+    local package_list_column=4
   elif is_personal && is_laptop; then
-    local package_list_column=6
+    local package_list_column=5
   elif is_work && is_laptop; then
-    local package_list_column=7
+    local package_list_column=6
   elif is_server; then
-    local package_list_column=8
+    local package_list_column=7
   else
     die "Could not determine which computer this is"
   fi
-  download "${package_list_url}" | awk -F ',' -v "col_num=${package_list_column}" '$col_num == "y" && $9 == "" { print $2, $3, $4 }'
+  download "${package_list_url}" | awk -F ',' -v "col_num=${package_list_column}" '$col_num == "y" && $8 == "" { print $2, $3, $4 }'
 }
