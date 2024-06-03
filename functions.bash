@@ -304,7 +304,7 @@ function this_script_dir() {
 }
 
 function auto_answer() {
-  [[ -n "${SCRIPTS_AUTO_ANSWER:-}" ]]
+  [[ "${SCRIPTS_AUTO_ANSWER:-}" == [Yy] ]]
 }
 
 # $1 = question
