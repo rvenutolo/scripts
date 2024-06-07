@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+readonly ssh_host="$(grep '^Host' ~/.ssh/config.private | grep --invert-match '[?*]' | cut --delimiter ' ' --fields 2 | fzf --height=20 --exact --layout=reverse)"
+ssh "${ssh_host}"
