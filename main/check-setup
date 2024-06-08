@@ -19,9 +19,13 @@ if ! timedatectl show | grep --quiet 'NTP=yes'; then
   echo "timedatectl NTP is not on"
 fi
 
-expected_tz='America/New_York'
+if is_server; then
+  expected_tz='Etc/UTC'
+else
+  expected_tz='America/New_York'
+fi
 if ! timedatectl show | grep --quiet "^Timezone=${expected_tz}$"; then
-  exit 0
+  echo "Timezone is NOT ${expected_tz}"
 fi
 
 if ! loginctl show-user "${USER}" --property=Linger | contains_word 'yes'; then
