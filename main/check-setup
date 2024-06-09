@@ -10,6 +10,10 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_not_root
 check_no_args "$@"
 
+if [[ -z "$(w --no-header "${USER}")" ]]; then
+  die "${USER} is not logged in"
+fi
+
 expected_locale='LANG=en_US.UTF-8'
 if ! localectl | grep --quiet --fixed-strings "${expected_locale}"; then
   echo "Locale is not: ${expected_locale}"
