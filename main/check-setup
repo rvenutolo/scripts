@@ -16,11 +16,11 @@ fi
 
 expected_locale='LANG=en_US.UTF-8'
 if ! localectl | grep --quiet --fixed-strings "${expected_locale}"; then
-  echo "Locale is not: ${expected_locale}"
+  log "Locale is not: ${expected_locale}"
 fi
 
 if ! timedatectl show | grep --quiet 'NTP=yes'; then
-  echo "timedatectl NTP is not on"
+  log "timedatectl NTP is not on"
 fi
 
 if is_server; then
@@ -29,11 +29,11 @@ else
   expected_tz='America/New_York'
 fi
 if ! timedatectl show | grep --quiet "^Timezone=${expected_tz}$"; then
-  echo "Timezone is NOT ${expected_tz}"
+  log "Timezone is NOT ${expected_tz}"
 fi
 
 if ! loginctl show-user "${USER}" --property=Linger 2> /dev/null | contains_word 'yes'; then
-  echo "${USER} is not set to linger"
+  log "${USER} is not set to linger"
 fi
 
 user_groups="$(groups "${USER}")"
@@ -46,7 +46,7 @@ for group in "${groups[@]}"; do
   if contains_word "${group}" <<< "${user_groups}"; then
     continue
   fi
-  echo "User is not in group: ${group}"
+  log "User is not in group: ${group}"
 done
 
 expected_vars=(
@@ -64,7 +64,7 @@ expected_vars=(
 )
 for var in "${expected_vars[@]}"; do
   if [[ -z "${!var:-}" ]]; then
-    echo "Environment variable not set: ${var}"
+    log "Environment variable not set: ${var}"
   fi
 done
 
@@ -79,39 +79,39 @@ path_remove "${SCRIPTS_DIR}/main"
 path_remove "${SCRIPTS_DIR}/other"
 
 if executable_exists 'flatpak' && ! flatpak --user remotes | contains_word 'flathub'; then
-  echo 'Flathub flatpak repo is not installed'
+  log 'Flathub flatpak repo is not installed'
 fi
 
 ## check that the `trash` command is from trash-cli and not trash-d
 if executable_exists 'trash' && ! trash --help | contains_word 'https://github.com/andreafrancia/trash-cli/issues'; then
-  echo "trash command is not from trash-cli"
+  log "trash command is not from trash-cli"
 fi
 
 ## check that the `tldr` command is from tealdeer
 if executable_exists 'tldr' && ! tldr --version | contains_word 'tealdeer'; then
-  echo "tldr command is not from tealdeer"
+  log "tldr command is not from tealdeer"
 fi
 
 if executable_exists 'ufw'; then
   ufw_status="$(sudo ufw status verbose)"
   readonly ufw_status
   if ! contains_word 'Status: active' <<< "${ufw_status}"; then
-    echo "UFW is not active"
+    log "UFW is not active"
   fi
   if ! contains_word 'deny (incoming)' <<< "${ufw_status}"; then
-    echo "UFW is not denying incoming by default"
+    log "UFW is not denying incoming by default"
   fi
   if ! contains_word 'allow (outgoing)' <<< "${ufw_status}"; then
-    echo "UFW is not allowing outgoing by default"
+    log "UFW is not allowing outgoing by default"
   fi
 fi
 
 if executable_exists 'aa-enabled' && ! aa-enabled | contains_word 'yes'; then
-  echo "AppArmor is not enabled"
+  log "AppArmor is not enabled"
 fi
 
 if executable_exists 'sestatus' && sestatus | grep --quiet --perl-regexp --ignore-case 'selinux status:\s+enabled'; then
-  echo "SELinux is not enabled"
+  log "SELinux is not enabled"
 fi
 
 expected_files=(
@@ -137,7 +137,7 @@ if is_personal && is_desktop; then
 fi
 for file in "${expected_files[@]}"; do
   if ! is_readable_file "${file}"; then
-    echo "Missing file: ${file}"
+    log "Missing file: ${file}"
   fi
 done
 
@@ -149,7 +149,7 @@ unwanted_files=(
 )
 for file in "${unwanted_files[@]}"; do
   if is_readable_file "${file}"; then
-    echo "Unwanted file: ${file}"
+    log "Unwanted file: ${file}"
   fi
 done
 
@@ -183,11 +183,11 @@ if ! is_server; then
         && ! contains_word "${font}TTF" <<< "${installed_fonts}" \
         && ! contains_word "$(echo -e "${font}" | tr --delete '[:space:]')" <<< "${installed_fonts}" \
         && ! contains_word "$(echo -e "${font}TTF" | tr --delete '[:space:]')" <<< "${installed_fonts}"; then
-        echo "Font not available: ${font}"
+        log "Font not available: ${font}"
       fi
     done
   else
-    echo "No fc-list, skipping font checks"
+    log "No fc-list, skipping font checks"
   fi
 fi
 
@@ -228,7 +228,7 @@ if is_personal && is_desktop; then
 fi
 for service in "${expected_active_system_services[@]}"; do
   if ! systemctl is-active --quiet "${service}"; then
-    echo "System service not active: ${service}"
+    log "System service not active: ${service}"
   fi
 done
 
@@ -238,7 +238,7 @@ if executable_exists 'libvirtd'; then
 fi
 for service in "${expected_enabled_system_services[@]}"; do
   if ! systemctl is-enabled --quiet "${service}"; then
-    echo "System service not enabled: ${service}"
+    log "System service not enabled: ${service}"
   fi
 done
 
@@ -251,14 +251,14 @@ expected_active_user_services=(
 )
 for service in "${expected_active_user_services[@]}"; do
   if ! systemctl is-active --user --quiet "${service}"; then
-    echo "User service not active: ${service}"
+    log "User service not active: ${service}"
   fi
 done
 
 expected_enabled_user_services=()
 for service in "${expected_enabled_user_services[@]}"; do
   if ! systemctl is-enabled --user --quiet "${service}"; then
-    echo "User service not enabled: ${service}"
+    log "User service not enabled: ${service}"
   fi
 done
 
@@ -272,7 +272,7 @@ if ! is_server; then
   for kvals in "${expected_kvals[@]}"; do
     IFS=' ' read -r k v <<< "${kvals}"
     if [[ ! $(sysctl -n "${k}") -le "${v}" ]]; then
-      echo "Kernel variable ${k} is >${v}: $(sysctl -n "${k}")"
+      log "Kernel variable ${k} is >${v}: $(sysctl -n "${k}")"
     fi
   done
 fi
@@ -281,7 +281,7 @@ if executable_exists 'pacman'; then
   pacman_conf_text="$(cat '/etc/pacman.conf')"
   for pacman_repo in 'multilib' 'chaotic-aur'; do
     if ! grep --quiet --fixed-strings "[${pacman_repo}]" <<< "${pacman_conf_text}"; then
-      echo "Pacman ${pacman_repo} repo is missing"
+      log "Pacman ${pacman_repo} repo is missing"
     fi
   done
 fi
@@ -291,7 +291,7 @@ if is_fedora; then
   dnf_conf_text="$(cat '/etc/dnf/dnf.conf')"
   for dnf_conf_val in "${expected_dnf_conf_vals[@]}"; do
     if [[ -z "$(grep --fixed-strings "${dnf_conf_val}" <<< "${dnf_conf_text}" | cut --delimiter='=' --fields='2' | xargs)" ]]; then
-      echo "dnf conf ${dnf_conf_val} is not set"
+      log "dnf conf ${dnf_conf_val} is not set"
     fi
   done
   installed_packages="$(dnf list --installed | cut --delimiter=' ' --fields='1')"
@@ -303,7 +303,7 @@ if is_fedora; then
   )
   for rpm_fusion_pacakge in "${expected_rpm_fusions_packages[@]}"; do
     if ! contains_word "${rpm_fusion_pacakge}" <<< "${installed_packages}"; then
-      echo "${rpm_fusion_pacakge} is not installed"
+      log "${rpm_fusion_pacakge} is not installed"
     fi
   done
 fi
