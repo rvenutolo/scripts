@@ -74,7 +74,7 @@ SCRIPTS_DIR="${SCRIPTS_DIR:-"${CODE_DIR}/Personal/scripts"}"
 path_remove "${SCRIPTS_DIR}/main"
 path_remove "${SCRIPTS_DIR}/other"
 
-if executable_exists 'flatpak' && ! flatpak remotes | contains_word 'flathub'; then
+if executable_exists 'flatpak' && ! flatpak --user remotes | contains_word 'flathub'; then
   echo 'Flathub flatpak repo is not installed'
 fi
 
