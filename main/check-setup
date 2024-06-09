@@ -28,7 +28,7 @@ if ! timedatectl show | grep --quiet "^Timezone=${expected_tz}$"; then
   echo "Timezone is NOT ${expected_tz}"
 fi
 
-if ! loginctl show-user "${USER}" --property=Linger | contains_word 'yes'; then
+if ! loginctl show-user "${USER}" --property=Linger 2> /dev/null | contains_word 'yes'; then
   echo "${USER} is not set to linger"
 fi
 
