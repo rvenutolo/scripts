@@ -23,11 +23,7 @@ if ! timedatectl show | grep --quiet 'NTP=yes'; then
   log "timedatectl NTP is not on"
 fi
 
-if is_server; then
-  expected_tz='Etc/UTC'
-else
-  expected_tz='America/New_York'
-fi
+expected_tz='America/New_York'
 if ! timedatectl show | grep --quiet "^Timezone=${expected_tz}$"; then
   log "Timezone is NOT ${expected_tz}"
 fi
