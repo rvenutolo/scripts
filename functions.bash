@@ -86,7 +86,7 @@ function check_for_var() {
 }
 
 function check_is_root() {
-  check_no_args
+  check_no_args "$@"
   if [[ "${EUID}" != '0' ]]; then
     die 'Must run as root'
   fi
