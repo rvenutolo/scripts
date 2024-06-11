@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+keys_dir="${HOME}/.keys"
+mkdir --parents "${keys_dir}"
+
+age_key_file="${keys_dir}/age.key"
+if ! is_readable_file "${age_key_file}"; then
+  age_key_content="$(download 'https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/age.key')"
+  if [[ -n "${age_key_content}" ]]; then
+    log "Decrypting: ${age_key_file}"
+    until age --decrypt --output "${age_key_file}" <<< "${age_key_content}"; do :; done
+  else
+    die "age key file content is empty"
+  fi
+fi
+
+for url in $(download 'https://api.github.com/repos/rvenutolo/crypt/contents/keys' | jq -r '.[].download_url'); do
+  filename="$(basename "${url}")"
+  if [[ "${filename}" == 'age.key' ]]; then
+    continue
+  fi
+  key_contents="$(download "${url}")"
+  if [[ -n "${key_contents}" ]]; then
+    if prompt_ny "Decrypt ${filename}?"; then
+      key_file="${keys_dir}/${filename}"
+      log "Decrypting: ${key_file}"
+      age --decrypt --identity "${age_key_file}" --output "${key_file}" <<< "${key_contents}"
+    fi
+  fi
+done
+
+find "${keys_dir}" -type d -exec chmod 700 {} \;
+find "${keys_dir}" -type f -exec chmod 600 {} \;
