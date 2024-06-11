@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+for repo in 'crypt' 'packages' 'scripts'; do
+  log "Executing git pull for: ${repo}"
+  repo_dir="${CODE_DIR}/Personal/${repo}"
+  git -C "${repo_dir}" pull
+done
