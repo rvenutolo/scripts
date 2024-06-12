@@ -120,7 +120,7 @@ function function_exists() {
 # $1 = path to remove
 function path_remove() {
   check_exactly_1_arg "$@"
-  PATH=$(echo -n "$PATH" | awk --assign 'RS=:' --assign 'ORS=:' '$0 != "'"$1"'"' | sed 's/:$//')
+  PATH=$(echo -n "$PATH" | awk -v 'RS=:' -v 'ORS=:' '$0 != "'"$1"'"' | sed 's/:$//')
 }
 
 # $1 = path to append
@@ -640,5 +640,5 @@ function get_install_scripts() {
     die 'Could not determine which computer this is'
   fi
   local awk_string="\$${package_list_column} == \"y\" && \$8 == \"\" { print \$1, \$2, \$3 }"
-  download "${package_list_url}" | awk -F ',' --assign 'OFS=|' "${awk_string}"
+  download "${package_list_url}" | awk -F ',' -v 'OFS=|' "${awk_string}"
 }
