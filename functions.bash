@@ -575,7 +575,8 @@ function get_sdkman_packages() {
   else
     die 'Could not determine which computer this is'
   fi
-  download "${package_list_url}" | awk -F ',' --assign "col_num=${package_list_column}" '$col_num == "y" && $7 == "" { print $2 }'
+  local awk_string="\$${package_list_column} == \"y\" && \$7 == \"\" { print \$2 }"
+  download "${package_list_url}" | awk -F ',' "${awk_string}"
 }
 
 # $1 = packages list type (appimage flatpak nixpkgs)
@@ -597,7 +598,7 @@ function get_universal_packages() {
   else
     die 'Could not determine which computer this is'
   fi
-  local awk_string="\$2 == \"$1\" && \$6 == \"y\" && \$8 == \"\" { print \$3 }"
+  local awk_string="\$2 == \"$1\" && \$${package_list_column}== \"y\" && \$8 == \"\" { print \$3 }"
   download "${package_list_url}" | awk -F ',' "${awk_string}"
 }
 
@@ -620,7 +621,8 @@ function get_distro_packages() {
   else
     die 'Could not determine which computer this is'
   fi
-  download "${package_list_url}" | awk -F ',' --assign "col_num=${package_list_column}" '$col_num == "y" && $6 == "" { print $1 }'
+  local awk_string="\$${package_list_column} == \"y\" && \$6 == \"\" { print \$1 }"
+  download "${package_list_url}" | awk -F ',' "${awk_string}"
 }
 
 function get_install_scripts() {
@@ -637,5 +639,6 @@ function get_install_scripts() {
   else
     die 'Could not determine which computer this is'
   fi
-  download "${package_list_url}" | awk -F ',' --assign 'OFS=|' --assign "col_num=${package_list_column}" '$col_num == "y" && $8 == "" { print $1, $2, $3 }'
+  local awk_string="\$${package_list_column} == \"y\" && \$8 == \"\" { print \$1, \$2, \$3 }"
+  download "${package_list_url}" | awk -F ',' --assign 'OFS=|' "${awk_string}"
 }
