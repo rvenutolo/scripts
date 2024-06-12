@@ -561,14 +561,9 @@ function reload_sysctl_conf() {
   fi
 }
 
-# $1 = packages list type (flatpaks nixpkgs sdkman)
-function get_universal_packages() {
-  check_exactly_1_arg "$@"
-  case "$1" in
-    appimages | flatpaks | nixpkgs | sdkman) : ;;
-    *) die "Unexpected package list type: $1" ;;
-  esac
-  local package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/$1.csv"
+function get_sdkman_packages() {
+  check_no_args "$@"
+  local package_list_url='https://raw.githubusercontent.com/rvenutolo/packages/main/sdkman.csv'
   if is_personal && is_desktop; then
     local package_list_column=3
   elif is_personal && is_laptop; then
@@ -580,7 +575,30 @@ function get_universal_packages() {
   else
     die "Could not determine which computer this is"
   fi
-  download "${package_list_url}" | awk -F ',' -v "col_num=${package_list_column}" '$col_num == "y" && $7 == "" { print $2 }'
+  download "${package_list_url}" | awk -F ',' --assign "col_num=${package_list_column}" '$col_num == "y" && $7 == "" { print $2 }'
+}
+
+# $1 = packages list type (appimage flatpak nixpkgs)
+function get_universal_packages() {
+  check_exactly_1_arg "$@"
+  case "$1" in
+    appimage | flatpak | nixpkgs) : ;;
+    *) die "Unexpected package list type: $1" ;;
+  esac
+  local package_list_url='https://raw.githubusercontent.com/rvenutolo/packages/main/universal.csv'
+  if is_personal && is_desktop; then
+    local package_list_column=4
+  elif is_personal && is_laptop; then
+    local package_list_column=5
+  elif is_work && is_laptop; then
+    local package_list_column=6
+  elif is_server; then
+    local package_list_column=7
+  else
+    die "Could not determine which computer this is"
+  fi
+  local awk_string="\$2 == \"$1\" && \$6 == \"y\" && \$8 == \"\" { print \$3 }"
+  download "${package_list_url}" | awk -F ',' "${awk_string}"
 }
 
 # $1 = id
@@ -602,7 +620,7 @@ function get_distro_packages() {
   else
     die "Could not determine which computer this is"
   fi
-  download "${package_list_url}" | awk -F ',' -v "col_num=${package_list_column}" '$col_num == "y" && $6 == "" { print $1 }'
+  download "${package_list_url}" | awk -F ',' --assign "col_num=${package_list_column}" '$col_num == "y" && $6 == "" { print $1 }'
 }
 
 function get_install_scripts() {
@@ -619,5 +637,5 @@ function get_install_scripts() {
   else
     die "Could not determine which computer this is"
   fi
-  download "${package_list_url}" | awk -F ',' -v OFS='|' -v "col_num=${package_list_column}" '$col_num == "y" && $8 == "" { print $1, $2, $3 }'
+  download "${package_list_url}" | awk -F ',' --assign 'OFS=|' --assign "col_num=${package_list_column}" '$col_num == "y" && $8 == "" { print $1, $2, $3 }'
 }
