@@ -56,7 +56,7 @@ if [[ -f "${SDKMAN_DIR}/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN pack
       sleep "$((base_sleep_time * tries))"
     done
   done < <(printf '%s\n' "${java_versions[@]}" | sort --field-separator='.' --key='1' --numeric-sort)
-  get_universal_packages 'sdkman' | while read -r pkg; do
+  get_sdkman_packages | while read -r pkg; do
     log "Installing ${pkg}"
     base_sleep_time=30
     tries=0
