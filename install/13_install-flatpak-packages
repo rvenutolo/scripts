@@ -23,7 +23,7 @@ if ! prompt_yn 'Install flatpak packages?'; then
 fi
 
 log 'Installing flatpak packages'
-get_universal_packages 'flatpak' | xargs #--no-run-if-empty flatpak install --user --noninteractive
+get_universal_packages 'flatpak' | xargs --no-run-if-empty flatpak install --user --noninteractive
 log 'Installed flatpak packages'
 
 if flatpak list --user --app | grep --quiet --fixed-strings 'com.google.Chrome'; then

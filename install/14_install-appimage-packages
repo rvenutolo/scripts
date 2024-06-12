@@ -20,5 +20,5 @@ if ! executable_exists 'appman' || ! prompt_yn 'Install AppImage packages'; then
 fi
 
 log 'Installing AppMan packages'
-get_universal_packages 'appimage' | xargs #--no-run-if-empty appman install
+get_universal_packages 'appimage' | xargs --no-run-if-empty appman install
 log 'Installed AppMan packages'
