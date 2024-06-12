@@ -573,7 +573,7 @@ function get_sdkman_packages() {
   elif is_server; then
     local package_list_column=6
   else
-    die "Could not determine which computer this is"
+    die 'Could not determine which computer this is'
   fi
   download "${package_list_url}" | awk -F ',' --assign "col_num=${package_list_column}" '$col_num == "y" && $7 == "" { print $2 }'
 }
@@ -595,7 +595,7 @@ function get_universal_packages() {
   elif is_server; then
     local package_list_column=7
   else
-    die "Could not determine which computer this is"
+    die 'Could not determine which computer this is'
   fi
   local awk_string="\$2 == \"$1\" && \$6 == \"y\" && \$8 == \"\" { print \$3 }"
   download "${package_list_url}" | awk -F ',' "${awk_string}"
@@ -618,7 +618,7 @@ function get_distro_packages() {
   elif is_server; then
     local package_list_column=5
   else
-    die "Could not determine which computer this is"
+    die 'Could not determine which computer this is'
   fi
   download "${package_list_url}" | awk -F ',' --assign "col_num=${package_list_column}" '$col_num == "y" && $6 == "" { print $1 }'
 }
@@ -635,7 +635,7 @@ function get_install_scripts() {
   elif is_server; then
     local package_list_column=7
   else
-    die "Could not determine which computer this is"
+    die 'Could not determine which computer this is'
   fi
   download "${package_list_url}" | awk -F ',' --assign 'OFS=|' --assign "col_num=${package_list_column}" '$col_num == "y" && $8 == "" { print $1, $2, $3 }'
 }
