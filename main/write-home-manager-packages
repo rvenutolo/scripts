@@ -24,7 +24,7 @@ mkdir --parents "$(dirname "${HOME_MANAGER_PACKAGES_FILE}")"
   echo ""
   echo "{"
   echo "  home.packages = with pkgs; ["
-  download "${NIXPKGS_PACKAGES_URL}" | awk -v "col_num=${package_list_column}" -F ',' '{
+  download "${NIXPKGS_PACKAGES_URL}" | awk --assign "col_num=${package_list_column}" -F ',' '{
     if ($col_num == "y")
       if ($7 == "") print "    " $2
       else print "    # " $2 " -- " $7

@@ -11,4 +11,4 @@ check_exactly_1_arg "$@"
 file="migs_for_spoke_$(date +%Y%m%d_%H%M%S).csv"
 readonly file
 echo 'lastName,firstName,cell' > "${file}"
-awk -F',' -v OFS=',' '$16 == "Member in Good Standing" && ($7) { print $3, $1, $7 }' "$1" | sort >> "${file}"
+awk -F',' --assign 'OFS=,' '$16 == "Member in Good Standing" && ($7) { print $3, $1, $7 }' "$1" | sort >> "${file}"

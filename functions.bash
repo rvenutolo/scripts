@@ -120,7 +120,7 @@ function function_exists() {
 # $1 = path to remove
 function path_remove() {
   check_exactly_1_arg "$@"
-  PATH=$(echo -n "$PATH" | awk -v RS=: -v ORS=: '$0 != "'"$1"'"' | sed 's/:$//')
+  PATH=$(echo -n "$PATH" | awk --assign 'RS=:' --assign 'ORS=:' '$0 != "'"$1"'"' | sed 's/:$//')
 }
 
 # $1 = path to append
