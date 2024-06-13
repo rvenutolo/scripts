@@ -6,29 +6,13 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-if is_personal && is_desktop; then
-  readonly package_list_column=3
-elif is_personal && is_laptop; then
-  readonly package_list_column=4
-elif is_work && is_laptop; then
-  readonly package_list_column=5
-elif is_server; then
-  readonly package_list_column=6
-else
-  die "Could not determine which computer this is"
-fi
-
 mkdir --parents "$(dirname "${HOME_MANAGER_PACKAGES_FILE}")"
 (
   echo "{ pkgs, ... }:"
   echo ""
   echo "{"
   echo "  home.packages = with pkgs; ["
-  download "${NIXPKGS_PACKAGES_URL}" | awk -v "col_num=${package_list_column}" -F ',' '{
-    if ($col_num == "y")
-      if ($7 == "") print "    " $2
-      else print "    # " $2 " -- " $7
-  }'
+  get_universal_packages 'nixpkgs' | sed 's/^/    /'
   echo "  ];"
   echo "}"
 ) > "${HOME_MANAGER_PACKAGES_FILE}"
