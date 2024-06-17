@@ -6,4 +6,4 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-sudo fc-cache --force --verbose
+fc-cache --force --verbose

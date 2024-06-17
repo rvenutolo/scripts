@@ -10,4 +10,4 @@ if ! executable_exists 'lxc'; then
   exit 0
 fi
 
-sudo lxc profile set default 'security.secureboot=false'
+lxc profile set default 'security.secureboot=false'
