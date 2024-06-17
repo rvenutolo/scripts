@@ -38,37 +38,42 @@ function executable_exists() {
   type -aPf "$1" > /dev/null 2>&1
 }
 
-log "Removing snaps"
+log 'Removing snaps'
 while [[ "$(snap list 2> '/dev/null' | wc --lines)" -gt 0 ]]; do
-  for snap in $(snap list | tail -n '+2' | cut --delimiter=' ' --fields=1); do
+  for snap in $(snap list | tail -n '+2' | cut --delimiter=' ' --fields='1'); do
     if snap remove --purge "${snap}" &> '/dev/null'; then
       log "Removed snap: ${snap}"
     fi
   done
 done
+log 'Removed snaps'
 
-log "Disabling snapd services"
+log 'Disabling snapd services'
 systemctl disable --now 'snapd.service'
 systemctl disable --now 'snapd.socket'
 systemctl disable --now 'snapd.seeded.service'
+log 'Disabled snapd services'
 
-log "Masking snapd"
-systemctl mask snapd
+log 'Masking snapd'
+systemctl mask 'snapd'
+log 'Masked snapd'
 
-log "Removing snapd package"
-sudo apt-get remove --autoremove --yes snapd
+log 'Removing snapd package'
+apt remove --autoremove --yes 'snapd'
+log 'Removed snapd package'
 
-log "Writing /etc/apt/preferences.d/disable-snap.pref"
+log 'Writing /etc/apt/preferences.d/disable-snap.pref'
 {
   echo 'Package: snapd'
   echo 'Pin: release a=*'
   echo 'Pin-Priority: -10'
 } | tee '/etc/apt/preferences.d/disable-snap.pref' > '/dev/null'
 
-log "Updating apt"
-sudo apt-get update
+log 'Updating apt package index'
+sudo apt update
+log 'Updated apt package index'
 
-existing_mounts="$(grep --invert '^\s*#' /etc/fstab | awk '{ print $2 }')"
+existing_mounts="$(grep --invert '^\s*#' '/etc/fstab' | awk '{ print $2 }')"
 readonly existing_mounts
 
 for dir in '/snap' '/var/snap' '/var/lib/snapd' '/var/cache/snapd' '/root/snap'; do
@@ -77,9 +82,11 @@ for dir in '/snap' '/var/snap' '/var/lib/snapd' '/var/cache/snapd' '/root/snap';
       # if this dir exists in fstab, it is likely because I have a btrfs subvolume mounted at that dir
       log "Removing all files in: ${dir}"
       rm -rf "${dir:?}/"*
+      log "Removed all files in: ${dir}"
     else
       log "Removing: ${dir}"
       rm -rf "${dir}"
+      log "Removed: ${dir}"
     fi
   fi
 done
@@ -90,20 +97,11 @@ for dir in "/home/"*; do
       # if this dir exists in fstab, it is likely because I have a btrfs subvolume mounted at that dir
       log "Removing all files in: ${dir}/snap"
       rm -rf "${dir}/snap/"*
+      log "Removed all files in: ${dir}/snap"
     else
       log "Removing: ${dir}/snap"
       rm -rf "${dir}/snap"
+      log "Removed: ${dir}/snap"
     fi
   fi
 done
-
-if prompt_yn 'Install Flatpak?'; then
-  sudo apt-get install --yes flatpak
-  flatpak remote-add --if-not-exists 'flathub' 'https://flathub.org/repo/flathub.flatpakrepo'
-  if executable_exists 'plasmashell'; then
-    sudo apt-get install --yes plasma-discover-backend-flatpak
-  fi
-  if executable_exists 'gnome-shell'; then
-    sudo apt-get install --yes gnome-software-plugin-flatpak
-  fi
-fi
