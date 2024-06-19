@@ -144,6 +144,10 @@ function contains_word() {
   grep --quiet --fixed-strings --ignore-case --word-regex "$1"
 }
 
+function array_to_lines() {
+  printf '%s\n' "$@"
+}
+
 function is_personal() {
   check_no_args "$@"
   [[ "$(hostname)" == "${PERSONAL_DESKTOP_HOSTNAME}" || "$(hostname)" == "${PERSONAL_LAPTOP_HOSTNAME}" ]]
