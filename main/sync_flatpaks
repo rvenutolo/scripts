@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+## tail -n +<N+1>
+
+readonly flatpaks_from_package_list=($(get_universal_packages 'flatpak' | sort))
+readonly flatpaks_installed=($(flatpak list --user --app --columns application | tail -n +1 | sort))
+readonly flatpaks_to_install=($(comm -23 <(array_to_lines "${flatpaks_from_package_list[@]}") <(array_to_lines "${flatpaks_installed[@]}")))
+readonly flatpaks_to_remove=($(comm -13 <(array_to_lines "${flatpaks_from_package_list[@]}") <(array_to_lines "${flatpaks_installed[@]}")))
+
+if prompt_yn 'Install missing Flatpak packages?'; then
+  log 'Installing missing Flatpak packages'
+  array_to_lines "${flatpaks_to_install[@}]}" | xargs --no-run-if-empty flatpak install --user --noninteractive
+  log 'Installed missing Flatpak packages'
+fi
+
+for flatpak_to_remove in "${flatpaks_to_remove[@]}"; do
+  flatpak_name="$(flatpak list --user --app --columns name --columns application | awk "\$2 == \"${flatpak_to_remove}\" { print \$1 }")"
+  if prompt_yn "Remove ${flatpak_name} Flatpak?"; then
+    log "Removing Flatpak: ${flatpak_name} (${flatpak_to_remove})"
+    flatpak remove --user "${flatpak_to_remove}"
+    log "Removed Flatpak: ${flatpak_name} (${flatpak_to_remove})"
+  fi
+done
+
+log 'Removing unused Flatpak runtimes'
+flatpak uninstall --user --noninteractive --unused
+log 'Removed unused Flatpak runtimes'
+
+if flatpak list --user --app | grep --quiet --fixed-strings 'com.google.Chrome'; then
+  flatpak override --user --filesystem="${HOME}/.local/share/applications:create" --filesystem="${HOME}/.local/share/icons:create" 'com.google.Chrome'
+fi
