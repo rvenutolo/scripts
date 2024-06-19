@@ -75,7 +75,7 @@ path_remove "${SCRIPTS_DIR}/main"
 path_remove "${SCRIPTS_DIR}/other"
 
 if executable_exists 'flatpak' && ! flatpak --user remotes | contains_word 'flathub'; then
-  log 'Flathub flatpak repo is not installed'
+  log 'Flathub Flatpak repo is not installed'
 fi
 
 ## check that the `trash` command is from trash-cli and not trash-d
