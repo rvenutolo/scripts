@@ -128,9 +128,6 @@ if is_personal; then
     '/etc/sysctl.d/max-user-watches.conf'
   )
 fi
-if is_personal && is_desktop; then
-  expected_files+=('/etc/exports.d/storage.exports')
-fi
 for file in "${expected_files[@]}"; do
   if ! is_readable_file "${file}"; then
     log "Missing file: ${file}"
