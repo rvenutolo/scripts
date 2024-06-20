@@ -10,7 +10,7 @@ if ! executable_exists 'tailscale'; then
   exit 0
 fi
 
-if ! tailscale status > /dev/null && prompt_yn 'Connect to Tailscale network?'; then
+if ! tailscale status > '/dev/null' && prompt_yn 'Connect to Tailscale network?'; then
   sudo tailscale up
   log "Tailscale IP: $(tailscale ip -4)"
 fi

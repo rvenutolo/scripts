@@ -26,7 +26,7 @@ if [[ "$#" -eq 0 ]]; then
 else
   readonly dir="$1"
 fi
-"${fm}" "${dir}" > /dev/null 2>&1 &
+"${fm}" "${dir}" > '/dev/null' 2>&1 &
 
 if [[ "${disown_proc}" == 'y' ]]; then
   disown

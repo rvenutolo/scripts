@@ -17,5 +17,5 @@ chmod +x "${run_mtgo_file}"
 # TODO try sound (--sound)
 # TODO Wayland/podman stuff https://github.com/pauleve/docker-mtgo/issues/44
 
-"${run_mtgo_file}" --update --bind "${HOME}/MTG" "$@" > /dev/null 2>&1 &
+"${run_mtgo_file}" --update --bind "${HOME}/MTG" "$@" > '/dev/null' 2>&1 &
 disown

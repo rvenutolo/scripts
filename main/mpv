@@ -8,5 +8,5 @@ source "${SCRIPTS_DIR}/functions.bash"
 # remove this dir from the path so executing `mpv` doesn't execute this script
 path_remove "$(this_script_dir)"
 
-mpv "$@" > /dev/null 2>&1 &
+mpv "$@" > '/dev/null' 2>&1 &
 disown

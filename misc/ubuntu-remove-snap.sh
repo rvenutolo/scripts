@@ -35,7 +35,7 @@ function prompt_yn() {
 # $1 = executable
 function executable_exists() {
   # executables / no builtins, aliases, or functions
-  type -aPf "$1" > /dev/null 2>&1
+  type -aPf "$1" > '/dev/null' 2>&1
 }
 
 log 'Removing snaps'
