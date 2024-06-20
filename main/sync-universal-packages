@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+if executable_exists 'flatpak'; then
+  sync-flatpaks
+fi
+
+if executable_exists 'appman'; then
+  sync-appimages
+fi
+
+if executable_exists 'home-manager'; then
+  home-manager-update
+fi
