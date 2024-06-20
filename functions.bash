@@ -107,14 +107,14 @@ function executable_exists() {
     path_remove "${SCRIPTS_DIR}/main"
     path_remove "${SCRIPTS_DIR}/other"
     # executables / no builtins, aliases, or functions
-    type -aPf "$1" > /dev/null 2>&1
+    type -aPf "$1" > '/dev/null' 2>&1
   )
 }
 
 # $1 = function
 function function_exists() {
   check_exactly_1_arg "$@"
-  declare -f "$1" > /dev/null 2>&1
+  declare -f "$1" > '/dev/null' 2>&1
 }
 
 # $1 = path to remove
@@ -304,7 +304,7 @@ function local_network() {
 # path_remove "$(this_script_dir)"
 function this_script_dir() {
   check_no_args "$@"
-  cd -- "$(dirname -- "${BASH_SOURCE[1]}")" &> /dev/null && pwd
+  cd -- "$(dirname -- "${BASH_SOURCE[1]}")" &> '/dev/null' && pwd
 }
 
 function auto_answer() {
@@ -490,7 +490,7 @@ function copy_system_file() {
 
 # $1 = service unit file
 function user_service_unit_file_exists() {
-  systemctl --user list-unit-files --all --quiet "$1" > /dev/null
+  systemctl --user list-unit-files --all --quiet "$1" > '/dev/null'
 }
 
 # $1 = service unit file
@@ -525,7 +525,7 @@ function restart_user_service_if_enabled() {
 
 # $1 = service unit file
 function system_service_unit_file_exists() {
-  systemctl --system list-unit-files --all --quiet "$1" > /dev/null
+  systemctl --system list-unit-files --all --quiet "$1" > '/dev/null'
 }
 
 # $1 = service unit file
