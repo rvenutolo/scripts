@@ -15,7 +15,7 @@ readonly appimages_installed=($(find "${XDG_DATA_HOME}/appman/" -mindepth 1 -max
 readonly appimages_to_install=($(comm -23 <(array_to_lines "${appimages_from_package_list[@]}") <(array_to_lines "${appimages_installed[@]}")))
 readonly appimages_to_remove=($(comm -13 <(array_to_lines "${appimages_from_package_list[@]}") <(array_to_lines "${appimages_installed[@]}")))
 
-if (( "${#appimages_to_install[@]}" )) && prompt_yn 'Install missing AppImage packages?'; then
+if (("${#appimages_to_install[@]}")) && prompt_yn 'Install missing AppImage packages?'; then
   log 'Installing missing AppImage packages'
   array_to_lines "${appimages_to_install[@]}" | xargs --no-run-if-empty appman install
   log 'Installed missing AppImage packages'
