@@ -15,7 +15,7 @@ readonly flatpaks_installed=($(flatpak list --user --app --columns application |
 readonly flatpaks_to_install=($(comm -23 <(array_to_lines "${flatpaks_from_package_list[@]}") <(array_to_lines "${flatpaks_installed[@]}")))
 readonly flatpaks_to_remove=($(comm -13 <(array_to_lines "${flatpaks_from_package_list[@]}") <(array_to_lines "${flatpaks_installed[@]}")))
 
-if (( "${#flatpaks_to_install[@]}" )) && prompt_yn 'Install missing Flatpak packages?'; then
+if (("${#flatpaks_to_install[@]}")) && prompt_yn 'Install missing Flatpak packages?'; then
   log 'Installing missing Flatpak packages'
   array_to_lines "${flatpaks_to_install[@]}" | xargs --no-run-if-empty flatpak install --user --noninteractive
   log 'Installed missing Flatpak packages'
