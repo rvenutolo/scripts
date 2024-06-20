@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+if ! executable_exists 'appman'; then
+  die 'appman executable not found'
+fi
+
+readonly appimages_from_package_list=($(get_universal_packages 'appimage' | sort))
+readonly appimages_installed=($(find "${XDG_DATA_HOME}/appman/" -mindepth 1 -maxdepth 1 -type d ! -name 'appman' -printf '%f\n' | sort))
+readonly appimages_to_install=($(comm -23 <(array_to_lines "${appimages_from_package_list[@]}") <(array_to_lines "${appimages_installed[@]}")))
+readonly appimages_to_remove=($(comm -13 <(array_to_lines "${appimages_from_package_list[@]}") <(array_to_lines "${appimages_installed[@]}")))
+
+if (( "${#appimages_to_install[@]}" )) && prompt_yn 'Install missing AppImage packages?'; then
+  log 'Installing missing AppImage packages'
+  array_to_lines "${appimages_to_install[@]}" | xargs --no-run-if-empty appman install
+  log 'Installed missing AppImage packages'
+fi
+
+for appimage_to_remove in "${appimages_to_remove[@]}"; do
+  if prompt_yn "Remove ${appimage_to_remove}?"; then
+    log "Removing ${appimage_to_remove}"
+    # I don't know why remove operation exit code is non-zero
+    appman -R "${appimage_to_remove}" || true
+    log "Removed ${appimage_to_remove}"
+  fi
+done
+
+log 'Updating all AppImage packages'
+appman update
+log 'Updated all AppImage packages'
