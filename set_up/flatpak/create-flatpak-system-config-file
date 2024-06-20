@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+if ! executable_exists 'flatpak'; then
+  exit 0
+fi
+
+if is_readable_file '/var/lib/flatpak/repo/config'; then
+  exit 0
+fi
+
+sudo mkdir --parents '/var/lib/flatpak/repo/objects' '/var/lib/flatpak/repo/tmp'
+sudo tee '/var/lib/flatpak/repo/config' > '/dev/null' << EOF
+[core]
+repo_version=1
+mode=bare-user-only
+min-free-space-size=500MB
+EOF
