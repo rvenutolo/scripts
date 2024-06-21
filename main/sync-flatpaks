@@ -11,7 +11,7 @@ if ! executable_exists 'flatpak'; then
 fi
 
 readonly flatpaks_from_package_list=($(get_universal_packages 'flatpak' | sort))
-readonly flatpaks_installed=($(flatpak list --user --app --columns application | tail -n +1 | sort))
+readonly flatpaks_installed=($(flatpak list --user --app --columns application | sort))
 readonly flatpaks_to_install=($(comm -23 <(array_to_lines "${flatpaks_from_package_list[@]}") <(array_to_lines "${flatpaks_installed[@]}")))
 readonly flatpaks_to_remove=($(comm -13 <(array_to_lines "${flatpaks_from_package_list[@]}") <(array_to_lines "${flatpaks_installed[@]}")))
 
