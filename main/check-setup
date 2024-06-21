@@ -216,9 +216,6 @@ fi
 if executable_exists 'tailscaled'; then
   expected_active_system_services+=('tailscaled.service')
 fi
-if is_personal && is_desktop; then
-  expected_active_system_services+=('nfsv4-server.service')
-fi
 for service in "${expected_active_system_services[@]}"; do
   if ! systemctl is-active --quiet "${service}"; then
     log "System service not active: ${service}"
