@@ -235,7 +235,6 @@ done
 expected_active_user_services=(
   'journalctl-vacuum.timer'
   'ssh-agent.service'
-  'tldr-update.timer'
   'trash-cleanup.timer'
   'trash-empty.timer'
 )
