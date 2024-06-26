@@ -41,8 +41,8 @@ for url in $(download 'https://api.github.com/repos/rvenutolo/crypt/contents/key
     continue
   fi
   key_file="${keys_dir}/${filename}"
-  if ! is_readable_file "${key_file}" && prompt_ny "Download ${key_file}?"; then
-    log "Downloading: ${key_file}"
+  if ! is_readable_file "${key_file}" && prompt_ny "Download ${filename}?"; then
+    log "Downloading: ${filename}"
     key_contents="$(download "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${filename}")"
     if [[ -n "${key_contents}" ]]; then
       log "Decrypting: ${key_file}"
