@@ -3,11 +3,11 @@
 #source "${SCRIPTS_DIR}/functions.bash"
 
 function log() {
-  echo -e "[$(date +%T) ${0##*/}] $*" >&2
+  echo -e "\033[0;32m[$(date +%T) ${0##*/}] $*\033[0m" >&2
 }
 
 function die() {
-  echo -e "DIE: $* (at ${BASH_SOURCE[1]}:${FUNCNAME[1]} line ${BASH_LINENO[0]}.)" >&2
+  echo -e "\033[0;31mDIE: $* (at ${BASH_SOURCE[1]}:${FUNCNAME[1]} line ${BASH_LINENO[0]})\033[0m" >&2
   exit 1
 }
 
@@ -319,7 +319,8 @@ function prompt_ny() {
     REPLY='n'
   fi
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
-    read -rp "$1 [y/N]: "
+    echo -e -n "\033[0;33m$1 [y/N]: \033[0m"
+    read
     if [[ "${REPLY}" == [yY] ]]; then
       REPLY='y'
     elif [[ "${REPLY}" == '' || "${REPLY}" == [nN] ]]; then
@@ -337,7 +338,8 @@ function prompt_yn() {
     REPLY='y'
   fi
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
-    read -rp "$1 [Y/n]: "
+    echo -e -n "\033[0;33m$1 [Y/n]: \033[0m"
+    read
     if [[ "${REPLY}" == '' || "${REPLY}" == [yY] ]]; then
       REPLY='y'
     elif [[ "${REPLY}" == [nN] ]]; then
@@ -358,7 +360,8 @@ function prompt_for_value() {
       REPLY="$2"
     fi
     if [[ "${REPLY}" == '' ]]; then
-      read -rp "$1 [$2]: "
+      echo -e -n "\033[0;33m$1 [$2]: \033[0m"
+      read
       if [[ "${REPLY}" == '' ]]; then
         REPLY="$2"
       fi
@@ -367,7 +370,8 @@ function prompt_for_value() {
   else
     REPLY=''
     while [[ -z "${REPLY}" ]]; do
-      read -rp "$1: "
+      echo -e -n "\033[0;33m$1: \033[0m"
+      read
     done
     echo "${REPLY}"
   fi
