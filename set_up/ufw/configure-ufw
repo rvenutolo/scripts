@@ -23,6 +23,12 @@ if ! grep --perl-regexp --quiet --ignore-case 'anywhere on tailscale0\s+allow in
   fi
 fi
 
+if ! grep --perl-regexp --quiet --ignore-case '13490\s+allow in\s+anywhere' <<< "$(sudo ufw status verbose)"; then
+  if prompt_yn "Set UFW to allow all incoming traffic on port 1349?"; then
+    sudo ufw allow '1349' comment 'ssh'
+  fi
+fi
+
 if ! sudo ufw status verbose | contains_word 'allow (outgoing)'; then
   if prompt_yn 'Set UFW to allow outgoing?'; then
     sudo ufw default allow 'outgoing'
