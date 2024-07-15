@@ -583,8 +583,10 @@ function get_sdkman_packages() {
   else
     die 'Could not determine which computer this is'
   fi
-  local awk_string="\$${package_list_column} == \"y\" && \$7 == \"\" { print \$2 }"
-  download "${package_list_url}" | awk -F ',' "${awk_string}"
+  local disabled_awk_string="\$${package_list_column} == \"y\" && \$7 != \"\" { print \"Disabled package: \" \$2 \" (\" \$7 \")\" }"
+  download "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
+  local enabled_awk_string="\$${package_list_column} == \"y\" && \$7 == \"\" { print \$2 }"
+  download "${package_list_url}" | awk -F ',' "${enabled_awk_string}"
 }
 
 # $1 = packages list type (appimage flatpak nixpkgs)
@@ -606,15 +608,17 @@ function get_universal_packages() {
   else
     die 'Could not determine which computer this is'
   fi
-  local awk_string="\$2 == \"$1\" && \$${package_list_column}== \"y\" && \$8 == \"\" { print \$3 }"
-  download "${package_list_url}" | awk -F ',' "${awk_string}"
+  local disabled_awk_string="\$2 == \"$1\" && \$${package_list_column}== \"y\" && \$8 != \"\" { print \"Disabled package: \" \$3 \" (\" \$8 \")\" }"
+  download "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
+  local enabled_awk_string="\$2 == \"$1\" && \$${package_list_column}== \"y\" && \$8 == \"\" { print \$3 }"
+  download "${package_list_url}" | awk -F ',' "${enabled_awk_string}"
 }
 
 # $1 = id
 # $2 = codename
 function get_distro_packages() {
   check_exactly_2_args "$@"
-  local package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/$1-$2.csv"
+  local package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/$1-noble.csv"
   if ! curl_wrapper --output '/dev/null' --head "${package_list_url}"; then
     die "No packages list for $1 $2"
   fi
@@ -629,8 +633,10 @@ function get_distro_packages() {
   else
     die 'Could not determine which computer this is'
   fi
-  local awk_string="\$${package_list_column} == \"y\" && \$6 == \"\" { print \$1 }"
-  download "${package_list_url}" | awk -F ',' "${awk_string}"
+  local disabled_awk_string="\$${package_list_column} == \"y\" && \$6 != \"\" { print \"Disabled package: \" \$1 \" (\" \$6 \")\" }"
+  download "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
+  local enabled_awk_string="\$${package_list_column} == \"y\" && \$6 == \"\" { print \$1 }"
+  download "${package_list_url}" | awk -F ',' "${enabled_awk_string}"
 }
 
 function get_install_scripts() {
@@ -647,6 +653,8 @@ function get_install_scripts() {
   else
     die 'Could not determine which computer this is'
   fi
-  local awk_string="\$${package_list_column} == \"y\" && \$8 == \"\" { print \$1, \$2, \$3 }"
-  download "${package_list_url}" | awk -F ',' -v 'OFS=|' "${awk_string}"
+  local disabled_awk_string="\$${package_list_column} == \"y\" && \$8 != \"\" { print \"Disabled package: \" \$1 \" (\" \$8 \")\" }"
+  download "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
+  local enabled_awk_string="\$${package_list_column} == \"y\" && \$8 == \"\" { print \$1, \$2, \$3 }"
+  download "${package_list_url}" | awk -F ',' -v 'OFS=|' "${enabled_awk_string}"
 }
