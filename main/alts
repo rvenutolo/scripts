@@ -33,6 +33,10 @@ def alts = [
         desc: 'A monitor of resources',
         url: 'https://github.com/aristocratos/btop'
     ),
+    cheat          : new AltInfo(
+        desc: 'Create and view interactive cheatsheets on the command-line',
+        url: 'https://github.com/cheat/cheat'
+    ),
     choose         : new AltInfo(
         desc: 'A human-friendly and fast alternative to cut and (sometimes) awk',
         url: 'https://github.com/theryangeary/choose'
@@ -94,6 +98,10 @@ def alts = [
         desc: 'A simple, fast and user-friendly alternative to find',
         url: 'https://github.com/sharkdp/fd'
     ),
+    fend           : new AltInfo(
+        desc: 'Arbitrary-precision unit-aware calculator',
+        url: 'https://github.com/printfn/fend'
+    ),
     fselect        : new AltInfo(
         desc: 'Find files with SQL-like queries',
         url: 'https://github.com/jhspetersson/fselect'
@@ -126,6 +134,10 @@ def alts = [
         desc: 'Ping, but with a graph',
         url: 'https://github.com/orf/gping'
     ),
+    grex           : new AltInfo(
+        desc: 'Command-line tool for generating regular expressions from user-provided test cases',
+        url: 'https://github.com/pemistahl/grex'
+    ),
     gron           : new AltInfo(
         desc: 'Make JSON greppable!',
         url: 'https://github.com/tomnomnom/gron'
@@ -145,6 +157,10 @@ def alts = [
     httpie         : new AltInfo(
         desc: 'A command line HTTP client whose goal is to make CLI human-friendly',
         url: 'https://httpie.org/'
+    ),
+    hx             : new AltInfo(
+        desc: 'Futuristic take on hexdump, made in Rust',
+        url: 'https://github.com/sitkevij/hex'
     ),
     jless          : new AltInfo(
         desc: 'A command-line pager for JSON data',
@@ -170,6 +186,15 @@ def alts = [
         desc: 'cat for markdown',
         url: 'https://github.com/swsnr/mdcat'
     ),
+    micro          : new AltInfo(
+        desc: 'Modern and intuitive terminal-based text editor',
+        url: 'https://micro-editor.github.io/'
+    ),
+    mlr            : new AltInfo(
+        desc: 'Like awk, sed, cut, join, and sort for data formats such as CSV, TSV, JSON, JSON Lines, and ' +
+            'positionally-indexed',
+        url: 'https://github.com/johnkerl/miller'
+    ),
     moar           : new AltInfo(
         desc: 'Nice-to-use pager for humans',
         url: 'https://github.com/walles/moar'
@@ -178,9 +203,25 @@ def alts = [
         desc: 'Mobile shell (ssh replacement)',
         url: 'https://mosh.org/'
     ),
+    mtr            : new AltInfo(
+        desc: 'Network diagnostics tool',
+        url: 'https://www.bitwizard.nl/mtr/'
+    ),
+    multitail      : new AltInfo(
+        desc: 'tail on Steroids',
+        url: 'https://github.com/folkertvanheusden/multitail'
+    ),
+    navi           : new AltInfo(
+        desc: 'Interactive cheatsheet tool for the command-line and application launchers',
+        url: 'https://github.com/denisidoro/navi'
+    ),
     ncdu           : new AltInfo(
         desc: 'Disk usage analyzer with an ncurses interface',
         url: 'https://dev.yorhel.nl/ncdu'
+    ),
+    ouch           : new AltInfo(
+        desc: 'Command-line utility for easily compressing and decompressing files and directories',
+        url: 'https://github.com/ouch-org/ouch'
     ),
     pigz           : new AltInfo(
         desc: 'A parallel implementation of gzip for multi-core machines',
@@ -222,7 +263,11 @@ def alts = [
         desc: 'Text-mode interface for git',
         url: 'https://jonas.github.io/tig/'
     ),
-    'trash-cli'    : new AltInfo(
+    tldr           : new AltInfo(
+        desc: 'Simplified and community-driven man pages',
+        url: 'https://tldr.sh/'
+    ),
+    trash          : new AltInfo(
         desc: 'Command line interface to the freedesktop.org trashcan',
         url: 'https://github.com/andreafrancia/trash-cli'
     ),
@@ -248,35 +293,46 @@ def alts = [
     ),] as Map<String, AltInfo>
 
 def map = [
-    awk   : ['choose'],
-    cat   : ['bat', 'mdcat'],
-    cd    : ['zoxide'],
-    cp    : ['fcp'],
-    curl  : ['curlie', 'httpie', 'xh'],
-    cut   : ['choose', 'hck'],
-    df    : ['duf', 'dysk'],
-    diff  : ['colordiff', 'delta', 'diff-so-fancy', 'difft', 'riff'],
-    dig   : ['dog', 'doggo'],
-    docker: ['lazydocker'],
-    du    : ['dua', 'dust', 'gdu', 'ncdu'],
-    find  : ['fd', 'fselect'],
-    git   : ['gh', 'gitui', 'lazygit', 'tig'],
-    grep  : ['ack', 'ag', 'gron', 'ripgrep', 'ugrep'],
-    gzip  : ['pigz'],
-    jq    : ['fx', 'jless', 'jqp', 'yq'],
-    less  : ['moar'],
-    ls    : ['exa', 'lsd'],
-    ping  : ['gping'],
-    podman: ['podman-tui'],
-    ps    : ['procs'],
-    rm    : ['trash-cli'],
-    sed   : ['sd'],
-    ssh   : ['mosh', 'sshs'],
-    sysctl: ['systeroid'],
-    tmux  : ['zellij'],
-    tree  : ['broot'],
-    top   : ['btm', 'btop', 'glances', 'gotop', 'gtop', 'htop'],
-    uniq  : ['runiq']
+    '7zip' : ['ouch'],
+    awk    : ['choose', 'mlr'],
+    bc     : ['fend'],
+    cat    : ['bat', 'mdcat'],
+    cd     : ['zoxide'],
+    cp     : ['fcp'],
+    curl   : ['curlie', 'httpie', 'xh'],
+    cut    : ['choose', 'hck', 'mlr'],
+    df     : ['duf', 'dysk'],
+    diff   : ['colordiff', 'delta', 'diff-so-fancy', 'difft', 'riff'],
+    dig    : ['dog', 'doggo'],
+    docker : ['lazydocker'],
+    du     : ['dua', 'dust', 'gdu', 'ncdu'],
+    find   : ['fd', 'fselect'],
+    git    : ['gh', 'gitui', 'lazygit', 'tig'],
+    grep   : ['ack', 'ag', 'grex', 'gron', 'ripgrep', 'ugrep'],
+    gzip   : ['ouch', 'pigz'],
+    hexdump: ['hx'],
+    jq     : ['fx', 'jless', 'jqp', 'yq'],
+    less   : ['moar'],
+    ls     : ['exa', 'lsd'],
+    man    : ['cheat', 'navi', 'tldr'],
+    nano   : ['micro'],
+    ping   : ['gping', 'mtr'],
+    podman : ['podman-tui'],
+    ps     : ['procs'],
+    rar    : ['ouch'],
+    rm     : ['trash'],
+    screen : ['zellij'],
+    sed    : ['mlr', 'sd'],
+    ssh    : ['mosh', 'sshs'],
+    sysctl : ['systeroid'],
+    tail   : ['multitail'],
+    tar    : ['ouch'],
+    tmux   : ['zellij'],
+    tree   : ['broot'],
+    top    : ['btm', 'btop', 'glances', 'gotop', 'gtop', 'htop'],
+    uniq   : ['runiq'],
+    xz     : ['ouch'],
+    zip    : ['ouch']
 ] as Map<String, Collection<String>>
 
 if (args) {
