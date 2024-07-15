@@ -618,7 +618,7 @@ function get_universal_packages() {
 # $2 = codename
 function get_distro_packages() {
   check_exactly_2_args "$@"
-  local package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/$1-noble.csv"
+  local package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/$1-$2.csv"
   if ! curl_wrapper --output '/dev/null' --head "${package_list_url}"; then
     die "No packages list for $1 $2"
   fi
