@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if ! executable_exists 'fail2ban-server'; then
+  log 'fail2ban-server executable not found'
+  exit 0
+fi
+
+readonly src_file="${HOME}/.etc/fail2ban-sshd.local"
+readonly dest_file='/etc/fail2ban/jail.d/sshd.local'
+copy_system_file "${src_file}" "${dest_file}"
+
+restart_system_service_if_enabled 'fail2ban.service'
