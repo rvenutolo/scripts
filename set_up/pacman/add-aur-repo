@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if ! is_arch && ! is_manjaro && ! is_endeavour; then
+  exit 0
+fi
+if ! executable_exists 'pacman'; then
+  log 'pacman executable not found'
+  exit 0
+fi
+
+if pacman-key --list-keys | grep --quiet --fixed-strings 'FBA220DFC880C036'; then
+  exit 0
+fi
+if ! prompt_yn 'Add Chaotic AUR keyring and mirror list?'; then
+  exit 0
+fi
+
+log 'Adding Chaotic AUR keyring and mirror list'
+sudo pacman-key --recv-key 'FBA220DFC880C036' --keyserver 'keyserver.ubuntu.com'
+sudo pacman-key --lsign-key 'FBA220DFC880C036'
+sudo pacman --upgrade --noconfirm \
+  'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
+  'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+log 'Added Chaotic AUR keyring and mirror list'
+log 'Refreshing pacman package database'
+sudo pacman --sync --refresh
+log 'Refreshed pacman package database'
