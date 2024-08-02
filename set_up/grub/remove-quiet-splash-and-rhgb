@@ -6,6 +6,10 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
+if ! is_server; then
+  exit 0
+fi
+
 if ! executable_exists 'grub-mkconfig' && ! executable_exists 'grub2-mkconfig'; then
   exit 0
 fi
