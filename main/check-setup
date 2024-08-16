@@ -24,7 +24,7 @@ if ! timedatectl show | grep --quiet 'NTP=yes'; then
 fi
 
 if ! timedatectl show | grep --quiet "^Timezone=America/New_York$"; then
-  log "Timezone is NOT ${expected_tz}"
+  log "Timezone is NOT America/New_York"
 fi
 
 if ! loginctl show-user "${USER}" --property=Linger 2> '/dev/null' | contains_word 'yes'; then
