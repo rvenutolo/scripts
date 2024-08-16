@@ -11,7 +11,7 @@ check_exactly_1_arg "$@"
 file="members_for_sign_in_$(date +%Y%m%d_%H%M%S).csv"
 readonly file
 
-cat "$1" | python3 -c '
+python3 -c '
 import csv
 import sys
 
@@ -25,4 +25,4 @@ next(reader) # skip header line
 writer = csv.writer(sys.stdout)
 for row in reader:
     writer.writerow([row[2], row[0], row[3], row[15]])
-' | sort >> "${file}"
+' < "$1" | sort >> "${file}"
