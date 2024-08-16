@@ -14,4 +14,4 @@ else
   readonly delimiter=','
 fi
 
-head --lines 1 "$1" | tr "${delimiter}" '\n' | cat --number
+head --lines 1 "${input_file}" | tr "${delimiter}" '\n' | cat --number
