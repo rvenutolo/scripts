@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+readonly compose_file='./compose.yaml'
+
+if file_exists "${compose_file}"; then
+  die "${compose_file} exists"
+fi
+
+echo -n "\
+services:
+  some_service:
+    image: some_project/some_image:latest
+    container_name: some_name
+    network_mode: host
+    restart: unless-stopped
+    user: "$(id -u):$(id -g)"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+" > "${compose_file}"

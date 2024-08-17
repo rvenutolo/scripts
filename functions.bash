@@ -93,9 +93,15 @@ function check_is_root() {
 }
 
 # $1 = file
+function file_exists() {
+  check_exactly_1_arg "$@"
+  [[ -f "$1" ]]
+}
+
+# $1 = file
 function is_readable_file() {
   check_exactly_1_arg "$@"
-  [[ -f "$1" && -r "$1" ]]
+  [[ -r "$1" ]]
 }
 
 # $1 = executable
