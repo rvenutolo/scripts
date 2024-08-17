@@ -8,7 +8,6 @@ check_not_root
 check_no_args "$@"
 
 function can_reach_archiva() {
-  check_no_args "$@"
   [[ "$(curl --disable --head --fail --silent --location --write-out '%{http_code}\n' 'http://archiva.digitalenvoy.net/' --output '/dev/null' 2> '/dev/null')" == '200' ]]
 }
 
