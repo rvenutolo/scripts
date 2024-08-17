@@ -68,6 +68,7 @@ while read -r line; do
   line_to_write="${line}"
   if grep --quiet --perl-regexp '^\s*(GRUB_CMDLINE_LINUX)|(GRUB_CMDLINE_LINUX_DEFAULT)\s*=' <<< "${line}"; then
     for kernel_option in "${kernel_options_to_remove[@]}"; do
+      #shellcheck disable=SC2001
       line_to_write="$(sed "s/${kernel_option}//g" <<< "${line_to_write}")"
     done
     line_to_write="$(sed 's/\s*"\s*/"/g ; s/\s\+/ /g' <<< "${line_to_write}")"
