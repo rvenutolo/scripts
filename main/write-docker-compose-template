@@ -23,4 +23,6 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      #- PORT=8000
 " > "${compose_file}"
