@@ -10,7 +10,7 @@ readonly keys_dir="${HOME}/.keys"
 mkdir --parents "${keys_dir}"
 
 readonly age_key_file="${keys_dir}/age.key"
-if ! is_readable_file "${age_key_file}"; then
+if ! file_exists "${age_key_file}"; then
   log "Downloading: ${age_key_file}"
   age_key_content="$(download 'https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/age.key')"
   if [[ -n "${age_key_content}" ]]; then
@@ -23,7 +23,7 @@ fi
 
 for filename in 'id_ed25519' 'id_ed25519.pub'; do
   key_file="${keys_dir}/${filename}"
-  if ! is_readable_file "${key_file}"; then
+  if ! file_exists "${key_file}"; then
     log "Downloading: ${key_file}"
     key_contents="$(download "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${filename}")"
     if [[ -n "${key_contents}" ]]; then
@@ -41,7 +41,7 @@ for url in $(download 'https://api.github.com/repos/rvenutolo/crypt/contents/key
     continue
   fi
   key_file="${keys_dir}/${filename}"
-  if ! is_readable_file "${key_file}" && prompt_ny "Download ${filename}?"; then
+  if ! file_exists "${key_file}" && prompt_ny "Download ${filename}?"; then
     log "Downloading: ${filename}"
     key_contents="$(download "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${filename}")"
     if [[ -n "${key_contents}" ]]; then

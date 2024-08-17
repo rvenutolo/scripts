@@ -128,8 +128,11 @@ if is_personal; then
   )
 fi
 for file in "${expected_files[@]}"; do
-  if ! is_readable_file "${file}"; then
+  if ! file_exists "${file}"; then
     log "Missing file: ${file}"
+  fi
+  if ! is_readable_file "${file}"; then
+    log "Cannot read file: ${file}"
   fi
 done
 
@@ -140,7 +143,7 @@ unwanted_files=(
   "${HOME}/.lesshst"
 )
 for file in "${unwanted_files[@]}"; do
-  if is_readable_file "${file}"; then
+  if file_exists "${file}"; then
     log "Unwanted file: ${file}"
   fi
 done
