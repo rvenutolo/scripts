@@ -6,12 +6,16 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_exactly_1_arg "$@"
 
-if is_readable_file "$1"; then
-  echo "----------"
-  echo "$1"
-  echo "----------"
-  ls -l "$1"
-  file "$1"
-else
-  die "$1 is not a readable file"
+if ! file_exist "$1"; then
+  die "$1 does not exist"
 fi
+
+if ! is_readable_file "$1"; then
+  die "$1 is not readable"
+fi
+
+echo "----------"
+echo "$1"
+echo "----------"
+ls -l "$1"
+file "$1"

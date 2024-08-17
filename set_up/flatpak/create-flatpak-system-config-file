@@ -10,7 +10,7 @@ if ! executable_exists 'flatpak'; then
   exit 0
 fi
 
-if is_readable_file '/var/lib/flatpak/repo/config'; then
+if file_exists '/var/lib/flatpak/repo/config'; then
   exit 0
 fi
 
