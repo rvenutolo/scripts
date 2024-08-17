@@ -11,7 +11,8 @@ if ! prompt_yn 'Install distro packages?'; then
   exit 0
 fi
 
-readonly packages=($(get_distro_packages "$(os_id)" "$(os_codename)"))
+mapfile -t packages < <(get_distro_packages "$(os_id)" "$(os_codename)")
+readonly packages
 
 if executable_exists 'apt'; then
   sudo apt install --yes "${packages[@]}"
