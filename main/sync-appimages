@@ -10,10 +10,17 @@ if ! executable_exists 'appman'; then
   die 'appman executable not found'
 fi
 
-readonly appimages_from_package_list=($(get_universal_packages 'appimage' | sort))
-readonly appimages_installed=($(find "${XDG_DATA_HOME}/appman/" -mindepth 1 -maxdepth 1 -type d ! -name 'appman' -printf '%f\n' | sort))
-readonly appimages_to_install=($(comm -23 <(array_to_lines "${appimages_from_package_list[@]}") <(array_to_lines "${appimages_installed[@]}")))
-readonly appimages_to_remove=($(comm -13 <(array_to_lines "${appimages_from_package_list[@]}") <(array_to_lines "${appimages_installed[@]}")))
+mapfile -t appimages_from_package_list < <(get_universal_packages 'appimage' | sort)
+readonly appimages_from_package_list
+
+mapfile -t appimages_installed < <(find "${XDG_DATA_HOME}/appman/" -mindepth 1 -maxdepth 1 -type d ! -name 'appman' -printf '%f\n' | sort)
+readonly appimages_installed
+
+mapfile -t appimages_to_install < <(comm -23 <(array_to_lines "${appimages_from_package_list[@]}") <(array_to_lines "${appimages_installed[@]}"))
+readonly appimages_to_install
+
+mapfile -t appimages_to_remove < <(comm -13 <(array_to_lines "${appimages_from_package_list[@]}") <(array_to_lines "${appimages_installed[@]}"))
+readonly appimages_to_remove
 
 if (("${#appimages_to_install[@]}")) && prompt_yn 'Install missing AppImage packages?'; then
   log 'Installing missing AppImage packages'
