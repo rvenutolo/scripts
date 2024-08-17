@@ -19,7 +19,7 @@ services:
     container_name: some_name
     network_mode: host
     restart: unless-stopped
-    user: "$(id -u):$(id -g)"
+    user: \"$(id -u):$(id -g)\"
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
