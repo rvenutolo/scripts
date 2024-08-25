@@ -13,7 +13,24 @@ readonly user_groups
 all_groups="$(getent group | cut --delimiter=':' --fields='1')"
 readonly all_groups
 
-readonly groups=('adm' 'admin' 'docker' 'kvm' 'input' 'libvirt' 'libvirtd' 'lxd' 'networkmanager' 'sudo' 'sys' 'wheel')
+readonly groups=(
+  'adm'
+  'admin'
+  'docker'
+  'ftp'
+  'gamemode'
+  'games'
+  'http'
+  'kvm'
+  'input'
+  'libvirt'
+  'log'
+  'lxd'
+  'networkmanager'
+  'sudo'
+  'sys'
+  'wheel'
+)
 
 for group in "${groups[@]}"; do
   if ! contains_word "${group}" <<< "${all_groups}"; then
