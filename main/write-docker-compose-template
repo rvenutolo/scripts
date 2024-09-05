@@ -17,7 +17,8 @@ echo -n 'services:
     image: some_image:latest
     container_name: some_name
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - ${TAILNET_IP:?}:80:80
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
