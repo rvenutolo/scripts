@@ -6,9 +6,6 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_at_least_1_arg "$@"
 
-(
-  echo "CONTAINER RESULT"
-  for container in $(docker ps --format '{{.Names}}' | sort); do
-    echo "${container} $(docker exec "${container}" $@)"
-  done
-) | column
+for container in $(docker ps --format '{{.Names}}' | sort); do
+  docker exec "${container}" "$@" | while read line; do echo "${container} ${line}"; done
+done | column --table --table-columns 'CONTAINER,RESULT' --table-columns-limit 2
