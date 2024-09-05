@@ -24,4 +24,5 @@ echo -n 'services:
     environment:
       - PUID=${PUID:?}
       - PGID=${PGID:?}
+      - TZ=Etc/UTC
 ' > "${compose_file}"
