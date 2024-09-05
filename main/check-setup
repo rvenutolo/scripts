@@ -202,9 +202,6 @@ fi
 if executable_exists 'ap-enabled'; then
   expected_active_system_services+=('apparmor.service')
 fi
-if executable_exists 'freshclam'; then
-  expected_active_system_services+=('clamav-freshclam.service')
-fi
 if executable_exists 'CrashPlanDesktop'; then
   expected_active_system_services+=('crashplan-pro.service')
 fi
