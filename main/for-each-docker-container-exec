@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_at_least_1_arg "$@"
+
+(
+  echo "CONTAINER RESULT"
+  for container in $(docker ps --format '{{.Names}}' | sort); do
+    echo "${container} $(docker exec "${container}" $@)"
+  done
+) | column
