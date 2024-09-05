@@ -17,15 +17,11 @@ echo -n 'services:
     image: some_image:latest
     container_name: some_name
     restart: unless-stopped
-    user: "${PUID:?}:${PGID:?}"
-    group_add:
-      - "${DOCKER_GROUP_ID:?}"
     network_mode: host
-    #ports:
-    #  - "${TAILNET_IP:?}:80:80"
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      #- PORT=8000
+      - PUID=${PUID:?}
+      - PGID=${PGID:?}
 ' > "${compose_file}"
