@@ -7,7 +7,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
 find . -name 'compose.yaml' | while read -r compose_file; do
-  compose_dir="$(dirname "${compose_file}")"
+  compose_dir="$(basename "$(dirname "${compose_file}")")"
   log "Running docker compose up for: ${compose_dir}"
   docker compose --file "${compose_file}" up --detach
 done
