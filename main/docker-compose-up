@@ -9,7 +9,7 @@ check_no_args "$@"
 if file_exists 'compose.yaml'; then
   docker compose up --detach
 else
-  find . -name 'compose.yaml' | while read -r compose_file; do
+  find . -name 'compose.yaml' | sort | while read -r compose_file; do
     compose_dir="$(basename "$(dirname "${compose_file}")")"
     log "Running docker compose up for: ${compose_dir}"
     docker compose --file "${compose_file}" up --detach
