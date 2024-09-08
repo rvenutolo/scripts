@@ -16,6 +16,7 @@ echo -n 'services:
   some_service:
     image: some_image:latest
     container_name: some_name
+    hostname: some_hostname
     restart: unless-stopped
     ports:
       - ${TAILNET_IP:?}:80:80
@@ -23,7 +24,7 @@ echo -n 'services:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - PUID=${PUID:?}
-      - PGID=${PGID:?}
-      - TZ=Etc/UTC
+      PUID: ${PUID:?}
+      PGID: ${PGID:?}
+      TZ: Etc/UTC
 ' > "${compose_file}"
