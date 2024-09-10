@@ -5,26 +5,13 @@ set -euo pipefail
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
 
-if [[ "$#" -eq 1 ]]; then
-  die "Expected 0 or >1 args"
-fi
-
-if [[ "$#" -gt 1 ]]; then
-  if [[ "$1" != '--ignore' ]]; then
-    die "First argument must be '--ignore'"
-  fi
-  shift
-fi
-
-readonly packages_to_ignore=("$@")
-
 mkdir --parents "$(dirname "${HOME_MANAGER_PACKAGES_FILE}")"
 (
   echo "{ pkgs, ... }:"
   echo ""
   echo "{"
   echo "  home.packages = with pkgs; ["
-  comm -23 <(get_universal_packages 'nixpkgs' | sort) <(printf '%s\n' "${packages_to_ignore[@]}" | sort) | sed 's/^/    /'
+  get_universal_packages 'nixpkgs' "$@" | sed 's/^/    /'
   echo "  ];"
   echo "}"
 ) > "${HOME_MANAGER_PACKAGES_FILE}"
