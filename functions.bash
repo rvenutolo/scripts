@@ -597,11 +597,26 @@ function get_sdkman_packages() {
 
 # $1 = packages list type (appimage flatpak nixpkgs)
 function get_universal_packages() {
-  check_exactly_1_arg "$@"
+  check_at_least_1_arg "$@"
   case "$1" in
-    appimage | flatpak | nixpkgs) : ;;
-    *) die "Unexpected package list type: $1" ;;
+    appimage | flatpak | nixpkgs)
+      readonly package_type="$1"
+      ;;
+    *)
+      die "Unexpected package list type: $1"
+      ;;
   esac
+  shift
+  if [[ "$#" -eq 1 ]]; then
+    die "Expected 0 or >1 more args"
+  fi
+  if [[ "$#" -gt 1 ]]; then
+    if [[ "$1" != '--ignore' ]]; then
+      die "First argument after package type must be '--ignore'"
+    fi
+    shift
+  fi
+  readonly packages_to_ignore=("$@")
   local package_list_url='https://raw.githubusercontent.com/rvenutolo/packages/main/universal.csv'
   if is_personal && is_desktop; then
     local package_list_column=4
@@ -614,10 +629,10 @@ function get_universal_packages() {
   else
     die 'Could not determine which computer this is'
   fi
-  local disabled_awk_string="\$2 == \"$1\" && \$${package_list_column}== \"y\" && \$8 != \"\" { print \"Disabled package: \" \$3 \" (\" \$8 \")\" }"
+  local disabled_awk_string="\$2 == \"${package_type}\" && \$${package_list_column}== \"y\" && \$8 != \"\" { print \"Disabled package: \" \$3 \" (\" \$8 \")\" }"
   download "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
-  local enabled_awk_string="\$2 == \"$1\" && \$${package_list_column}== \"y\" && \$8 == \"\" { print \$3 }"
-  download "${package_list_url}" | awk -F ',' "${enabled_awk_string}"
+  local enabled_awk_string="\$2 == \"${package_type}\" && \$${package_list_column}== \"y\" && \$8 == \"\" { print \$3 }"
+  comm -23 <(download "${package_list_url}" | awk -F ',' "${enabled_awk_string}" | sort) <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
 }
 
 # $1 = id
