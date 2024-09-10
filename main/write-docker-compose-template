@@ -12,6 +12,7 @@ if file_exists "${compose_file}"; then
   die "${compose_file} exists"
 fi
 
+# shellcheck disable=SC2016
 echo -n 'services:
   some_service:
     image: some_image:latest
