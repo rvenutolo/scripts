@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if ! is_arch && ! is_manjaro && ! is_endeavour; then
+  exit 0
+fi
+if ! executable_exists 'pacman'; then
+  log 'pacman executable not found'
+  exit 0
+fi
+
+readonly hooks_dir="/etc/pacman.d/hooks"
+for hook_file in "${HOME}/.etc/pacman-"*".hook"; do
+  hook_file_name="$(basename "${hook_file}")"
+  copy_system_file "${hook_file}" "${hooks_dir}/${hook_file_name:7}"
+done
