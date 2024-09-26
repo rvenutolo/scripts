@@ -150,6 +150,15 @@ function contains_word() {
   grep --quiet --fixed-strings --ignore-case --word-regex "$1"
 }
 
+# expected to pipe to this function, ex: echo 'foo' | contains 'f'
+# $1 = string
+function contains() {
+  # expected to pipe to this function
+  check_exactly_1_arg "$@"
+  check_for_stdin
+  grep --quiet --fixed-strings --ignore-case "$1"
+}
+
 function array_to_lines() {
   printf '%s\n' "$@"
 }

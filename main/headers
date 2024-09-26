@@ -8,10 +8,22 @@ check_at_least_1_arg "$@"
 check_at_most_2_args "$@"
 
 readonly input_file="$1"
+readonly header_line="$(head --lines 1 "${input_file}")"
+
 if [[ -n "${2:-}" ]]; then
   readonly delimiter="$2"
+elif contains ';' <<< "${header_line}"; then
+  readonly delimiter=';'
+elif contains ',' <<< "${header_line}"; then
+  readonly delimiter=','
+elif contains '\t' <<< "${header_line}"; then
+  readonly delimiter='\t'
+elif contains '|' <<< "${header_line}"; then
+  readonly delimiter='|'
+elif contains ':' <<< "${header_line}"; then
+  readonly delimiter=':'
 else
   readonly delimiter=','
 fi
 
-head --lines 1 "${input_file}" | tr "${delimiter}" '\n' | cat --number
+tr "${delimiter}" '\n' <<< "${header_line}" | cat --number
