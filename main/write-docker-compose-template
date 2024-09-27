@@ -20,12 +20,12 @@ echo -n 'services:
     hostname: some_hostname
     restart: unless-stopped
     ports:
-      - ${TAILNET_IP:?}:80:80
+      - "${TAILNET_IP:?}:${APP_PORT:?}:80"
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       PUID: ${PUID:?}
       PGID: ${PGID:?}
-      TZ: Etc/UTC
+      TZ: ${TZ:?}
 ' > "${compose_file}"
