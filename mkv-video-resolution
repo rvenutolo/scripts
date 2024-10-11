@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+find . -name '*.mkv' -printf '%P\n' | sort | while read -r mkv_file; do
+  echo "${mkv_file}"
+  resolution_info="$(ffprobe "${mkv_file}" -show_entries 'stream=width,height' -select_streams 'v:0' -loglevel '0' -output_format 'csv=s=x:p=0')"
+  echo "${resolution_info%x}"
+  echo '---------'
+done
