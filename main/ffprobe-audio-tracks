@@ -9,6 +9,6 @@ check_no_args "$@"
 find . -iregex '.*\.\(mkv\|mp4\)$' -printf '%P\n' | sort | while read -r video_file; do
   echo "${video_file}"
   audio_info="$(ffprobe "${video_file}" -show_entries 'stream=index:stream_tags=language' -select_streams 'a' -loglevel '0' -output_format 'compact=p=0:nk=1')"
-  echo "${resolution_info%|}"
+  echo "${audio_info%|}"
   echo '---------'
 done
