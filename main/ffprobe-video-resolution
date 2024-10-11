@@ -6,9 +6,9 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-find . -name '*.mkv' -or -name '*.mp4' -printf '%P\n' | sort | while read -r mkv_file; do
-  echo "${mkv_file}"
-  resolution_info="$(ffprobe "${mkv_file}" -show_entries 'stream=width,height' -select_streams 'v:0' -loglevel '0' -output_format 'csv=s=x:p=0')"
+find . -iregex '.*\.\(mkv\|mp4)$' -printf '%P\n' | sort | while read -r video_file; do
+  echo "${video_file}"
+  resolution_info="$(ffprobe "${video_file}" -show_entries 'stream=width,height' -select_streams 'v:0' -loglevel '0' -output_format 'csv=s=x:p=0')"
   echo "${resolution_info%x}"
   echo '---------'
 done
