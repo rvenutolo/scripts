@@ -8,6 +8,6 @@ check_no_args "$@"
 
 find . -name '*.mkv' -printf '%P\n' | sort | while read -r mkv_file; do
   echo "${mkv_file}"
-  ffprobe "${mkv_file}" -show_entries stream=index:stream_tags=language -select_streams a -v 0 -of compact=p=0:nk=1
+  ffprobe "${mkv_file}" -show_entries 'stream=index:stream_tags=language' -select_streams 'a' -loglevel '0' -output_format 'compact=p=0:nk=1'
   echo '---------'
 done
