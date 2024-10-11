@@ -6,7 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-find . -name '*.mkv' -printf '%P\n' | sort | while read -r mkv_file; do
+find . -name '*.mkv' -or -name '*.mp4' -printf '%P\n' | sort | while read -r mkv_file; do
   lang_info="$(ffprobe "${mkv_file}" -show_entries 'stream=index:stream_tags=language' -select_streams 'a' -loglevel '0' -output_format 'compact=p=0:nk=1')"
   if grep --quiet --invert-match '|eng$' <<< "${lang_info}"; then
     echo "${mkv_file}"
