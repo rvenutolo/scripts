@@ -4,7 +4,7 @@
 # https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-linux-install.html
 # https://sailokesh.hashnode.dev/connecting-to-aws-vpn-client-on-ubuntu-2204-workaround?source=more_articles_bottom_blogs
 # https://repost.aws/questions/QUNJeF_ja_Suykous7EvfX5Q/aws-client-vpn-on-ubuntu-22-04
-# https://gist.github.com/tomaszgiba/4b0c04a6b4b0048e6a582b19133014b7#file-start_awsvpnclient-sh-L17
+# https://gist.github.com/tomaszgiba/4b0c04a6b4b0048e6a582b19133014b7#file-start_awsvpnclient-sh
 # https://gist.github.com/thiagozs/4d8c6e090a027fae3dd883163615f91e
 
 set -euo pipefail
@@ -30,27 +30,36 @@ fi
 
 if ! dpkg --status 'libssl1.1' > '/dev/null' 2>&1; then
   log 'Installing old libssl1.1 package for AWS VPN client'
-  readonly libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb'
+  # http://security.ubuntu.com/ubuntu/pool/main/o/openssl/
+  readonly libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb'
   libssl1_deb="$(mktemp --suffix "__$(basename "${libssl1_url}")")"
   readonly libssl1_deb
   download "${libssl1_url}" "${libssl1_deb}"
-  sudo apt-get install --yes "${libssl1_deb}"
+  sudo dpkg --install "${libssl1_deb}"
   log 'Installed old libssl1.1 package for AWS VPN client'
 fi
 
-readonly repo_url='https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo'
-readonly public_key_url="${repo_url}/awsvpnclient_public_key.asc"
-readonly public_key_file='/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc'
-readonly apt_list_file='/etc/apt/sources.list.d/aws-vpn-client.list'
-download "${public_key_url}" | sudo tee "${public_key_file}" > '/dev/null'
-sudo chmod 644 "${public_key_file}"
-echo "deb [arch=amd64] ${repo_url} ubuntu-20.04 main" | sudo tee "${apt_list_file}" > '/dev/null'
-sudo chmod 644 "${apt_list_file}"
-
 log 'Installing AWS VPN Client'
-sudo apt-get update
-sudo apt-get install --yes awsvpnclient
+readonly vpnclient_url='https://d20adtppz83p9s.cloudfront.net/GTK/latest/awsvpnclient_amd64.deb'
+vpnclient_deb="$(mktemp --suffix "__$(basename "${vpnclient_url}")")"
+readonly vpnclient_deb
+download "${vpnclient_url}" "${vpnclient_deb}"
+sudo dpkg --install "${vpnclient_deb}"
 log 'Installed AWS VPN Client'
+
+log 'Updating AWS VPN Client service file'
+readonly service_file='/etc/systemd/system/awsvpnclient.service'
+if ! file_exists "${service_file}"; then
+  die "Service file ${service_file} does not exist"
+fi
+readonly dotnet_env_line='Environment=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1'
+if ! grep --quiet --fixed-strings "${dotnet_env_line}"; then
+  readonly user_line='User=root'
+  sed --in-place "s/${user_line}/${user_line}\n${dotnet_env_line}"
+fi
+log 'Updated AWS VPN Client service file'
+
+
 
 log 'Downloading AWS VPN OVPN file'
 readonly de_ovpn_file_url='https://raw.githubusercontent.com/rvenutolo/crypt/main/ovpn/de.ovpn'
