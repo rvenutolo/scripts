@@ -17,13 +17,13 @@ if ! sudo ufw status verbose | contains_word_ignore_case 'deny (incoming)'; then
   fi
 fi
 
-if ! grep --perl-regexp --quiet --ignore-case 'anywhere on tailscale0\s+allow in\s+anywhere' <<< "$(sudo ufw status verbose)"; then
+if ! sudo ufw status verbose | contains_perl_regex_ignore_case 'anywhere on tailscale0\s+allow in\s+anywhere'; then
   if prompt_yn "Set UFW to allow all incoming traffic from tailnet?"; then
     sudo ufw allow in on 'tailscale0'
   fi
 fi
 
-if ! grep --perl-regexp --quiet --ignore-case '22/tcp0\s+allow in\s+anywhere' <<< "$(sudo ufw status verbose)"; then
+if ! sudo ufw status verbose | contains_perl_regex_ignore_case '22/tcp0\s+allow in\s+anywhere'; then
   if prompt_yn "Set UFW to allow all incoming traffic on port 22 (ssh)?"; then
     sudo ufw allow ssh
   fi

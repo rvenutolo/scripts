@@ -174,6 +174,22 @@ function contains_regex_ignore_case() {
   grep --quiet --ignore-case "$1"
 }
 
+# expected to pipe to this function, ex: echo 'foobar' | contains_perl_regex '^foo'
+# $1 = string
+function contains_perl_regex() {
+  check_exactly_1_arg "$@"
+  check_for_stdin
+  grep --quiet --perl-regexp "$1"
+}
+
+# expected to pipe to this function, ex: echo 'FOOBAR' | contains_perl_regex_ignore_case '^foo'
+# $1 = string
+function contains_perl_regex_ignore_case() {
+  check_exactly_1_arg "$@"
+  check_for_stdin
+  grep --quiet --ignore-case --perl-regexp "$1"
+}
+
 # expected to pipe to this function, ex: echo 'foo bar baz' | contains_word 'bar'
 # $1 = word
 function contains_word() {
@@ -232,6 +248,22 @@ function file_contains_regex() {
 function file_contains_regex_ignore_case() {
   check_exactly_2_args "$@"
   grep --quiet --ignore-case "$2" "$1"
+}
+
+# $1 = file
+# $2 = string
+function file_contains_perl_regex() {
+  check_exactly_1_arg "$@"
+  check_for_stdin
+  grep --quiet --perl-regexp "$2" "$1"
+}
+
+# $1 = file
+# $2 = string
+function file_contains_perl_regex_ignore_case() {
+  check_exactly_1_arg "$@"
+  check_for_stdin
+  grep --quiet --ignore-case --perl-regexp "$2" "$1"
 }
 
 # $1 = file
@@ -377,7 +409,7 @@ function is_pop_shell() {
 
 # $1 = package name
 function dpkg_package_installed() {
-  dpkg-query --show --showformat='${Status}' $1 2> '/dev/null' | grep --quiet --fixed-strings 'ok installed'
+  dpkg-query --show --showformat='${Status}' $1 2> '/dev/null' | contains_exactly_ignore_case 'ok installed'
 }
 
 # wrapper around curl to disable reading the config that is intended for interactive use

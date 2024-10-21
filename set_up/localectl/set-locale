@@ -6,7 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-if localectl | grep --quiet --fixed-strings 'LANG=en_US.UTF-8'; then
+if localectl | contains_exactly 'LANG=en_US.UTF-8'; then
   exit 0
 fi
 if ! prompt_yn 'Set locale to en_US.UTF8?'; then
@@ -14,7 +14,7 @@ if ! prompt_yn 'Set locale to en_US.UTF8?'; then
 fi
 
 log 'Setting locale to en_US.UTF-8'
-if ! grep --quiet '^en_US.UTF-8 UTF-8' '/etc/locale.gen'; then
+if ! file_contains_regex '^en_US.UTF-8 UTF-8' '/etc/locale.gen'; then
   echo 'en_US.UTF-8 UTF-8' | sudo tee --append '/etc/locale.gen' > '/dev/null'
 fi
 sudo locale-gen
