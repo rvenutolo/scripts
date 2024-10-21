@@ -20,6 +20,10 @@ fi
 if [[ -d '/opt/awsvpnclient' ]]; then
   exit 0
 fi
+if ! is_ubuntu; then
+  log 'This is a work computer, but not Ubuntu. Skipping installing AWS VPN Client'
+  exit 0
+fi
 if ! prompt_yn 'Install AWS VPN Client?'; then
   exit 0
 fi
