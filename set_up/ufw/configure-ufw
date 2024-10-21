@@ -11,7 +11,7 @@ if ! executable_exists 'ufw'; then
   exit 0
 fi
 
-if ! sudo ufw status verbose | contains_word 'deny (incoming)'; then
+if ! sudo ufw status verbose | contains_word_ignore_case 'deny (incoming)'; then
   if prompt_yn 'Set UFW to deny incoming?'; then
     sudo ufw default deny 'incoming'
   fi
@@ -29,13 +29,13 @@ if ! grep --perl-regexp --quiet --ignore-case '22/tcp0\s+allow in\s+anywhere' <<
   fi
 fi
 
-if ! sudo ufw status verbose | contains_word 'allow (outgoing)'; then
+if ! sudo ufw status verbose | contains_word_ignore_case 'allow (outgoing)'; then
   if prompt_yn 'Set UFW to allow outgoing?'; then
     sudo ufw default allow 'outgoing'
   fi
 fi
 
-if ! sudo ufw status verbose | contains_word 'status: active'; then
+if ! sudo ufw status verbose | contains_word_ignore_case 'status: active'; then
   if prompt_yn 'Enable UFW?'; then
     sudo ufw --force enable
   fi

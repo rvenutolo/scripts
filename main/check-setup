@@ -32,7 +32,7 @@ if ! timedatectl show | grep --quiet "^Timezone=${expected_tz}$"; then
   log "Timezone is NOT ${expected_tz}"
 fi
 
-if ! loginctl show-user "${USER}" --property=Linger 2> '/dev/null' | contains_word 'yes'; then
+if ! loginctl show-user "${USER}" --property=Linger 2> '/dev/null' | contains_word_ignore_case 'yes'; then
   log "${USER} is not set to linger"
 fi
 
@@ -78,35 +78,35 @@ SCRIPTS_DIR="${SCRIPTS_DIR:-"${CODE_DIR}/Personal/scripts"}"
 path_remove "${SCRIPTS_DIR}/main"
 path_remove "${SCRIPTS_DIR}/other"
 
-if executable_exists 'flatpak' && ! flatpak --user remotes | contains_word 'flathub'; then
+if executable_exists 'flatpak' && ! flatpak --user remotes | contains_word_ignore_case 'flathub'; then
   log 'Flathub Flatpak repo is not installed'
 fi
 
 ## check that the `trash` command is from trash-cli and not trash-d
-if executable_exists 'trash' && ! trash --help | contains_word 'https://github.com/andreafrancia/trash-cli/issues'; then
+if executable_exists 'trash' && ! trash --help | contains_word_ignore_case 'https://github.com/andreafrancia/trash-cli/issues'; then
   log "trash command is not from trash-cli"
 fi
 
 ## check that the `tldr` command is from tealdeer
-if executable_exists 'tldr' && ! tldr --version | contains_word 'tealdeer'; then
+if executable_exists 'tldr' && ! tldr --version | contains_word_ignore_case 'tealdeer'; then
   log "tldr command is not from tealdeer"
 fi
 
 if executable_exists 'ufw'; then
   ufw_status="$(sudo ufw status verbose)"
   readonly ufw_status
-  if ! contains_word 'Status: active' <<< "${ufw_status}"; then
+  if ! contains_word_ignore_case 'status: active' <<< "${ufw_status}"; then
     log "UFW is not active"
   fi
-  if ! contains_word 'deny (incoming)' <<< "${ufw_status}"; then
+  if ! contains_word_ignore_case 'deny (incoming)' <<< "${ufw_status}"; then
     log "UFW is not denying incoming by default"
   fi
-  if ! contains_word 'allow (outgoing)' <<< "${ufw_status}"; then
+  if ! contains_word_ignore_case 'allow (outgoing)' <<< "${ufw_status}"; then
     log "UFW is not allowing outgoing by default"
   fi
 fi
 
-if executable_exists 'aa-enabled' && ! aa-enabled | contains_word 'yes'; then
+if executable_exists 'aa-enabled' && ! aa-enabled | contains_word_ignore_case 'yes'; then
   log "AppArmor is not enabled"
 fi
 
@@ -179,10 +179,10 @@ if ! is_server; then
   if executable_exists 'fc-list'; then
     installed_fonts="$(fc-list : family)"
     for font in "${expected_fonts[@]}"; do
-      if ! contains_word "${font}" <<< "${installed_fonts}" \
-        && ! contains_word "${font}TTF" <<< "${installed_fonts}" \
-        && ! contains_word "$(echo -e "${font}" | tr --delete '[:space:]')" <<< "${installed_fonts}" \
-        && ! contains_word "$(echo -e "${font}TTF" | tr --delete '[:space:]')" <<< "${installed_fonts}"; then
+      if ! contains_word_ignore_case "${font}" <<< "${installed_fonts}" \
+        && ! contains_word_ignore_case "${font}TTF" <<< "${installed_fonts}" \
+        && ! contains_word_ignore_case "$(echo -e "${font}" | tr --delete '[:space:]')" <<< "${installed_fonts}" \
+        && ! contains_word_ignore_case "$(echo -e "${font}TTF" | tr --delete '[:space:]')" <<< "${installed_fonts}"; then
         log "Font not available: ${font}"
       fi
     done

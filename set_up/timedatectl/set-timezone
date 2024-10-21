@@ -17,7 +17,7 @@ else
 fi
 readonly tz
 
-if timedatectl show | grep --quiet "^Timezone=${tz}$"; then
+if timedatectl show | contains_regex "^Timezone=${tz}$"; then
   exit 0
 fi
 if ! prompt_yn "Set timezone to: ${tz}"; then

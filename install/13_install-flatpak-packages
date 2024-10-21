@@ -12,7 +12,7 @@ if ! executable_exists 'flatpak'; then
   exit 0
 fi
 
-if ! flatpak remotes --user --columns=title | contains_word 'Flathub'; then
+if ! flatpak remotes --user --columns=title | contains_word_ignore_case 'flathub'; then
   log 'Adding Flathub Flatpak repo'
   flatpak remote-add --user 'flathub' 'https://flathub.org/repo/flathub.flatpakrepo'
   log 'Added Flathub Flatpak repo'
@@ -26,6 +26,6 @@ log 'Installing Flatpak packages'
 get_universal_packages 'flatpak' | xargs --no-run-if-empty flatpak install --user --noninteractive
 log 'Installed Flatpak packages'
 
-if flatpak list --user --app | grep --quiet --fixed-strings 'com.google.Chrome'; then
+if flatpak list --user --app | contains_exactly_ignore_case 'com.google.chrome'; then
   flatpak override --user --filesystem="${HOME}/.local/share/applications:create" --filesystem="${HOME}/.local/share/icons:create" 'com.google.Chrome'
 fi

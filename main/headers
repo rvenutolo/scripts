@@ -12,15 +12,15 @@ readonly header_line="$(head --lines 1 "${input_file}")"
 
 if [[ -n "${2:-}" ]]; then
   readonly delimiter="$2"
-elif contains ';' <<< "${header_line}"; then
+elif contains_exactly ';' <<< "${header_line}"; then
   readonly delimiter=';'
-elif contains ',' <<< "${header_line}"; then
+elif contains_exactly ',' <<< "${header_line}"; then
   readonly delimiter=','
-elif contains '\t' <<< "${header_line}"; then
+elif contains_exactly '\t' <<< "${header_line}"; then
   readonly delimiter='\t'
-elif contains '|' <<< "${header_line}"; then
+elif contains_exactly '|' <<< "${header_line}"; then
   readonly delimiter='|'
-elif contains ':' <<< "${header_line}"; then
+elif contains_exactly ':' <<< "${header_line}"; then
   readonly delimiter=':'
 else
   readonly delimiter=','
