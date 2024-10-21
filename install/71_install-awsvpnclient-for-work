@@ -82,7 +82,7 @@ readonly desktop_entry='/usr/share/applications/awsvpnclient.desktop'
 readonly new_exec_line="Exec=env DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 ${vpnclient_symlink} %u"
 if ! grep --quiet --fixed-strings "${new_exec_line}" "${desktop_entry}"; then
   log 'Updating AWS VPN Client desktop entry'
-  sudo sed --in-place "s|Exec=/opt/awsvpnclient/AWS\ VPN\ Client %u|${new_exec_line}|" "${desktop_entry}"
+  sudo sed --in-place "s#Exec=/opt/awsvpnclient/.*#${new_exec_line}#" "${desktop_entry}"
   log 'Updated AWS VPN Client desktop entry'
 fi
 
