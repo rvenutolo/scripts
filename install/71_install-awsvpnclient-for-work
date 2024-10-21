@@ -68,7 +68,7 @@ log 'Updating AWS VPN Client desktop entry'
 readonly desktop_entry='/usr/share/applications/awsvpnclient.desktop'
 readonly old_exec_line="Exec=${vpnclient_dir}/AWS VPN Client %u"
 readonly new_exec_line="Exec=env DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 ${vpnclient_dir}/${vpnclient_symlink_name} %u"
-sudo sed --in-place "s/${old_exec_line}/${new_exec_line}/" "${desktop_entry}"
+sudo sed --in-place "s|${old_exec_line}|${new_exec_line}|" "${desktop_entry}"
 log 'Updated AWS VPN Client desktop entry'
 
 log 'Downloading AWS VPN OVPN file'
