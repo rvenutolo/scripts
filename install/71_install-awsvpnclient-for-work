@@ -4,7 +4,7 @@
 # https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-linux-install.html
 # https://sailokesh.hashnode.dev/connecting-to-aws-vpn-client-on-ubuntu-2204-workaround?source=more_articles_bottom_blogs
 # https://repost.aws/questions/QUNJeF_ja_Suykous7EvfX5Q/aws-client-vpn-on-ubuntu-22-04
-# https://gist.github.com/tomaszgiba/4b0c04a6b4b0048e6a582b19133014b7#file-start_awsvpnclient-sh
+# https://gist.github.com/tomaszgiba/4b0c04a6b4b0048e6a582b19133014b7
 # https://gist.github.com/thiagozs/4d8c6e090a027fae3dd883163615f91e
 
 set -euo pipefail
@@ -47,19 +47,29 @@ download "${vpnclient_url}" "${vpnclient_deb}"
 sudo dpkg --install "${vpnclient_deb}"
 log 'Installed AWS VPN Client'
 
+readonly vpnclient_dir=/opt/awsvpnclient
+readonly vpnclient_symlink_name=awsvpnclient
+log "Creating ${vpnclient_dir}/${vpnclient_symlink_name} symbolic link"
+sudo ln --symbolic 'AWS VPN Client' "${vpnclient_dir}/${vpnclient_symlink_name}"
+log "Created ${vpnclient_dir}/${vpnclient_symlink_name} symbolic link"
+
 log 'Updating AWS VPN Client service file'
 readonly service_file='/etc/systemd/system/awsvpnclient.service'
 if ! file_exists "${service_file}"; then
   die "Service file ${service_file} does not exist"
 fi
 readonly dotnet_env_line='Environment=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1'
-if ! grep --quiet --fixed-strings "${dotnet_env_line}"; then
-  readonly user_line='User=root'
-  sed --in-place "s/${user_line}/${user_line}\n${dotnet_env_line}"
+if ! grep --quiet --fixed-strings "${dotnet_env_line}" "${service_file}"; then
+  sudo sed --in-place "/\[Service]/a ${dotnet_env_line}" "${service_file}"
 fi
 log 'Updated AWS VPN Client service file'
 
-
+log 'Updating AWS VPN Client desktop entry'
+readonly desktop_entry='/usr/share/applications/awsvpnclient.desktop'
+readonly old_exec_line="Exec=${vpnclient_dir}/AWS VPN Client %u"
+readonly new_exec_line="Exec=env DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 ${vpnclient_dir}/${vpnclient_symlink_name} %u"
+sudo sed --in-place "s/${old_exec_line}/${new_exec_line}/" "${desktop_entry}"
+log 'Updated AWS VPN Client desktop entry'
 
 log 'Downloading AWS VPN OVPN file'
 readonly de_ovpn_file_url='https://raw.githubusercontent.com/rvenutolo/crypt/main/ovpn/de.ovpn'
