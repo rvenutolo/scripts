@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+# References:
+# https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-linux-install.html
+# https://sailokesh.hashnode.dev/connecting-to-aws-vpn-client-on-ubuntu-2204-workaround?source=more_articles_bottom_blogs
+# https://repost.aws/questions/QUNJeF_ja_Suykous7EvfX5Q/aws-client-vpn-on-ubuntu-22-04
+# https://gist.github.com/tomaszgiba/4b0c04a6b4b0048e6a582b19133014b7#file-start_awsvpnclient-sh-L17
+# https://gist.github.com/thiagozs/4d8c6e090a027fae3dd883163615f91e
+
 set -euo pipefail
 
 #shellcheck disable=SC1091
