@@ -15,7 +15,7 @@ if ! executable_exists 'pacman'; then
   exit 0
 fi
 
-if pacman-key --list-keys | grep --quiet --fixed-strings 'FBA220DFC880C036'; then
+if pacman-key --list-keys | contains_exactly_ignore_case 'FBA220DFC880C036'; then
   exit 0
 fi
 if ! prompt_yn 'Add Chaotic AUR keyring and mirror list?'; then

@@ -15,11 +15,11 @@ if [[ -z "$(w --no-header "${USER}")" ]]; then
 fi
 
 expected_locale='LANG=en_US.UTF-8'
-if ! localectl | grep --quiet --fixed-strings "${expected_locale}"; then
+if ! localectl | contains_exactly "${expected_locale}"; then
   log "Locale is not: ${expected_locale}"
 fi
 
-if ! timedatectl show | grep --quiet 'NTP=yes'; then
+if ! timedatectl show | contains_exactly 'NTP=yes'; then
   log "timedatectl NTP is not on"
 fi
 
@@ -28,7 +28,7 @@ if is_server; then
 else
   expected_tz='America/New_York'
 fi
-if ! timedatectl show | grep --quiet "^Timezone=${expected_tz}$"; then
+if ! timedatectl show | contains_regex "^Timezone=${expected_tz}$"; then
   log "Timezone is NOT ${expected_tz}"
 fi
 
@@ -110,7 +110,7 @@ if executable_exists 'aa-enabled' && ! aa-enabled | contains_word_ignore_case 'y
   log "AppArmor is not enabled"
 fi
 
-if executable_exists 'sestatus' && sestatus | grep --quiet --perl-regexp --ignore-case 'selinux status:\s+enabled'; then
+if executable_exists 'sestatus' && sestatus | continas_perl_regex_ignore_case 'selinux status:\s+enabled'; then
   log "SELinux is not enabled"
 fi
 
@@ -273,7 +273,7 @@ fi
 if executable_exists 'pacman'; then
   pacman_conf_text="$(cat '/etc/pacman.conf')"
   for pacman_repo in 'multilib' 'chaotic-aur'; do
-    if ! grep --quiet --fixed-strings "[${pacman_repo}]" <<< "${pacman_conf_text}"; then
+    if ! contains_exactly "[${pacman_repo}]" <<< "${pacman_conf_text}"; then
       log "Pacman ${pacman_repo} repo is missing"
     fi
   done

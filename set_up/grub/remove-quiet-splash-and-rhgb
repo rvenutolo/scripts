@@ -40,7 +40,7 @@ readonly kernel_options_to_remove=(
 
 contains_options_to_remove='n'
 while read -r line; do
-  if grep --quiet --perl-regexp '^\s*(GRUB_CMDLINE_LINUX_DEFAULT)|(GRUB_CMDLINE_LINUX)\s*=' <<< "${line}"; then
+  if contains_perl_regex '^\s*(GRUB_CMDLINE_LINUX_DEFAULT)|(GRUB_CMDLINE_LINUX)\s*=' <<< "${line}"; then
     options="$(cut --delimiter='"' --fields='2' <<< "${line}")"
     for kernel_option in "${kernel_options_to_remove[@]}"; do
       if echo "${options}" | contains_word "${kernel_option}"; then
@@ -66,7 +66,7 @@ sudo cp "${grub_default_file}" "${grub_default_file}.orig"
 sudo truncate --size='0' "${grub_default_file}"
 while read -r line; do
   line_to_write="${line}"
-  if grep --quiet --perl-regexp '^\s*(GRUB_CMDLINE_LINUX)|(GRUB_CMDLINE_LINUX_DEFAULT)\s*=' <<< "${line}"; then
+  if contains_perl_regex '^\s*(GRUB_CMDLINE_LINUX)|(GRUB_CMDLINE_LINUX_DEFAULT)\s*=' <<< "${line}"; then
     for kernel_option in "${kernel_options_to_remove[@]}"; do
       #shellcheck disable=SC2001
       line_to_write="$(sed "s/${kernel_option}//g" <<< "${line_to_write}")"

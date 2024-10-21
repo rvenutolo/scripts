@@ -6,7 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-if timedatectl show | grep --quiet 'NTP=yes'; then
+if timedatectl show | contains_exactly 'NTP=yes'; then
   exit 0
 fi
 if ! prompt_yn 'Set timedatectl NTP on?'; then

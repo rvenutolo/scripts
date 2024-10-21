@@ -6,4 +6,4 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_exactly_1_arg "$@"
 
-unzip -p "$1" 'META-INF/MANIFEST.MF' | grep Build-Jdk-Spec
+unzip -p "$1" 'META-INF/MANIFEST.MF' | grep --fixed-strings 'Build-Jdk-Spec'
