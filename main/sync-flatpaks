@@ -45,6 +45,6 @@ log 'Updating all Flatpak packages'
 flatpak update --user --noninteractive
 log 'Updated all Flatpak packages'
 
-if flatpak list --user --app | contains_word 'com.google.Chrome'; then
+if flatpak list --user --app | contains_word_ignore_case 'com.google.chrome'; then
   flatpak override --user --filesystem="${HOME}/.local/share/applications:create" --filesystem="${HOME}/.local/share/icons:create" 'com.google.Chrome'
 fi
