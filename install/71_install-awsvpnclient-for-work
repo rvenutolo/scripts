@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
 
-# References:
-# https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-linux-install.html
-# https://sailokesh.hashnode.dev/connecting-to-aws-vpn-client-on-ubuntu-2204-workaround?source=more_articles_bottom_blogs
-# https://repost.aws/questions/QUNJeF_ja_Suykous7EvfX5Q/aws-client-vpn-on-ubuntu-22-04
-# https://gist.github.com/tomaszgiba/4b0c04a6b4b0048e6a582b19133014b7
-# https://gist.github.com/thiagozs/4d8c6e090a027fae3dd883163615f91e
-
 set -euo pipefail
 
 #shellcheck disable=SC1091
@@ -25,7 +18,7 @@ if ! prompt_yn 'Install AWS VPN Client?'; then
   exit 0
 fi
 
-if ! dpkg --status 'libssl1.1' > '/dev/null' 2>&1; then
+if ! dpkg_package_installed 'libssl1.1'; then
   log 'Installing old libssl1.1 package for AWS VPN client'
   # http://security.ubuntu.com/ubuntu/pool/main/o/openssl/
   readonly libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb'
@@ -36,7 +29,7 @@ if ! dpkg --status 'libssl1.1' > '/dev/null' 2>&1; then
   log 'Installed old libssl1.1 package for AWS VPN client'
 fi
 
-if ! dpkg --status 'awsvpnclient' > '/dev/null' 2>&1; then
+if ! dpkg_package_installed 'awsvpnclient'; then
 
   log 'Installing AWS VPN Client'
   readonly vpnclient_url='https://d20adtppz83p9s.cloudfront.net/GTK/latest/awsvpnclient_amd64.deb'
@@ -52,19 +45,6 @@ if ! dpkg --status 'awsvpnclient' > '/dev/null' 2>&1; then
   download-decrypt "${de_ovpn_file_url}" "${de_ovpn_file}"
   log 'Downloaded AWS VPN OVPN file'
 
-  log 'Installing openvpn-systemd-resolved and restarting systemd-resolved'
-  sudo apt-get install 'openvpn-systemd-resolved'
-  sudo systemctl restart 'systemd-resolved'
-  log 'Installed openvpn-systemd-resolved and restarted systemd-resolved'
-
-fi
-
-readonly vpnclient_dir='/opt/awsvpnclient'
-readonly vpnclient_symlink="${vpnclient_dir}/awsvpnclient"
-if ! file_exists "${vpnclient_symlink}"; then
-  log "Creating ${vpnclient_symlink} symbolic link"
-  sudo ln --symbolic 'AWS VPN Client' "${vpnclient_symlink}"
-  log "Created ${vpnclient_symlink} symbolic link"
 fi
 
 readonly service_file='/etc/systemd/system/awsvpnclient.service'
@@ -72,19 +52,24 @@ if ! file_exists "${service_file}"; then
   die "Service file ${service_file} does not exist"
 fi
 readonly dotnet_env_line='Environment=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1'
-if ! grep --quiet --fixed-strings "${dotnet_env_line}" "${service_file}"; then
+if ! file_contains_exactly "${service_file}" "${dotnet_env_line}"; then
   log 'Updating AWS VPN Client service file'
   sudo sed --in-place "/\[Service]/a ${dotnet_env_line}" "${service_file}"
   log 'Updated AWS VPN Client service file'
 fi
 
 readonly desktop_entry='/usr/share/applications/awsvpnclient.desktop'
-readonly new_exec_line="Exec=env DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 ${vpnclient_symlink} %u"
-if ! grep --quiet --fixed-strings "${new_exec_line}" "${desktop_entry}"; then
+readonly exec_env="env DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 "
+if ! file_contains_exactly "${desktop_entry}" "${exec_env}"; then
   log 'Updating AWS VPN Client desktop entry'
-  sudo sed --in-place "s#Exec=/opt/awsvpnclient/.*#${new_exec_line}#" "${desktop_entry}"
+  sudo sed --in-place "s|^Exec=.*|Exec=env DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 '/opt/awsvpnclient/AWS VPN Client' %u|" "${desktop_entry}"
   log 'Updated AWS VPN Client desktop entry'
 fi
 
-
+if ! dpkg_package_installed 'openvpn-systemd-resolved'; then
+  log 'Installing openvpn-systemd-resolved and restarting systemd-resolved'
+  sudo apt install 'openvpn-systemd-resolved'
+  sudo systemctl restart 'systemd-resolved'
+  log 'Installed openvpn-systemd-resolved and restarted systemd-resolved'
+fi
 

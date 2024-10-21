@@ -159,6 +159,13 @@ function contains() {
   grep --quiet --fixed-strings --ignore-case "$1"
 }
 
+# $1 = file
+# $2 = string
+function file_contains_exactly() {
+  check_exactly_2_args "$@"
+  grep --quiet --fixed-strings "$2" "$1"
+}
+
 function array_to_lines() {
   printf '%s\n' "$@"
 }
@@ -270,6 +277,11 @@ function is_gnome() {
 function is_pop_shell() {
   check_no_args "$@"
   [[ "${XDG_CURRENT_DESKTOP:-}" == 'pop:GNOME' ]]
+}
+
+# $1 = package name
+function dpkg_package_installed() {
+  dpkg-query --show --showformat='${Status}' $1 2> '/dev/null' | grep --quiet --fixed-strings 'ok installed'
 }
 
 # wrapper around curl to disable reading the config that is intended for interactive use
