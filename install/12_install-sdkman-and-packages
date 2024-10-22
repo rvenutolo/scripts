@@ -41,7 +41,7 @@ if [[ -f "${SDKMAN_DIR}/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN pack
   # This collects the latest packages per java version
   declare -A java_versions
   while read -r jdk; do
-    version="$(cut --delimiter='.' --fields='1' <<< "${jdk}")"
+    version="$(tr '-' '.' <<< "${jdk}" | cut --delimiter='.' --fields='1')"
     java_versions["${version}"]="${jdk}"
   done < <(sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac)
   while read -r jdk; do
