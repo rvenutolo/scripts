@@ -6,12 +6,17 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
+# $1 = compose file
+function run_command() {
+  docker compose --file "$1" down
+}
+
 if file_exists 'compose.yaml'; then
-  docker compose down
+  run_command './compose.yaml'
 else
   find . -name 'compose.yaml' | sort | while read -r compose_file; do
     compose_dir="$(basename "$(dirname "${compose_file}")")"
     log "Running docker compose down for: ${compose_dir}"
-    docker compose --file "${compose_file}" down
+    run_command "${compose_file}"
   done
 fi
