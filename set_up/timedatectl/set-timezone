@@ -7,15 +7,10 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_at_most_1_arg "$@"
 
 if [[ "$#" -eq 0 ]]; then
-  if is_server; then
-    tz='Etc/UTC'
-  else
-    tz='America/New_York'
-  fi
+  readonly tz='America/New_York'
 else
-  tz="$1"
+  readonly tz="$1"
 fi
-readonly tz
 
 if timedatectl show | contains_regex "^Timezone=${tz}$"; then
   exit 0
