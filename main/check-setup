@@ -189,9 +189,13 @@ fi
 
 expected_active_system_services=(
   'fail2ban.service'
-  'sshd.service'
   'ufw.service'
 )
+if is_ubuntu; then
+  expected_active_system_services+=('ssh.service')
+else
+  expected_active_system_services+=('sshd.service')
+fi
 if ! is_server; then
   expected_active_system_services+=('cups.service')
 fi
