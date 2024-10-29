@@ -8,7 +8,7 @@ check_no_args "$@"
 
 # $1 = compose file
 function run_command() {
-  docker compose --file "$1" up
+  docker compose --file "$1" up --detach
 }
 
 if file_exists 'compose.yaml'; then
