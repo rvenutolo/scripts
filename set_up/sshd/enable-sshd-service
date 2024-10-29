@@ -10,10 +10,4 @@ if ! executable_exists 'sshd'; then
   exit 0
 fi
 
-if is_ubuntu; then
-  readonly service_name='ssh'
-else
-  readonly service_name='sshd'
-fi
-
-enable_system_service_unit "${service_name}.service"
+enable_system_service_unit 'sshd.service'
