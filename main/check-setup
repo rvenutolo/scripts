@@ -191,11 +191,6 @@ expected_active_system_services=(
   'fail2ban.service'
   'ufw.service'
 )
-if is_ubuntu; then
-  expected_active_system_services+=('ssh.service')
-else
-  expected_active_system_services+=('sshd.service')
-fi
 if ! is_server; then
   expected_active_system_services+=('cups.service')
 fi
@@ -226,7 +221,9 @@ for service in "${expected_active_system_services[@]}"; do
   fi
 done
 
-expected_enabled_system_services=()
+expected_enabled_system_services=(
+  'sshd.service'
+)
 if executable_exists 'libvirtd'; then
   expected_enabled_system_services+=('libvirtd.service')
 fi
