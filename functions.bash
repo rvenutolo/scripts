@@ -147,7 +147,6 @@ function path_prepend() {
   path_remove "$1" && PATH="$1:$PATH"
 }
 
-
 # expected to pipe to this function, ex: echo 'foobar' | contains_exactly 'ooba'
 # $1 = string
 function contains_exactly() {
