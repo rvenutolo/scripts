@@ -4,26 +4,36 @@ set -euo pipefail
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-check_at_least_1_arg "$@"
-check_at_most_2_args "$@"
 
-readonly input_file="$1"
-readonly header_line="$(head --lines 1 "${input_file}")"
-
-if [[ -n "${2:-}" ]]; then
-  readonly delimiter="$2"
-elif contains_exactly ';' <<< "${header_line}"; then
-  readonly delimiter=';'
-elif contains_exactly ',' <<< "${header_line}"; then
-  readonly delimiter=','
-elif contains_exactly '\t' <<< "${header_line}"; then
-  readonly delimiter='\t'
-elif contains_exactly '|' <<< "${header_line}"; then
-  readonly delimiter='|'
-elif contains_exactly ':' <<< "${header_line}"; then
-  readonly delimiter=':'
+if stdin_exists; then
+  check_at_most_1_arg "$@"
+  readonly header_line="$(head --lines 1)"
+  if [[ -n "${1:-}" ]]; then
+    readonly delimiter="$1"
+  fi
 else
-  readonly delimiter=','
+  check_at_least_1_arg "$@"
+  check_at_most_2_args "$@"
+  readonly header_line="$(head --lines 1 "$1")"
+  if [[ -n "${2:-}" ]]; then
+    readonly delimiter="$2"
+  fi
+fi
+
+if [[ -z "${delimiter+x}" ]]; then
+  if contains_exactly ';' <<< "${header_line}"; then
+    readonly delimiter=';'
+  elif contains_exactly ',' <<< "${header_line}"; then
+    readonly delimiter=','
+  elif contains_exactly '\t' <<< "${header_line}"; then
+    readonly delimiter='\t'
+  elif contains_exactly '|' <<< "${header_line}"; then
+    readonly delimiter='|'
+  elif contains_exactly ':' <<< "${header_line}"; then
+    readonly delimiter=':'
+  else
+    readonly delimiter=','
+  fi
 fi
 
 tr "${delimiter}" '\n' <<< "${header_line}" | cat --number
