@@ -2,6 +2,8 @@
 
 #source "${SCRIPTS_DIR}/functions.bash"
 
+#shellcheck disable=SC2120
+
 function log() {
   echo -e "\033[0;32m[$(date +%T) ${0##*/}] $*\033[0m" >&2
 }
@@ -413,7 +415,7 @@ function is_pop_shell() {
 
 # $1 = package name
 function dpkg_package_installed() {
-  dpkg-query --show --showformat='${Status}' $1 2> '/dev/null' | contains_exactly_ignore_case 'ok installed'
+  dpkg-query --show --showformat='${Status}' "$1" 2> '/dev/null' | contains_exactly_ignore_case 'ok installed'
 }
 
 # wrapper around curl to disable reading the config that is intended for interactive use
@@ -479,7 +481,7 @@ function prompt_ny() {
   fi
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
     echo -e -n "\033[0;33m$1 [y/N]: \033[0m"
-    read
+    read -r
     if [[ "${REPLY}" == [yY] ]]; then
       REPLY='y'
     elif [[ "${REPLY}" == '' || "${REPLY}" == [nN] ]]; then
@@ -498,7 +500,7 @@ function prompt_yn() {
   fi
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
     echo -e -n "\033[0;33m$1 [Y/n]: \033[0m"
-    read
+    read -r
     if [[ "${REPLY}" == '' || "${REPLY}" == [yY] ]]; then
       REPLY='y'
     elif [[ "${REPLY}" == [nN] ]]; then
@@ -520,7 +522,7 @@ function prompt_for_value() {
     fi
     if [[ "${REPLY}" == '' ]]; then
       echo -e -n "\033[0;33m$1 [$2]: \033[0m"
-      read
+      read -r
       if [[ "${REPLY}" == '' ]]; then
         REPLY="$2"
       fi
@@ -530,7 +532,7 @@ function prompt_for_value() {
     REPLY=''
     while [[ -z "${REPLY}" ]]; do
       echo -e -n "\033[0;33m$1: \033[0m"
-      read
+      read -r
     done
     echo "${REPLY}"
   fi
