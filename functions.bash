@@ -77,6 +77,10 @@ function check_for_stdin() {
   fi
 }
 
+function stdin_exists() {
+  ! [[ -t 0 ]]
+}
+
 # $1 = variable name
 function check_for_var() {
   check_exactly_1_arg "$@"
