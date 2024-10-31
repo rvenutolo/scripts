@@ -4,8 +4,11 @@ set -euo pipefail
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-check_no_args "$@"
-check_for_stdin
 
-## handy for counting duplicated lines in a file or listing
-sort | uniq --count | sort --numeric-sort --reverse
+if stdin_exists; then
+  check_no_args "$@"
+  sort | uniq --count | sort --numeric-sort --reverse
+else
+  check_exactly_1_arg "$@"
+  sort "$1" | uniq --count | sort --numeric-sort --reverse
+fi

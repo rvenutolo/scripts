@@ -4,7 +4,11 @@ set -euo pipefail
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-check_no_args "$@"
-check_for_stdin
 
-awk '!x[$0]++'
+if stdin_exists; then
+  check_no_args "$@"
+  awk '!x[$0]++'
+else
+  check_exactly_1_arg "$@"
+  awk '!x[$0]++' "$1"
+fi

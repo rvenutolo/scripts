@@ -4,14 +4,12 @@ set -euo pipefail
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-check_at_most_1_arg "$@"
-if [[ "$#" -eq 0 ]]; then
-  check_for_stdin
-fi
 
-if [[ "$#" -eq 0 ]]; then
+if stdin_exists; then
+  check_no_args "$@"
   highlight --out-format=ansi --force | less --raw-control-chars
 else
+  check_exactly_1_arg "$@"
   case "$1" in
     *.md) glow "$1" | less --raw-control-chars ;;
     *) highlight --out-format=ansi --force "$1" | less --raw-control-chars ;;
