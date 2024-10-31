@@ -4,13 +4,12 @@ set -euo pipefail
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-if [[ "$#" -eq 0 ]]; then
-  check_for_stdin
-fi
 
-if [[ "$#" -eq 0 ]]; then
+if stdin_exists; then
+  check_no_args "$@"
   tr '[:upper:]' '[:lower:]'
 else
+  check_at_least_1_arg "$@"
   for file; do
     dirname="$(dirname -- "${file}")"
     filename="$(basename -- "${file}")"
