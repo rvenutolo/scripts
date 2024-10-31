@@ -1,0 +1,36 @@
+#!/usr/bin/env groovy
+
+import groovy.transform.Immutable
+import java.nio.file.Path
+
+@Immutable
+class MediaInfo {
+    String dir
+    String fileName
+    long size
+}
+
+def moviesDir = Path.of(System.getProperty('user.home')).resolve('data/media/movies')
+
+def moviesMap = [:].withDefault { [] }
+['uhd', 'uhd-se', 'hd', 'hd-se'].each { dir ->
+    moviesDir.resolve(dir).toFile().listFiles().sort().each { movieFileDir ->
+        movieFileDir.listFiles().sort().each { movieFile ->
+            moviesMap[movieFileDir.name] << new MediaInfo(
+                dir: dir,
+                fileName: movieFile.name,
+                size: movieFile.size()
+            )
+        }
+    }
+}
+
+def gigabyte = 1024 * 1024 * 1024
+moviesMap.sort().each { String movie, List<MediaInfo> infoList ->
+    println(movie)
+    infoList.each {
+        def dirString = it.dir.padLeft(6)
+        def gbString = "${(it.size / gigabyte).round(1)}".padLeft(4)
+        println("\t${dirString} | ${gbString}G | ${it.fileName}")
+    }
+}
