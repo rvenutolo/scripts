@@ -72,4 +72,3 @@ if ! dpkg_package_installed 'openvpn-systemd-resolved'; then
   sudo systemctl restart 'systemd-resolved'
   log 'Installed openvpn-systemd-resolved and restarted systemd-resolved'
 fi
-
