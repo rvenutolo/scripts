@@ -303,6 +303,11 @@ function array_to_lines() {
   printf '%s\n' "$@"
 }
 
+# $1 = file
+function file_size_gb() {
+  echo "scale=2; $(stat --format='%s' "$1") / 1073741824" | bc
+}
+
 function is_personal() {
   check_no_args "$@"
   [[ "$(hostname)" == "${PERSONAL_DESKTOP_HOSTNAME}" || "$(hostname)" == "${PERSONAL_LAPTOP_HOSTNAME}" ]]
