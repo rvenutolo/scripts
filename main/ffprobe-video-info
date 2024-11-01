@@ -7,6 +7,6 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
 find . -iregex '.*\.\(mkv\|mp4\)$' -printf '%P\n' | sort | while read -r video_file; do
-  video_info="$(ffprobe "${video_file}" -show_entries 'stream=codec_name,width,height' -select_streams 'v:0' -loglevel '16' -output_format 'compact=p=0:nk=1' | awk -F'|' '{ print $2 " | " $3 " | " $1 }')"
-  echo "${video_info} | $(file_size_gb "${video_file}")G | $(dirname "${video_file}") | $(basename "${video_file}")"
-done
+  video_info="$(ffprobe "${video_file}" -show_entries 'stream=codec_name,width,height' -select_streams 'v:0' -loglevel '16' -output_format 'compact=p=0:nk=1' | awk -F'|' '{ print $2 "|" $3 "|" $1 }')"
+  echo "${video_info}|$(file_size_gb "${video_file}")G|$(dirname "${video_file}")|$(basename "${video_file}")"
+done | column --table --separator '|'
