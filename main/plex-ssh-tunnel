@@ -6,4 +6,5 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
+log "Plex: http://127.0.0.1:8888/web"
 ssh -L 8888:127.0.0.1:32400 100.123.5.106
