@@ -678,6 +678,21 @@ function enable_user_service_unit() {
 }
 
 # $1 = service unit file
+function disable_user_service_unit() {
+  check_not_root
+  check_exactly_1_arg "$@"
+  if user_service_unit_file_exists "$1"; then
+    if systemctl is-enabled --user --quiet "$1" && prompt_yn "Disable and stop $1 user service?"; then
+      log "Disabling and stopping $1 user service"
+      systemctl disable --now --user --quiet "$1"
+      log "Disabled and stopped $1 user service"
+    fi
+  else
+    log "User service unit files does not exist: $1"
+  fi
+}
+
+# $1 = service unit file
 function restart_user_service_if_enabled() {
   check_not_root
   check_exactly_1_arg "$@"
@@ -705,6 +720,20 @@ function enable_system_service_unit() {
       log "Enabling and starting $1 system service"
       sudo systemctl enable --now --system --quiet "$1"
       log "Enabled and started $1 system service"
+    fi
+  else
+    log "System service unit files does not exist: $1"
+  fi
+}
+
+# $1 = service unit file
+function disable_system_service_unit() {
+  check_exactly_1_arg "$@"
+  if system_service_unit_file_exists "$1"; then
+    if systemctl is-enabled --system --quiet "$1" && prompt_yn "Disable and stop $1 system service?"; then
+      log "Disabling and stopping $1 system service"
+      sudo systemctl disable --now --system --quiet "$1"
+      log "Disabled and stopped $1 system service"
     fi
   else
     log "System service unit files does not exist: $1"
