@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+if ! executable_exists 'dockerd'; then
+  log 'dockerd executable not found'
+  exit 0
+fi
+
+if ! executable_exists 'dockerd-rootless-setuptool.sh'; then
+  log 'dockerd-rootless-setuptool.sh executable not found'
+  exit 0
+fi
+
+disable_system_service_unit 'docker.service'
+disable_system_service_unit 'docker.socket'
+
+log 'Running rootless setup script'
+dockerd-rootless-setuptool.sh install
+log 'Ran rootless setup script'
+
+enable_user_service_unit 'docker.service'
