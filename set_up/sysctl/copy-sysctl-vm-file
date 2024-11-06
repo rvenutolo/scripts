@@ -7,8 +7,8 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_not_root
 check_no_args "$@"
 
-readonly src_file="${HOME}/.etc/sysctl-kvals.conf"
-readonly dest_file='/etc/sysctl.d/kvals.conf'
+readonly src_file="${HOME}/.etc/sysctl-vm.conf"
+readonly dest_file='/etc/sysctl.d/vm.conf'
 
 # Copy instead of symlink - see 'protected_symlinks' in https://www.kernel.org/doc/Documentation/sysctl/fs.txt
 copy_system_file "${src_file}" "${dest_file}"
