@@ -41,7 +41,7 @@ log "Adding ${name} repo"
 readonly local_file='/tmp/webmin-setup-repos.sh'
 download "${url}" > "${local_file}"
 chmod +x "${local_file}"
-"${local_file}" --force
+sudo "${local_file}" --force
 log "Added ${name} repo"
 
 log "Installing ${name}"
