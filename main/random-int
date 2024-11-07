@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_at_least_2_args "$@"
+check_at_most_3_args "$@"
+
+if [[ "$#" -eq 3 ]]; then
+  readonly num_output="$3"
+else
+  readonly num_output=1
+fi
+
+shuf --input-range "$1-$2" --head-count "${num_output}"
