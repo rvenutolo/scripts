@@ -200,9 +200,6 @@ fi
 if executable_exists 'CrashPlanDesktop'; then
   expected_active_system_services+=('crashplan-pro.service')
 fi
-if executable_exists 'dockerd'; then
-  expected_active_system_services+=('docker.service')
-fi
 if executable_exists 'containerd'; then
   expected_active_system_services+=('containerd.service')
 fi
@@ -239,6 +236,9 @@ expected_active_user_services=(
   'trash-cleanup.timer'
   'trash-empty.timer'
 )
+if executable_exists 'dockerd'; then
+  expected_active_user_services+=('docker.service')
+fi
 for service in "${expected_active_user_services[@]}"; do
   if ! systemctl is-active --user --quiet "${service}"; then
     log "User service not active: ${service}"
