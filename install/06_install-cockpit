@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if ! is_server; then
+  exit 0
+fi
+
+# On Debian and Ubuntu, install cockpit from backports repo.
+# Other distros (Arch and Fedora) can install from the regular repos
+if is_debian || is_ubuntu; then
+  sudo apt install --target-release "$(os_codename)-backports" cockpit
+fi
