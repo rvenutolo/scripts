@@ -61,9 +61,21 @@ function check_at_least_2_args() {
   fi
 }
 
+function check_at_most_3_args() {
+  if [[ "$#" -gt 3 ]]; then
+    die "Expected at most 3 arguments"
+  fi
+}
+
 function check_exactly_3_args() {
   if [[ "$#" -ne 3 ]]; then
     die "Expected exactly 3 arguments"
+  fi
+}
+
+function check_at_least_3_args() {
+  if [[ "$#" -lt 3 ]]; then
+    die "Expected at least 3 arguments"
   fi
 }
 
