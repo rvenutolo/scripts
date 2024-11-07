@@ -15,7 +15,7 @@ mapfile -t packages < <(get_distro_packages "$(os_id)" "$(os_codename)")
 readonly packages
 
 if executable_exists 'apt'; then
-  sudo apt install --yes "${packages[@]}"
+  sudo apt install --install-recommends --yes "${packages[@]}"
 elif executable_exists 'dnf'; then
   sudo dnf install --assumeyes "${packages[@]}"
 elif executable_exists 'pacman'; then
