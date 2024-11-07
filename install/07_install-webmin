@@ -39,7 +39,7 @@ fi
 
 log "Adding ${name} repo"
 download "${url}" | sudo sh
-log "Adding ${name} repo"
+log "Added ${name} repo"
 
 log "Installing ${name}"
 if executable_exists 'apt'; then
