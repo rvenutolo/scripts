@@ -38,7 +38,7 @@ if ! prompt_yn "Install ${name}?"; then
 fi
 
 log "Adding ${name} repo"
-download "${url}" | sh
+download "${url}" | sudo sh
 log "Adding ${name} repo"
 
 log "Installing ${name}"
