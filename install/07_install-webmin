@@ -7,13 +7,22 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_not_root
 check_no_args "$@"
 
-if ! is_server; then
-  exit 0
-fi
-
 readonly name='Webmin'
 readonly executable='webmin'
 readonly url='https://raw.githubusercontent.com/webmin/webmin/master/webmin-setup-repos.sh'
+
+if ! is_server; then
+  exit 0
+fi
+if ! is_debian && ! is_ubuntu && ! is_fedora; then
+  exit 0
+fi
+if executable_exists "${executable}"; then
+  exit 0
+fi
+if ! prompt_yn "Install ${name}?"; then
+  exit 0
+fi
 
 # wrapper around curl to disable reading the config that is intended for interactive use
 function curl() {
@@ -26,16 +35,6 @@ function wget() {
   command wget --no-config "$@"
 }
 export -f wget
-
-if ! is_debian && ! is_ubuntu && ! is_fedora; then
-  exit 0
-fi
-if executable_exists "${executable}"; then
-  exit 0
-fi
-if ! prompt_yn "Install ${name}?"; then
-  exit 0
-fi
 
 log "Adding ${name} repo"
 download_and_run_script_as_root "${url}" --force

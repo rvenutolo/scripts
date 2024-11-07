@@ -11,6 +11,13 @@ readonly name='Docker'
 readonly executable='dockerd'
 readonly url='https://get.docker.com'
 
+if executable_exists "${executable}"; then
+  exit 0
+fi
+if ! prompt_yn "Install ${name}?"; then
+  exit 0
+fi
+
 # wrapper around curl to disable reading the config that is intended for interactive use
 function curl() {
   command curl --disable "$@"
@@ -23,12 +30,6 @@ function wget() {
 }
 export -f wget
 
-if executable_exists "${executable}"; then
-  exit 0
-fi
-if ! prompt_yn "Install ${name}?"; then
-  exit 0
-fi
 log "Installing ${name} via: ${url}"
 download_and_run_script "${url}"
 log "Installed ${name} via: ${url}"
