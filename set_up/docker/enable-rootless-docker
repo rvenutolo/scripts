@@ -19,6 +19,8 @@ fi
 disable_system_service_unit 'docker.service'
 disable_system_service_unit 'docker.socket'
 
+sudo rm --force '/var/run/docker.sock'
+
 log 'Running rootless setup script'
 dockerd-rootless-setuptool.sh install
 log 'Ran rootless setup script'
