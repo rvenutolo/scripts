@@ -11,4 +11,4 @@ if [[ "$#" -eq 0 ]]; then
 else
   readonly city="$1"
 fi
-download "wttr.in/${city}"
+download_and_cat "wttr.in/${city}"

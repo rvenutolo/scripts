@@ -542,6 +542,44 @@ function prompt_for_value() {
   fi
 }
 
+# $1 = url
+function download_and_cat() {
+  check_exactly_1_arg "$@"
+  local temp_file="$(mktemp)"
+  download "$1" "${temp_file}"
+  cat "${temp_file}"
+}
+
+# $1 = url
+function download_to_temp_file() {
+  check_exactly_1_arg "$@"
+  local temp_file="$(mktemp)"
+  download "$1" "${temp_file}"
+  echo "${temp_file}"
+}
+
+# $1 = script url
+# $2+ args to pass to the script
+function download_and_run_script() {
+  check_at_least_1_arg "$@"
+  local temp_file="$(mktemp)"
+  download "$1" "${temp_file}"
+  chmod +x "${temp_file}"
+  shift
+  "${temp_file}" "$@"
+}
+
+# $1 = script url
+# $2+ args to pass to the script
+function download_and_run_script_as_root() {
+  check_at_least_1_arg "$@"
+  local temp_file="$(mktemp)"
+  download "$1" "${temp_file}"
+  chmod +x "${temp_file}"
+  shift
+  sudo "${temp_file}" "$@"
+}
+
 # $1 = target file
 # $2 = link file
 function link_user_file() {
@@ -778,9 +816,9 @@ function get_sdkman_packages() {
     die 'Could not determine which computer this is'
   fi
   local disabled_awk_string="\$${package_list_column} == \"y\" && \$7 != \"\" { print \"Disabled package: \" \$2 \" (\" \$7 \")\" }"
-  download "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
+  download_and_cat "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
   local enabled_awk_string="\$${package_list_column} == \"y\" && \$7 == \"\" { print \$2 }"
-  download "${package_list_url}" | awk -F ',' "${enabled_awk_string}"
+  download_and_cat "${package_list_url}" | awk -F ',' "${enabled_awk_string}"
 }
 
 # $1 = packages list type (appimage flatpak nixpkgs)
@@ -818,9 +856,9 @@ function get_universal_packages() {
     die 'Could not determine which computer this is'
   fi
   local disabled_awk_string="\$2 == \"${package_type}\" && \$${package_list_column}== \"y\" && \$8 != \"\" { print \"Disabled package: \" \$3 \" (\" \$8 \")\" }"
-  download "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
+  download_and_cat "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
   local enabled_awk_string="\$2 == \"${package_type}\" && \$${package_list_column}== \"y\" && \$8 == \"\" { print \$3 }"
-  comm -23 <(download "${package_list_url}" | awk -F ',' "${enabled_awk_string}" | sort) <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
+  comm -23 <(download_and_cat "${package_list_url}" | awk -F ',' "${enabled_awk_string}" | sort) <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
 }
 
 # $1 = id
@@ -843,7 +881,7 @@ function get_distro_packages() {
     die 'Could not determine which computer this is'
   fi
   local disabled_awk_string="\$${package_list_column} == \"y\" && \$6 != \"\" { print \"Disabled package: \" \$1 \" (\" \$6 \")\" }"
-  download "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
+  download_and_cat "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
   local enabled_awk_string="\$${package_list_column} == \"y\" && \$6 == \"\" { print \$1 }"
-  download "${package_list_url}" | awk -F ',' "${enabled_awk_string}"
+  download_and_cat "${package_list_url}" | awk -F ',' "${enabled_awk_string}"
 }

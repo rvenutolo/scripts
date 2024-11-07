@@ -12,10 +12,10 @@ mkdir --parents "${keys_dir}"
 readonly age_key_file="${keys_dir}/age.key"
 if ! file_exists "${age_key_file}"; then
   log "Downloading: ${age_key_file}"
-  age_key_content="$(download 'https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/age.key')"
-  if [[ -n "${age_key_content}" ]]; then
+  temp_file="$(download_to_temp_file 'https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/age.key')"
+  if [[ -s "${temp_file}" ]]; then
     log "Decrypting: ${age_key_file}"
-    until age --decrypt --output "${age_key_file}" <<< "${age_key_content}"; do :; done
+    until age --decrypt --output "${age_key_file}" "${temp_file}"; do :; done
   else
     die "age key file content is empty"
   fi
@@ -25,17 +25,17 @@ for filename in 'id_ed25519' 'id_ed25519.pub'; do
   key_file="${keys_dir}/${filename}"
   if ! file_exists "${key_file}"; then
     log "Downloading: ${key_file}"
-    key_contents="$(download "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${filename}")"
-    if [[ -n "${key_contents}" ]]; then
+    temp_file="$(download_to_temp_file "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${filename}")"
+    if [[ -s "${temp_file}" ]]; then
       log "Decrypting: ${key_file}"
-      age --decrypt --identity "${age_key_file}" --output "${key_file}" <<< "${key_contents}"
+      age --decrypt --identity "${age_key_file}" --output "${key_file}" "${temp_file}"
     else
       die "${filename} content is empty"
     fi
   fi
 done
 
-for url in $(download 'https://api.github.com/repos/rvenutolo/crypt/contents/keys' | jq -r '.[].download_url'); do
+for url in $(download_and_cat 'https://api.github.com/repos/rvenutolo/crypt/contents/keys' | jq -r '.[].download_url'); do
   filename="$(basename "${url}")"
   if [[ "${filename}" == 'age.key' || "${filename}" == 'id_ed25519' || "${filename}" == 'id_ed25519.pub' ]]; then
     continue
@@ -43,10 +43,10 @@ for url in $(download 'https://api.github.com/repos/rvenutolo/crypt/contents/key
   key_file="${keys_dir}/${filename}"
   if ! file_exists "${key_file}" && prompt_ny "Download ${filename}?"; then
     log "Downloading: ${filename}"
-    key_contents="$(download "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${filename}")"
-    if [[ -n "${key_contents}" ]]; then
+    temp_file="$(download_to_temp_file "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${filename}")"
+    if [[ -s "${temp_file}" ]]; then
       log "Decrypting: ${key_file}"
-      age --decrypt --identity "${age_key_file}" --output "${key_file}" <<< "${key_contents}"
+      age --decrypt --identity "${age_key_file}" --output "${key_file}" "${temp_file}"
     else
       die "${filename} content is empty"
     fi

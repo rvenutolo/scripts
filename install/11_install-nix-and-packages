@@ -14,7 +14,7 @@ if ! executable_exists 'nix' && prompt_yn 'Install Nix?'; then
   fi
   sudo chmod 755 '/nix'
   sudo chown --recursive "${USER}:" '/nix'
-  download 'https://nixos.org/nix/install' | sh -s -- --no-daemon --no-modify-profile
+  download_and_run_script 'https://nixos.org/nix/install' --no-daemon --no-modify-profile
   log 'Installed Nix'
 fi
 
