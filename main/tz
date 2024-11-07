@@ -6,4 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-find '/usr/share/zoneinfo/' -type f | xargs md5sum | grep "$(md5sum '/etc/localtime' | cut --delimiter=' ' --fields='1')" | cut --delimiter='/' --fields='5,6'
+find '/usr/share/zoneinfo/' -type f | \
+  xargs md5sum | \
+  grep "$(md5sum '/etc/localtime' | cut --delimiter=' ' --fields='1')" | \
+  cut --delimiter='/' --fields='5,6'
