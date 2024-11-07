@@ -7,7 +7,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_not_root
 check_no_args "$@"
 
-if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]] && prompt_yn 'Install Nix?'; then
+if ! executable_exists 'nix' && prompt_yn 'Install Nix?'; then
   log 'Installing Nix'
   if [[ ! -d '/nix' ]]; then
     sudo mkdir '/nix'
@@ -18,7 +18,7 @@ if [[ ! -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]] && prompt_yn 'Install 
   log 'Installed Nix'
 fi
 
-if [[ -f "${HOME}/.nix-profile/etc/profile.d/nix.sh" && ! -f "${HOME_MANAGER_DIR}/flake.lock" ]] && prompt_yn 'Install Nix home-manager and packages?'; then
+if ! executable_exists 'home-manager' && prompt_yn 'Install Nix home-manager and packages?'; then
   log 'Installing Nix home-manager and packages'
   # shellcheck disable=SC1091
   source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
