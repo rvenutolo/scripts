@@ -26,5 +26,5 @@ if ! prompt_yn "Install ${name}?"; then
 fi
 
 log "Installing ${name}"
-sudo apt install --target-release "$(os_codename)-backports" cockpit
+sudo apt install --yes --target-release "$(os_codename)-backports" cockpit
 log "Installed ${name}"

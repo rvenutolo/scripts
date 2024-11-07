@@ -42,7 +42,7 @@ log "Added ${name} repo"
 
 log "Installing ${name}"
 if executable_exists 'apt'; then
-  sudo apt install --install-recommends 'webmin'
+  sudo apt install --yes --install-recommends 'webmin'
 elif executable_exists 'dnf'; then
   sudo dnf install 'webmin'
 else
