@@ -30,5 +30,5 @@ if ! prompt_yn "Install ${name}?"; then
   exit 0
 fi
 log "Installing ${name} via: ${url}"
-download "${url}" | sh
+download_and_run_script "${url}"
 log "Installed ${name} via: ${url}"
