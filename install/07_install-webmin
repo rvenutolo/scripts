@@ -12,7 +12,7 @@ if ! is_server; then
 fi
 
 readonly name='Webmin'
-radonly executable='webmin'
+readonly executable='webmin'
 readonly url='https://raw.githubusercontent.com/webmin/webmin/master/webmin-setup-repos.sh'
 
 # wrapper around curl to disable reading the config that is intended for interactive use

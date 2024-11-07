@@ -8,7 +8,7 @@ check_not_root
 check_no_args "$@"
 
 readonly name='Docker'
-radonly executable='dockerd'
+readonly executable='dockerd'
 readonly url='https://get.docker.com'
 
 # wrapper around curl to disable reading the config that is intended for interactive use

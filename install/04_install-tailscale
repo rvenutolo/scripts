@@ -8,7 +8,7 @@ check_not_root
 check_no_args "$@"
 
 readonly name='Tailscale'
-radonly executable='tailscale'
+readonly executable='tailscale'
 readonly url='https://tailscale.com/install.sh'
 
 # wrapper around curl to disable reading the config that is intended for interactive use
