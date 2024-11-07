@@ -38,7 +38,10 @@ if ! prompt_yn "Install ${name}?"; then
 fi
 
 log "Adding ${name} repo"
-download "${url}" | sudo sh
+readonly local_file='/tmp/webmin-setup-repos.sh'
+download "${url}" > "${local_file}"
+chmod +x "${local_file}"
+"${local_file}" --force
 log "Added ${name} repo"
 
 log "Installing ${name}"
