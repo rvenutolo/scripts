@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_not_root
+check_no_args "$@"
+
+readonly name='Tailscale'
+radonly executable='tailscale'
+readonly url='https://tailscale.com/install.sh'
+
+# wrapper around curl to disable reading the config that is intended for interactive use
+function curl() {
+  command curl --disable "$@"
+}
+export -f curl
+
+# wrapper around wget to disable reading the config that is intended for interactive use
+function wget() {
+  command wget --no-config "$@"
+}
+export -f wget
+
+if executable_exists "${executable}"; then
+  exit 0
+fi
+if ! prompt_yn "Install ${name}?"; then
+  exit 0
+fi
+log "Installing ${name} via: ${url}"
+download "${url}" | sh
+log "Installed ${name} via: ${url}"
