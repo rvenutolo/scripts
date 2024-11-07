@@ -25,7 +25,6 @@ readonly groups=(
   'input'
   'libvirt'
   'log'
-  'lxd'
   'networkmanager'
   'sudo'
   'sys'
