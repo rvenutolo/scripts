@@ -19,6 +19,7 @@ echo -n 'services:
     container_name: some_name
     hostname: some_hostname
     restart: unless-stopped
+    user: ${PUID:?}:${PGID:?}
     ports:
       - "${TAILNET_IP:?}:${APP_PORT:?}:80"
     volumes:
