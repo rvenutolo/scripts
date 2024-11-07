@@ -11,6 +11,10 @@ if ! executable_exists 'dockerd'; then
   exit 0
 fi
 
+if user_service_unit_file_exists 'docker.service'; then
+  exit 0
+fi
+
 if ! prompt_yn 'Enable rootless Docker?'; then
   exit 0
 fi
