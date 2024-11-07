@@ -847,23 +847,3 @@ function get_distro_packages() {
   local enabled_awk_string="\$${package_list_column} == \"y\" && \$6 == \"\" { print \$1 }"
   download "${package_list_url}" | awk -F ',' "${enabled_awk_string}"
 }
-
-function get_install_scripts() {
-  check_no_args
-  local package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/scripts.csv"
-  if is_personal && is_desktop; then
-    local package_list_column=4
-  elif is_personal && is_laptop; then
-    local package_list_column=5
-  elif is_work && is_laptop; then
-    local package_list_column=6
-  elif is_server; then
-    local package_list_column=7
-  else
-    die 'Could not determine which computer this is'
-  fi
-  local disabled_awk_string="\$${package_list_column} == \"y\" && \$8 != \"\" { print \"Disabled package: \" \$1 \" (\" \$8 \")\" }"
-  download "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
-  local enabled_awk_string="\$${package_list_column} == \"y\" && \$8 == \"\" { print \$1, \$2, \$3 }"
-  download "${package_list_url}" | awk -F ',' -v 'OFS=|' "${enabled_awk_string}"
-}
