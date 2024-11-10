@@ -24,6 +24,7 @@ echo -n 'services:
       - "${TAILNET_IP:?}:${APP_PORT:?}:80"
     volumes:
       - /etc/localtime:/etc/localtime:ro
+      - ${DOCKER_APP_DATA_DIR:?}/some_service:/config
       - ${DOCKER_SOCKET:?}:/var/run/docker.sock
     environment:
       PUID: ${PUID:?}
