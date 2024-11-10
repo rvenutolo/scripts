@@ -24,7 +24,7 @@ if ! sudo ufw status verbose | contains_perl_regex_ignore_case 'anywhere on tail
 fi
 
 if ! sudo ufw status verbose | contains_perl_regex_ignore_case '22/tcp\s+allow in\s+anywhere'; then
-  if prompt_yn "Set UFW to allow all incoming traffic on port 22 (ssh)?"; then
+  if prompt_ny "Set UFW to allow all incoming traffic on port 22 (ssh)?"; then
     sudo ufw allow ssh
   fi
 fi
