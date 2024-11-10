@@ -9,8 +9,8 @@ check_no_args "$@"
 
 if is_debian; then
   log "Enabling backports repo"
-  echo "deb http://deb.debian.org/debian $(os_codename)-backports main" | \
-    sudo tee '/etc/apt/sources.list.d/backports.list' > '/dev/null'
+  echo "deb http://deb.debian.org/debian $(os_codename)-backports main" \
+    | sudo tee '/etc/apt/sources.list.d/backports.list' > '/dev/null'
   log "Enabled backports repo"
 fi
 
