@@ -10,7 +10,7 @@ check_no_args "$@"
 function run_commands() {
   docker compose --file "$1" down
   docker compose --file "$1" pull
-  docker compose --file "$1" up --detach --force-recreate
+  docker compose --file "$1" up --detach
 }
 
 if file_exists 'compose.yaml'; then
