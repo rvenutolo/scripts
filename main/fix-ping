@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+find '/nix/store' -type 'f' -name 'ping' -exec sudo setcap 'cap_net_raw+ep' {} \;
