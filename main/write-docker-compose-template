@@ -4,30 +4,86 @@ set -euo pipefail
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-check_no_args "$@"
+check_exactly_1_arg "$@"
+
+readonly name="$1"
 
 readonly compose_file='./compose.yaml'
+readonly env_template_file='./.env.template'
 
 if file_exists "${compose_file}"; then
   die "${compose_file} exists"
 fi
 
+if file_exists "${env_template_file}"; then
+  die "${env_template_file} exists"
+fi
+
 # shellcheck disable=SC2016
-echo -n 'services:
-  some_service:
-    image: some_image:latest
-    container_name: some_name
-    hostname: some_hostname
+echo -n "networks:
+  proxy:
+    external: true
+  ${name}-socket-proxy:
+
+services:
+
+  ${name}-socket-proxy:
+    image: \${SOCKET_PROXY_IMAGE:-tecnativa/docker-socket-proxy}:\${SOCKET_PROXY_IMAGE_TAG:-latest}
+    container_name: ${name}-socket-proxy
+    hostname: ${name}-socket-proxy
+    privileged: true
     restart: unless-stopped
-    user: ${PUID:?}:${PGID:?}
-    ports:
-      - "${TAILNET_IP:?}:${APP_PORT:?}:80"
+    networks:
+      - ${name}-socket-proxy
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ${DOCKER_APP_DATA_DIR:?}/some_service:/config
-      - ${DOCKER_SOCKET:?}:/var/run/docker.sock
+      - \${DOCKER_SOCKET:?}:/var/run/docker.sock
     environment:
-      PUID: ${PUID:?}
-      PGID: ${PGID:?}
-      TZ: ${TZ:?}
-' > "${compose_file}"
+      LOG_LEVEL: \${SOCKET_PROXY_LOG_LEVEL:-debug}
+      ## TODO figure these out
+      AUTH: 0
+      BUILD: 0
+      COMMIT: 0
+      CONFIGS: 0
+      CONTAINERS: 0
+      DISTRIBUTION: 0
+      EXEC: 0
+      IMAGES: 0
+      INFO: 0
+      NETWORKS: 0
+      NODES: 0
+      PLUGINS: 0
+      POST: 0
+      SECRETS: 0
+      SERVICES: 0
+      SESSION: 0
+      SWARM: 0
+      SYSTEM: 0
+      TASKS: 0
+      VOLUMES: 0
+
+  ${name}:
+    image: \${${name^^}_IMAGE:-${name}:\${${name^^}_IMAGE_TAG:-latest}
+    container_name: ${name}
+    hostname: ${name}
+    restart: unless-stopped
+    networks:
+      - proxy
+      - ${name}-socket-proxy
+    volumes:
+      - \${DOCKER_APP_DATA_DIR:?}/${name}:/config
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      DOCKER_HOST: tcp://${name}-socket-proxy:2375
+      TZ: \${TZ:?}
+" > "${compose_file}"
+
+echo "## OPTIONAL OVERRIDES
+${name^^}_IMAGE=
+${name^^}_IMAGE_TAG=
+
+## SOCKET PROXY OPTIONAL OVERRIDES
+SOCKET_PROXY_IMAGE=
+SOCKET_PROXY_IMAGE_TAG=
+SOCKET_PROXY_LOG_LEVEL= # debug, info, notice, warning, err, crit, alert, emerg
+" > "${env_template_file}"
