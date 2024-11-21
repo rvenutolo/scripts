@@ -87,5 +87,6 @@ ${constant_name}_IMAGE_TAG=
 ## SOCKET PROXY OPTIONAL OVERRIDES
 SOCKET_PROXY_IMAGE=
 SOCKET_PROXY_IMAGE_TAG=
-SOCKET_PROXY_LOG_LEVEL= # debug, info, notice, warning, err, crit, alert, emerg
+# debug, info, notice, warning, err, crit, alert, emerg
+SOCKET_PROXY_LOG_LEVEL=
 " > "${env_template_file}"
