@@ -7,6 +7,8 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_exactly_1_arg "$@"
 
 readonly name="$1"
+constant_name="${name^^}"
+readonly constant_name="${constant_name//-/_}"
 
 readonly compose_file='./compose.yaml'
 readonly env_template_file='./.env.template'
@@ -63,7 +65,7 @@ services:
       VOLUMES: 0
 
   ${name}:
-    image: \${${name^^}_IMAGE:-${name}:\${${name^^}_IMAGE_TAG:-latest}
+    image: \${${constant_name}_IMAGE:-${name}:\${${constant_name}_IMAGE_TAG:-latest}
     container_name: ${name}
     hostname: ${name}
     restart: unless-stopped
@@ -79,8 +81,8 @@ services:
 " > "${compose_file}"
 
 echo "## OPTIONAL OVERRIDES
-${name^^}_IMAGE=
-${name^^}_IMAGE_TAG=
+${constant_name}_IMAGE=
+${constant_name}_IMAGE_TAG=
 
 ## SOCKET PROXY OPTIONAL OVERRIDES
 SOCKET_PROXY_IMAGE=
