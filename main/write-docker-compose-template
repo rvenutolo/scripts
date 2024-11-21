@@ -75,7 +75,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     environment:
       DOCKER_HOST: tcp://${name}-socket-proxy:2375
-      TZ: \${TZ:?}
+      TZ: \${DOCKER_TZ:?}
 " > "${compose_file}"
 
 echo "## OPTIONAL OVERRIDES
