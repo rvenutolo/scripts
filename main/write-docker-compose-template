@@ -78,6 +78,8 @@ services:
     networks:
       - proxy
       - ${name}-socket-proxy
+    depends_on:
+      - ${name}-socket-proxy
     volumes:
       - \${DOCKER_APP_DATA_DIR:?}/${name}:/config
       - /etc/localtime:/etc/localtime:ro
