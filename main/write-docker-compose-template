@@ -26,6 +26,7 @@ echo -n "networks:
   proxy:
     external: true
   ${name}-socket-proxy:
+    name: ${name}-socket-proxy
 
 services:
 
