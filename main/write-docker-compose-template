@@ -33,7 +33,9 @@ services:
     image: \${SOCKET_PROXY_IMAGE:-tecnativa/docker-socket-proxy}:\${SOCKET_PROXY_IMAGE_TAG:-latest}
     container_name: ${name}-socket-proxy
     hostname: ${name}-socket-proxy
-    privileged: true
+    read_only: true
+    tmpfs:
+      - /run
     restart: unless-stopped
     networks:
       - ${name}-socket-proxy
@@ -41,21 +43,24 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - \${DOCKER_SOCKET:?}:/var/run/docker.sock
     environment:
-      LOG_LEVEL: \${SOCKET_PROXY_LOG_LEVEL:-debug}
       ## TODO figure these out
+      ALLOW_START: 0
+      ALLOW_STOP: 0
+      ALLOW_RESTARTS: 0
       AUTH: 0
       BUILD: 0
       COMMIT: 0
       CONFIGS: 0
       CONTAINERS: 0
+      DISABLE_IPV6: 0
       DISTRIBUTION: 0
       EXEC: 0
       IMAGES: 0
       INFO: 0
       NETWORKS: 0
       NODES: 0
-      PLUGINS: 0
       POST: 0
+      PLUGINS: 0
       SECRETS: 0
       SERVICES: 0
       SESSION: 0
@@ -87,6 +92,4 @@ ${constant_name}_IMAGE_TAG=
 ## SOCKET PROXY OPTIONAL OVERRIDES
 SOCKET_PROXY_IMAGE=
 SOCKET_PROXY_IMAGE_TAG=
-# debug, info, notice, warning, err, crit, alert, emerg
-SOCKET_PROXY_LOG_LEVEL=
 " > "${env_template_file}"
