@@ -84,6 +84,12 @@ services:
     environment:
       DOCKER_HOST: tcp://${name}-socket-proxy:2375
       TZ: \${DOCKER_TZ:?}
+    labels:
+      - traefik.docker.network=proxy
+      - traefik.enable=true
+      - traefik.http.routers.${name}-rtr.entryPoints=websecure
+      - traefik.http.routers.${name}-rtr.rule=Host(\`${name}.\${DOMAIN_NAME:?}\`)
+      - traefik.http.services.${name}-svc.loadBalancer.server.port=8080
 " > "${compose_file}"
 
 echo "## OPTIONAL OVERRIDES
