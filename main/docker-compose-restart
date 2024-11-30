@@ -8,7 +8,7 @@ check_no_args "$@"
 
 # $1 = compose file
 function run_commands() {
-  docker compose --file "$1" down
+  docker compose --file "$1" down --remove-orphans
   docker compose --file "$1" pull
   docker compose --file "$1" up --detach
 }
