@@ -34,6 +34,8 @@ services:
     image: \${SOCKET_PROXY_IMAGE:-tecnativa/docker-socket-proxy}:\${SOCKET_PROXY_IMAGE_TAG:-latest}
     container_name: ${name}-socket-proxy
     hostname: ${name}-socket-proxy
+    security_opt:
+      - no-new-privileges:true
     read_only: true
     tmpfs:
       - /run
@@ -75,6 +77,8 @@ services:
     container_name: ${name}
     hostname: ${name}
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     networks:
       - proxy
       - ${name}-socket-proxy
