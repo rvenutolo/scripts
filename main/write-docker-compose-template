@@ -31,7 +31,7 @@ echo -n "networks:
 services:
 
   ${name}-socket-proxy:
-    image: \${SOCKET_PROXY_IMAGE:-tecnativa/docker-socket-proxy}:\${SOCKET_PROXY_IMAGE_TAG:-latest}
+    image: \${SOCKET_PROXY_IMAGE:-lscr.io/linuxserver/socket-proxy}:\${SOCKET_PROXY_IMAGE_TAG:-latest}
     container_name: ${name}-socket-proxy
     hostname: ${name}-socket-proxy
     security_opt:
