@@ -25,8 +25,8 @@ fi
 echo -n "networks:
   proxy:
     external: true
-  ${name}-socket-proxy:
-    name: ${name}-socket-proxy
+  socket-proxy:
+  default:
 
 services:
 
@@ -41,7 +41,7 @@ services:
     tmpfs:
       - /run
     networks:
-      - ${name}-socket-proxy
+      - socket-proxy
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - \${DOCKER_SOCKET:?}:/var/run/docker.sock
@@ -82,7 +82,8 @@ services:
       - no-new-privileges:true
     networks:
       - proxy
-      - ${name}-socket-proxy
+      - socket-proxy
+      - default
     depends_on:
       - ${name}-socket-proxy
     volumes:
