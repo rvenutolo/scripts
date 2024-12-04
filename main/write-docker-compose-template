@@ -91,9 +91,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     environment:
       DOCKER_HOST: tcp://${name}-socket-proxy:2375
-      TZ: \${DOCKER_TZ:?}
     labels:
-      - traefik.docker.network=proxy
       - traefik.enable=true
       - traefik.http.routers.${name}-rtr.entryPoints=websecure
       - traefik.http.routers.${name}-rtr.middlewares=default-chain-mdw@file
