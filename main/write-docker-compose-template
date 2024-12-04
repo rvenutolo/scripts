@@ -98,6 +98,7 @@ services:
       - traefik.http.routers.${name}-rtr.entryPoints=websecure
       - traefik.http.routers.${name}-rtr.middlewares=default-chain-mdw@file
       - traefik.http.routers.${name}-rtr.rule=Host(\`${name}.\${DOMAIN_NAME:?}\`)
+      - traefik.http.routers.${name}-rtr.tls=true
       - traefik.http.services.${name}-svc.loadBalancer.server.port=8080
 " > "${compose_file}"
 
