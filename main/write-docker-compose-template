@@ -28,6 +28,9 @@ echo -n "networks:
   socket-proxy:
   default:
 
+volumes:
+  data:
+
 services:
 
   ${name}-socket-proxy:
@@ -86,7 +89,7 @@ services:
     depends_on:
       - ${name}-socket-proxy
     volumes:
-      - \${DOCKER_APP_DATA_DIR:?}/${name}:/config
+      - data:/config
       - /etc/localtime:/etc/localtime:ro
     environment:
       DOCKER_HOST: tcp://${name}-socket-proxy:2375
