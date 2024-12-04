@@ -77,7 +77,6 @@ services:
     container_name: ${name}
     hostname: ${name}
     restart: unless-stopped
-    user: \${PUID:?}:\${PGID:?}
     security_opt:
       - no-new-privileges:true
     networks:
