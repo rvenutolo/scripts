@@ -76,7 +76,7 @@ services:
       VOLUMES: 0
 
   ${name}:
-    image: \${${constant_name}_IMAGE:-${name}:\${${constant_name}_IMAGE_TAG:-latest}
+    image: \${${constant_name}_IMAGE:-${name}}:\${${constant_name}_IMAGE_TAG:-latest}
     container_name: ${name}
     hostname: ${name}
     restart: unless-stopped
