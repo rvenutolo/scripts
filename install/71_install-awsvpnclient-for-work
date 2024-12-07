@@ -22,7 +22,7 @@ if ! dpkg_package_installed 'libssl1.1'; then
   log 'Installing old libssl1.1 package for AWS VPN client'
   # http://security.ubuntu.com/ubuntu/pool/main/o/openssl/
   readonly libssl1_url='http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb'
-  libssl1_deb="$(download_to_temp_file "${libssl1_url}")"
+  libssl1_deb="$(download_to_temp_file "${libssl1_url}")" || exit 1
   readonly libssl1_deb
   sudo dpkg --install "${libssl1_deb}"
   log 'Installed old libssl1.1 package for AWS VPN client'
@@ -32,7 +32,7 @@ if ! dpkg_package_installed 'awsvpnclient'; then
 
   log 'Installing AWS VPN Client'
   readonly vpnclient_url='https://d20adtppz83p9s.cloudfront.net/GTK/latest/awsvpnclient_amd64.deb'
-  vpnclient_deb="$(download_to_temp_file "${vpnclient_url}")"
+  vpnclient_deb="$(download_to_temp_file "${vpnclient_url}")" || exit 1
   readonly vpnclient_deb
   sudo dpkg --install "${vpnclient_deb}"
   log 'Installed AWS VPN Client'

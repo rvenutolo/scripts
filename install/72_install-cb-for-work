@@ -18,7 +18,7 @@ if ! prompt_yn 'Install Carbon Black EDR?'; then
 fi
 
 log 'Downloading Carbon Black EDR'
-temp_dir="$(mktemp --directory)"
+temp_dir="$(mktemp --directory)" || exit 1
 readonly temp_dir
 readonly cb_tar_url='https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/cb-2.13.3.tar'
 readonly cb_tar_file="${temp_dir}/cb.tar"

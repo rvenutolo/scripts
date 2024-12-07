@@ -10,7 +10,7 @@ function usage() {
   echo "Usage: ${0##*/} [-d | --dir DIR] DISTRO..." >&2
 }
 
-parsed_args="$(getopt --alternative --name "${0##*/}" --options 'd:' --longoptions 'dir:' -- "$@")"
+parsed_args="$(getopt --alternative --name "${0##*/}" --options 'd:' --longoptions 'dir:' -- "$@")" || exit 1
 readonly parsed_args
 eval set -- "${parsed_args}"
 while true; do

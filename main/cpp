@@ -20,4 +20,4 @@ strace -q -ewrite cp -- "$1" "$2" 2>&1 | awk '{
         printf "]\r"
   }
 }
-END { print "" }' total_size="$(stat -c '%s' "$1")" count=0
+END { print "" }' total_size="$(stat -c '%s' "$1")" || exit 1 count=0

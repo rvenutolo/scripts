@@ -6,7 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-ssh_host="$(grep '^Host' ~/.ssh/config.private | grep --invert-match '[?*]' | cut --delimiter ' ' --fields 2 | sort | fzf --height=20 --exact --layout=reverse)"
+ssh_host="$(grep '^Host' ~/.ssh/config.private | grep --invert-match '[?*]' | cut --delimiter ' ' --fields 2 | sort | fzf --height=20 --exact --layout=reverse)" || exit 1
 readonly ssh_host
 
 ssh "${ssh_host}"

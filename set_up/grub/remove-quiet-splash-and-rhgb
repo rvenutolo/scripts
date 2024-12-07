@@ -41,7 +41,7 @@ readonly kernel_options_to_remove=(
 contains_options_to_remove='n'
 while read -r line; do
   if contains_perl_regex '^\s*(GRUB_CMDLINE_LINUX_DEFAULT)|(GRUB_CMDLINE_LINUX)\s*=' <<< "${line}"; then
-    options="$(cut --delimiter='"' --fields='2' <<< "${line}")"
+    options="$(cut --delimiter='"' --fields='2' <<< "${line}")" || exit 1
     for kernel_option in "${kernel_options_to_remove[@]}"; do
       if echo "${options}" | contains_word "${kernel_option}"; then
         contains_options_to_remove='y'
@@ -69,9 +69,9 @@ while read -r line; do
   if contains_perl_regex '^\s*(GRUB_CMDLINE_LINUX)|(GRUB_CMDLINE_LINUX_DEFAULT)\s*=' <<< "${line}"; then
     for kernel_option in "${kernel_options_to_remove[@]}"; do
       #shellcheck disable=SC2001
-      line_to_write="$(sed "s/${kernel_option}//g" <<< "${line_to_write}")"
+      line_to_write="$(sed "s/${kernel_option}//g" <<< "${line_to_write}")" || exit 1
     done
-    line_to_write="$(sed 's/\s*"\s*/"/g ; s/\s\+/ /g' <<< "${line_to_write}")"
+    line_to_write="$(sed 's/\s*"\s*/"/g ; s/\s\+/ /g' <<< "${line_to_write}")" || exit 1
   fi
   echo "${line_to_write}" | sudo tee --append "${grub_default_file}" > '/dev/null'
 done < "${grub_default_file}.orig"

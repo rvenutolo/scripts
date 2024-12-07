@@ -6,7 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-images="$(docker images --all --filter=dangling=true --quiet)"
+images="$(docker images --all --filter=dangling=true --quiet)" || exit 1
 readonly images
 if [[ -n "${images}" ]]; then
   podman rmi "${images}"

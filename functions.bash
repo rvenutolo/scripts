@@ -466,7 +466,7 @@ function local_ip() {
 function local_network() {
   check_no_args "$@"
   local ip_num
-  ip_num="$(ipv4_to_num "$(local_ip)")"
+  ip_num="$(ipv4_to_num "$(local_ip)" || exit 1)" || exit 1
   if [[ $(ipv4_to_num '10.0.0.0') -le "${ip_num}" && "${ip_num}" -le $(ipv4_to_num '10.255.255.255') ]]; then
     echo '10.0.0.0/8'
   elif [[ $(ipv4_to_num '172.16.0.0') -le "${ip_num}" && "${ip_num}" -le $(ipv4_to_num '172.31.255.255') ]]; then
@@ -557,7 +557,7 @@ function prompt_for_value() {
 # $1 = url
 function download_and_cat() {
   check_exactly_1_arg "$@"
-  local temp_file="$(mktemp)"
+  local temp_file="$(mktemp)" || exit 1
   download "$1" "${temp_file}"
   cat "${temp_file}"
 }
@@ -565,7 +565,7 @@ function download_and_cat() {
 # $1 = url
 function download_to_temp_file() {
   check_exactly_1_arg "$@"
-  local temp_file="$(mktemp)"
+  local temp_file="$(mktemp)" || exit 1
   download "$1" "${temp_file}"
   echo "${temp_file}"
 }
@@ -574,7 +574,7 @@ function download_to_temp_file() {
 # $2+ args to pass to the script
 function download_and_run_script() {
   check_at_least_1_arg "$@"
-  local temp_file="$(mktemp)"
+  local temp_file="$(mktemp)" || exit 1
   download "$1" "${temp_file}"
   chmod +x "${temp_file}"
   shift
@@ -585,7 +585,7 @@ function download_and_run_script() {
 # $2+ args to pass to the script
 function download_and_run_script_as_root() {
   check_at_least_1_arg "$@"
-  local temp_file="$(mktemp)"
+  local temp_file="$(mktemp)" || exit 1
   download "$1" "${temp_file}"
   chmod +x "${temp_file}"
   shift
