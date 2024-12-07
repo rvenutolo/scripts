@@ -73,7 +73,7 @@ log 'Updating apt package index'
 sudo apt update
 log 'Updated apt package index'
 
-existing_mounts="$(grep --invert '^\s*#' '/etc/fstab' | awk '{ print $2 }')"
+existing_mounts="$(grep --invert '^\s*#' '/etc/fstab' | awk '{ print $2 }')" || exit 1
 readonly existing_mounts
 
 for dir in '/snap' '/var/snap' '/var/lib/snapd' '/var/cache/snapd' '/root/snap'; do

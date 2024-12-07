@@ -17,7 +17,7 @@ if file_exists 'compose.yaml'; then
   run_commands './compose.yaml'
 else
   find . -name 'compose.yaml' | sort | while read -r compose_file; do
-    compose_dir="$(basename "$(dirname "${compose_file}")")"
+    compose_dir="$(basename "$(dirname "${compose_file}")")" || exit 1
     log "Running docker compose down+pull+up for: ${compose_dir}"
     run_commands "${compose_file}"
   done

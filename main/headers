@@ -7,14 +7,14 @@ source "${SCRIPTS_DIR}/functions.bash"
 
 if stdin_exists; then
   check_at_most_1_arg "$@"
-  header_line="$(head --lines 1)"
+  header_line="$(head --lines 1)" || exit 1
   if [[ -n "${1:-}" ]]; then
     readonly delimiter="$1"
   fi
 else
   check_at_least_1_arg "$@"
   check_at_most_2_args "$@"
-  header_line="$(head --lines 1 "$1")"
+  header_line="$(head --lines 1 "$1")" || exit 1
   if [[ -n "${2:-}" ]]; then
     readonly delimiter="$2"
   fi

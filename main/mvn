@@ -15,7 +15,7 @@ while [[ "${dir}" != / ]]; do
     readonly project_root="${dir}"
     break
   fi
-  dir="$(dirname -- "${dir}")"
+  dir="$(dirname -- "${dir}")" || exit 1
 done
 readonly project_root
 

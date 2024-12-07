@@ -11,9 +11,9 @@ if stdin_exists; then
 else
   check_at_least_1_arg "$@"
   for file; do
-    dirname="$(dirname -- "${file}")"
-    filename="$(basename -- "${file}")"
-    lower_filename="$(echo "${filename}" | tr '[:lower:]' '[:upper:]')"
+    dirname="$(dirname -- "${file}")" || exit 1
+    filename="$(basename -- "${file}")" || exit 1
+    lower_filename="$(echo "${filename}" | tr '[:lower:]' '[:upper:]')" || exit 1
     target_file="${dirname}/${lower_filename}"
     if [[ "${lower_filename}" != "${filename}" ]]; then
       mv -- "${file}" "${target_file}"

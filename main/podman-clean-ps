@@ -6,7 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-containers="$(docker ps --filter=status=exited --filter=status=created --quiet)"
+containers="$(docker ps --filter=status=exited --filter=status=created --quiet)" || exit 1
 readonly containers
 if [[ -n "${containers}" ]]; then
   podman rm "${containers}"

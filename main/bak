@@ -6,12 +6,12 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_at_least_1_arg "$@"
 
-filetime="$(date +%Y%m%d_%H%M%S)"
+filetime="$(date +%Y%m%d_%H%M%S)" || exit 1
 readonly filetime
 for file; do
   if [[ -f "${file}" || -d "${file}" ]]; then
-    dirname="$(dirname -- "${file}")"
-    filename="$(basename -- "${file}")"
+    dirname="$(dirname -- "${file}")"|| exit 1
+    filename="$(basename -- "${file}")"|| exit 1
     target_file="${dirname}/${filename}.${filetime}.bak"
     cp --archive -- "${file}" "${target_file}"
     log "${file} -> ${target_file}"

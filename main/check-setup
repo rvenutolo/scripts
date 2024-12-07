@@ -32,8 +32,8 @@ if ! loginctl show-user "${USER}" --property=Linger 2> '/dev/null' | contains_wo
   log "${USER} is not set to linger"
 fi
 
-user_groups="$(groups "${USER}")"
-all_groups="$(getent group | cut --delimiter=':' --fields='1')"
+user_groups="$(groups "${USER}")" || exit 1
+all_groups="$(getent group | cut --delimiter=':' --fields='1')" || exit 1
 groups=('adm' 'admin' 'docker' 'kvm' 'input' 'libvirt' 'libvirtd' 'sudo' 'sys' 'wheel')
 for group in "${groups[@]}"; do
   if ! contains_word "${group}" <<< "${all_groups}"; then
@@ -89,7 +89,7 @@ if executable_exists 'tldr' && ! tldr --version | contains_word_ignore_case 'tea
 fi
 
 if executable_exists 'ufw'; then
-  ufw_status="$(sudo ufw status verbose)"
+  ufw_status="$(sudo ufw status verbose)" || exit 1
   readonly ufw_status
   if ! contains_word_ignore_case 'status: active' <<< "${ufw_status}"; then
     log "UFW is not active"
@@ -173,7 +173,7 @@ if ! is_server; then
   )
 
   if executable_exists 'fc-list'; then
-    installed_fonts="$(fc-list : family)"
+    installed_fonts="$(fc-list : family)" || exit 1
     for font in "${expected_fonts[@]}"; do
       if ! contains_word_ignore_case "${font}" <<< "${installed_fonts}" \
         && ! contains_word_ignore_case "${font}TTF" <<< "${installed_fonts}" \
@@ -268,7 +268,7 @@ if ! is_server; then
 fi
 
 if executable_exists 'pacman'; then
-  pacman_conf_text="$(cat '/etc/pacman.conf')"
+  pacman_conf_text="$(cat '/etc/pacman.conf')" || exit 1
   for pacman_repo in 'multilib' 'chaotic-aur'; do
     if ! contains_exactly "[${pacman_repo}]" <<< "${pacman_conf_text}"; then
       log "Pacman ${pacman_repo} repo is missing"
@@ -278,13 +278,13 @@ fi
 
 if is_fedora; then
   expected_dnf_conf_vals=('max_parallel_downloads' 'defaultyes' 'keepcache')
-  dnf_conf_text="$(cat '/etc/dnf/dnf.conf')"
+  dnf_conf_text="$(cat '/etc/dnf/dnf.conf')" || exit 1
   for dnf_conf_val in "${expected_dnf_conf_vals[@]}"; do
     if [[ -z "$(grep --fixed-strings "${dnf_conf_val}" <<< "${dnf_conf_text}" | cut --delimiter='=' --fields='2' | xargs)" ]]; then
       log "dnf conf ${dnf_conf_val} is not set"
     fi
   done
-  installed_packages="$(dnf list --installed | cut --delimiter=' ' --fields='1')"
+  installed_packages="$(dnf list --installed | cut --delimiter=' ' --fields='1')" || exit 1
   expected_rpm_fusions_packages=(
     'rpmfusion-free-appstream-data'
     'rpmfusion-free-release'

@@ -7,8 +7,8 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_at_least_1_arg "$@"
 
 for file; do
-  dirname="$(dirname -- "${file}")"
-  filename="$(basename -- "${file}")"
+  dirname="$(dirname -- "${file}")" || exit 1
+  filename="$(basename -- "${file}")" || exit 1
   target_file="${dirname}/.${filename}"
   mv -- "${file}" "${target_file}"
   log "${file} -> ${target_file}"

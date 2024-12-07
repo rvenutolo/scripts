@@ -29,7 +29,7 @@ if (("${#flatpaks_to_install[@]}")) && prompt_yn 'Install missing Flatpak packag
 fi
 
 for flatpak_to_remove in "${flatpaks_to_remove[@]}"; do
-  flatpak_name="$(flatpak list --user --app --columns name --columns application | awk -F $'\t' "\$2 == \"${flatpak_to_remove}\" { print \$1 }")"
+  flatpak_name="$(flatpak list --user --app --columns name --columns application | awk -F $'\t' "\$2 == \"${flatpak_to_remove}\" { print \$1 }")" || exit 1
   if prompt_yn "Remove ${flatpak_name} (${flatpak_to_remove})?"; then
     log "Removing ${flatpak_name} (${flatpak_to_remove})"
     flatpak remove --user --noninteractive "${flatpak_to_remove}"

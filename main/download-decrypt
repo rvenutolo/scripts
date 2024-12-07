@@ -7,7 +7,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_at_least_1_arg "$@"
 check_at_most_2_args "$@"
 
-temp_file="$(download_to_temp_file "$1")"
+temp_file="$(download_to_temp_file "$1")" || exit 1
 readonly temp_file
 if [[ -n "${2:-}" ]]; then
   age --decrypt --identity "${AGE_PRIVATE_KEY_FILE}" --output "$2" "${temp_file}"

@@ -7,10 +7,10 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_not_root
 check_no_args "$@"
 
-user_groups="$(groups "${USER}")"
+user_groups="$(groups "${USER}")" || exit 1
 readonly user_groups
 
-all_groups="$(getent group | cut --delimiter=':' --fields='1')"
+all_groups="$(getent group | cut --delimiter=':' --fields='1')" || exit 1
 readonly all_groups
 
 readonly groups=(
