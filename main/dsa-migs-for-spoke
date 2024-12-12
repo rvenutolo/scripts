@@ -8,7 +8,12 @@ check_exactly_1_arg "$@"
 
 # Download the input file from Periscope
 
+readonly last_name_idx=3
+readonly first_name_idx=1
+readonly phone_number_idx=5
+readonly status_idx=6
+
 file="migs_for_spoke_$(date +%Y%m%d_%H%M%S).csv"
 readonly file
-echo 'lastName,firstName,cell' > "${file}"
-awk -F',' -v 'OFS=,' '$16 == "Member in Good Standing" && ($7) { print $3, $1, $7 }' "$1" | sort >> "${file}"
+echo 'last_name,first_name,phone_number' > "${file}"
+awk -F',' -v 'OFS=,' "\$${status_idx} == \"Member in Good Standing\" && (\$${phone_number_idx}) { print \$${last_name_idx}, \$${first_name_idx}, \$${phone_number_idx} }" "$1" | sort >> "${file}"
