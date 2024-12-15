@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+## THIS SCRIPT HAS BEEN DISABLED FROM AUTOMATICALLY RUNNING BY MAKING IT NON-EXECUTABLE
+
 set -euo pipefail
 
 #shellcheck disable=SC1091
