@@ -36,6 +36,7 @@ if ! dpkg_package_installed 'awsvpnclient'; then
   log "Added AWS VPN Client source list file"
 
   log 'Installing AWS VPN Client'
+  sudo apt update
   sudo apt install --install-recommends --yes 'awsvpnclient'
   log 'Installed AWS VPN Client'
 
