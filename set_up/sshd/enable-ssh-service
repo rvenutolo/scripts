@@ -10,4 +10,4 @@ if ! executable_exists 'sshd'; then
   exit 0
 fi
 
-enable_system_service_unit 'sshd.service'
+enable_system_service_unit 'ssh.service'
