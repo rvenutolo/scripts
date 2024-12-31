@@ -431,7 +431,7 @@ function is_pop_shell() {
 
 # $1 = package name
 function dpkg_package_installed() {
-  dpkg-query --show --showformat='${Status}' "$1" 2> '/dev/null' | contains_exactly_ignore_case 'ok installed'
+  dpkg-query --show --showformat='${Package};${Status}\n' "$1" 2> '/dev/null' | contains_regex_ignore_case "^$1;.*ok installed\$"
 }
 
 # wrapper around curl to disable reading the config that is intended for interactive use
