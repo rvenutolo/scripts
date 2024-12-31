@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+if ! is_work; then
+  exit 0
+fi
+current_selection="$(prime-select query)"
+readonly current_selection
+if [[ "${current_selection}" == 'intel' ]]; then
+  exit 0
+fi
+if ! prompt_yn 'Use integrated graphics?'; then
+  exit 0
+fi
+
+log 'Selecting integrated graphics'
+sudo prime-select 'intel'
+log 'Selected integrated graphics'
