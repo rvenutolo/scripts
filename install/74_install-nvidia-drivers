@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if ! is_work; then
+  exit 0
+fi
+if ! is_ubuntu; then
+  log 'This is a work computer, but not Ubuntu. Skipping installing NVIDIA drivers'
+  exit 0
+fi
+if ! dpkg-query --show --showformat='${Package};${Status}\n' 'nvidia-driver-*' 2> '/dev/null' | contains_regex_ignore_case '^nvidia-driver-[0-9][0-9][0-9];.*ok installed$'; then
+  exit 0
+fi
+if ! prompt_yn 'Install NVIDIA drivers?'; then
+  exit 0
+fi
+
+log 'Installing NVIDIA drivers'
+sudo ubuntu-drivers install
+log 'Installed NVIDIA drivers'
