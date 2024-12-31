@@ -40,6 +40,13 @@ if ! dpkg_package_installed 'awsvpnclient'; then
   sudo apt install --install-recommends --yes 'awsvpnclient'
   log 'Installed AWS VPN Client'
 
+  if ! dpkg_package_installed 'openvpn-systemd-resolved'; then
+    log 'Installing openvpn-systemd-resolved and restarting systemd-resolved'
+    sudo apt install 'openvpn-systemd-resolved'
+    sudo systemctl restart 'systemd-resolved'
+    log 'Installed openvpn-systemd-resolved and restarted systemd-resolved'
+  fi
+
   log 'Downloading AWS VPN OVPN file'
   readonly de_ovpn_file_url='https://raw.githubusercontent.com/rvenutolo/crypt/main/ovpn/de.ovpn'
   readonly de_ovpn_file="${HOME}/de.ovpn"
