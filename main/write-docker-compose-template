@@ -164,7 +164,7 @@ fi
 write_to_compose_file \
 '    volumes:' \
 "      - \${DOCKER_LOGS_DIR:?}/${app_name}:/var/log/${app_name}" \
-"      - \${DOCKER_APP_DATA_DIR:?}/${app_name}:/data" \
+"      - \${DOCKER_APP_DATA_DIR:?}/${app_name}/data:/data" \
 '      - /etc/localtime:/etc/localtime:ro'
 
 if socket_proxy; then
