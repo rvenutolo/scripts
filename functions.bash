@@ -537,7 +537,7 @@ function prompt_for_value() {
       REPLY="$2"
     fi
     if [[ "${REPLY}" == '' ]]; then
-      read -rp $'\e[0;33m'$1' ['$2']: \e[0m'
+      read -rp $'\e[0;33m'"$1 [$2"$']: \e[0m'
       if [[ "${REPLY}" == '' ]]; then
         REPLY="$2"
       fi
