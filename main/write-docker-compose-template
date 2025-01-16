@@ -4,11 +4,32 @@ set -euo pipefail
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-check_exactly_1_arg "$@"
+check_no_args "$@"
 
-readonly name="$1"
-constant_name="${name^^}"
-readonly constant_name="${constant_name//-/_}"
+function write_to_compose_file() {
+  check_at_least_1_arg "$@"
+  printf '%s\n' "$@" >> "${compose_file}"
+}
+
+function write_to_env_template_file() {
+  check_at_least_1_arg "$@"
+  printf '%s\n' "$@" >> "${env_template_file}"
+}
+
+function reverse_proxy() {
+  check_no_args "$@"
+  [[ -n "${use_reverse_proxy:-}" ]]
+}
+
+function socket_proxy() {
+  check_no_args "$@"
+  [[ -n "${use_socket_proxy:-}" ]]
+}
+
+function multiple_containers() {
+  check_no_args "$@"
+  [[ -n "${multiple_containers:-}" ]]
+}
 
 readonly compose_file='./compose.yaml'
 readonly env_template_file='./.env.template'
@@ -21,91 +42,147 @@ if file_exists "${env_template_file}"; then
   die "${env_template_file} exists"
 fi
 
-# shellcheck disable=SC2016
-echo -n "networks:
-  proxy:
-    external: true
-  socket-proxy:
-  default:
+name=$(prompt_for_value 'Name?')
+readonly name
+constant_name="${name^^}"
+readonly constant_name="${constant_name//-/_}"
 
-volumes:
-  data:
+if prompt_yn 'Use reverse proxy?'; then
+  readonly use_reverse_proxy='1'
+  port=$(prompt_for_value 'Port?')
+  readonly port
+fi
 
-services:
+if prompt_ny 'Use Docker socket proxy?'; then
+  readonly use_socket_proxy='1'
+fi
 
-  ${name}-socket-proxy:
-    image: \${SOCKET_PROXY_IMAGE:-lscr.io/linuxserver/socket-proxy}:\${SOCKET_PROXY_IMAGE_TAG:-latest}
-    container_name: ${name}-socket-proxy
-    hostname: ${name}-socket-proxy
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /run
-    networks:
-      - socket-proxy
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - \${DOCKER_SOCKET:?}:/var/run/docker.sock
-    environment:
-      ## TODO figure these out
-      ALLOW_START: 0
-      ALLOW_STOP: 0
-      ALLOW_RESTARTS: 0
-      AUTH: 0
-      BUILD: 0
-      COMMIT: 0
-      CONFIGS: 0
-      CONTAINERS: 0
-      DISABLE_IPV6: 0
-      DISTRIBUTION: 0
-      EXEC: 0
-      IMAGES: 0
-      INFO: 0
-      NETWORKS: 0
-      NODES: 0
-      POST: 0
-      PLUGINS: 0
-      SECRETS: 0
-      SERVICES: 0
-      SESSION: 0
-      SWARM: 0
-      SYSTEM: 0
-      TASKS: 0
-      VOLUMES: 0
+if prompt_ny 'More than one container?'; then
+  readonly multiple_containers='1'
+fi
 
-  ${name}:
-    image: \${${constant_name}_IMAGE:-${name}}:\${${constant_name}_IMAGE_TAG:-latest}
-    container_name: ${name}
-    hostname: ${name}
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    networks:
-      - proxy
-      - socket-proxy
-      - default
-    depends_on:
-      - ${name}-socket-proxy
-    volumes:
-      - data:/config
-      - /etc/localtime:/etc/localtime:ro
-    environment:
-      DOCKER_HOST: tcp://${name}-socket-proxy:2375
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.${name}-rtr.entryPoints=websecure
-      - traefik.http.routers.${name}-rtr.middlewares=default-chain-mdw@file
-      - traefik.http.routers.${name}-rtr.rule=Host(\`${name}.\${DOMAIN_NAME:?}\`)
-      - traefik.http.services.${name}-svc.loadBalancer.server.port=8080
-" > "${compose_file}"
+if reverse_proxy || socket_proxy || multiple_containers ]]; then
+  write_to_compose_file 'networks:'
+  if reverse_proxy; then
+    write_to_compose_file \
+      '  proxy:' \
+      '    external: true'
+  fi
+  if socket_proxy; then
+    write_to_compose_file '  socket-proxy:'
+  fi
+  if multiple_containers; then
+    write_to_compose_file '  default:'
+  fi
+  write_to_compose_file ''
+fi
 
-echo "## OPTIONAL OVERRIDES
-${constant_name}_IMAGE=
-${constant_name}_IMAGE_TAG=
+write_to_compose_file 'services:'
+if socket_proxy || multiple_containers; then
+  write_to_compose_file ''
+fi
+if socket_proxy; then
+  write_to_compose_file \
+    "  ${name}-socket-proxy:" \
+    '    image: ${SOCKET_PROXY_IMAGE:-lscr.io/linuxserver/socket-proxy}:${SOCKET_PROXY_IMAGE_TAG:-latest}' \
+    "    container_name: ${name}-socket-proxy" \
+    "    hostname: ${name}-socket-proxy" \
+    '    restart: unless-stopped' \
+    '    security_opt:' \
+    '      - no-new-privileges:true' \
+    '    read_only: true' \
+    '    tmpfs:' \
+    '      - /run' \
+    '    networks:' \
+    '      - socket-proxy' \
+    '    volumes:' \
+    '      - /etc/localtime:/etc/localtime:ro' \
+    '      - ${DOCKER_SOCKET:?}:/var/run/docker.sock' \
+    '    environment:' \
+    '      ## TODO figure these out' \
+    '      ALLOW_START: 0' \
+    '      ALLOW_STOP: 0' \
+    '      ALLOW_RESTARTS: 0' \
+    '      AUTH: 0' \
+    '      BUILD: 0' \
+    '      COMMIT: 0' \
+    '      CONFIGS: 0' \
+    '      CONTAINERS: 0' \
+    '      DISABLE_IPV6: 0' \
+    '      DISTRIBUTION: 0' \
+    '      EXEC: 0' \
+    '      IMAGES: 0' \
+    '      INFO: 0' \
+    '      NETWORKS: 0' \
+    '      NODES: 0' \
+    '      POST: 0' \
+    '      PLUGINS: 0' \
+    '      SECRETS: 0' \
+    '      SERVICES: 0' \
+    '      SESSION: 0' \
+    '      SWARM: 0' \
+    '      SYSTEM: 0' \
+    '      TASKS: 0' \
+    '      VOLUMES: 0' \
+    ''
+fi
 
-## SOCKET PROXY OPTIONAL OVERRIDES
-SOCKET_PROXY_IMAGE=
-SOCKET_PROXY_IMAGE_TAG=
-" > "${env_template_file}"
+write_to_compose_file \
+  "  ${name}:" \
+  "    image: \${${constant_name}_IMAGE:-${name}}:\${${constant_name}_IMAGE_TAG:-latest}" \
+  "    container_name: ${name}" \
+  "    hostname: ${name}" \
+  '    restart: unless-stopped' \
+  '    security_opt:' \
+  '      - no-new-privileges:true'
+
+if reverse_proxy || socket_proxy || multiple_containers; then
+  write_to_compose_file '    networks:'
+  if reverse_proxy; then
+    write_to_compose_file '      - proxy'
+  fi
+  if socket_proxy; then
+    write_to_compose_file '      - socket'
+  fi
+  if multiple_containers; then
+    write_to_compose_file '      - default'
+  fi
+fi
+
+if socket_proxy; then
+  write_to_compose_file \
+    '    depends_on:' \
+    "      - ${name}-socket-proxy"
+fi
+
+write_to_compose_file \
+'    volumes:' \
+"      - \${DOCKER_LOGS_DIR:?}/${name}:/var/log/${name}" \
+"      - \${DOCKER_APP_DATA_DIR:?}/${name}:/data" \
+'      - /etc/localtime:/etc/localtime:ro'
+
+if socket_proxy; then
+  write_to_compose_file \
+'    environment:' \
+"      DOCKER_HOST: tcp://${name}-socket-proxy:2375"
+fi
+
+if reverse_proxy; then
+  write_to_compose_file \
+'    labels:' \
+'      - traefik.enable=true' \
+"      - traefik.http.routers.${name}-rtr.rule=Host(\`${name}.\${DOMAIN_NAME:?}\`)" \
+"      - traefik.http.services.${name}-svc.loadBalancer.server.port=${port}"
+fi
+
+write_to_env_template_file \
+  '## OPTIONAL OVERRIDES' \
+  "${constant_name}_IMAGE=" \
+  "${constant_name}_IMAGE_TAG="
+
+if socket_proxy; then
+  write_to_env_template_file '' \
+  '## SOCKET PROXY OPTIONAL OVERRIDES' \
+  'SOCKET_PROXY_IMAGE=' \
+  'SOCKET_PROXY_IMAGE_TAG='
+fi
