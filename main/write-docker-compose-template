@@ -90,7 +90,7 @@ fi
 if socket_proxy; then
   write_to_compose_file \
     "  ${app_name}-socket-proxy:" \
-    '    image_name: ${SOCKET_PROXY_IMAGE:-lscr.io/linuxserver/socket-proxy}:${SOCKET_PROXY_IMAGE_TAG:-latest}' \
+    '    image: ${SOCKET_PROXY_IMAGE:-lscr.io/linuxserver/socket-proxy}:${SOCKET_PROXY_IMAGE_TAG:-latest}' \
     "    container_name: ${app_name}-socket-proxy" \
     "    hostname: ${app_name}-socket-proxy" \
     '    restart: unless-stopped' \
@@ -135,7 +135,7 @@ fi
 
 write_to_compose_file \
   "  ${app_name}:" \
-  "    image_name: \${${app_constant_name}_IMAGE:-${image_name}}:\${${app_constant_name}_IMAGE_TAG:-${image_tag}}" \
+  "    image: \${${app_constant_name}_IMAGE:-${image_name}}:\${${app_constant_name}_IMAGE_TAG:-${image_tag}}" \
   "    container_name: ${app_name}" \
   "    hostname: ${app_name}" \
   '    restart: unless-stopped' \
