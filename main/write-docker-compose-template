@@ -42,14 +42,20 @@ if file_exists "${env_template_file}"; then
   die "${env_template_file} exists"
 fi
 
-name=$(prompt_for_value 'Name?')
-readonly name
-constant_name="${name^^}"
-readonly constant_name="${constant_name//-/_}"
+app_name="$(prompt_for_value 'App name?')"
+readonly app_name
+app_constant_name="${app_name^^}"
+readonly app_constant_name="${app_constant_name//-/_}"
+
+image_name="$(prompt_for_value 'Image name?')"
+readonly image_name
+
+image_tag="$(prompt_for_value 'Image tag?' 'latest')"
+readonly image_tag
 
 if prompt_yn 'Use reverse proxy?'; then
   readonly use_reverse_proxy='1'
-  port=$(prompt_for_value 'Port?')
+  port="$(prompt_for_value 'Port?')"
   readonly port
 fi
 
@@ -83,10 +89,10 @@ if socket_proxy || multiple_containers; then
 fi
 if socket_proxy; then
   write_to_compose_file \
-    "  ${name}-socket-proxy:" \
-    '    image: ${SOCKET_PROXY_IMAGE:-lscr.io/linuxserver/socket-proxy}:${SOCKET_PROXY_IMAGE_TAG:-latest}' \
-    "    container_name: ${name}-socket-proxy" \
-    "    hostname: ${name}-socket-proxy" \
+    "  ${app_name}-socket-proxy:" \
+    '    image_name: ${SOCKET_PROXY_IMAGE:-lscr.io/linuxserver/socket-proxy}:${SOCKET_PROXY_IMAGE_TAG:-latest}' \
+    "    container_name: ${app_name}-socket-proxy" \
+    "    hostname: ${app_name}-socket-proxy" \
     '    restart: unless-stopped' \
     '    security_opt:' \
     '      - no-new-privileges:true' \
@@ -128,10 +134,10 @@ if socket_proxy; then
 fi
 
 write_to_compose_file \
-  "  ${name}:" \
-  "    image: \${${constant_name}_IMAGE:-${name}}:\${${constant_name}_IMAGE_TAG:-latest}" \
-  "    container_name: ${name}" \
-  "    hostname: ${name}" \
+  "  ${app_name}:" \
+  "    image_name: \${${app_constant_name}_IMAGE:-${image_name}}:\${${app_constant_name}_IMAGE_TAG:-${image_tag}}" \
+  "    container_name: ${app_name}" \
+  "    hostname: ${app_name}" \
   '    restart: unless-stopped' \
   '    security_opt:' \
   '      - no-new-privileges:true'
@@ -152,33 +158,33 @@ fi
 if socket_proxy; then
   write_to_compose_file \
     '    depends_on:' \
-    "      - ${name}-socket-proxy"
+    "      - ${app_name}-socket-proxy"
 fi
 
 write_to_compose_file \
 '    volumes:' \
-"      - \${DOCKER_LOGS_DIR:?}/${name}:/var/log/${name}" \
-"      - \${DOCKER_APP_DATA_DIR:?}/${name}:/data" \
+"      - \${DOCKER_LOGS_DIR:?}/${app_name}:/var/log/${app_name}" \
+"      - \${DOCKER_APP_DATA_DIR:?}/${app_name}:/data" \
 '      - /etc/localtime:/etc/localtime:ro'
 
 if socket_proxy; then
   write_to_compose_file \
 '    environment:' \
-"      DOCKER_HOST: tcp://${name}-socket-proxy:2375"
+"      DOCKER_HOST: tcp://${app_name}-socket-proxy:2375"
 fi
 
 if reverse_proxy; then
   write_to_compose_file \
 '    labels:' \
 '      - traefik.enable=true' \
-"      - traefik.http.routers.${name}-rtr.rule=Host(\`${name}.\${DOMAIN_NAME:?}\`)" \
-"      - traefik.http.services.${name}-svc.loadBalancer.server.port=${port}"
+"      - traefik.http.routers.${app_name}-rtr.rule=Host(\`${app_name}.\${DOMAIN_NAME:?}\`)" \
+"      - traefik.http.services.${app_name}-svc.loadBalancer.server.port=${port}"
 fi
 
 write_to_env_template_file \
   '## OPTIONAL OVERRIDES' \
-  "${constant_name}_IMAGE=" \
-  "${constant_name}_IMAGE_TAG="
+  "${app_constant_name}_IMAGE=" \
+  "${app_constant_name}_IMAGE_TAG="
 
 if socket_proxy; then
   write_to_env_template_file '' \
