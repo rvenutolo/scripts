@@ -546,7 +546,7 @@ function prompt_for_value() {
   else
     REPLY=''
     while [[ -z "${REPLY}" ]]; do
-      read -rp $'\e[0;33m'$1$': \e[0m'
+      read -rp $'\e[0;33m'"$1"$': \e[0m'
     done
     echo "${REPLY}"
   fi
