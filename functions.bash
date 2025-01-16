@@ -537,8 +537,7 @@ function prompt_for_value() {
       REPLY="$2"
     fi
     if [[ "${REPLY}" == '' ]]; then
-      echo -e -n "\033[0;33m$1 [$2]: \033[0m"
-      read -r
+      read -rp $'\e[0;33m'$1' ['$2']: \e[0m'
       if [[ "${REPLY}" == '' ]]; then
         REPLY="$2"
       fi
@@ -547,8 +546,7 @@ function prompt_for_value() {
   else
     REPLY=''
     while [[ -z "${REPLY}" ]]; do
-      echo -e -n "\033[0;33m$1: \033[0m"
-      read -r
+      read -rp $'\e[0;33m'$1$': \e[0m'
     done
     echo "${REPLY}"
   fi
