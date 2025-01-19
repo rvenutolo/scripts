@@ -689,11 +689,11 @@ function copy_system_file() {
   if [[ "$1" == "$2" ]]; then
     die "File paths are the same"
   fi
-  if [[ -f "$2" ]]; then
-    if cmp --silent "$1" "$2"; then
+  if sudo bash -c "[[ -f $2 ]]"; then
+    if sudo cmp --silent "$1" "$2"; then
       exit 0
     else
-      diff --color --unified "$2" "$1" || true
+      sudo diff --color --unified "$2" "$1" || true
       if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
         exit 0
       fi
