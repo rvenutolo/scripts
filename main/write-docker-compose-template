@@ -63,7 +63,7 @@ if prompt_ny 'Use Docker socket proxy?'; then
   readonly use_socket_proxy='1'
 fi
 
-if prompt_ny 'More than one container?'; then
+if prompt_ny 'More than one non-socket-proxy container?'; then
   readonly multiple_containers='1'
 fi
 
