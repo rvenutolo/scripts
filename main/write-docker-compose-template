@@ -148,7 +148,7 @@ if reverse_proxy || socket_proxy || multiple_containers; then
     write_to_compose_file '      - proxy'
   fi
   if socket_proxy; then
-    write_to_compose_file '      - socket'
+    write_to_compose_file '      - socket-proxy'
   fi
   if multiple_containers; then
     write_to_compose_file '      - default'
