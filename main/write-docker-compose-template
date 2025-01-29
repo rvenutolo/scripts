@@ -67,7 +67,7 @@ if prompt_ny 'More than one non-socket-proxy container?'; then
   readonly multiple_containers='1'
 fi
 
-if reverse_proxy || socket_proxy || multiple_containers ]]; then
+if reverse_proxy || socket_proxy || multiple_containers; then
   write_to_compose_file 'networks:'
   if reverse_proxy; then
     write_to_compose_file \
