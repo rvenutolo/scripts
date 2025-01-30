@@ -16,6 +16,11 @@ function write_to_env_template_file() {
   printf '%s\n' "$@" >> "${env_template_file}"
 }
 
+function is_service() {
+  check_no_args "$@"
+  [[ -n "${service:-}" ]]
+}
+
 function reverse_proxy() {
   check_no_args "$@"
   [[ -n "${use_reverse_proxy:-}" ]]
@@ -53,10 +58,13 @@ readonly image_name
 image_tag="$(prompt_for_value 'Image tag?' 'latest')"
 readonly image_tag
 
-if prompt_yn 'Use reverse proxy?'; then
-  readonly use_reverse_proxy='1'
-  port="$(prompt_for_value 'Port?')"
-  readonly port
+if prompt_yn 'Is this a service (not run-once)?'; then
+  readonly service='1'
+  if prompt_yn 'Use reverse proxy?'; then
+    readonly use_reverse_proxy='1'
+    port="$(prompt_for_value 'Port?')"
+    readonly port
+  fi
 fi
 
 if prompt_ny 'Use Docker socket proxy?'; then
@@ -137,8 +145,15 @@ write_to_compose_file \
   "  ${app_name}:" \
   "    image: \${${app_constant_name}_IMAGE:-${image_name}}:\${${app_constant_name}_IMAGE_TAG:-${image_tag}}" \
   "    container_name: ${app_name}" \
-  "    hostname: ${app_name}" \
-  '    restart: unless-stopped' \
+  "    hostname: ${app_name}"
+
+if is_service; then
+  write_to_compose_file '    restart: unless-stopped'
+else
+  write_to_compose_file '    restart: no'
+fi
+
+write_to_compose_file \
   '    security_opt:' \
   '      - no-new-privileges:true'
 
