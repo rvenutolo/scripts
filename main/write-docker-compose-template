@@ -38,6 +38,7 @@ function multiple_containers() {
 
 readonly compose_file='./compose.yaml'
 readonly env_template_file='./.env.template'
+readonly dc_ignore_file='./.dc_ignore'
 
 if file_exists "${compose_file}"; then
   die "${compose_file} exists"
@@ -45,6 +46,10 @@ fi
 
 if file_exists "${env_template_file}"; then
   die "${env_template_file} exists"
+fi
+
+if file_exists "${dc_ignore_file}"; then
+  die "${dc_ignore_file} exists"
 fi
 
 app_name="$(prompt_for_value 'App name?')"
@@ -205,4 +210,8 @@ if socket_proxy; then
   '## SOCKET PROXY OPTIONAL OVERRIDES' \
   'SOCKET_PROXY_IMAGE=' \
   'SOCKET_PROXY_IMAGE_TAG='
+fi
+
+if ! is_service; then
+  touch "${dc_ignore_file}"
 fi
