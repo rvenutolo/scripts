@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${DOCKER_COMPOSE_DIR}/functions.bash"
+
+if [[ "$#" -eq 0 ]]; then
+  mapfile -t images_to_scan < <(docker ps --format '{{.Image}}' | sort | uniq)
+else
+  images_to_scan=("$@")
+fi
+readonly images_to_scan
+
+readonly tmp_cache_dir='/tmp/grype/cache'
+mkdir --parents "${tmp_cache_dir}"
+
+for image in "${images_to_scan[@]}"; do
+  log "Scanning: ${image}"
+  docker run \
+    --rm \
+    --volume "${DOCKER_SOCKET}:/var/run/docker.sock" \
+    --volume "${tmp_cache_dir}:/.cache/grype" \
+    --name "grype-${image//[:\/]/-}" \
+    'anchore/grype:latest' \
+    "docker:${image}"
+  log "Scanned: ${image}"
+done
