@@ -154,8 +154,6 @@ write_to_compose_file \
 
 if is_service; then
   write_to_compose_file '    restart: unless-stopped'
-else
-  write_to_compose_file '    restart: no'
 fi
 
 write_to_compose_file \
