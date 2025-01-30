@@ -6,6 +6,8 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
+readonly ignore_filename='.dc_ignore'
+
 # $1 = compose file
 function run_commands() {
   docker compose --file "$1" down --remove-orphans
@@ -17,8 +19,11 @@ if file_exists 'compose.yaml'; then
   run_commands './compose.yaml'
 else
   find . -name 'compose.yaml' | sort | while read -r compose_file; do
-    compose_dir="$(basename "$(dirname "${compose_file}")")" || exit 1
-    log "Running docker compose down+pull+up for: ${compose_dir}"
-    run_commands "${compose_file}"
+    compose_dir_path="$(dirname "${compose_file}")"
+    compose_dir_name="$(basename "${compose_dir_path}")" || exit 1
+    if ! file_exists "${compose_dir_path}/${ignore_filename}"; then
+      log "Running docker compose down+pull+up for: ${compose_dir_name}"
+      run_commands "${compose_file}"
+    fi
   done
 fi
