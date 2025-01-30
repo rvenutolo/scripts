@@ -19,7 +19,7 @@ for image in "${images_to_scan[@]}"; do
   log "Scanning: ${image}"
   docker run \
     --rm \
-    --volume "${DOCKER_SOCKET}:/var/run/docker.sock" \
+    --volume "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock" \
     --volume "${tmp_cache_dir}:/.cache/grype" \
     --name "grype-${image//[:\/]/-}" \
     'anchore/grype:latest' \
