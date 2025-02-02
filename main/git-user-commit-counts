@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+(
+  for user_email in $(git log --format='%ae' | sort --unique); do
+    echo "${user_email} $(git log --author="${user_email}" --oneline | wc --lines)"
+  done
+) | column --table
