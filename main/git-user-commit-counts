@@ -7,7 +7,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
 (
-  for user_email in $(git log --format='%ae' | sort --unique); do
-    echo "${user_email} $(git log --author="${user_email}" --oneline | wc --lines)"
-  done
-) | column --table
+  while read -r user_email; do
+    echo "$(git log --author="${user_email}" --oneline | wc --lines) ${user_email}"
+  done < <(git log --format='%ae' | sort --unique)
+) | column --table --table-columns-limit '2' --output-separator ' | ' --table-right '1'
