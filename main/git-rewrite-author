@@ -6,11 +6,13 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-read -r -p 'Email address to replace: ' old_email
-read -r -p 'New email address: ' new_email
-read -r -p 'New name: ' new_name
+old_email="$(prompt_for_value 'Email address to replace')"
+readonly old_email
+new_email="$(prompt_for_value 'New email address')"
+readonly new_email
+new_name="$(prompt_for_value 'New name')"
+readonly new_name
 
-# adapted from https://help.github.com/articles/changing-author-info/
 FILTER_BRANCH_SQUELCH_WARNING='1' git filter-branch --force --env-filter "
 OLD_EMAIL='${old_email}'
 CORRECT_NAME='${new_name}'
