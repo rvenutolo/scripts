@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+if prompt_yn 'This will sign ALL commits (without checking commit authors). Continue?'; then
+  git rebase --exec "git commit --amend --no-edit --no-verify --gpg-sign" --root
+fi
+
+log "Check the log, then push changes with: git push --force --tags origin 'refs/heads/*'"
