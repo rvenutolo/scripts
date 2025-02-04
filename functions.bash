@@ -320,6 +320,26 @@ function file_size_gb() {
   echo "scale=2; $(stat --format='%s' "$1") / 1073741824" | bc
 }
 
+# $1 = start seconds
+# $2 = end seconds
+function calc_elapsed() {
+  local elapsed=$(($2 - $1))
+  local hrs=$((elapsed / 3600))
+  local mins=$(((elapsed - hrs * 3600) / 60))
+  local secs=$((elapsed - hrs * 3600 - mins * 60))
+  if [[ ${hrs} -gt 0 ]]; then
+    echo -n "${hrs}h "
+  fi
+  if [[ ${mins} -gt 0 ]]; then
+    echo -n "${mins}m "
+  fi
+  echo "${secs}s"
+}
+
+function shell_elapsed_time() {
+  calc_elapsed 0 $SECONDS
+}
+
 function is_personal() {
   check_no_args "$@"
   [[ "$(hostname)" == "${PERSONAL_DESKTOP_HOSTNAME}" || "$(hostname)" == "${PERSONAL_LAPTOP_HOSTNAME}" ]]
