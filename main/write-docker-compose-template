@@ -194,6 +194,7 @@ fi
 if reverse_proxy; then
   write_to_compose_file \
 '    labels:' \
+'      - traefik.enable=true' \
 "      - traefik.http.routers.${app_name}-rtr.rule=Host(\`${app_name}.\${DOMAIN_NAME:?}\`)" \
 "      - traefik.http.services.${app_name}-svc.loadBalancer.server.port=${port}"
 fi
