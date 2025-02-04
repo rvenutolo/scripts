@@ -47,6 +47,18 @@ if ! sudo ufw status verbose | contains_perl_regex_ignore_case '22/tcp\s+allow i
   fi
 fi
 
+if ! sudo ufw status verbose | contains_perl_regex_ignore_case '45876/tcp\s+allow in\s+172\.17\.0\.0/16'; then
+  if prompt_ny 'Set UFW to allow incoming traffic on port 45876 (beszel) from 172.17.0.0/16 (docker0)?'; then
+    sudo ufw allow from '172.17.0.0/16' to any port '45876' proto 'tcp'
+  fi
+fi
+
+if ! sudo ufw status verbose | contains_perl_regex_ignore_case '45876/tcp\s+allow in\s+172\.18\.0\.0/16'; then
+  if prompt_ny 'Set UFW to allow incoming traffic on port 45876 (beszel) from 172.18.0.0/16 (docker_gwbridge)?'; then
+    sudo ufw allow from '172.18.0.0/16' to any port '45876' proto 'tcp'
+  fi
+fi
+
 if ! sudo ufw status verbose | contains_word_ignore_case 'allow (outgoing)'; then
   if prompt_yn 'Set UFW to allow outgoing?'; then
     sudo ufw default allow 'outgoing'
