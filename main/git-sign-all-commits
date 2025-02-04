@@ -6,7 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-if prompt_yn 'This will sign ALL commits (without checking commit authors). Continue?'; then
+if prompt_ny 'This will sign ALL commits (without checking commit authors). Continue?'; then
   FILTER_BRANCH_SQUELCH_WARNING='1' git filter-branch --force --commit-filter 'git commit-tree --gpg-sign "$@";'
 fi
 
