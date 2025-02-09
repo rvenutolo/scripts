@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-## TODO update for new office wifi
-
 set -euo pipefail
 
 #shellcheck disable=SC1091
