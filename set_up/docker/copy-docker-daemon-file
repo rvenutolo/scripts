@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_not_root
+check_no_args "$@"
+
+if ! executable_exists 'dockerd'; then
+  exit 0
+fi
+
+readonly src_file="${HOME}/.etc/docker-daemon.json"
+readonly dest_file='/etc/docker/daemon.json'
+copy_system_file "${src_file}" "${dest_file}"
+
+restart_system_service_if_enabled 'docker.service'
