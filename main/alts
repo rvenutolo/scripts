@@ -118,6 +118,10 @@ def alts = [
         desc: 'GitHub CLI tool',
         url: 'https://cli.github.com/'
     ),
+    gitu           : new AltInfo(
+        desc: 'A TUI Git client inspired by Magit ',
+        url: 'https://github.com/altsem/gitu'
+    ),
     gitui          : new AltInfo(
         desc: 'Blazing fast terminal-ui for Git written in Rust',
         url: 'https://github.com/extrawurst/gitui'
@@ -307,7 +311,7 @@ def map = [
     docker : ['lazydocker'],
     du     : ['dua', 'dust', 'gdu', 'ncdu'],
     find   : ['fd', 'fselect'],
-    git    : ['gh', 'gitui', 'lazygit', 'tig'],
+    git    : ['gh', 'gitu', 'gitui', 'lazygit', 'tig'],
     grep   : ['ack', 'ag', 'grex', 'gron', 'ripgrep', 'ugrep'],
     gzip   : ['ouch', 'pigz'],
     hexdump: ['hx'],
