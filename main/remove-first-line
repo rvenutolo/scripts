@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+
+if stdin_exists; then
+  check_no_args "$@"
+  tail --lines '+2'
+else
+  check_exactly_1_arg "$@"
+  temp_file="$(mktemp)"
+  readonly temp_file
+  cp "$1" "${temp_file}"
+  tail --lines '+2' "${temp_file}" > "$1"
+fi
