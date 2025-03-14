@@ -173,3 +173,63 @@ function root_copy_file() {
   sudo cp "$1" "$2"
   log "Copied: $1 -> $2"
 }
+
+# $1 = file
+# $2 = content
+function write_file() {
+  check_exactly_2_args "$@"
+  if file_exists "$1"; then
+    if [[ "$(cat "$1")" == "$2" ]]; then
+      exit 0
+    else
+      diff --color --unified "$1" <(echo "$2") || true
+      if ! prompt_yn "$1 exists - Overwrite?"; then
+        exit 0
+      fi
+    fi
+  fi
+  log "Writing $1"
+  create_dir "$(dirname "$1")"
+  echo "${2:-}" > "$1"
+  log "Wrote $1"
+}
+
+# $1 = file
+# $2 = content
+function root_write_file() {
+  check_exactly_2_args "$@"
+  if file_exists "$1"; then
+    if [[ "$(sudo cat "$1")" == "$2" ]]; then
+      exit 0
+    else
+      sudo diff --color --unified "$1" <(echo "$2") || true
+      if ! prompt_yn "$1 exists - Overwrite?"; then
+        exit 0
+      fi
+    fi
+  fi
+  log "Writing $1"
+  root_create_dir "$(dirname "$1")"
+  echo "$2" | sudo tee "$1" > '/dev/null'
+  log "Wrote $1"
+}
+
+# $1 = file
+# $2 = content
+function append_to_file() {
+  check_exactly_2_args "$@"
+  log "Appending to $1"
+  create_dir "$(dirname "$1")"
+  echo "${2:-}" >> "$1"
+  log "Appended to $1"
+}
+
+# $1 = file
+# $2 = content
+function root_append_to_file() {
+  check_exactly_2_args "$@"
+  log "Appending to $1"
+  root_create_dir "$(dirname "$1")"
+  echo "$2" | sudo tee --append "$1" > '/dev/null'
+  log "Appended to $1"
+}
