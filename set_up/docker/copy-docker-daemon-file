@@ -13,6 +13,6 @@ fi
 
 readonly src_file="${HOME}/.etc/docker-daemon.json"
 readonly dest_file='/etc/docker/daemon.json'
-copy_system_file "${src_file}" "${dest_file}"
+root_copy_file "${src_file}" "${dest_file}"
 
 restart_system_service_if_enabled 'docker.service'

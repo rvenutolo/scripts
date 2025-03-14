@@ -20,7 +20,7 @@ function file_size_gb() {
 
 # $1 = target file
 # $2 = link file
-function link_user_file() {
+function link_file() {
   check_not_root
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
@@ -47,7 +47,7 @@ function link_user_file() {
 
 # $1 = old file location
 # $2 = new file location
-function move_user_file() {
+function move_file() {
   check_not_root
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
@@ -74,7 +74,7 @@ function move_user_file() {
 
 # $1 = old file location
 # $2 = new file location
-function copy_user_file() {
+function copy_file() {
   check_not_root
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
@@ -105,7 +105,7 @@ function copy_user_file() {
 
 # $1 = source file
 # $2 = destination file
-function copy_system_file() {
+function root_copy_file() {
   check_exactly_2_args "$@"
   if [[ ! -f "$1" ]]; then
     die "$1 does not exist"

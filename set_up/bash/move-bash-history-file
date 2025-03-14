@@ -18,4 +18,4 @@ if [[ ! -f "${old_history_file}" ]]; then
   exit 0
 fi
 
-move_user_file "${old_history_file}" "${new_history_file}"
+move_file "${old_history_file}" "${new_history_file}"

@@ -13,6 +13,6 @@ fi
 
 readonly src_file="${HOME}/.etc/sshd.conf"
 readonly dest_file='/etc/ssh/sshd_config.d/sshd.conf'
-copy_system_file "${src_file}" "${dest_file}"
+root_copy_file "${src_file}" "${dest_file}"
 
 restart_system_service_if_enabled 'sshd.service'

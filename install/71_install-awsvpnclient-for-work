@@ -25,7 +25,7 @@ log "Adding AWS VPN Client public key"
 public_key_temp_file="$(download_to_temp_file 'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc')"
 readonly public_key_temp_file
 readonly public_key_target_file='/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc'
-copy_system_file "${public_key_temp_file}" "${public_key_target_file}"
+root_copy_file "${public_key_temp_file}" "${public_key_target_file}"
 log "Added AWS VPN Client public key"
 
 log "Adding AWS VPN Client source list file"
@@ -33,7 +33,7 @@ list_temp_file="$(mktemp)" || exit 1
 readonly list_temp_file
 echo "deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu main" > "${list_temp_file}"
 readonly list_target_file='/etc/apt/sources.list.d/aws-vpn-client.list'
-copy_system_file "${list_temp_file}" "${list_target_file}"
+root_copy_file "${list_temp_file}" "${list_target_file}"
 log "Added AWS VPN Client source list file"
 
 log 'Installing AWS VPN Client'
