@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 
-# $1 = variable name
+# $@ = variable names
 function check_env_var_set() {
-  check_exactly_1_arg "$@"
-  if [[ -z "${!1:-}" ]]; then
-    die "$1 not set"
-  fi
+  check_at_least_1_arg "$@"
+  for var in "$@"; do
+    if [[ -z "${!var:-}" ]]; then
+      die "${var} not set"
+    fi
+  done
 }
