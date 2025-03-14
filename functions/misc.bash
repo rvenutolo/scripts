@@ -7,5 +7,6 @@ function this_script_dir() {
 }
 
 function auto_answer() {
+  check_no_args "$@"
   [[ "${SCRIPTS_AUTO_ANSWER:-}" == [Yy] ]]
 }

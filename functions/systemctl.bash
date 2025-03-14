@@ -2,6 +2,7 @@
 
 # $1 = service unit file
 function user_service_unit_file_exists() {
+  check_exactly_1_arg "$@"
   systemctl --user list-unit-files --all --quiet "$1" > '/dev/null'
 }
 
