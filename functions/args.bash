@@ -77,11 +77,3 @@ function stdin_exists() {
   check_no_args "$@"
   ! [[ -t 0 ]]
 }
-
-# $1 = variable name
-function check_for_var() {
-  check_exactly_1_arg "$@"
-  if [[ -z "${!1:-}" ]]; then
-    die "$1 not set"
-  fi
-}
