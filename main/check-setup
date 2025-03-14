@@ -7,7 +7,6 @@ sudo --validate
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-check_not_root
 check_no_args "$@"
 
 if [[ -z "$(w --no-header "${USER}")" ]]; then
