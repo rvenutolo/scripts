@@ -10,7 +10,6 @@ fi
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
-check_not_root
 
 sudo --validate
 

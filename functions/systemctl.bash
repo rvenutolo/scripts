@@ -8,7 +8,6 @@ function user_service_unit_file_exists() {
 
 # $1 = service unit file
 function enable_user_service_unit() {
-  check_not_root
   check_exactly_1_arg "$@"
   if user_service_unit_file_exists "$1"; then
     if ! systemctl is-enabled --user --quiet "$1" && prompt_yn "Enable and start $1 user service?"; then
@@ -23,7 +22,6 @@ function enable_user_service_unit() {
 
 # $1 = service unit file
 function disable_user_service_unit() {
-  check_not_root
   check_exactly_1_arg "$@"
   if user_service_unit_file_exists "$1"; then
     if systemctl is-enabled --user --quiet "$1" && prompt_yn "Disable and stop $1 user service?"; then
@@ -38,7 +36,6 @@ function disable_user_service_unit() {
 
 # $1 = service unit file
 function restart_user_service_if_enabled() {
-  check_not_root
   check_exactly_1_arg "$@"
   if user_service_unit_file_exists "$1"; then
     if systemctl is-enabled --user --quiet "$1" && prompt_yn "Restart $1 user service?"; then

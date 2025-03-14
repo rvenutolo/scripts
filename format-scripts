@@ -5,7 +5,6 @@ set -euo pipefail
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
-check_not_root
 
 shfmt --find "$(this_script_dir)" \
   | grep --invert-match '/other/' \
