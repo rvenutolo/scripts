@@ -7,7 +7,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_at_least_1_arg "$@"
 
 for file; do
-  if [[ -f "${file}" ]]; then
+  if file_exists "${file}"; then
     target_file="${CRYPT_DIR}/$(basename -- "${file}")"
     log "Encrypting: ${file} to: ${target_file}"
     age --encrypt --recipient="${AGE_PUBLIC_KEY}" --armor --output="${target_file}" -- "${file}"

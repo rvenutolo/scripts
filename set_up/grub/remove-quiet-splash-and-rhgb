@@ -23,12 +23,12 @@ else
   readonly grub_mkconfig_cmd='grub2-mkconfig'
   readonly grub_config_file='/boot/grub2/grub.cfg'
 fi
-if [[ ! -f "${grub_config_file}" ]]; then
+if ! file_exists "${grub_config_file}"; then
   die "Could not find GRUB config file at: ${grub_config_file}"
 fi
 
 readonly grub_default_file='/etc/default/grub'
-if [[ ! -f "${grub_default_file}" ]]; then
+if ! file_exists "${grub_default_file}"; then
   die "Unable to find file: ${grub_default_file}"
 fi
 
@@ -73,7 +73,7 @@ while read -r line; do
     done
     line_to_write="$(sed 's/\s*"\s*/"/g ; s/\s\+/ /g' <<< "${line_to_write}")" || exit 1
   fi
-  echo "${line_to_write}" | sudo tee --append "${grub_default_file}" > '/dev/null'
+  root_append_to_file "${grub_default_file}" "${line_to_write}"
 done < "${grub_default_file}.orig"
 
 sudo "${grub_mkconfig_cmd}" --output="${grub_config_file}"

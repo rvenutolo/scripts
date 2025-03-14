@@ -6,7 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_exactly_2_args "$@"
 
-if [[ -f "$1" && -f "$2" ]] || [[ -d "$1" && -d "$2" ]]; then
+if file_exists "$1" && file_exists "$2" || dir_exists "$1" && dir_exists "$2" ]]; then
   readonly temp_file="swap.tmp"
   mv -- "$1" "${temp_file}"
   mv -- "$2" "$1"

@@ -5,7 +5,7 @@ set -euo pipefail
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
 
-mkdir --parents "$(dirname "${HOME_MANAGER_PACKAGES_FILE}")"
+create_dir "$(dirname "${HOME_MANAGER_PACKAGES_FILE}")"
 (
   echo "{ pkgs, ... }:"
   echo ""

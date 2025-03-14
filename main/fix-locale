@@ -6,7 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-echo 'LC_ALL=en_US.UTF-8' | sudo tee --append '/etc/environment'
-echo 'en_US.UTF-8 UTF-8' | sudo tee --append '/etc/locale.gen'
-echo 'LANG=en_US.UTF-8' | sudo tee --append '/etc/locale.conf'
+root_append_to_file '/etc/environment' 'LC_ALL=en_US.UTF-8'
+root_append_to_file '/etc/locale.gen' 'en_US.UTF-8 UTF-8'
+root_append_to_file '/etc/locale.conf' 'LANG=en_US.UTF-8'
 sudo locale-gen 'en_US.UTF-8'

@@ -13,7 +13,7 @@ fi
 readonly connection_file_url='https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection'
 readonly connection_file='/etc/NetworkManager/system-connections/de-400.nmconnection'
 
-if [[ -f "${connection_file}" ]]; then
+if file_exists "${connection_file}"; then
   exit 0
 fi
 
@@ -22,6 +22,6 @@ if ! prompt_yn 'Install DE WIFI connection file?'; then
 fi
 
 log 'Installing DE WIFI connection file'
-download-decrypt "${connection_file_url}" | sudo tee "${connection_file}" > '/dev/null'
+root_write_file "${connection_file}" "$(download-decrypt "${connection_file_url}")"
 sudo chmod 600 "${connection_file}"
 log 'Installed DE WIFI connection file'

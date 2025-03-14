@@ -30,13 +30,13 @@ function file_size_gb() {
 # $2 = link file
 function link_file() {
   check_exactly_2_args "$@"
-  if [[ ! -f "$1" ]]; then
+  if ! file_exists "$1"; then
     die "$1 does not exist"
   fi
   if [[ -L "$2" && "$(readlink --canonicalize "$2")" == "$(readlink --canonicalize "$1")" ]]; then
     exit 0
   fi
-  if [[ -f "$2" ]]; then
+  if file_exists "$2"; then
     diff --color --unified "$2" "$1" || true
     if ! prompt_yn "$2 exists - Link: $1 -> $2?"; then
       exit 0
@@ -56,13 +56,13 @@ function link_file() {
 # $2 = new file location
 function move_file() {
   check_exactly_2_args "$@"
-  if [[ ! -f "$1" ]]; then
+  if ! file_exists "$1"; then
     die "$1 does not exist"
   fi
   if [[ "$1" == "$2" ]]; then
     die "File paths are the same"
   fi
-  if [[ -f "$2" ]]; then
+  if file_exists "$2"; then
     if cmp --silent "$1" "$2"; then
       rm "$1"
       exit 0
@@ -87,7 +87,7 @@ function move_file() {
 # $2 = new file location
 function root_move_file() {
   check_exactly_2_args "$@"
-  if [[ ! -f "$1" ]]; then
+  if ! file_exists "$1"; then
     die "$1 does not exist"
   fi
   if [[ "$1" == "$2" ]]; then
@@ -118,13 +118,13 @@ function root_move_file() {
 # $2 = new file location
 function copy_file() {
   check_exactly_2_args "$@"
-  if [[ ! -f "$1" ]]; then
+  if ! file_exists "$1"; then
     die "$1 does not exist"
   fi
   if [[ "$1" == "$2" ]]; then
     die "File paths are the same"
   fi
-  if [[ -f "$2" ]]; then
+  if file_exists "$2"; then
     if cmp --silent "$1" "$2"; then
       exit 0
     else
@@ -148,7 +148,7 @@ function copy_file() {
 # $2 = destination file
 function root_copy_file() {
   check_exactly_2_args "$@"
-  if [[ ! -f "$1" ]]; then
+  if ! file_exists "$1"; then
     die "$1 does not exist"
   fi
   if [[ "$1" == "$2" ]]; then

@@ -7,7 +7,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_at_least_1_arg "$@"
 
 for archive in "$@"; do
-  if [ -f "${archive}" ]; then
+  if file_exists "${archive}"; then
     case "${archive}" in
       *.tar.bz2) tar --extract --verbose --bzip2 --file "${archive}" ;;
       *.tar.gz) tar --extract --verbose --gzip --file "${archive}" ;;

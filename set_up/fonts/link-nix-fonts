@@ -6,7 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-if [[ ! -d "${HOME}/.nix-profile/share/fonts" ]]; then
+if ! dir_exists "${HOME}/.nix-profile/share/fonts"; then
   exit 0
 fi
 if [[ -L "${HOME}/.local/share/fonts/nix" ]]; then
@@ -17,7 +17,7 @@ if ! prompt_yn 'Link Nix fonts and update font cache?'; then
 fi
 
 log 'Updating font cache to include nixpkgs fonts'
-mkdir --parents "${HOME}/.local/share/fonts"
-ln --symbolic --force "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
+create_dir "${HOME}/.local/share/fonts"
+link_file "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
 fc-cache --force
 log 'Updated font cache to include nixpkgs fonts'

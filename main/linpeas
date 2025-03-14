@@ -10,7 +10,7 @@ readonly linpeas_file="${XDG_DATA_HOME}/linpeas"
 linpeas_output="${HOME}/linpeas_$(date +%Y%m%d-%H%M%S).txt"
 readonly linpeas_output
 
-mkdir --parents "$(dirname "${linpeas_file}")"
+create_dir "$(dirname "${linpeas_file}")"
 etag-dl "${url}" "${linpeas_file}"
 chmod +x "${linpeas_file}"
 

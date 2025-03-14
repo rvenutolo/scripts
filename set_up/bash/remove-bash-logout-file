@@ -8,7 +8,7 @@ check_no_args "$@"
 
 readonly bash_logout_file="${HOME}/.bash_logout"
 
-if [[ ! -f "${bash_logout_file}" ]]; then
+if ! file_exists "${bash_logout_file}"; then
   exit 0
 fi
 if ! prompt_yn "Delete ${bash_logout_file}?"; then

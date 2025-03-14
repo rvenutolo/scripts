@@ -16,7 +16,7 @@ readonly toolbox_release_info_url='https://data.services.jetbrains.com/products/
 readonly local_bin_dir="${HOME}/.local/bin"
 readonly local_bin_symlink="${local_bin_dir}/jetbrains-toolbox"
 
-if [[ -f "${local_bin_symlink}" ]]; then
+if file_exists "${local_bin_symlink}"; then
   exit 0
 fi
 if ! prompt_yn 'Install JetBrains Toolbox?'; then
@@ -24,11 +24,10 @@ if ! prompt_yn 'Install JetBrains Toolbox?'; then
 fi
 
 log 'Installing JetBrains Toolbox'
-mkdir --parents "${toolbox_install_dir}"
-mkdir --parents "${local_bin_dir}"
+create_dir "${toolbox_install_dir}" "${local_bin_dir}"
 archive_url="$(download_and_cat "${toolbox_release_info_url}" | jq --raw-output '.TBA[0].downloads.linux.link')" || exit 1
 readonly archive_url
 download_and_cat "${archive_url}" | tar --extract --gzip --directory="${toolbox_install_dir}" --strip-components='1'
 chmod +x "${toolbox_install_binary}"
-ln --symbolic --force "${toolbox_install_binary}" "${local_bin_symlink}"
+link_file "${toolbox_install_binary}" "${local_bin_symlink}"
 log 'Installed JetBrains Toolbox'

@@ -11,7 +11,7 @@ path_remove "$(this_script_dir)"
 dir="${PWD}"
 project_root="${PWD}"
 while [[ "${dir}" != / ]]; do
-  if [[ -f "${dir}/pom.xml" || -f "${dir}/mvnw" ]]; then
+  if file_exists "${dir}/pom.xml" || file_exists "${dir}/mvnw"; then
     readonly project_root="${dir}"
     break
   fi
