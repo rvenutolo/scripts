@@ -7,6 +7,14 @@ function file_exists() {
 }
 
 # $1 = file
+function assert_file_exists() {
+  check_exactly_1_arg "$@"
+  if ! file_exists "$1"; then
+    die "$1 does not exist"
+  fi
+}
+
+# $1 = file
 function is_readable_file() {
   check_exactly_1_arg "$@"
   [[ -r "$1" ]]
