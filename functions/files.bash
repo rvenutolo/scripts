@@ -39,7 +39,7 @@ function link_file() {
     fi
   fi
   log "Linking: $1 -> $2"
-  mkdir --parents "$(dirname "$2")"
+  create_dir "$(dirname "$2")"
   ln --symbolic --force "$1" "$2"
   log "Linked: $1 -> $2"
 }
@@ -55,9 +55,14 @@ function move_file() {
     die "File paths are the same"
   fi
   if [[ -f "$2" ]]; then
-    diff --color --unified "$2" "$1" || true
-    if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
+    if cmp --silent "$1" "$2"; then
+      rm "$1"
       exit 0
+    else
+      diff --color --unified "$2" "$1" || true
+      if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
+        exit 0
+      fi
     fi
   else
     if ! prompt_yn "Move $1 -> $2?"; then
@@ -65,8 +70,39 @@ function move_file() {
     fi
   fi
   log "Moving: $1 -> $2"
-  mkdir --parents "$(dirname "$2")"
+  create_dir "$(dirname "$2")"
   mv "$1" "$2"
+  log "Moved: $1 -> $2"
+}
+
+# $1 = old file location
+# $2 = new file location
+function root_move_file() {
+  check_exactly_2_args "$@"
+  if [[ ! -f "$1" ]]; then
+    die "$1 does not exist"
+  fi
+  if [[ "$1" == "$2" ]]; then
+    die "File paths are the same"
+  fi
+  if sudo bash -c "[[ -f $2 ]]"; then
+    if sudo cmp --silent "$1" "$2"; then
+      sudo rm "$1"
+      exit 0
+    else
+      sudo diff --color --unified "$2" "$1" || true
+      if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
+        exit 0
+      fi
+    fi
+  else
+    if ! prompt_yn "Move $1 -> $2?"; then
+      exit 0
+    fi
+  fi
+  log "Moving: $1 -> $2"
+  root_create_dir "$(dirname "$2")"
+  sudo mv "$1" "$2"
   log "Moved: $1 -> $2"
 }
 
@@ -95,7 +131,7 @@ function copy_file() {
     fi
   fi
   log "Copying: $1 -> $2"
-  mkdir --parents "$(dirname "$2")"
+  create_dir "$(dirname "$2")"
   cp "$1" "$2"
   log "Copied: $1 -> $2"
 }
@@ -125,7 +161,7 @@ function root_copy_file() {
     fi
   fi
   log "Copying: $1 -> $2"
-  sudo mkdir --parents "$(dirname "$2")"
+  root_create_dir "$(dirname "$2")"
   sudo cp "$1" "$2"
   log "Copied: $1 -> $2"
 }
