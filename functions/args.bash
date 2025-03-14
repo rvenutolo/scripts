@@ -73,12 +73,14 @@ function check_exactly_4_args() {
 }
 
 function check_for_stdin() {
+  check_no_args "$@"
   if [[ -t 0 ]]; then
     die "Expected STDIN"
   fi
 }
 
 function stdin_exists() {
+  check_no_args "$@"
   ! [[ -t 0 ]]
 }
 

@@ -14,6 +14,7 @@ function is_readable_file() {
 
 # $1 = file
 function file_size_gb() {
+  check_exactly_1_arg "$@"
   echo "scale=2; $(stat --format='%s' "$1") / 1073741824" | bc
 }
 
