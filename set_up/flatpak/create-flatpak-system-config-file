@@ -14,10 +14,9 @@ if file_exists '/var/lib/flatpak/repo/config'; then
   exit 0
 fi
 
-sudo mkdir --parents '/var/lib/flatpak/repo/objects' '/var/lib/flatpak/repo/tmp'
-sudo tee '/var/lib/flatpak/repo/config' > '/dev/null' << EOF
-[core]
+root_create_dir '/var/lib/flatpak/repo/objects' '/var/lib/flatpak/repo/tmp'
+root_write_file '/var/lib/flatpak/repo/config' '[core]
 repo_version=1
 mode=bare-user-only
 min-free-space-size=500MB
-EOF
+'

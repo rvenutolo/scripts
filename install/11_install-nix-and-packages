@@ -8,8 +8,8 @@ check_no_args "$@"
 
 if ! executable_exists 'nix' && prompt_yn 'Install Nix?'; then
   log 'Installing Nix'
-  if [[ ! -d '/nix' ]]; then
-    sudo mkdir '/nix'
+  if ! dir_exists '/nix'; then
+    root_create_dir '/nix'
   fi
   sudo chmod 755 '/nix'
   sudo chown --recursive "${USER}:" '/nix'

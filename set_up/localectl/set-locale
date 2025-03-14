@@ -15,7 +15,7 @@ fi
 
 log 'Setting locale to en_US.UTF-8'
 if ! file_contains_regex '^en_US.UTF-8 UTF-8' '/etc/locale.gen'; then
-  echo 'en_US.UTF-8 UTF-8' | sudo tee --append '/etc/locale.gen' > '/dev/null'
+  root_append_to_file '/etc/locale.gen' 'en_US.UTF-8 UTF-8'
 fi
 sudo locale-gen
 sudo localectl set-locale 'LANG=en_US.UTF-8'

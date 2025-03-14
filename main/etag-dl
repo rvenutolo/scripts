@@ -7,12 +7,12 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_exactly_2_args "$@"
 
 readonly etags_dir="${XDG_CACHE_HOME}/etags"
-mkdir --parents "${etags_dir}"
+create_dir "${etags_dir}"
 
 etag_file="${etags_dir}/$(echo "$1" | tr --complement '[:alnum:]._-' '_').etag"
 readonly etag_file
 
-if [[ ! -f "$2" ]]; then
+if ! file_exists "$2"; then
   curl_wrapper --etag-save "${etag_file}" "$1" --output "$2"
 else
   curl_wrapper --etag-compare "${etag_file}" --etag-save "${etag_file}" "$1" --output "$2"

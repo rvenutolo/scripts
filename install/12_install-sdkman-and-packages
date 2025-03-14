@@ -6,9 +6,9 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-if [[ ! -f "${SDKMAN_DIR}/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN?'; then
+if ! file_exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt_yn 'Install SDKMAN?'; then
   log 'Installing SDKMAN'
-  if [[ -d "${SDKMAN_DIR}" ]]; then
+  if dir_exists "${SDKMAN_DIR}"; then
     # chezmoi will have created ~/.sdkman and the SDKMAN install script assumes
     # that the presence of this directory means that SDKMAN has already been
     # installed and will not actually install SDKMAN. This directory should only
@@ -30,7 +30,7 @@ if [[ ! -f "${SDKMAN_DIR}/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN?';
   log 'Installed SDKMAN'
 fi
 
-if [[ -f "${SDKMAN_DIR}/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN packages?'; then
+if file_exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt_yn 'Install SDKMAN packages?'; then
   log 'Installing SDKMAN packages'
   cp "${SDKMAN_DIR}/etc/config" "${SDKMAN_DIR}/etc/config.orig"
   sed --in-place 's/sdkman_auto_answer=false/sdkman_auto_answer=true/g' "${SDKMAN_DIR}/etc/config"
@@ -72,6 +72,6 @@ if [[ -f "${SDKMAN_DIR}/bin/sdkman-init.sh" ]] && prompt_yn 'Install SDKMAN pack
   log 'Installed SDKMAN packages'
 fi
 
-if [[ -f "${HOME}/.config/sdkman/config" ]]; then
-  ln --symbolic --force "${HOME}/.config/sdkman/config" "${SDKMAN_DIR}/etc/config"
+if file_exists "${HOME}/.config/sdkman/config"; then
+  link_file "${HOME}/.config/sdkman/config" "${SDKMAN_DIR}/etc/config"
 fi

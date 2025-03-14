@@ -9,7 +9,7 @@ check_no_args "$@"
 if ! is_work; then
   exit 0
 fi
-if [[ -d '/opt/carbonblack' ]]; then
+if dir_exists '/opt/carbonblack'; then
   exit 0
 fi
 if ! prompt_yn 'Install Carbon Black EDR?'; then

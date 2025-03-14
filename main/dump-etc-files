@@ -29,7 +29,7 @@ while true; do
   esac
 done
 readonly dir="${dir:-.}"
-mkdir --parents "${dir}"
+create_dir "${dir}"
 
 if [ "$#" -eq 0 ]; then
   readonly distros=('alpine' 'archlinux' 'debian' 'fedora' 'ubuntu')

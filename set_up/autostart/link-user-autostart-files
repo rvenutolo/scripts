@@ -7,13 +7,13 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
 readonly autostart_dir="${XDG_CONFIG_HOME}/autostart"
-mkdir --parents "${autostart_dir}"
+create_dir "${autostart_dir}"
 
 readonly autostart_files=(
   '/usr/share/applications/caffeine-indicator.desktop'
 )
 for autostart_file in "${autostart_files[@]}"; do
-  if [[ -f "${autostart_file}" ]]; then
+  if file_exists "${autostart_file}"; then
     link_file "${autostart_file}" "${autostart_dir}"
   fi
 done

@@ -13,7 +13,7 @@ fi
 readonly old_history_file="${HOME}/.bash_history"
 readonly new_history_file="${HISTFILE}"
 
-if [[ ! -f "${old_history_file}" ]]; then
+if ! file_exists "${old_history_file}"; then
   exit 0
 fi
 

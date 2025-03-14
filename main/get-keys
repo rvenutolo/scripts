@@ -7,7 +7,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
 readonly keys_dir="${HOME}/.keys"
-mkdir --parents "${keys_dir}"
+create_dir "${keys_dir}"
 
 readonly age_key_file="${keys_dir}/age.key"
 if ! file_exists "${age_key_file}"; then

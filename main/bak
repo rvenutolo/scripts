@@ -9,7 +9,7 @@ check_at_least_1_arg "$@"
 filetime="$(date +%Y%m%d_%H%M%S)" || exit 1
 readonly filetime
 for file; do
-  if [[ -f "${file}" || -d "${file}" ]]; then
+  if file_exists "${file}" || dir_exists "${file}"; then
     dirname="$(dirname -- "${file}")" || exit 1
     filename="$(basename -- "${file}")" || exit 1
     target_file="${dirname}/${filename}.${filetime}.bak"

@@ -6,7 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-if [[ ! -d '/etc/ssh/sshd_config.d' ]]; then
+if ! dir_exists '/etc/ssh/sshd_config.d'; then
   die '/etc/ssh/sshd_config.d does not exist'
 fi
 
