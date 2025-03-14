@@ -17,4 +17,4 @@ fi
 
 readonly src_file="${HOME}/.etc/pacman.conf"
 readonly dest_file='/etc/pacman.conf'
-copy_system_file "${src_file}" "${dest_file}"
+root_copy_file "${src_file}" "${dest_file}"

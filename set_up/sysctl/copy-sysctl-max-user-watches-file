@@ -11,6 +11,6 @@ readonly src_file="${HOME}/.etc/sysctl-max-user-watches.conf"
 readonly dest_file='/etc/sysctl.d/max-user-watches.conf'
 
 # Copy instead of symlink - see 'protected_symlinks' in https://www.kernel.org/doc/Documentation/sysctl/fs.txt
-copy_system_file "${src_file}" "${dest_file}"
+root_copy_file "${src_file}" "${dest_file}"
 
 reload_sysctl_conf

@@ -16,4 +16,4 @@ fi
 
 readonly src_file="${HOME}/.etc/fedora-command-not-found.conf"
 readonly dest_file='/etc/PackageKit/CommandNotFound.conf'
-copy_system_file "${src_file}" "${dest_file}"
+root_copy_file "${src_file}" "${dest_file}"

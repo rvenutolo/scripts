@@ -16,4 +16,4 @@ fi
 
 readonly src_file="${HOME}/.etc/dnf.conf"
 readonly dest_file='/etc/dnf/dnf.conf'
-copy_system_file "${src_file}" "${dest_file}"
+root_copy_file "${src_file}" "${dest_file}"
