@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
 
-function check_not_root() {
-  if [[ "${EUID}" == 0 ]]; then
-    die "Do not run this script as root"
-  fi
-}
-
 function check_no_args() {
   if [[ "$#" -ne 0 ]]; then
     die "Expected no arguments"
@@ -89,12 +83,5 @@ function check_for_var() {
   check_exactly_1_arg "$@"
   if [[ -z "${!1:-}" ]]; then
     die "$1 not set"
-  fi
-}
-
-function check_is_root() {
-  check_no_args "$@"
-  if [[ "${EUID}" != '0' ]]; then
-    die 'Must run as root'
   fi
 }
