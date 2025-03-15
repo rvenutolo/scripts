@@ -23,6 +23,7 @@ function is_readable_file() {
 # $1 = file
 function file_size_gb() {
   check_exactly_1_arg "$@"
+  assert_file_exists "$1"
   echo "scale=2; $(stat --format='%s' "$1") / 1073741824" | bc
 }
 
@@ -30,9 +31,7 @@ function file_size_gb() {
 # $2 = link file
 function link_file() {
   check_exactly_2_args "$@"
-  if ! file_exists "$1"; then
-    die "$1 does not exist"
-  fi
+  assert_file_exists "$1"
   if [[ -L "$2" && "$(readlink --canonicalize "$2")" == "$(readlink --canonicalize "$1")" ]]; then
     exit 0
   fi
@@ -56,9 +55,7 @@ function link_file() {
 # $2 = new file location
 function move_file() {
   check_exactly_2_args "$@"
-  if ! file_exists "$1"; then
-    die "$1 does not exist"
-  fi
+  assert_file_exists "$1"
   if [[ "$1" == "$2" ]]; then
     die "File paths are the same"
   fi
@@ -87,9 +84,7 @@ function move_file() {
 # $2 = new file location
 function root_move_file() {
   check_exactly_2_args "$@"
-  if ! file_exists "$1"; then
-    die "$1 does not exist"
-  fi
+  assert_file_exists "$1"
   if [[ "$1" == "$2" ]]; then
     die "File paths are the same"
   fi
@@ -118,9 +113,7 @@ function root_move_file() {
 # $2 = new file location
 function copy_file() {
   check_exactly_2_args "$@"
-  if ! file_exists "$1"; then
-    die "$1 does not exist"
-  fi
+  assert_file_exists "$1"
   if [[ "$1" == "$2" ]]; then
     die "File paths are the same"
   fi
@@ -148,9 +141,7 @@ function copy_file() {
 # $2 = destination file
 function root_copy_file() {
   check_exactly_2_args "$@"
-  if ! file_exists "$1"; then
-    die "$1 does not exist"
-  fi
+  assert_file_exists "$1"
   if [[ "$1" == "$2" ]]; then
     die "File paths are the same"
   fi
