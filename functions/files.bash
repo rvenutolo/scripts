@@ -173,7 +173,7 @@ function write_file() {
     if [[ "$(cat "$1")" == "$2" ]]; then
       exit 0
     else
-      diff --color --unified "$1" <(echo "$2") || true
+      diff --color --unified "$1" - <<< "$2" || true
       if ! prompt_yn "$1 exists - Overwrite?"; then
         exit 0
       fi
@@ -193,7 +193,7 @@ function root_write_file() {
     if [[ "$(sudo cat "$1")" == "$2" ]]; then
       exit 0
     else
-      sudo diff --color --unified "$1" <(echo "$2") || true
+      sudo diff --color --unified "$1" - <<< "$2" || true
       if ! prompt_yn "$1 exists - Overwrite?"; then
         exit 0
       fi
