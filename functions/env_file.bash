@@ -24,7 +24,7 @@ function get_env_file_var_value() {
 function is_env_file_var_value_defined() {
   check_exactly_2_args "$@"
   assert_file_exists "$1"
-  [[ -n "$(get_env_file_var "$1" "$2")" ]]
+  [[ -n "$(get_env_file_var_value "$1" "$2")" ]]
 }
 
 # $1 = env file
