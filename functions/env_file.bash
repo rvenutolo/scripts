@@ -48,7 +48,7 @@ function set_env_file_var_value() {
     die "$2 does not exist in $1"
   fi
   local value_escaped
-  value_escaped=$(printf '%s\n' "$3" | sed --expression='s/[\/&]/\\&/g')
+  value_escaped=$(printf '%s\n' "$3" | sed --expression='s/[\/&|]/\\&/g')
   sed --in-place "s|^$2=.*$|$2=${value_escaped}|" "$1"
 }
 
