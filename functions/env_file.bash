@@ -47,7 +47,9 @@ function set_env_file_var_value() {
   if ! env_file_var_exists "$1" "$2"; then
     die "$2 does not exist in $1"
   fi
-  sed --in-place "s|^$2=.*$|$2=$3|" "$1"
+  local value_escaped
+  value_escaped=$(printf '%s\n' "$3" | sed --expression='s/[\/&]/\\&/g')
+  sed --in-place "s|^$2=.*$|$2=${value_escaped}|" "$1"
 }
 
 # $1 = env file
