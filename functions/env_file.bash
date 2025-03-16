@@ -70,7 +70,7 @@ function prompt_and_set_env_file_var_value() {
   assert_file_exists "$1"
   local var_value
   if [[ -n "$3" ]]; then
-    var_value="$(prompt_for_value "Enter value for $2 [ $3 ]")" || exit 1
+    var_value="$(prompt_for_value "Enter value for $2 ($3)")" || exit 1
   else
     var_value="$(prompt_for_value "Enter value for $2")" || exit 1
   fi
