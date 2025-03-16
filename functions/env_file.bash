@@ -5,7 +5,7 @@
 function env_file_var_exists() {
   check_exactly_2_args "$@"
   assert_file_exists "$1"
-  file_contains_regex "^$2=" "$1"
+  file_contains_regex "$1" "^$2="
 }
 
 # $1 = env file
