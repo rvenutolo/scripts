@@ -60,9 +60,21 @@ function check_at_least_3_args() {
   fi
 }
 
+function check_at_most_4_args() {
+  if [[ "$#" -gt 4 ]]; then
+    die "Expected at most 4 arguments"
+  fi
+}
+
 function check_exactly_4_args() {
   if [[ "$#" -ne 4 ]]; then
     die "Expected exactly 4 arguments"
+  fi
+}
+
+function check_at_least_4_args() {
+  if [[ "$#" -lt 4 ]]; then
+    die "Expected at least 3 arguments"
   fi
 }
 
