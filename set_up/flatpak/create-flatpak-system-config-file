@@ -18,5 +18,4 @@ root_create_dir '/var/lib/flatpak/repo/objects' '/var/lib/flatpak/repo/tmp'
 root_write_file '/var/lib/flatpak/repo/config' '[core]
 repo_version=1
 mode=bare-user-only
-min-free-space-size=500MB
-'
+min-free-space-size=500MB'
