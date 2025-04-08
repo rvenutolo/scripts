@@ -103,7 +103,7 @@ fi
 if socket_proxy; then
   write_to_compose_file \
     "  ${app_name}-socket-proxy:" \
-    '    image: ${SOCKET_PROXY_IMAGE:-lscr.io/linuxserver/socket-proxy}:${SOCKET_PROXY_IMAGE_TAG:-latest}' \
+    '    image: lscr.io/linuxserver/socket-proxy:latest' \
     "    container_name: ${app_name}-socket-proxy" \
     "    hostname: ${app_name}-socket-proxy" \
     '    restart: unless-stopped' \
@@ -148,7 +148,7 @@ fi
 
 write_to_compose_file \
   "  ${app_name}:" \
-  "    image: \${${app_constant_name}_IMAGE:-${image_name}}:\${${app_constant_name}_IMAGE_TAG:-${image_tag}}" \
+  "    image: ${image_name}:${image_tag}" \
   "    container_name: ${app_name}" \
   "    hostname: ${app_name}"
 
@@ -197,20 +197,4 @@ if reverse_proxy; then
 '      - traefik.enable=true' \
 "      - traefik.http.routers.${app_name}-rtr.rule=Host(\`${app_name}.\${DOMAIN_NAME:?}\`)" \
 "      - traefik.http.services.${app_name}-svc.loadBalancer.server.port=${port}"
-fi
-
-write_to_env_template_file \
-  '## OPTIONAL OVERRIDES' \
-  "${app_constant_name}_IMAGE=" \
-  "${app_constant_name}_IMAGE_TAG="
-
-if socket_proxy; then
-  write_to_env_template_file '' \
-  '## SOCKET PROXY OPTIONAL OVERRIDES' \
-  'SOCKET_PROXY_IMAGE=' \
-  'SOCKET_PROXY_IMAGE_TAG='
-fi
-
-if ! is_service; then
-  touch "${dc_ignore_file}"
 fi
