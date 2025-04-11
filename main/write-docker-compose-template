@@ -105,7 +105,6 @@ if socket_proxy; then
     "  ${app_name}-socket-proxy:" \
     '    image: lscr.io/linuxserver/socket-proxy:latest' \
     "    container_name: ${app_name}-socket-proxy" \
-    "    hostname: ${app_name}-socket-proxy" \
     '    restart: unless-stopped' \
     '    security_opt:' \
     '      - no-new-privileges:true' \
