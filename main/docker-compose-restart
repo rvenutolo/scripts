@@ -7,5 +7,4 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
 docker compose down --remove-orphans
-docker compose pull
 docker compose up --detach
