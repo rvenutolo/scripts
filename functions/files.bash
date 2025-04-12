@@ -33,16 +33,16 @@ function link_file() {
   check_exactly_2_args "$@"
   assert_file_exists "$1"
   if [[ -L "$2" && "$(readlink --canonicalize "$2")" == "$(readlink --canonicalize "$1")" ]]; then
-    exit 0
+    return 0
   fi
   if file_exists "$2"; then
     diff --color --unified "$2" "$1" || true
     if ! prompt_yn "$2 exists - Link: $1 -> $2?"; then
-      exit 0
+      return 0
     fi
   else
     if ! prompt_yn "Link: $1 -> $2?"; then
-      exit 0
+      return 0
     fi
   fi
   log "Linking: $1 -> $2"
@@ -62,16 +62,16 @@ function move_file() {
   if file_exists "$2"; then
     if cmp --silent "$1" "$2"; then
       rm "$1"
-      exit 0
+      return 0
     else
       diff --color --unified "$2" "$1" || true
       if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
-        exit 0
+        return 0
       fi
     fi
   else
     if ! prompt_yn "Move $1 -> $2?"; then
-      exit 0
+      return 0
     fi
   fi
   log "Moving: $1 -> $2"
@@ -91,16 +91,16 @@ function root_move_file() {
   if sudo bash -c "[[ -f $2 ]]"; then
     if sudo cmp --silent "$1" "$2"; then
       sudo rm "$1"
-      exit 0
+      return 0
     else
       sudo diff --color --unified "$2" "$1" || true
       if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
-        exit 0
+        return 0
       fi
     fi
   else
     if ! prompt_yn "Move $1 -> $2?"; then
-      exit 0
+      return 0
     fi
   fi
   log "Moving: $1 -> $2"
@@ -119,16 +119,16 @@ function copy_file() {
   fi
   if file_exists "$2"; then
     if cmp --silent "$1" "$2"; then
-      exit 0
+      return 0
     else
       diff --color --unified "$2" "$1" || true
       if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
-        exit 0
+        return 0
       fi
     fi
   else
     if ! prompt_yn "Copy $1 -> $2?"; then
-      exit 0
+      return 0
     fi
   fi
   log "Copying: $1 -> $2"
@@ -147,16 +147,16 @@ function root_copy_file() {
   fi
   if sudo bash -c "[[ -f $2 ]]"; then
     if sudo cmp --silent "$1" "$2"; then
-      exit 0
+      return 0
     else
       sudo diff --color --unified "$2" "$1" || true
       if ! prompt_yn "$2 exists - Overwrite: $1 -> $2?"; then
-        exit 0
+        return 0
       fi
     fi
   else
     if ! prompt_yn "Copy $1 -> $2?"; then
-      exit 0
+      return 0
     fi
   fi
   log "Copying: $1 -> $2"
@@ -171,11 +171,11 @@ function write_file() {
   check_exactly_2_args "$@"
   if file_exists "$1"; then
     if [[ "$(cat "$1")" == "$2" ]]; then
-      exit 0
+      return 0
     else
       diff --color --unified "$1" - <<< "$2" || true
       if ! prompt_yn "$1 exists - Overwrite?"; then
-        exit 0
+        return 0
       fi
     fi
   fi
@@ -191,11 +191,11 @@ function root_write_file() {
   check_exactly_2_args "$@"
   if file_exists "$1"; then
     if [[ "$(sudo cat "$1")" == "$2" ]]; then
-      exit 0
+      return 0
     else
       sudo diff --color --unified "$1" - <<< "$2" || true
       if ! prompt_yn "$1 exists - Overwrite?"; then
-        exit 0
+        return 0
       fi
     fi
   fi
