@@ -148,8 +148,7 @@ fi
 write_to_compose_file \
   "  ${app_name}:" \
   "    image: ${image_name}:${image_tag}" \
-  "    container_name: ${app_name}" \
-  "    hostname: ${app_name}"
+  "    container_name: ${app_name}"
 
 if is_service; then
   write_to_compose_file '    restart: unless-stopped'
