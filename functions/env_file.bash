@@ -61,7 +61,7 @@ function prompt_env_file_var_value() {
   assert_env_file_var_exists "$1" "$2"
   local prompt_text
   if [[ -n "${3:-}" ]]; then
-    prompt_text="Enter value for $2 ($3)"
+    prompt_text="Enter value for $2 ( $3 )"
   else
     prompt_text="Enter value for $2"
   fi
