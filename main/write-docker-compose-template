@@ -142,6 +142,8 @@ if socket_proxy; then
     '      SYSTEM: 0' \
     '      TASKS: 0' \
     '      VOLUMES: 0' \
+    '    healthcheck:' \
+    '      test: wget --spider --quiet http://localhost:2375/version || exit 1' \
     ''
 fi
 
@@ -174,7 +176,9 @@ fi
 if socket_proxy; then
   write_to_compose_file \
     '    depends_on:' \
-    "      - ${app_name}-socket-proxy"
+    "      ${app_name}-socket-proxy" \
+    '    healthcheck:' \
+    '      test: wget --spider --quiet http://localhost:2375/version || exit 1'
 fi
 
 write_to_compose_file \
