@@ -31,6 +31,11 @@ function socket_proxy() {
   [[ -n "${use_socket_proxy:-}" ]]
 }
 
+function restart_on_unhealthy() {
+  check_no_args "$@"
+  [[ -n "${on_unhealthy:-}" ]]
+}
+
 function multiple_containers() {
   check_no_args "$@"
   [[ -n "${multiple_containers:-}" ]]
@@ -69,6 +74,9 @@ if prompt_yn 'Is this a service (not run-once)?'; then
     readonly use_reverse_proxy='1'
     port="$(prompt_for_value 'Port?')"
     readonly port
+  fi
+  if prompt_yn 'Restart on unhealthy status?'; then
+    readonly on_unhealthy='1'
   fi
 fi
 
@@ -144,6 +152,8 @@ if socket_proxy; then
     '      VOLUMES: 0' \
     '    healthcheck:' \
     '      test: wget --spider --quiet http://localhost:2375/version || exit 1' \
+    '    labels:' \
+    '      - deunhealth.restart.on.unhealthy=true' \
     ''
 fi
 
@@ -181,21 +191,28 @@ if socket_proxy; then
 fi
 
 write_to_compose_file \
-'    volumes:' \
-"      - \${DOCKER_LOGS_DIR:?}/${app_name}:/var/log/${app_name}" \
-"      - \${DOCKER_APP_DATA_DIR:?}/${app_name}/data:/data" \
-'      - /etc/localtime:/etc/localtime:ro'
+  '    volumes:' \
+  "      - \${DOCKER_LOGS_DIR:?}/${app_name}:/var/log/${app_name}" \
+  "      - \${DOCKER_APP_DATA_DIR:?}/${app_name}/data:/data" \
+  '      - /etc/localtime:/etc/localtime:ro'
 
 if socket_proxy; then
   write_to_compose_file \
-'    environment:' \
-"      DOCKER_HOST: tcp://${app_name}-socket-proxy:2375"
+    '    environment:' \
+    "      DOCKER_HOST: tcp://${app_name}-socket-proxy:2375"
 fi
 
-if reverse_proxy; then
+if restart_on_unhealthy || reverse_proxy ; then
   write_to_compose_file \
-'    labels:' \
-'      - traefik.enable=true' \
-"      - traefik.http.routers.${app_name}-rtr.rule=Host(\`${app_name}.\${DOMAIN_NAME:?}\`)" \
-"      - traefik.http.services.${app_name}-svc.loadBalancer.server.port=${port}"
+    '    labels:'
+  if restart_on_unhealthy; then
+    write_to_compose_file \
+      '      - deunhealth.restart.on.unhealthy=true'
+  fi
+  if reverse_proxy; then
+    write_to_compose_file \
+      '      - traefik.enable=true' \
+      "      - traefik.http.routers.${app_name}-rtr.rule=Host(\`${app_name}.\${DOMAIN_NAME:?}\`)" \
+      "      - traefik.http.services.${app_name}-svc.loadBalancer.server.port=${port}"
+  fi
 fi
