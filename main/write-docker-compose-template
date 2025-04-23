@@ -177,9 +177,7 @@ if socket_proxy; then
   write_to_compose_file \
     '    depends_on:' \
     "      ${app_name}-socket-proxy:" \
-    '        condition: service_healthy' \
-    '    healthcheck:' \
-    '      test: wget --spider --quiet http://localhost:2375/version || exit 1'
+    '        condition: service_healthy'
 fi
 
 write_to_compose_file \
