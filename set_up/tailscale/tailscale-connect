@@ -14,3 +14,7 @@ if ! tailscale status > '/dev/null' && prompt_yn 'Connect to Tailscale network?'
   sudo tailscale up
   log "Tailscale IP: $(tailscale ip -4)"
 fi
+
+if is_server || is_desktop; then
+  sudo tailscale set --advertise-exit-node
+fi
