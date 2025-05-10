@@ -20,7 +20,9 @@ function get_sdkman_packages() {
     die 'Could not determine which computer this is'
   fi
   local disabled_awk_string="\$${package_list_column} == \"y\" && \$7 != \"\" { print \"Disabled package: \" \$2 \" (\" \$7 \")\" }"
-  download_and_cat "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
+  IFS=$'\n'
+    for pkg_info in $(download_and_cat "${package_list_url}" | awk -F ',' "${disabled_awk_string}"); do log "$pkg_info"; done
+  unset IFS
   local enabled_awk_string="\$${package_list_column} == \"y\" && \$7 == \"\" { print \$2 }"
   download_and_cat "${package_list_url}" | awk -F ',' "${enabled_awk_string}"
 }
@@ -60,7 +62,9 @@ function get_universal_packages() {
     die 'Could not determine which computer this is'
   fi
   local disabled_awk_string="\$2 == \"${package_type}\" && \$${package_list_column}== \"y\" && \$8 != \"\" { print \"Disabled package: \" \$3 \" (\" \$8 \")\" }"
-  download_and_cat "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
+  IFS=$'\n'
+  for pkg_info in $(download_and_cat "${package_list_url}" | awk -F ',' "${disabled_awk_string}"); do log "$pkg_info"; done
+  unset IFS
   local enabled_awk_string="\$2 == \"${package_type}\" && \$${package_list_column}== \"y\" && \$8 == \"\" { print \$3 }"
   comm -23 <(download_and_cat "${package_list_url}" | awk -F ',' "${enabled_awk_string}" | sort) <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
 }
@@ -85,7 +89,9 @@ function get_distro_packages() {
     die 'Could not determine which computer this is'
   fi
   local disabled_awk_string="\$${package_list_column} == \"y\" && \$6 != \"\" { print \"Disabled package: \" \$1 \" (\" \$6 \")\" }"
-  download_and_cat "${package_list_url}" | awk -F ',' "${disabled_awk_string}" | while read -r pkg_info; do log "${pkg_info}"; done
+  IFS=$'\n'
+    for pkg_info in $(download_and_cat "${package_list_url}" | awk -F ',' "${disabled_awk_string}"); do log "$pkg_info"; done
+  unset IFS
   local enabled_awk_string="\$${package_list_column} == \"y\" && \$6 == \"\" { print \$1 }"
   download_and_cat "${package_list_url}" | awk -F ',' "${enabled_awk_string}"
 }
