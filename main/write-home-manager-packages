@@ -5,13 +5,12 @@ set -euo pipefail
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
 
-create_dir "$(dirname "${HOME_MANAGER_PACKAGES_FILE}")"
-(
-  echo "{ pkgs, ... }:"
-  echo ""
-  echo "{"
-  echo "  home.packages = with pkgs; ["
-  get_universal_packages 'nixpkgs' "$@" | sed 's/^/    /'
-  echo "  ];"
-  echo "}"
-) > "${HOME_MANAGER_PACKAGES_FILE}"
+echo "\
+{ pkgs, ... }:
+
+{
+  home.packages = with pkgs; [
+$(get_universal_packages 'nixpkgs' "$@" | sed 's/^/    /')
+  ];
+}
+" > "${HOME_MANAGER_PACKAGES_FILE}"
