@@ -10,4 +10,4 @@ if ! executable_exists 'nix-store'; then
   exit 0
 fi
 
-enable_user_service_unit 'home-manager-optimization.service'
+enable_user_service_unit 'home-manager-optimization.timer'
