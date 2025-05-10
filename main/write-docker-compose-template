@@ -225,6 +225,7 @@ docker compose \
   --file \"\${DOCKER_COMPOSE_DIR}/${app_name}/compose.yaml\" \
   run \
   --rm \
+  --name '${app_name}' \
   ${app_name}
 " > "${run_file}"
 fi
