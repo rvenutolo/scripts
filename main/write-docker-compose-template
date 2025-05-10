@@ -11,11 +11,6 @@ function write_to_compose_file() {
   printf '%s\n' "$@" >> "${compose_file}"
 }
 
-function write_to_env_template_file() {
-  check_at_least_1_arg "$@"
-  printf '%s\n' "$@" >> "${env_template_file}"
-}
-
 function is_service() {
   check_no_args "$@"
   [[ -n "${service:-}" ]]
@@ -42,20 +37,12 @@ function multiple_containers() {
 }
 
 readonly compose_file='./compose.yaml'
-readonly env_template_file='./.env.template'
-readonly dc_ignore_file='./.dc_ignore'
+readonly init_file='./init'
+readonly run_file='./run'
 
-if file_exists "${compose_file}"; then
-  die "${compose_file} exists"
-fi
-
-if file_exists "${env_template_file}"; then
-  die "${env_template_file} exists"
-fi
-
-if file_exists "${dc_ignore_file}"; then
-  die "${dc_ignore_file} exists"
-fi
+for file in "${compose_file}" "${init_file}" "${run_file}"; do
+  die "${file} exists"
+done
 
 app_name="$(prompt_for_value 'App name?')"
 readonly app_name
@@ -215,4 +202,29 @@ if restart_on_unhealthy || reverse_proxy ; then
       "      - traefik.http.routers.${app_name}-rtr.rule=Host(\`${app_name}.\${DOMAIN_NAME:?}\`)" \
       "      - traefik.http.services.${app_name}-svc.loadBalancer.server.port=${port}"
   fi
+fi
+
+echo "\
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source \"\${DOCKER_DIR}/compose/init-scripts-common.bash\"
+
+copy_env_file_template
+" > "${init_file}"
+
+if ! is_service; then
+  echo "\
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+docker compose \
+  --file \"\${DOCKER_COMPOSE_DIR}/${app_name}/compose.yaml\" \
+  run \
+  --rm \
+  ${app_name}
+" > "${run_file}"
 fi
