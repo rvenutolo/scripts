@@ -221,8 +221,11 @@ if ! is_service; then
 
 set -euo pipefail
 
+#shellcheck disable=SC1091
+source \"\${DOCKER_DIR}/compose/init-scripts-common.bash\"
+
 docker compose \
-  --file \"\${DOCKER_COMPOSE_DIR}/${app_name}/compose.yaml\" \
+  --file \"\$(this_script_dir)/compose.yaml\" \
   run \
   --rm \
   --name '${app_name}' \
