@@ -217,6 +217,13 @@ copy_env_file_template
 
 if ! is_service; then
   echo "\
+if prompt_yn 'Run ${app_name}?'; then
+  log 'Running ${app_name}'
+  \"\$(this_script_dir)/run\"
+  log 'Ran ${app_name}'
+fi
+" >> "${init_file}"
+  echo "\
 #!/usr/bin/env bash
 
 set -euo pipefail
