@@ -41,7 +41,9 @@ readonly init_file='./init'
 readonly run_file='./run'
 
 for file in "${compose_file}" "${init_file}" "${run_file}"; do
-  die "${file} exists"
+  if file_exists "${file}"; then
+    die "${file} exists"
+  fi
 done
 
 app_name="$(prompt_for_value 'App name?')"
