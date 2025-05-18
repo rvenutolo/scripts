@@ -224,3 +224,8 @@ function root_append_to_file() {
   echo "$2" | sudo tee --append "$1" > '/dev/null'
   log "Appended to $1"
 }
+
+# $1 = file
+function file_hash() {
+  sha256sum "${1}" | cut --delimiter=' ' --fields='1'
+}
