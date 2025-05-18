@@ -12,6 +12,10 @@ readonly src_file="${HOME}/.etc/sysctl-rootless-docker.conf"
 readonly dest_file='/etc/sysctl.d/rootless-docker.conf'
 
 # Copy instead of symlink - see 'protected_symlinks' in https://www.kernel.org/doc/Documentation/sysctl/fs.txt
+readonly orig_hash="$(file_hash "${dest_file}")"
 root_copy_file "${src_file}" "${dest_file}"
+readonly cur_hash="$(file_hash "${dest_file}")"
 
-reload_sysctl_conf
+if [[ "${orig_hash}" != "${cur_hash}" ]]; then
+  reload_sysctl_conf
+fi

@@ -17,6 +17,11 @@ fi
 
 readonly src_file="${HOME}/.etc/reflector.conf"
 readonly dest_file='/etc/xdg/reflector/reflector.conf'
-root_copy_file "${src_file}" "${dest_file}"
 
-restart_system_service_if_enabled 'reflector.service'
+readonly orig_hash="$(file_hash "${dest_file}")"
+root_copy_file "${src_file}" "${dest_file}"
+readonly cur_hash="$(file_hash "${dest_file}")"
+
+if [[ "${orig_hash}" != "${cur_hash}" ]]; then
+  restart_system_service_if_enabled 'reflector.service'
+fi
