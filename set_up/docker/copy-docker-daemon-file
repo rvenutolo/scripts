@@ -12,6 +12,11 @@ fi
 
 readonly src_file="${HOME}/.etc/docker-daemon.json"
 readonly dest_file='/etc/docker/daemon.json'
-root_copy_file "${src_file}" "${dest_file}"
 
-restart_system_service_if_enabled 'docker.service'
+readonly orig_hash="$(file_hash "${dest_file}")"
+root_copy_file "${src_file}" "${dest_file}"
+readonly cur_hash="$(file_hash "${dest_file}")"
+
+if [[ "${orig_hash}" != "${cur_hash}" ]]; then
+  restart_system_service_if_enabled 'docker.service'
+fi

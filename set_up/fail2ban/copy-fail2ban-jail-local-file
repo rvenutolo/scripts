@@ -13,6 +13,11 @@ fi
 
 readonly src_file="${HOME}/.etc/fail2ban-jail.local"
 readonly dest_file='/etc/fail2ban/jail.local'
-root_copy_file "${src_file}" "${dest_file}"
 
-restart_system_service_if_enabled 'fail2ban.service'
+readonly orig_hash="$(file_hash "${dest_file}")"
+root_copy_file "${src_file}" "${dest_file}"
+readonly cur_hash="$(file_hash "${dest_file}")"
+
+if [[ "${orig_hash}" != "${cur_hash}" ]]; then
+  restart_system_service_if_enabled 'fail2ban.service'
+fi
