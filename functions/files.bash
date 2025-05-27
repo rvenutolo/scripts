@@ -227,5 +227,9 @@ function root_append_to_file() {
 
 # $1 = file
 function file_hash() {
-  sha256sum "${1}" | cut --delimiter=' ' --fields='1'
+  if file_exists "$1"; then
+    sha256sum "$1" | cut --delimiter=' ' --fields='1'
+  else
+    echo '0'
+  fi
 }
