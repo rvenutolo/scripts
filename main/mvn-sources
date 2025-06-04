@@ -8,15 +8,11 @@ check_no_args "$@"
 
 # $1 = pom file
 function get_sources() {
-  mvn -f "$1" dependency:sources dependency:resolve -Dclassifier='javadoc'
+  mvn -f "$1" dependency:resolve-sources dependency:resolve -Dclassifier='javadoc'
 }
 
-if file_exists 'pom.xml'; then
-  get_sources './pom.xml'
-else
-  pom_files="$(find . -name 'pom.xml' | sort)"
-  readonly pom_files
-  for pom_file in ${pom_files[@]}; do
-    get_sources "${pom_file}"
-  done
-fi
+pom_files="$(find . -name 'pom.xml' | sort)"
+readonly pom_files
+for pom_file in ${pom_files[@]}; do
+  get_sources "${pom_file}"
+done
