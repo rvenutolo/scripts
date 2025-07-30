@@ -8,3 +8,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 write-home-manager-packages "$@"
 nix flake update --flake "${HOME_MANAGER_DIR}"
 home-manager-switch
+
+if prompt_ny 'Run home-manager-maintenance?'; then
+  home-manager-maintenance
+fi
