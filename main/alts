@@ -17,9 +17,25 @@ def alts = [
         desc: 'A code-searching tool similar to ack, but faster',
         url: 'https://github.com/ggreer/the_silver_searcher/'
     ),
+    atuin          : new AltInfo(
+        desc: 'Magical shell history',
+        url: 'https://atuin.sh/'
+    ),
     bat            : new AltInfo(
         desc: 'A cat(1) clone with syntax highlighting and Git integration',
         url: 'https://github.com/sharkdp/bat'
+    ),
+    batdiff        : new AltInfo(
+        desc: 'Diff a file against the current git index, or display the diff between two files',
+        url: 'https://github.com/eth-p/bat-extras/'
+    ),
+    batgrep        : new AltInfo(
+        desc: 'Quickly search through and highlight files using ripgrep',
+        url: 'https://github.com/eth-p/bat-extras/'
+    ),
+    batman         : new AltInfo(
+        desc: 'Read system manual pages (man) using bat as the manual page formatter',
+        url: 'https://github.com/eth-p/bat-extras/'
     ),
     btm            : new AltInfo(
         desc: 'A cross-platform graphical process/system monitor with a customizable interface',
@@ -32,6 +48,10 @@ def alts = [
     btop           : new AltInfo(
         desc: 'A monitor of resources',
         url: 'https://github.com/aristocratos/btop'
+    ),
+    caligula       : new AltInfo(
+        desc: 'A user-friendly, lightweight TUI for disk imaging',
+        url: 'https://github.com/ifd3f/caligula'
     ),
     cheat          : new AltInfo(
         desc: 'Create and view interactive cheatsheets on the command-line',
@@ -49,6 +69,10 @@ def alts = [
         desc: 'Frontend to curl that adds the ease of use of httpie, without compromising on features and ' +
             'performance',
         url: 'https://curlie.io/'
+    ),
+    cyme           : new AltInfo(
+        desc: 'List system USB buses and devices',
+        url: 'https://github.com/tuna-f1sh/cyme'
     ),
     delta          : new AltInfo(
         desc: 'A syntax-highlighting pager for git',
@@ -119,7 +143,7 @@ def alts = [
         url: 'https://cli.github.com/'
     ),
     gitu           : new AltInfo(
-        desc: 'A TUI Git client inspired by Magit ',
+        desc: 'A TUI Git client inspired by Magit',
         url: 'https://github.com/altsem/gitu'
     ),
     gitui          : new AltInfo(
@@ -207,6 +231,10 @@ def alts = [
         desc: 'Mobile shell (ssh replacement)',
         url: 'https://mosh.org/'
     ),
+    most           : new AltInfo(
+        desc: 'MOST is a powerful paging program for Unix, VMS, MSDOS, and win32 systems',
+        url: 'https://www.jedsoft.org/most/index.html'
+    ),
     mtr            : new AltInfo(
         desc: 'Network diagnostics tool',
         url: 'https://www.bitwizard.nl/mtr/'
@@ -231,9 +259,17 @@ def alts = [
         desc: 'A parallel implementation of gzip for multi-core machines',
         url: 'https://www.zlib.net/pigz/'
     ),
+    pik            : new AltInfo(
+        desc: 'Process Interactive Kill',
+        url: 'https://github.com/jacek-kurlit/pik'
+    ),
     'podman-tui'   : new AltInfo(
         desc: 'Podman Terminal UI',
         url: 'https://github.com/containers/podman-tui'
+    ),
+    prettybat      : new AltInfo(
+        desc: 'Pretty-print source code and highlight it with bat',
+        url: 'https://github.com/eth-p/bat-extras'
     ),
     procs          : new AltInfo(
         desc: 'A modern replacement for ps written in Rust',
@@ -300,27 +336,31 @@ def map = [
     '7zip' : ['ouch'],
     awk    : ['choose', 'mlr'],
     bc     : ['fend'],
-    cat    : ['bat', 'mdcat'],
+    cat    : ['bat', 'mdcat', 'prettybat'],
     cd     : ['zoxide'],
     cp     : ['fcp'],
     curl   : ['curlie', 'httpie', 'xh'],
     cut    : ['choose', 'hck', 'mlr'],
+    dd     : ['caligula'],
     df     : ['duf', 'dysk'],
-    diff   : ['colordiff', 'delta', 'diff-so-fancy', 'difft', 'riff'],
+    diff   : ['batdiff', 'colordiff', 'delta', 'diff-so-fancy', 'difft', 'riff'],
     dig    : ['dog', 'doggo'],
     docker : ['lazydocker'],
     du     : ['dua', 'dust', 'gdu', 'ncdu'],
     find   : ['fd', 'fselect'],
     git    : ['gh', 'gitu', 'gitui', 'lazygit', 'tig'],
-    grep   : ['ack', 'ag', 'grex', 'gron', 'ripgrep', 'ugrep'],
+    grep   : ['ack', 'ag', 'batgrep', 'grex', 'gron', 'ripgrep', 'ugrep'],
     gzip   : ['ouch', 'pigz'],
+    history: ['atuin'],
     hexdump: ['hx'],
     jq     : ['fx', 'jless', 'jqp', 'yq'],
-    less   : ['moar'],
+    less   : ['moar', 'most'],
     ls     : ['exa', 'lsd'],
-    man    : ['cheat', 'navi', 'tldr'],
+    lsusb  : ['cyme'],
+    man    : ['batman', 'cheat', 'navi', 'tldr'],
     nano   : ['micro'],
     ping   : ['gping', 'mtr'],
+    pkill  : ['pik'],
     podman : ['podman-tui'],
     ps     : ['procs'],
     rar    : ['ouch'],
