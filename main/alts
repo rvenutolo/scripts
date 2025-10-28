@@ -223,9 +223,9 @@ def alts = [
             'positionally-indexed',
         url: 'https://github.com/johnkerl/miller'
     ),
-    moar           : new AltInfo(
+    moor           : new AltInfo(
         desc: 'Nice-to-use pager for humans',
-        url: 'https://github.com/walles/moar'
+        url: 'https://github.com/walles/moor'
     ),
     mosh           : new AltInfo(
         desc: 'Mobile shell (ssh replacement)',
@@ -354,7 +354,7 @@ def map = [
     history: ['atuin'],
     hexdump: ['hx'],
     jq     : ['fx', 'jless', 'jqp', 'yq'],
-    less   : ['moar', 'most'],
+    less   : ['moor', 'most'],
     ls     : ['exa', 'lsd'],
     lsusb  : ['cyme'],
     man    : ['batman', 'cheat', 'navi', 'tldr'],
