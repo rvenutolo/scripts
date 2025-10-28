@@ -6,5 +6,5 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-home-manager switch --flake "${HOME_MANAGER_DIR}"
+home-manager switch --flake "${HOME_MANAGER_DIR}" --option download-buffer-size 524288000
 home-manager-generations-diff
