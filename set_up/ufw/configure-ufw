@@ -24,14 +24,8 @@ if ! sudo ufw status verbose | contains_perl_regex_ignore_case 'anywhere on tail
 fi
 
 if ! sudo ufw status verbose | contains_perl_regex_ignore_case '22/tcp\s+allow in\s+anywhere'; then
-  if prompt_ny 'Set UFW to allow incoming traffic on port 22 (ssh)?'; then
+  if prompt_yn 'Set UFW to allow incoming traffic on port 22 (ssh)?'; then
     sudo ufw allow ssh
-  fi
-fi
-
-if is_server && ! sudo ufw status verbose | contains_perl_regex_ignore_case '22/tcp\s+allow in\s+169\.254\.0\.0/16'; then
-  if prompt_ny 'Set UFW to allow incoming traffic on port 22 (ssh) from 169.254.0.0/16 (docker IP range)?'; then
-    sudo ufw allow from '169.254.0.0/16' to any port '22' proto 'tcp'
   fi
 fi
 
