@@ -22,7 +22,9 @@ if ! executable_exists 'home-manager' && prompt_yn 'Install Nix home-manager and
   # shellcheck disable=SC1091
   source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
   write-home-manager-packages
-  nix run 'home-manager/release-25.11' -- init --switch --flake "${HOME_MANAGER_DIR}"
+  home_manager_release="$(grep --only-matching --perl-regexp '(?<=github:nix-community/)home-manager/release[^"]*' "${HOME_MANAGER_DIR}/flake.nix")"
+  readonly home_manager_release
+  nix run "${home_manager_release}" -- init --switch --flake "${HOME_MANAGER_DIR}"
   if executable_exists 'non-nixos-gpu-setup'; then
     sudo "$(which non-nixos-gpu-setup)"
   fi
