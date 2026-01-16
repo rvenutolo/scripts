@@ -8,4 +8,4 @@ check_no_args "$@"
 
 shfmt --find "${SCRIPTS_DIR}" \
   | grep --invert-match '/other/' \
-  | xargs shfmt --list --indent '2' --case-indent --binary-next-line --space-redirects --write
+  | xargs --no-run-if-empty shfmt --list --indent '2' --case-indent --binary-next-line --space-redirects --write
