@@ -12,4 +12,4 @@ check_for_stdin
 # runs (in parallel):
 # echo foo bar
 # echo baz
-xargs --max-procs="$(nproc)" --max-args=1 --delimiter='\n' "$@"
+xargs --no-run-if-empty --max-procs="$(nproc)" --max-args=1 --delimiter='\n' "$@"

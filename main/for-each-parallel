@@ -12,4 +12,4 @@ check_for_stdin
 # echo foo
 # echo bar
 # echo baz
-xargs --max-procs="$(nproc)" --max-args=1 "$@"
+xargs --no-run-if-empty --max-procs="$(nproc)" --max-args=1 "$@"

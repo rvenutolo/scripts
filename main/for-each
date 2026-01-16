@@ -13,4 +13,4 @@ check_for_stdin
 # echo foo
 # echo bar
 # echo baz
-xargs --max-args=1 "$@"
+xargs --no-run-if-empty --max-args=1 "$@"
