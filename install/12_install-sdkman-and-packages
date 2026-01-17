@@ -31,45 +31,7 @@ if ! file_exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt_yn 'Install SDKMAN
 fi
 
 if file_exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt_yn 'Install SDKMAN packages?'; then
-  log 'Installing SDKMAN packages'
-  cp "${SDKMAN_DIR}/etc/config" "${SDKMAN_DIR}/etc/config.orig"
-  sed --in-place 's/sdkman_auto_answer=false/sdkman_auto_answer=true/g' "${SDKMAN_DIR}/etc/config"
-  set +u
-  # shellcheck disable=SC1091
-  source "${SDKMAN_DIR}/bin/sdkman-init.sh"
-  # This collects the latest packages per java version
-  declare -A java_versions
-  while read -r jdk; do
-    version="$(tr '-' '.' <<< "${jdk}" | cut --delimiter='.' --fields='1')" || exit 1
-    java_versions["${version}"]="${jdk}"
-  done < <(sdk list java | grep --fixed-strings '|' | cut --delimiter='|' --fields='6' | grep '\-tem\s*$' | tac)
-  while read -r jdk; do
-    log "Installing ${jdk}"
-    base_sleep_time=30
-    tries=0
-    until sdk install java "${jdk}"; do
-      ((tries += 1))
-      if ((tries > 10)); then
-        die "Failed to install in 10 tries: ${jdk}"
-      fi
-      sleep "$((base_sleep_time * tries))"
-    done
-  done < <(array_to_lines "${java_versions[@]}" | sort --field-separator='.' --key='1' --numeric-sort)
-  get_sdkman_packages | while read -r pkg; do
-    log "Installing ${pkg}"
-    base_sleep_time=30
-    tries=0
-    until sdk install "${pkg}"; do
-      ((tries += 1))
-      if ((tries > 10)); then
-        die "Failed to install in 10 tries: ${pkg}"
-      fi
-      sleep "$((base_sleep_time * tries))"
-    done
-  done
-  set -u
-  mv "${SDKMAN_DIR}/etc/config.orig" "${SDKMAN_DIR}/etc/config"
-  log 'Installed SDKMAN packages'
+  sdkman-update
 fi
 
 if file_exists "${HOME}/.config/sdkman/config"; then
