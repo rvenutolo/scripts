@@ -10,9 +10,11 @@ readonly src_file="${HOME}/.etc/sysctl-tailscale-exit-node.conf"
 readonly dest_file='/etc/sysctl.d/tailscale-exit-node.conf'
 
 # Copy instead of symlink - see 'protected_symlinks' in https://www.kernel.org/doc/Documentation/sysctl/fs.txt
-readonly orig_hash="$(file_hash "${dest_file}")"
+orig_hash="$(file_hash "${dest_file}")"
+readonly orig_hash
 root_copy_file "${src_file}" "${dest_file}"
-readonly cur_hash="$(file_hash "${dest_file}")"
+cur_hash="$(file_hash "${dest_file}")"
+readonly cur_hash
 
 if [[ "${orig_hash}" != "${cur_hash}" ]]; then
   reload_sysctl_conf
