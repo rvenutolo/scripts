@@ -6,7 +6,6 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-
 log 'Updating SDKMAN packages'
 cp "${SDKMAN_DIR}/etc/config" "${SDKMAN_DIR}/etc/config.orig"
 sed --in-place 's/sdkman_auto_answer=false/sdkman_auto_answer=true/g' "${SDKMAN_DIR}/etc/config"
