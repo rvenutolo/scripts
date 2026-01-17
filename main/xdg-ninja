@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+
 readonly url='https://github.com/b3nj5m1n/xdg-ninja/archive/refs/heads/main.zip'
 readonly zip_file="${XDG_CACHE_HOME}/xdg-ninja/xdg-ninja.zip"
 readonly install_dir="${XDG_DATA_HOME}/xdg-ninja"
