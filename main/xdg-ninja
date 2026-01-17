@@ -2,17 +2,4 @@
 
 set -euo pipefail
 
-readonly url='https://github.com/b3nj5m1n/xdg-ninja/archive/refs/heads/main.zip'
-readonly zip_file="${XDG_CACHE_HOME}/xdg-ninja/xdg-ninja.zip"
-readonly install_dir="${XDG_DATA_HOME}/xdg-ninja"
-
-create_dir "$(dirname "${zip_file}")"
-etag-dl "${url}" "${zip_file}"
-
-if file_exists "${zip_file}"; then
-  rm -rf "${install_dir}"
-  unzip -q "${zip_file}" -d "${install_dir}"
-  rm "${zip_file}"
-fi
-
-"${install_dir}/xdg-ninja-main/xdg-ninja.sh" "$@"
+nix run 'github:b3nj5m1n/xdg-ninja' "$@"
