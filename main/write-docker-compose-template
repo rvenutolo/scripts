@@ -11,26 +11,31 @@ function write_to_compose_file() {
   printf '%s\n' "$@" >> "${compose_file}"
 }
 
+#shellcheck disable=SC2120
 function is_service() {
   check_no_args "$@"
   [[ -n "${service:-}" ]]
 }
 
+#shellcheck disable=SC2120
 function reverse_proxy() {
   check_no_args "$@"
   [[ -n "${use_reverse_proxy:-}" ]]
 }
 
+#shellcheck disable=SC2120
 function socket_proxy() {
   check_no_args "$@"
   [[ -n "${use_socket_proxy:-}" ]]
 }
 
+#shellcheck disable=SC2120
 function restart_on_unhealthy() {
   check_no_args "$@"
   [[ -n "${on_unhealthy:-}" ]]
 }
 
+#shellcheck disable=SC2120
 function multiple_containers() {
   check_no_args "$@"
   [[ -n "${multiple_containers:-}" ]]
@@ -98,6 +103,7 @@ if socket_proxy || multiple_containers; then
   write_to_compose_file ''
 fi
 if socket_proxy; then
+  #shellcheck disable=SC2016
   write_to_compose_file \
     "  ${app_name}-socket-proxy:" \
     '    image: lscr.io/linuxserver/socket-proxy:latest' \
