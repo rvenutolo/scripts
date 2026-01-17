@@ -13,7 +13,7 @@ class MediaInfo {
 def moviesDir = Path.of(System.getProperty('user.home')).resolve('data/media/movies')
 
 def moviesMap = [:].withDefault { [] }
-['uhd', 'uhd-se', 'hd', 'hd-se'].each { dir ->
+['fanedit', 'special', 'theatrical'].each { dir ->
     moviesDir.resolve(dir).toFile().listFiles().sort().each { movieFileDir ->
         movieFileDir.listFiles().sort().each { movieFile ->
             moviesMap[movieFileDir.name] << new MediaInfo(
