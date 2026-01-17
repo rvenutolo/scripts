@@ -3,6 +3,7 @@
 # $1 = ip
 function ipv4_to_num() {
   check_exactly_1_arg "$@"
+  local a b c d
   IFS=. read -r a b c d <<< "$1"
   echo "$(((a << 24) + (b << 16) + (c << 8) + d))"
 }
