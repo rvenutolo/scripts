@@ -40,17 +40,37 @@ function get_universal_packages() {
       ;;
   esac
   shift
-  if [[ "$#" -eq 1 ]]; then
-    die "Expected 0 or >1 more args"
-  fi
-  if [[ "$#" -gt 1 ]]; then
-    if [[ "$1" != '--ignore' ]]; then
-      die "First argument after package type must be '--ignore'"
-    fi
-    shift
-  fi
-  local packages_to_ignore=("$@")
+  local packages_to_ignore=()
+  local quiet=''
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --ignore)
+        if [[ $# -lt 2 ]]; then
+          die "--ignore requires at least one argument"
+        fi
+        shift
+        while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
+          packages_to_ignore+=("$1")
+          shift
+        done
+        ;;
+      --quiet)
+        quiet=1
+        shift
+        ;;
+      -*)
+        die "Unexpected flag '$1'"
+        return 1
+        ;;
+      *)
+        # Any remaining non-flag args can be treated as extra inputs or error
+        die "Unexpected argument '$1'"
+        return 1
+        ;;
+    esac
+  done
   readonly packages_to_ignore
+  readonly quiet
   local package_list_url='https://raw.githubusercontent.com/rvenutolo/packages/main/universal.csv'
   if is_personal && is_desktop; then
     local package_list_column=4
@@ -63,10 +83,12 @@ function get_universal_packages() {
   else
     die 'Could not determine which computer this is'
   fi
-  local disabled_awk_string="\$2 == \"${package_type}\" && \$${package_list_column}== \"y\" && \$8 != \"\" { print \"Disabled package: \" \$3 \" (\" \$8 \")\" }"
-  IFS=$'\n'
-  for pkg_info in $(download_and_cat "${package_list_url}" | awk -F ',' "${disabled_awk_string}"); do log "$pkg_info"; done
-  unset IFS
+  if [[ -z "${quiet}" ]]; then
+    local disabled_awk_string="\$2 == \"${package_type}\" && \$${package_list_column}== \"y\" && \$8 != \"\" { print \"Disabled package: \" \$3 \" (\" \$8 \")\" }"
+    IFS=$'\n'
+    for pkg_info in $(download_and_cat "${package_list_url}" | awk -F ',' "${disabled_awk_string}"); do log "$pkg_info"; done
+    unset IFS
+  fi
   local enabled_awk_string="\$2 == \"${package_type}\" && \$${package_list_column}== \"y\" && \$8 == \"\" { print \$3 }"
   comm -23 <(download_and_cat "${package_list_url}" | awk -F ',' "${enabled_awk_string}" | sort) <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
 }
