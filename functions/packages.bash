@@ -30,6 +30,7 @@ function get_sdkman_packages() {
 # $1 = packages list type (appimage flatpak nixpkgs)
 function get_universal_packages() {
   check_at_least_1_arg "$@"
+  local package_type
   case "$1" in
     appimage | flatpak | nixpkgs)
       readonly package_type="$1"
@@ -48,7 +49,8 @@ function get_universal_packages() {
     fi
     shift
   fi
-  readonly packages_to_ignore=("$@")
+  local packages_to_ignore=("$@")
+  readonly packages_to_ignore
   local package_list_url='https://raw.githubusercontent.com/rvenutolo/packages/main/universal.csv'
   if is_personal && is_desktop; then
     local package_list_column=4

@@ -19,7 +19,7 @@ function die() {
 function dl() {
   log "Downloading: $1"
   if [[ -n "${2:-}" ]]; then
-    tries=0
+    local tries=0
     until curl --disable --fail --silent --location --show-error "$1" --output "$2"; do
       ((tries += 1))
       if ((tries > 10)); then
