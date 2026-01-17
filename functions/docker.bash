@@ -10,7 +10,7 @@ function container_is_running() {
 function wait_for_healthy_container() {
   log "Waiting for $1 to be healthy"
   until [[ "$(docker inspect -f '{{.State.Health.Status}}' $1)" == 'healthy' ]]; do
-      sleep 0.1
+    sleep 0.1
   done
 }
 

@@ -191,7 +191,7 @@ if socket_proxy; then
     "      DOCKER_HOST: tcp://${app_name}-socket-proxy:2375"
 fi
 
-if restart_on_unhealthy || reverse_proxy ; then
+if restart_on_unhealthy || reverse_proxy; then
   write_to_compose_file \
     '    labels:'
   if restart_on_unhealthy; then

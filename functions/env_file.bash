@@ -56,7 +56,7 @@ function set_env_file_var_value_if_empty() {
 # $4 = default value (optional)
 function prompt_env_file_var_value() {
   check_at_least_2_args "$@"
-    check_at_most_4_args "$@"
+  check_at_most_4_args "$@"
   assert_file_exists "$1"
   assert_env_file_var_exists "$1" "$2"
   local prompt_text

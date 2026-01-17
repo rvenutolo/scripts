@@ -21,7 +21,7 @@ if ! prompt_yn 'Install AWS VPN Client?'; then
 fi
 
 log "Adding AWS VPN Client public key"
-root_write_file "${public_key_target_file}" "$(download_and_cat 'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc' )"
+root_write_file "${public_key_target_file}" "$(download_and_cat 'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc')"
 log "Added AWS VPN Client public key"
 
 log "Adding AWS VPN Client source list file"
