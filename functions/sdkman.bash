@@ -1,37 +1,103 @@
 #!/usr/bin/env bash
 
-function get_sdkman_packages() {
-  check_no_args "$@"
-  local package_list_url='https://raw.githubusercontent.com/rvenutolo/packages/main/sdkman.csv'
-  if is_personal && is_desktop; then
-    local package_list_column=3
-  elif is_personal && is_laptop; then
-    local package_list_column=4
-  elif is_work && is_laptop; then
-    local package_list_column=5
-  elif is_server; then
-    local package_list_column=6
-  else
-    die 'Could not determine which computer this is'
-  fi
-  local disabled_awk_string="\$${package_list_column} == \"y\" && \$7 != \"\" { print \"Disabled package: \" \$2 \" (\" \$7 \")\" }"
-  IFS=$'\n'
-  for pkg_info in $(download_and_cat "${package_list_url}" | awk -F ',' "${disabled_awk_string}"); do log "$pkg_info"; done
-  unset IFS
-  local enabled_awk_string="\$${package_list_column} == \"y\" && \$7 == \"\" { print \$2 }"
-  download_and_cat "${package_list_url}" | awk -F ',' "${enabled_awk_string}"
+function clean_sdkman_output() {
+  remove_ansi | remove_empty_lines
 }
 
-function get_available_java_versions() {
+function update_sdkman_metadata() {
   check_no_args "$@"
+  sdk update | clean_sdkman_output
+}
+
+# output columns:
+# 1 - major version
+# 2 - version
+# 3 - ID
+# 4 - installed ('y'/'n')
+function get_formatted_tem_jdks() {
+#  check_no_args "$@"
   sdk list java \
-    | grep --fixed-strings '|' \
-    | cut --delimiter='|' --fields='6' \
-    | trim \
-    | grep '\-tem$' \
-    | tr '-' '.' \
-    | cut --delimiter='.' --fields='1' \
-    | sort --numeric-sort \
-    | uniq \
-    | tr '\n' ' '
+    | awk --field-separator '|' '$4 ~ /^[[:space:]]*tem[[:space:]]*$/ {
+      gsub(/^[ \t]+|[ \t]+$/, "", $3)
+      gsub(/^[ \t]+|[ \t]+$/, "", $5)
+      gsub(/^[ \t]+|[ \t]+$/, "", $6)
+      match($3, /^[0-9]+/)
+      major = substr($3, RSTART, RLENGTH)
+      status = ($5 == "") ? "n" : "y"
+      print major ";" $3 ";" $6 ";" status
+    }'
+}
+
+function get_available_tem_jdk_major_versions() {
+  check_no_args "$@"
+  get_formatted_tem_jdks \
+    | awk --field-separator ';' '!seen[$1]++ { print $1 }' \
+    | tac
+}
+
+# $1 = major java version
+function check_tem_jdk_major_version() {
+  check_exactly_1_arg "$@"
+  if ! get_available_tem_jdk_major_versions | contains_word "$1"; then
+    die "Unexpected Java major version: $1"
+  fi
+}
+
+# $1 = major java version
+function get_latest_available_tem_jdk_for_major_version() {
+  check_exactly_1_arg "$@"
+  check_tem_jdk_major_version "$1"
+  get_formatted_tem_jdks \
+    | awk --field-separator ';' --assign "major_version=$1" '$1 == major_version { print $3; exit }'
+}
+
+# $1 = major java version
+function install_latest_tem_jdk() {
+  check_exactly_1_arg "$@"
+  check_tem_jdk_major_version "$1"
+  local latest_artifact="$(get_latest_available_tem_jdk_for_major_version "$1")"
+  readonly latest_artifact
+  sdk install java "${latest_artifact}" | clean_sdkman_output
+}
+
+function install_latest_tem_jdks() {
+  check_no_args "$@"
+  get_available_tem_jdk_major_versions | while read -r major_version; do
+    install_latest_tem_jdk "${major_version}"
+  done
+}
+
+function install_sdkman_packages() {
+  check_no_args "$@"
+  get_sdkman_packages | while read -r pkg; do
+    sdk install "${pkg}" | clean_sdkman_output
+  done
+}
+
+# $1 = major java version
+function get_latest_installed_tem_jdk_for_major_version() {
+  check_exactly_1_arg "$@"
+  check_tem_jdk_major_version "$1"
+  get_formatted_tem_jdks \
+    | awk --field-separator ';' --assign "major_version=$1" '$1 == major_version && $4 == "y" { print $3; exit }'
+}
+
+# $1 = major java version
+function set_default_jdk() {
+  check_exactly_1_arg "$@"
+  check_tem_jdk_major_version "$1"
+  local new_default_version="$(get_latest_installed_tem_jdk_for_major_version "$1")"
+  readonly new_default_version
+  sdk default java "${new_default_version}" | clean_sdkman_output
+}
+
+function get_latest_installed_tem_jdk_major_versions() {
+  check_no_args "$@"
+  get_formatted_tem_jdks \
+    | awk --field-separator ';' '$4 == "y" { print $1; exit }'
+}
+
+function set_latest_default_jdk() {
+  check_no_args "$@"
+  set_default_jdk $(get_latest_installed_tem_jdk_major_versions)
 }
