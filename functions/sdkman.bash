@@ -21,3 +21,17 @@ function get_sdkman_packages() {
   local enabled_awk_string="\$${package_list_column} == \"y\" && \$7 == \"\" { print \$2 }"
   download_and_cat "${package_list_url}" | awk -F ',' "${enabled_awk_string}"
 }
+
+function get_available_java_versions() {
+  check_no_args "$@"
+  sdk list java \
+    | grep --fixed-strings '|' \
+    | cut --delimiter='|' --fields='6' \
+    | trim \
+    | grep '\-tem$' \
+    | tr '-' '.' \
+    | cut --delimiter='.' --fields='1' \
+    | sort --numeric-sort \
+    | uniq \
+    | tr '\n' ' '
+}
