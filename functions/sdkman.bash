@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 function clean_sdkman_output() {
+  check_no_args "$@"
+  check_for_stdin
   remove_ansi | remove_empty_lines
 }
 
@@ -15,7 +17,7 @@ function update_sdkman_metadata() {
 # 3 - ID
 # 4 - installed ('y'/'n')
 function get_formatted_tem_jdks() {
-#  check_no_args "$@"
+  check_no_args "$@"
   sdk list java \
     | awk --field-separator '|' '$4 ~ /^[[:space:]]*tem[[:space:]]*$/ {
       gsub(/^[ \t]+|[ \t]+$/, "", $3)
@@ -28,6 +30,7 @@ function get_formatted_tem_jdks() {
     }'
 }
 
+#shellcheck disable=SC2120
 function get_available_tem_jdk_major_versions() {
   check_no_args "$@"
   get_formatted_tem_jdks \
@@ -55,7 +58,8 @@ function get_latest_available_tem_jdk_for_major_version() {
 function install_latest_tem_jdk() {
   check_exactly_1_arg "$@"
   check_tem_jdk_major_version "$1"
-  local latest_artifact="$(get_latest_available_tem_jdk_for_major_version "$1")"
+  local latest_artifact
+  latest_artifact="$(get_latest_available_tem_jdk_for_major_version "$1")"
   readonly latest_artifact
   sdk install java "${latest_artifact}" | clean_sdkman_output
 }
@@ -86,11 +90,13 @@ function get_latest_installed_tem_jdk_for_major_version() {
 function set_default_jdk() {
   check_exactly_1_arg "$@"
   check_tem_jdk_major_version "$1"
-  local new_default_version="$(get_latest_installed_tem_jdk_for_major_version "$1")"
+  local new_default_version
+  new_default_version="$(get_latest_installed_tem_jdk_for_major_version "$1")"
   readonly new_default_version
   sdk default java "${new_default_version}" | clean_sdkman_output
 }
 
+#shellcheck disable=SC2120
 function get_latest_installed_tem_jdk_major_versions() {
   check_no_args "$@"
   get_formatted_tem_jdks \
@@ -99,5 +105,5 @@ function get_latest_installed_tem_jdk_major_versions() {
 
 function set_latest_default_jdk() {
   check_no_args "$@"
-  set_default_jdk $(get_latest_installed_tem_jdk_major_versions)
+  set_default_jdk "$(get_latest_installed_tem_jdk_major_versions)"
 }
