@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+readonly bashrc_file="/etc/bash.bashrc"
+
+if ! file_exists "${bashrc_file}"; then
+  exit 0
+fi
+
+if ! file_contains_regex "${bashrc_file}" 'if.*\.sudo_as_admin_successful'; then
+  exit 0
+fi
+
+log "Removing sudo hint block from: ${bashrc_file}"
+
+sudo cp "${bashrc_file}" "${bashrc_file}.orig"
+
+awk '
+BEGIN { delete_next = 0; in_block = 0; buffer_line = ""; has_buffer = 0 }
+{
+    # Check if we are entering the sudo_as_admin_successful block
+    if ($0 ~ /if.*\.sudo_as_admin_successful/) {
+        in_block = 1
+        has_buffer = 0  # Don'\''t print the buffered comment line
+        next
+    }
+
+    # If we are in the block, skip lines until we find the closing fi
+    if (in_block) {
+        if ($0 ~ /^fi$/) {
+            in_block = 0
+        }
+        next
+    }
+
+    # If we have a buffered line, print it before processing current line
+    if (has_buffer) {
+        print buffer_line
+    }
+
+    # If current line is a comment, buffer it (in case next line is the if statement)
+    if ($0 ~ /^[[:space:]]*#/) {
+        buffer_line = $0
+        has_buffer = 1
+    } else {
+        # Not a comment, print it immediately
+        print $0
+        has_buffer = 0
+    }
+}
+END {
+    # Print any remaining buffered line
+    if (has_buffer) {
+        print buffer_line
+    }
+}
+' "${bashrc_file}" | sudo tee "${bashrc_file}.tmp" > /dev/null
+
+sudo mv "${bashrc_file}.tmp" "${bashrc_file}"
+
+log "Removed sudo hint block from: ${bashrc_file}"
