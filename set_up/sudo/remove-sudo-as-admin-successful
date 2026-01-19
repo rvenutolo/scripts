@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+readonly sudo_as_admin_file="${HOME}/.sudo_as_admin_successful"
+
+if ! file_exists "${sudo_as_admin_file}"; then
+  exit 0
+fi
+if ! prompt_yn "Delete ${sudo_as_admin_file}?"; then
+  exit 0
+fi
+
+log "Removing: ${sudo_as_admin_file}"
+rm "${sudo_as_admin_file}"
+log "Removed: ${sudo_as_admin_file}"
