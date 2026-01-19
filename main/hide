@@ -8,8 +8,11 @@ check_at_least_1_arg "$@"
 
 for file; do
   dirname="$(dirname -- "${file}")" || exit 1
+  readonly dirname
   filename="$(basename -- "${file}")" || exit 1
+  readonly filename
   target_file="${dirname}/.${filename}"
+  readonly target_file
   mv -- "${file}" "${target_file}"
   log "${file} -> ${target_file}"
 done

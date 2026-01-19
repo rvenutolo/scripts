@@ -137,7 +137,7 @@ log 'Running set up scripts'
 "${SCRIPTS_DIR}/run-set-up-scripts"
 
 log 'Setting dconf settings'
-gsettings=(
+readonly gsettings=(
   'org.gnome.desktop.background picture-uri-dark file:///usr/share/backgrounds/Optical_Fibers_in_Dark_by_Elena_Stravoravdi.jpg'
   'org.gnome.desktop.background primary-color #000000'
   'org.gnome.desktop.background secondary-color #000000'
@@ -186,7 +186,7 @@ for line in "${gsettings[@]}"; do
 done
 
 log 'Installing GNOME extensions'
-gnome_extensions=(
+readonly gnome_extensions=(
   'https://extensions.gnome.org/extension/779/clipboard-indicator/'
   'https://extensions.gnome.org/extension/1319/gsconnect/'
   'https://extensions.gnome.org/extension/1460/vitals/'

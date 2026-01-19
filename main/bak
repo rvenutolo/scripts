@@ -11,8 +11,11 @@ readonly filetime
 for file; do
   if file_exists "${file}" || dir_exists "${file}"; then
     dirname="$(dirname -- "${file}")" || exit 1
+    readonly dirname
     filename="$(basename -- "${file}")" || exit 1
+    readonly filename
     target_file="${dirname}/${filename}.${filetime}.bak"
+    readonly target_file
     cp --archive -- "${file}" "${target_file}"
     log "${file} -> ${target_file}"
   else

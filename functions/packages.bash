@@ -52,17 +52,20 @@ function get_universal_packages() {
   readonly packages_to_ignore
   readonly quiet
   local package_list_url='https://raw.githubusercontent.com/rvenutolo/packages/main/universal.csv'
+  readonly package_list_url
+  local package_list_column
   if is_personal && is_desktop; then
-    local package_list_column=4
+    package_list_column=4
   elif is_personal && is_laptop; then
-    local package_list_column=5
+    package_list_column=5
   elif is_work && is_laptop; then
-    local package_list_column=6
+    package_list_column=6
   elif is_server; then
-    local package_list_column=7
+    package_list_column=7
   else
     die 'Could not determine which computer this is'
   fi
+  readonly package_list_column
   if [[ -z "${quiet}" ]]; then
     IFS=$'\n'
     for pkg_info in $(
@@ -97,8 +100,10 @@ function get_universal_packages() {
 function get_distro_packages() {
   check_at_least_2_arg "$@"
   local id="$1"
+  readonly id
   shift
   local codename="$1"
+  readonly codename
   shift
   local packages_to_ignore=()
   local quiet=''
@@ -132,20 +137,23 @@ function get_distro_packages() {
   readonly packages_to_ignore
   readonly quiet
   local package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/${id}-${codename}.csv"
+  readonly package_list_url
   if ! curl_wrapper --output '/dev/null' --head "${package_list_url}"; then
     die "No packages list for ${id} ${codename}"
   fi
+  local package_list_column
   if is_personal && is_desktop; then
-    local package_list_column=2
+    package_list_column=2
   elif is_personal && is_laptop; then
-    local package_list_column=3
+    package_list_column=3
   elif is_work && is_laptop; then
-    local package_list_column=4
+    package_list_column=4
   elif is_server; then
-    local package_list_column=5
+    package_list_column=5
   else
     die 'Could not determine which computer this is'
   fi
+  readonly package_list_column
   if [[ -z "${quiet}" ]]; then
     IFS=$'\n'
     for pkg_info in $(
@@ -206,17 +214,20 @@ function get_sdkman_packages() {
   readonly packages_to_ignore
   readonly quiet
   local package_list_url='https://raw.githubusercontent.com/rvenutolo/packages/main/sdkman.csv'
+  readonly package_list_url
+  local package_list_column
   if is_personal && is_desktop; then
-    local package_list_column=3
+    package_list_column=3
   elif is_personal && is_laptop; then
-    local package_list_column=4
+    package_list_column=4
   elif is_work && is_laptop; then
-    local package_list_column=5
+    package_list_column=5
   elif is_server; then
-    local package_list_column=6
+    package_list_column=6
   else
     die 'Could not determine which computer this is'
   fi
+  readonly package_list_column
   if [[ -z "${quiet}" ]]; then
     IFS=$'\n'
     for pkg_info in $(
