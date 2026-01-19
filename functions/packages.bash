@@ -64,13 +64,30 @@ function get_universal_packages() {
     die 'Could not determine which computer this is'
   fi
   if [[ -z "${quiet}" ]]; then
-    local disabled_awk_string="\$2 == \"${package_type}\" && \$${package_list_column}== \"y\" && \$8 != \"\" { print \"Disabled package: \" \$3 \" (\" \$8 \")\" }"
     IFS=$'\n'
-    for pkg_info in $(download_and_cat "${package_list_url}" | awk -F ',' "${disabled_awk_string}"); do log "$pkg_info"; done
+    for pkg_info in $(
+      download_and_cat "${package_list_url}" \
+        | awk \
+          --field-separator ',' \
+          --assign "type=${package_type}" \
+          --assign "col=${package_list_column}" \
+          '$2 == type && $col == "y" && $8 != "" { print "Disabled package: " $3 " (" $8 ")" }'
+    ); do
+      log "$pkg_info"
+    done
     unset IFS
   fi
-  local enabled_awk_string="\$2 == \"${package_type}\" && \$${package_list_column}== \"y\" && \$8 == \"\" { print \$3 }"
-  comm -23 <(download_and_cat "${package_list_url}" | awk -F ',' "${enabled_awk_string}" | sort) <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
+  comm -23 \
+    <(
+      download_and_cat "${package_list_url}" \
+        | awk \
+          --field-separator ',' \
+          --assign "type=${package_type}" \
+          --assign "col=${package_list_column}" \
+          '$2 == type && $col == "y" && $8 == "" { print $3 }' \
+        | sort
+    ) \
+    <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
 }
 
 # $1 = id
@@ -130,13 +147,28 @@ function get_distro_packages() {
     die 'Could not determine which computer this is'
   fi
   if [[ -z "${quiet}" ]]; then
-    local disabled_awk_string="\$${package_list_column} == \"y\" && \$6 != \"\" { print \"Disabled package: \" \$1 \" (\" \$6 \")\" }"
     IFS=$'\n'
-    for pkg_info in $(download_and_cat "${package_list_url}" | awk -F ',' "${disabled_awk_string}"); do log "$pkg_info"; done
+    for pkg_info in $(
+      download_and_cat "${package_list_url}" \
+        | awk \
+          --field-separator ',' \
+          --assign "col=${package_list_column}" \
+          '$col == "y" && $6 != "" { print "Disabled package: " $1 " (" $6 ")" }'
+    ); do
+      log "$pkg_info"
+    done
     unset IFS
   fi
-  local enabled_awk_string="\$${package_list_column} == \"y\" && \$6 == \"\" { print \$1 }"
-  comm -23 <(download_and_cat "${package_list_url}" | awk -F ',' "${enabled_awk_string}" | sort) <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
+  comm -23 \
+    <(
+      download_and_cat "${package_list_url}" \
+        | awk \
+          --field-separator ',' \
+          --assign "col=${package_list_column}" \
+          '&& $col == "y" && $6 == "" { print $1 }' \
+        | sort
+    ) \
+    <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
 }
 
 # --quiet = don't output messages about disabled packages
@@ -186,11 +218,26 @@ function get_sdkman_packages() {
     die 'Could not determine which computer this is'
   fi
   if [[ -z "${quiet}" ]]; then
-    local disabled_awk_string="\$${package_list_column} == \"y\" && \$7 != \"\" { print \"Disabled package: \" \$2 \" (\" \$7 \")\" }"
     IFS=$'\n'
-    for pkg_info in $(download_and_cat "${package_list_url}" | awk --field-separator ',' "${disabled_awk_string}"); do log "$pkg_info"; done
+    for pkg_info in $(
+      download_and_cat "${package_list_url}" \
+        | awk \
+          --field-separator ',' \
+          --assign "col=${package_list_column}" \
+          '$col == "y" && $7 != "" { print "Disabled package: " $2 " (" $7 ")" }'
+    ); do
+      log "$pkg_info"
+    done
     unset IFS
   fi
-  local enabled_awk_string="\$${package_list_column} == \"y\" && \$7 == \"\" { print \$2 }"
-  comm -23 <(download_and_cat "${package_list_url}" | awk -F ',' "${enabled_awk_string}" | sort) <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
+  comm -23 \
+    <(
+      download_and_cat "${package_list_url}" \
+        | awk \
+          --field-separator ',' \
+          --assign "col=${package_list_column}" \
+          '&& $col == "y" && $7 == "" { print $2 }' \
+        | sort
+    ) \
+    <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
 }
