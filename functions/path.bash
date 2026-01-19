@@ -3,7 +3,7 @@
 # $1 = path to remove
 function path_remove() {
   check_exactly_1_arg "$@"
-  PATH=$(echo -n "$PATH" | awk -v 'RS=:' -v 'ORS=:' '$0 != "'"$1"'"' | sed 's/:$//') || exit 1
+  PATH=$(echo -n "$PATH" | awk --assign 'RS=:' --assign 'ORS=:' --assign "path=$1" '$0 != path' | sed 's/:$//') || exit 1
 }
 
 # $1 = path to append
