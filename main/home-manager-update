@@ -5,7 +5,30 @@ set -euo pipefail
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
 
-write-home-manager-packages "$@"
+write_packages=1
+args=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-write-packages)
+      write_packages=''
+      shift
+      ;;
+    *)
+      args+=("$1")
+      shift
+      ;;
+  esac
+done
+readonly write_packages
+readonly args
+
+if [[ -n "${write_packages}" ]]; then
+  write-home-manager-packages "${args[@]}"
+else
+  log "Skipping writing packages file"
+fi
+
 nix flake update --flake "${HOME_MANAGER_DIR}"
 home-manager-switch
 
