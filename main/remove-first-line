@@ -10,7 +10,7 @@ if stdin_exists; then
   tail --lines '+2'
 else
   check_exactly_1_arg "$@"
-  temp_file="$(mktemp)"
+  temp_file="$(mktemp)" || exit 1
   readonly temp_file
   cp "$1" "${temp_file}"
   tail --lines '+2' "${temp_file}" > "$1"

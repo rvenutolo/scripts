@@ -6,11 +6,11 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-old_email="$(prompt_for_value 'Email address to replace')"
+old_email="$(prompt_for_value 'Email address to replace')" || exit 1
 readonly old_email
-new_email="$(prompt_for_value 'New email address')"
+new_email="$(prompt_for_value 'New email address')" || exit 1
 readonly new_email
-new_name="$(prompt_for_value 'New name')"
+new_name="$(prompt_for_value 'New name')" || exit 1
 readonly new_name
 
 FILTER_BRANCH_SQUELCH_WARNING='1' git filter-branch --force --env-filter "

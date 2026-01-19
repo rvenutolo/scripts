@@ -51,22 +51,22 @@ for file in "${compose_file}" "${init_file}" "${run_file}"; do
   fi
 done
 
-app_name="$(prompt_for_value 'App name?')"
+app_name="$(prompt_for_value 'App name?')" || exit 1
 readonly app_name
 app_constant_name="${app_name^^}"
 readonly app_constant_name="${app_constant_name//-/_}"
 
-image_name="$(prompt_for_value 'Image name?')"
+image_name="$(prompt_for_value 'Image name?')" || exit 1
 readonly image_name
 
-image_tag="$(prompt_for_value 'Image tag?' 'latest')"
+image_tag="$(prompt_for_value 'Image tag?' 'latest')" || exit 1
 readonly image_tag
 
 if prompt_yn 'Is this a service (not run-once)?'; then
   readonly service='1'
   if prompt_yn 'Use reverse proxy?'; then
     readonly use_reverse_proxy='1'
-    port="$(prompt_for_value 'Port?')"
+    port="$(prompt_for_value 'Port?')" || exit 1
     readonly port
   fi
   if prompt_yn 'Restart on unhealthy status?'; then
