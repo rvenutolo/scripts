@@ -12,9 +12,13 @@ else
   check_at_least_1_arg "$@"
   for file; do
     dirname="$(dirname -- "${file}")" || exit 1
+    readonly dirname
     filename="$(basename -- "${file}")" || exit 1
+    readonly filename
     lower_filename="$(echo "${filename}" | tr '[:lower:]' '[:upper:]')" || exit 1
+    readonly lower_filename
     target_file="${dirname}/${lower_filename}"
+    readonly target_file
     if [[ "${lower_filename}" != "${filename}" ]]; then
       mv -- "${file}" "${target_file}"
       log "${file} -> ${target_file}"

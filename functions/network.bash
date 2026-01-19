@@ -10,6 +10,7 @@ function local_network() {
   check_no_args "$@"
   local ip_num
   ip_num="$(ipv4_to_num "$(local_ip)" || exit 1)" || exit 1
+  readonly ip_num
   if [[ $(ipv4_to_num '10.0.0.0') -le "${ip_num}" && "${ip_num}" -le $(ipv4_to_num '10.255.255.255') ]]; then
     echo '10.0.0.0/8'
   elif [[ $(ipv4_to_num '172.16.0.0') -le "${ip_num}" && "${ip_num}" -le $(ipv4_to_num '172.31.255.255') ]]; then

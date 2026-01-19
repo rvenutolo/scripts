@@ -35,6 +35,7 @@ function set_env_file_var_value() {
   assert_env_file_var_exists "$1" "$2"
   local value_escaped
   value_escaped=$(printf '%s\n' "$3" | sed --expression='s/[\/&|]/\\&/g')
+  readonly value_escaped
   sed --in-place "s|^$2=.*$|$2=${value_escaped}|" "$1"
 }
 
@@ -65,12 +66,14 @@ function prompt_env_file_var_value() {
   else
     prompt_text="Enter value for $2"
   fi
+  readonly prompt_text
   local var_value
   if [[ -n "${4:-}" ]]; then
     var_value="$(prompt_for_value "${prompt_text}" "$4")" || exit 1
   else
     var_value="$(prompt_for_value "${prompt_text}")" || exit 1
   fi
+  readonly var_value
   set_env_file_var_value "$1" "$2" "${var_value}"
 }
 

@@ -145,7 +145,7 @@ dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.n
 sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
 
 log 'Setting dconf settings'
-gsettings=(
+readonly gsettings=(
   'org.gnome.desktop.datetime automatic-timezone false'
   "org.gnome.desktop.input-sources xkb-options ['caps:super']"
   'org.gnome.desktop.interface color-scheme prefer-dark'
@@ -179,7 +179,7 @@ for line in "${gsettings[@]}"; do
 done
 
 log 'Installing GNOME extensions'
-gnome_extensions=(
+readonly gnome_extensions=(
   'https://extensions.gnome.org/extension/779/clipboard-indicator/'
   'https://extensions.gnome.org/extension/1319/gsconnect/'
   'https://extensions.gnome.org/extension/1460/vitals/'
@@ -192,7 +192,7 @@ done
 
 log 'Adding autostart applications'
 mkdir --parents "${HOME}/.config/autostart"
-autostart_files=(
+readonly autostart_files=(
   '/usr/share/applications/caffeine-indicator.desktop'
 )
 for autostart_file in "${autostart_files[@]}"; do
@@ -209,7 +209,7 @@ xdg-settings set 'default-web-browser' 'com.google.Chrome.desktop'
 if [[ ! -e '/dev/sr0' ]]; then
 
   log 'Copying files from backup'
-  home_dir_files_to_copy=(
+  readonly home_dir_files_to_copy=(
     '.application-deployment'
     '.bin/create-emr-test-cluster'
     '.config/AWSVPNClient'

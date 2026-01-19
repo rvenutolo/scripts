@@ -17,7 +17,7 @@ if ! file_exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt_yn 'Install SDKMAN
     rm --recursive "${SDKMAN_DIR}"
   fi
   # Retry due to random timeouts
-  base_sleep_time=30
+  readonly base_sleep_time=30
   tries=0
   until download_and_run_script 'https://get.sdkman.io?rcupdate=false'; do
     ((tries += 1))
