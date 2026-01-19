@@ -4,13 +4,12 @@ set -euo pipefail
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-check_no_args "$@"
 
 if ! executable_exists 'flatpak'; then
   die 'flatpak executable not found'
 fi
 
-mapfile -t flatpaks_from_package_list < <(get_universal_packages 'flatpak' | sort)
+mapfile -t flatpaks_from_package_list < <(get_universal_packages 'flatpak' "$@" | sort)
 readonly flatpaks_from_package_list
 
 mapfile -t flatpaks_installed < <(flatpak list --user --app --columns application | sort)
