@@ -16,4 +16,12 @@ readonly status_idx=6
 file="migs_for_spoke_$(date +%Y%m%d_%H%M%S).csv"
 readonly file
 echo 'last_name,first_name,phone_number' > "${file}"
-awk -F',' -v 'OFS=,' "\$${status_idx} == \"Member in Good Standing\" && (\$${phone_number_idx}) { print \$${last_name_idx}, \$${first_name_idx}, \$${phone_number_idx} }" "$1" | sort >> "${file}"
+awk --field-separator ',' \
+  --assign 'OFS=,' \
+  --assign "status_idx=${status_idx}" \
+  --assign "phone_idx=${phone_number_idx}" \
+  --assign "last_idx=${last_name_idx}" \
+  --assign "first_idx=${first_name_idx}" \
+  '$status_idx == "Member in Good Standing" && $phone_idx != "" { print $last_idx, $first_idx, $phone_idx }' \
+  "$1" \
+  | sort >> "${file}"
