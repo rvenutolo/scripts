@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+readonly hushlogin_file="${HOME}/.hushlogin"
+
+if ! file_exists "${hushlogin_file}"; then
+  exit 0
+fi
+if ! prompt_yn "Delete ${hushlogin_file}?"; then
+  exit 0
+fi
+
+log "Removing: ${hushlogin_file}"
+rm "${hushlogin_file}"
+log "Removed: ${hushlogin_file}"
