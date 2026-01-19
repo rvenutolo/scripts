@@ -59,7 +59,7 @@ function install_latest_tem_jdk() {
   check_exactly_1_arg "$@"
   check_tem_jdk_major_version "$1"
   local latest_artifact
-  latest_artifact="$(get_latest_available_tem_jdk_for_major_version "$1")"
+  latest_artifact="$(get_latest_available_tem_jdk_for_major_version "$1")"  || exit 1
   readonly latest_artifact
   sdk install java "${latest_artifact}" | clean_sdkman_output
 }
@@ -91,6 +91,7 @@ function set_default_jdk() {
   check_exactly_1_arg "$@"
   check_tem_jdk_major_version "$1"
   local new_default_version
+  ## TODO || exit 1
   new_default_version="$(get_latest_installed_tem_jdk_for_major_version "$1")"
   readonly new_default_version
   sdk default java "${new_default_version}" | clean_sdkman_output

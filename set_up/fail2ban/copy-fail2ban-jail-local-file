@@ -14,10 +14,10 @@ fi
 readonly src_file="${HOME}/.etc/fail2ban-jail.local"
 readonly dest_file='/etc/fail2ban/jail.local'
 
-orig_hash="$(file_hash "${dest_file}")"
+orig_hash="$(file_hash "${dest_file}")" || exit 1
 readonly orig_hash
 root_copy_file "${src_file}" "${dest_file}"
-cur_hash="$(file_hash "${dest_file}")"
+cur_hash="$(file_hash "${dest_file}")" || exit 1
 readonly cur_hash
 
 if [[ "${orig_hash}" != "${cur_hash}" ]]; then

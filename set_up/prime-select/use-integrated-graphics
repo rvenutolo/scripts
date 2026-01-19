@@ -9,7 +9,7 @@ check_no_args "$@"
 if ! is_work; then
   exit 0
 fi
-current_selection="$(prime-select query)"
+current_selection="$(prime-select query)" || exit 1
 readonly current_selection
 if [[ "${current_selection}" == 'intel' ]]; then
   exit 0

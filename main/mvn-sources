@@ -11,7 +11,7 @@ function get_sources() {
   mvn -f "$1" dependency:sources dependency:resolve -Dclassifier='javadoc'
 }
 
-pom_files="$(find . -name 'pom.xml' | sort)"
+pom_files="$(find . -name 'pom.xml' | sort)" || exit 1
 readonly pom_files
 for pom_file in "${pom_files[@]}"; do
   get_sources "${pom_file}"
