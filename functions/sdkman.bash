@@ -75,7 +75,7 @@ function install_latest_tem_jdks() {
 
 function install_sdkman_packages() {
   check_no_args "$@"
-  get_sdkman_packages | while read -r pkg; do
+  get_sdkman_packages | sort | while read -r pkg; do
     sdk install "${pkg}" | clean_sdkman_output
   done
 }
