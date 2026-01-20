@@ -7,7 +7,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_exactly_2_args "$@"
 
 # Copy file with a progress bar
-strace -q -ewrite cp -- "$1" "$2" 2>&1 | awk '{
+strace --quiet -ewrite cp -- "$1" "$2" 2>&1 | awk '{
   count += $NF
   if (count % 10 == 0) {
     percent = count / total_size * 100
@@ -20,4 +20,4 @@ strace -q -ewrite cp -- "$1" "$2" 2>&1 | awk '{
         printf "]\r"
   }
 }
-END { print "" }' total_size="$(stat -c '%s' "$1")" count=0
+END { print "" }' total_size="$(stat --format='%s' "$1")" count=0
