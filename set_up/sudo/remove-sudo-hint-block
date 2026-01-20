@@ -18,7 +18,7 @@ fi
 
 log "Removing sudo hint block from: ${bashrc_file}"
 
-sudo cp "${bashrc_file}" "${bashrc_file}.orig"
+sudo cp "${bashrc_file}" "${bashrc_file}.$(date +%Y%m%d_%H%M%S).bak"
 
 awk '
 BEGIN { delete_next = 0; in_block = 0; buffer_line = ""; has_buffer = 0 }
