@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # expected to pipe to this function: ex my_command | remove_ansi
 function remove_ansi() {
   check_no_args "$@"
