@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+check_for_stdin
+
+remove_ansi
