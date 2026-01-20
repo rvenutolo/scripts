@@ -173,7 +173,7 @@ function get_distro_packages() {
         | awk \
           --field-separator ',' \
           --assign "col=${package_list_column}" \
-          '&& $col == "y" && $6 == "" { print $1 }' \
+          '$col == "y" && $6 == "" { print $1 }' \
         | sort
     ) \
     <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
@@ -247,7 +247,7 @@ function get_sdkman_packages() {
         | awk \
           --field-separator ',' \
           --assign "col=${package_list_column}" \
-          '&& $col == "y" && $7 == "" { print $2 }' \
+          '$col == "y" && $7 == "" { print $2 }' \
         | sort
     ) \
     <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
