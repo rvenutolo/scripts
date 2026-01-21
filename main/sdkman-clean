@@ -12,21 +12,13 @@ set +u
 # shellcheck disable=SC1091
 source "${SDKMAN_DIR}/bin/sdkman-init.sh"
 
-log 'Updating SDKMAN metadata'
-update_sdkman_metadata
-log 'Updated SDKMAN metadata'
+log 'Pruning SDKMAN packages'
+prune_sdkman_packages
+log 'Pruning SDKMAN packages'
 
-log 'Updating SDKMAN packages'
-install_sdkman_packages
-log 'Updated SDKMAN packages'
-
-log 'Updating Temurin JDKs'
-install_latest_tem_jdks
-log 'Updated Temurin JDKs'
-
-log 'Setting default JDK'
-set_default_jdk_to_latest_installed
-log 'Set default JDK'
+log 'Pruning Temurin JDKs'
+prune_tem_jdks
+log 'Pruning Temurin JDKs'
 
 set -u
 mv "${SDKMAN_DIR}/etc/config.orig" "${SDKMAN_DIR}/etc/config"
