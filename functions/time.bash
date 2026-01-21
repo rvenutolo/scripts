@@ -21,6 +21,7 @@ function calc_elapsed() {
   echo "${secs}s"
 }
 
+#shellcheck disable=SC2120
 function shell_elapsed_time() {
   check_no_args "$@"
   calc_elapsed 0 $SECONDS

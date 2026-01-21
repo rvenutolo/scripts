@@ -78,6 +78,7 @@ function check_at_least_4_args() {
   fi
 }
 
+#shellcheck disable=SC2120
 function check_for_stdin() {
   check_no_args "$@"
   if [[ -t 0 ]]; then
@@ -85,6 +86,7 @@ function check_for_stdin() {
   fi
 }
 
+#shellcheck disable=SC2120
 function stdin_exists() {
   check_no_args "$@"
   ! [[ -t 0 ]]
