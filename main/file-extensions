@@ -12,7 +12,7 @@ else
   readonly dir="$1"
 fi
 
-find "${dir}" -type f -printf "%f\n" \
+find "${dir}" -type 'f' -printf "%f\n" \
   | grep --fixed-strings '.' \
   | awk --field-separator '.' '{print "." $NF}' \
   | sort \
