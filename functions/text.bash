@@ -15,3 +15,19 @@ function remove_empty_lines() {
   check_for_stdin
   sed '/^[[:space:]]*$/d'
 }
+
+# expected to pipe to this function, ex: my_command | first_line
+#shellcheck disable=SC2120
+function first_line() {
+  check_no_args "$@"
+  check_for_stdin
+  head --lines='1'
+}
+
+# expected to pipe to this function, ex: my_command | last_line
+#shellcheck disable=SC2120
+function last_line() {
+  check_no_args "$@"
+  check_for_stdin
+  tail --lines='1'
+}
