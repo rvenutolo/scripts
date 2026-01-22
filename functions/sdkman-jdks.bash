@@ -6,7 +6,7 @@
 function get_jdk_major_version() {
   check_exactly_1_arg "$@"
   if [[ "$1" =~ ^([0-9]+) ]]; then
-    printf '%s' ${BASH_REMATCH[1]}
+    printf '%s' "${BASH_REMATCH[1]}"
   else
     die "Unexpected version: $1"
   fi
