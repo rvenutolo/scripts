@@ -20,5 +20,9 @@ log 'Pruning Temurin JDKs'
 prune_tem_jdks
 log 'Pruning Temurin JDKs'
 
+log 'Rewriting .sdkmanrc files'
+rewrite_sdkmanrc_file_java_versions
+log 'Rewrote .sdkmanrc files'
+
 set -u
 mv "${SDKMAN_DIR}/etc/config.orig" "${SDKMAN_DIR}/etc/config"

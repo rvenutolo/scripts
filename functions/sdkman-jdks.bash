@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
 
+### MISC
+
+# $1 = version or artifact ID
+function get_jdk_major_version() {
+  check_exactly_1_arg "$@"
+  if [[ "$1" =~ ^([0-9]+) ]]; then
+    printf '%s' ${BASH_REMATCH[1]}
+  else
+    die "Unexpected version: $1"
+  fi
+}
+
 ### BASIC OPERATIONS
 
 # $1 = jdk artifact ID
@@ -129,7 +141,7 @@ function get_available_tem_jdk_major_versions() {
 function get_latest_available_tem_jdk_major_version() {
   check_no_args "$@"
   get_available_tem_jdk_major_versions \
-    | tail --lines='1'
+    | last_line
 }
 
 # $1 = major java version
@@ -209,7 +221,7 @@ function get_installed_tem_jdk_major_versions() {
 function get_latest_installed_tem_jdk_major_version() {
   check_no_args "$@"
   get_installed_tem_jdk_major_versions \
-    | tail --lines='1'
+    | last_line
 }
 
 # $1 = major java version
@@ -218,6 +230,22 @@ function check_installed_tem_jdk_major_version() {
   if ! get_installed_tem_jdk_major_versions | contains_word "$1"; then
     die "Java version $1 is not installed"
   fi
+}
+
+# $1 = artifact ID
+function is_tem_jdk_artifact_installed() {
+  check_exactly_1_arg "$@"
+  get_formatted_installed_tem_jdks \
+    | get_formatted_tem_jdk_artifact_id_field \
+    | contains_word "$1"
+}
+
+# $1 = major java version
+function get_latest_installed_tem_jdk_artifact_id_for_major_version() {
+  check_exactly_1_arg "$@"
+  get_formatted_installed_tem_jdks_for_major_version "$1" \
+    | first_line \
+    | get_formatted_tem_jdk_artifact_id_field
 }
 
 ### INSTALLING JDKS
