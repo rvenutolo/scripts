@@ -6,9 +6,9 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-cp "${SDKMAN_DIR}/etc/config" "${SDKMAN_DIR}/etc/config.orig"
-sed --in-place 's/sdkman_auto_answer=false/sdkman_auto_answer=true/g' "${SDKMAN_DIR}/etc/config"
+# set +u to avoid 'ZSH_VERSION: unbound variable'
 set +u
+
 # shellcheck disable=SC1091
 source "${SDKMAN_DIR}/bin/sdkman-init.sh"
 
@@ -29,4 +29,3 @@ set_default_jdk_to_latest_installed
 log 'Set default JDK'
 
 set -u
-mv "${SDKMAN_DIR}/etc/config.orig" "${SDKMAN_DIR}/etc/config"
