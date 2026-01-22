@@ -8,7 +8,10 @@ check_no_args "$@"
 
 # $1 = pom file
 function get_sources() {
-  mvn -f "$1" dependency:sources dependency:resolve -Dclassifier='javadoc'
+  mvn -f "$1" \
+    org.apache.maven.plugins:maven-dependency-plugin:resolve-sources \
+    org.apache.maven.plugins:maven-dependency-plugin:resolve \
+    -Dclassifier=javadoc
 }
 
 pom_files="$(find . -type d -name target -prune -o -type f -name 'pom.xml' -print | sort)" || exit 1
