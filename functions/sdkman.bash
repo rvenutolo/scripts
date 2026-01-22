@@ -47,8 +47,16 @@ function rewrite_sdkmanrc_file_java_version() {
   overwrite_sdkmanrc_file_java_artifact_id "$1" "${new_java_artifact_id}"
 }
 
+#shellcheck disable=SC2120
+function list_all_sdkmanrc_files() {
+  check_no_args "$@"
+  find "${HOME}" -type 'd' \( ! -readable -o ! -executable \) -prune -o -type 'f' -name '.sdkmanrc' -print | sort
+}
+
+#shellcheck disable=SC2120
 function rewrite_sdkmanrc_file_java_versions() {
-  find "${HOME}" -name '.sdkmanrc' -type 'f' | sort | while read -r file; do
+  check_no_args "$@"
+  list_all_sdkmanrc_files | while read -r file; do
     rewrite_sdkmanrc_file_java_version "${file}"
   done
 }
