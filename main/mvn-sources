@@ -14,8 +14,8 @@ function get_sources() {
     -Dclassifier=javadoc
 }
 
-pom_files="$(find . -type d -name target -prune -o -type f -name 'pom.xml' -print | sort)" || exit 1
+pom_files="$(list_pom_files)" || exit 1
 readonly pom_files
-for pom_file in "${pom_files[@]}"; do
+while IFS='' read -r pom_file; do
   get_sources "${pom_file}"
-done
+done <<< "${pom_files}"
