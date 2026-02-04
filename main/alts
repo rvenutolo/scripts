@@ -90,9 +90,9 @@ def alts = [
         desc: 'Command-line DNS Client for Humans. Written in Golang',
         url: 'https://github.com/mr-karan/doggo'
     ),
-    dog            : new AltInfo(
+    doge            : new AltInfo(
         desc: 'Command-line DNS client',
-        url: 'https://dns.lookup.dog/'
+        url: 'https://dog.ramfield.net/'
     ),
     dua            : new AltInfo(
         desc: 'A tool to conveniently learn about the disk usage of directories',
@@ -344,7 +344,7 @@ def map = [
     dd     : ['caligula'],
     df     : ['duf', 'dysk'],
     diff   : ['batdiff', 'colordiff', 'delta', 'diff-so-fancy', 'difft', 'riff'],
-    dig    : ['dog', 'doggo'],
+    dig    : ['doge', 'doggo'],
     docker : ['lazydocker'],
     du     : ['dua', 'dust', 'gdu', 'ncdu'],
     find   : ['fd', 'fselect'],
