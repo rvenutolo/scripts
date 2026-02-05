@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+
+if stdin_exists; then
+  check_exactly_1_arg "$@"
+  awk --field-separator "$1" 'NR==1{nf=NF} NF!=nf{print "Line " NR " has " NF " fields (expected " nf "): " $0}'
+else
+  log "READING FROM $1"
+  awk --field-separator "$2" 'NR==1{nf=NF} NF!=nf{print "Line " NR " has " NF " fields (expected " nf "): " $0}' "$1"
+fi
