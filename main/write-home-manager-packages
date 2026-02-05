@@ -5,12 +5,21 @@ set -euo pipefail
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
 
+## TODO only overwrite packages section
 echo "\
 { pkgs, ... }:
-
 {
   home.packages = with pkgs; [
 $(get_universal_packages 'nixpkgs' "$@" | sed 's/^/    /')
   ];
 }
-" > "${HOME_MANAGER_PACKAGES_FILE}"
+" > "${HOME_MANAGER_DIR}/packages-stable.nix"
+
+echo "\
+{ pkgs-unstable, ... }:
+{
+  home.packages = with pkgs-unstable; [
+$(get_universal_packages 'nixpkgs-unstable' "$@" | sed 's/^/    /')
+  ];
+}
+" > "${HOME_MANAGER_DIR}/packages-unstable.nix"
