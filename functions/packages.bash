@@ -12,7 +12,7 @@ function get_universal_packages() {
   check_at_least_1_arg "$@"
   local package_type
   case "$1" in
-    appimage | flatpak | nixpkgs)
+    appimage | flatpak | nixpkgs | nixpkgs-unstable)
       readonly package_type="$1"
       ;;
     *)
