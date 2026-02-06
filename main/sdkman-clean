@@ -14,11 +14,11 @@ source "${SDKMAN_DIR}/bin/sdkman-init.sh"
 
 log 'Pruning SDKMAN packages'
 prune_sdkman_packages
-log 'Pruning SDKMAN packages'
+log 'Pruned SDKMAN packages'
 
 log 'Pruning Temurin JDKs'
 prune_tem_jdks
-log 'Pruning Temurin JDKs'
+log 'Pruned Temurin JDKs'
 
 log 'Rewriting .sdkmanrc files'
 rewrite_sdkmanrc_file_java_versions
