@@ -14,7 +14,7 @@ if stdin_exists; then
 else
   check_at_least_1_arg "$@"
   check_at_most_2_args "$@"
-  header_line="$(cat "$1" | first_line)" || exit 1
+  header_line="$(first_line "$1")" || exit 1
   if [[ -n "${2:-}" ]]; then
     readonly delimiter="$2"
   fi
