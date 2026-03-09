@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+function eval_maven_expression() {
+  mvn -f "${pom_file}" help:evaluate -Dexpression="$1" -q -DforceStdout
+}
+
+readonly pom_file='pom.xml'
+readonly env_file='.env'
+
+if ! file_exists "${pom_file}"; then
+  die "${pom_file} is missing"
+fi
+
+if file_exists "${env_file}"; then
+  die "${env_file} exists"
+fi
+
+artifact_id="$(eval_maven_expression 'project.artifactId')"
+readonly artifact_id
+version="$(eval_maven_expression 'project.version')"
+readonly version
+
+echo "\
+AWS_ACCESS_KEY_ID=xxx
+AWS_SECRET_ACCESS_KEY=xxx
+DE_APP_ARTIFACT=${artifact_id}
+DE_APP_INSTANCE=${artifact_id}
+DE_APP_JOB=${artifact_id}
+DE_APP_NAME=${artifact_id}
+DE_APP_VERSION=${version}
+DE_APP_GUID=my-${artifact_id}-guid
+
+AWS_DEFAULT_REGION=us-east-1
+AWS_REGION=us-east-1
+DE_APP_BASE=.
+DE_APP_CONF=conf
+DE_APP_OUTPUT=output
+DE_ENV=dev
+" > "${env_file}"
