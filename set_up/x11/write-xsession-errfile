@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+readonly xsession_file='/etc/X11/Xsession'
+
+if ! file_exists "${xsession_file}"; then
+  exit 0
+fi
+
+if file_contains_exactly "${xsession_file}" 'ERRFILE=$XDG_CACHE_HOME/X11/xsession-errors'; then
+  exit 0
+fi
+
+if ! file_contains_word "${xsession_file}" 'ERRFILE='; then
+  die "${xsession_file} does not contain 'ERRFILE='"
+fi
+
+log 'Setting X11 ERRFILE'
+sudo sed --in-place 's|^ERRFILE=.*$|ERRFILE=$XDG_CACHE_HOME/X11/xsession-errors|' "${xsession_file}"
+log 'Set X11 ERRFILE'

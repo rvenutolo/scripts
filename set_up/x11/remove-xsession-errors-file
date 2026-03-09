@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+readonly xsession_errors_file="${HOME}/.xsession-errors"
+
+if ! file_exists "${xsession_errors_file}"; then
+  exit 0
+fi
+if ! prompt_yn "Delete ${xsession_errors_file}?"; then
+  exit 0
+fi
+
+log "Removing: ${xsession_errors_file}"
+rm "${xsession_errors_file}"
+log "Removed: ${xsession_errors_file}"
