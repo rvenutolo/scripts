@@ -26,7 +26,7 @@ function get_universal_packages() {
     case "$1" in
       --ignore)
         if [[ $# -lt 2 ]]; then
-          die "--ignore requires at least one argument"
+          die '--ignore requires at least one argument'
         fi
         shift
         while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
@@ -111,7 +111,7 @@ function get_distro_packages() {
     case "$1" in
       --ignore)
         if [[ $# -lt 2 ]]; then
-          die "--ignore requires at least one argument"
+          die '--ignore requires at least one argument'
         fi
         shift
         while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
@@ -188,7 +188,7 @@ function get_sdkman_packages() {
     case "$1" in
       --ignore)
         if [[ $# -lt 2 ]]; then
-          die "--ignore requires at least one argument"
+          die '--ignore requires at least one argument'
         fi
         shift
         while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
