@@ -12,10 +12,10 @@ if ! file_exists "${clamd_conf_file}"; then
   exit 0
 fi
 
-log "Setting ClamAV to log to syslog"
+log 'Setting ClamAV to log to syslog'
 if file_contains_word "${clamd_conf_file}" 'LogSyslog'; then
   sudo sed --in-place 's/.*LogSyslog .*/LogSyslog true/' "${clamd_conf_file}"
 else
   sudo tee --append "${clamd_conf_file}" <<< 'LogSyslog true'
 fi
-log "Set ClamAV to log to syslog"
+log 'Set ClamAV to log to syslog'
