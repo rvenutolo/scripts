@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+
+# remove this dir from the path so executing `claude` doesn't this script
+path_remove "$(this_script_dir)"
+
+if [[ -n "${CLAUDE_CONFIG_DIR:-}" ]];then
+  CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR}" exec claude "$@"
+elif [[ -n "${CLAUDE_PROFILE:-}" ]]; then
+  exec "$(this_script_dir)/claude-${CLAUDE_PROFILE}" "$@"
+else
+  log "Set CLAUDE_PROFILE='work' or CLAUDE_PROFILE='personal' to skip this prompt"
+  PS3='Select profile (1=work, 2=personal): '
+  select profile in 'work' 'personal'; do
+    case "${profile}" in
+      work)
+        log "Using Claude 'work' profile"
+        break
+        ;;
+      personal)
+        echo "Using Claude 'personal' profile"
+        break
+        ;;
+      *)
+        log "Invalid choice: ${REPLY}"
+        ;;
+    esac
+  done
+  exec "$(this_script_dir)/claude-${profile}" "$@"
+fi
