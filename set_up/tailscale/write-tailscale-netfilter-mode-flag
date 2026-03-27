@@ -24,3 +24,5 @@ fi
 log "Adding '${flag}' to FLAGS"
 sudo sed --in-place --regexp-extended "s|^(\s*FLAGS\s*=\"?)([^\"]*)(\"?\s*)$|\1\2 ${flag}\3|" "${config_file}"
 log "Added '${flag}' to FLAGS"
+
+restart_system_service_if_enabled 'tailscaled.service'
