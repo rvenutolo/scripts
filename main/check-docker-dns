@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_at_most_1_arg "$@"
+
+if [[ "$#" -eq 0 ]]; then
+  readonly hostname='google.com'
+else
+  readonly hostname="$1"
+fi
+
+docker run --rm alpine nslookup "${hostname}"
