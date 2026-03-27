@@ -53,7 +53,7 @@ function contains_perl_regex_ignore_case() {
 function contains_word() {
   check_exactly_1_arg "$@"
   check_for_stdin
-  grep --quiet --fixed-strings --word-regex "$1"
+  grep --quiet --fixed-strings --word-regexp "$1"
 }
 
 # expected to pipe to this function, ex: echo 'FOO BAR BAZ' | contains_word_ignore_case 'bar'
@@ -61,7 +61,7 @@ function contains_word() {
 function contains_word_ignore_case() {
   check_exactly_1_arg "$@"
   check_for_stdin
-  grep --quiet --fixed-strings --ignore-case --word-regex "$1"
+  grep --quiet --fixed-strings --ignore-case --word-regexp "$1"
 }
 
 # expected to pipe to this function, ex: echo 'foo bar baz' | contains_word_regex '^foo'
@@ -69,7 +69,7 @@ function contains_word_ignore_case() {
 function contains_word_regex() {
   check_exactly_1_arg "$@"
   check_for_stdin
-  grep --quiet --word-regex "$1"
+  grep --quiet --word-regexp "$1"
 }
 
 # expected to pipe to this function, ex: echo 'FOO BAR BAZ' | contains_word_regex_ignore_case '^foo'
@@ -77,7 +77,7 @@ function contains_word_regex() {
 function contains_word_regex_ignore_case() {
   check_exactly_1_arg "$@"
   check_for_stdin
-  grep --quiet --ignore-case --word-regex "$1"
+  grep --quiet --ignore-case --word-regexp "$1"
 }
 
 # $1 = file
@@ -133,7 +133,7 @@ function file_contains_perl_regex_ignore_case() {
 function file_contains_word() {
   check_exactly_2_args "$@"
   assert_file_exists "$1"
-  grep --quiet --fixed-strings --word-regex "$2" "$1"
+  grep --quiet --fixed-strings --word-regexp "$2" "$1"
 }
 
 # $1 = file
@@ -141,7 +141,7 @@ function file_contains_word() {
 function file_contains_word_ignore_case() {
   check_exactly_2_args "$@"
   assert_file_exists "$1"
-  grep --quiet --fixed-strings --ignore-case --word-regex "$2" "$1"
+  grep --quiet --fixed-strings --ignore-case --word-regexp "$2" "$1"
 }
 
 # $1 = file
@@ -149,7 +149,7 @@ function file_contains_word_ignore_case() {
 function file_contains_word_regex() {
   check_exactly_2_args "$@"
   assert_file_exists "$1"
-  grep --quiet --word-regex "$2" "$1"
+  grep --quiet --word-regexp "$2" "$1"
 }
 
 # $1 = file
@@ -157,5 +157,5 @@ function file_contains_word_regex() {
 function file_contains_word_regex_ignore_case() {
   check_exactly_2_args "$@"
   assert_file_exists "$1"
-  grep --quiet --ignore-case --word-regex "$2" "$1"
+  grep --quiet --ignore-case --word-regexp "$2" "$1"
 }
