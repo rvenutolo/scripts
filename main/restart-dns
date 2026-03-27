@@ -6,4 +6,4 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-sudo systemctl restart systemd-resolved
+restart_system_service_if_enabled 'systemd-resolved'
