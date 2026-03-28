@@ -21,7 +21,7 @@ readonly project_root
 
 if [[ -x "${project_root}/mvnw" ]]; then
   log 'Executing mvnw instead of mvn'
-  "${project_root}/mvnw" "$@"
+  exec "${project_root}/mvnw" "$@"
 else
-  mvn "$@"
+  exec mvn "$@"
 fi
