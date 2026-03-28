@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+readonly src_file="${HOME}/.etc/sysctl-enforce-ip-forward.service"
+readonly dest_file='/etc/systemd/system/enforce-ip-forward.service'
+
+# Copy instead of symlink - see 'protected_symlinks' in https://www.kernel.org/doc/Documentation/sysctl/fs.txt
+root_copy_file "${src_file}" "${dest_file}"
