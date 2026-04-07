@@ -17,7 +17,7 @@ for archive in "$@"; do
       *.exe) cabextract "${archive}" ;;
       *.gz) gzip --decompress --verbose "${archive}" ;;
       *.lzma) xz --decompress --verbose --format=lzma "${archive}" ;;
-      *.rar) rar x "${archive}" ;;
+      *.rar) unrar x "${archive}" ;;
       *.tar) tar --extract --verbose --file "${archive}" ;;
       *.tbz2) tar --extract --verbose --bzip2 --file ;;
       *.tgz) tar --extract --verbose --gzip --file "${archive}" ;;
