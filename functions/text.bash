@@ -44,3 +44,15 @@ function last_line() {
     tail --lines='1' "$1"
   fi
 }
+
+function skip_first_lines() {
+  if stdin_exists; then
+    check_exactly_1_arg "$@"
+    local start_line=$(($1 + 1))
+    tail --lines="+${start_line}"
+  else
+    check_exactly_2_arg "$@"
+    local start_line=$(($2 + 1))
+    tail --lines="+${start_line}" "$1"
+  fi
+}
