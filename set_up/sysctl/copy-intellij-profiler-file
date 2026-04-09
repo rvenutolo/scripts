@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+readonly src_file="${HOME}/.etc/sysctl-intellij-profiler.conf"
+readonly dest_file='/etc/sysctl.d/intellij-profiler.conf'
+
+# Copy instead of symlink - see 'protected_symlinks' in https://www.kernel.org/doc/Documentation/sysctl/fs.txt
+orig_hash="$(file_hash "${dest_file}")" || exit 1
+readonly orig_hash
+root_copy_file "${src_file}" "${dest_file}"
+cur_hash="$(file_hash "${dest_file}")" || exit 1
+readonly cur_hash
+
+if [[ "${orig_hash}" != "${cur_hash}" ]]; then
+  reload_sysctl_conf
+fi
