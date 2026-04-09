@@ -14,4 +14,7 @@ if ! file_exists "$2"; then
   die "File does not exist: $2"
 fi
 
-diff --unified --text <(jq --sort-keys . "$1") <(jq --sort-keys . "$2")
+diff --color=always --report-identical-files --unified --text \
+  <(jq --sort-keys . "$1") \
+  <(jq --sort-keys . "$2") |
+  skip_first_lines 3
