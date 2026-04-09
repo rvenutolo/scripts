@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_exactly_2_args "$@"
+
+if ! file_exists "$1"; then
+  die "File does not exist: $1"
+fi
+
+if ! file_exists "$2"; then
+  die "File does not exist: $2"
+fi
+
+diff --unified --text <(jq --sort-keys . "$1") <(jq --sort-keys . "$2")
