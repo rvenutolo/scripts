@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_no_args "$@"
+
+readonly src_file="${HOME}/.etc/network-manager-aws-vpn-dns-fix"
+readonly dest_file='/etc/NetworkManager/dispatcher.d/99-vpn-dns-fix'
+root_copy_file "${src_file}" "${dest_file}"
