@@ -6,6 +6,37 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 
 # $1 = packages file
+# $2 = 'nixpkgs' or 'nixpkgs-unstable'
+function write_packages_file_skeleton() {
+  check_exactly_2_args "$@"
+  local packages_file="$1"
+  local package_type="$2"
+  if file_exists "${packages_file}"; then
+    return 0
+  fi
+  mkdir -p "$(dirname "${packages_file}")"
+  if [[ "${package_type}" == 'nixpkgs' ]]; then
+    cat > "${packages_file}" <<'EOF'
+{ pkgs, ... }:
+{
+  home.packages = with pkgs; [
+  ];
+}
+EOF
+  elif [[ "${package_type}" == 'nixpkgs-unstable' ]]; then
+    cat > "${packages_file}" <<'EOF'
+{ pkgs-unstable, ... }:
+{
+  home.packages = with pkgs-unstable; [
+  ];
+}
+EOF
+  else
+    die "Unexpected package type: '${package_type}'"
+  fi
+}
+
+# $1 = packages file
 # $2 = regex ('\[' or ']'
 function get_line_number() {
   grep --line-number --max-count='1' "$2" "$1" | cut --delimiter=':' --fields='1'
@@ -21,6 +52,7 @@ function write_packages_into() {
   local temp_file
   temp_file="$(mktemp)" || exit 1
   readonly temp_file
+  write_packages_file_skeleton "${packages_file}" "${package_type}"
   {
     awk \
       "NR <= $(get_line_number "${packages_file}" '\[')" \
@@ -33,5 +65,5 @@ function write_packages_into() {
   mv "${temp_file}" "${packages_file}"
 }
 
-write_packages_into "${HOME_MANAGER_DIR}/packages-stable.nix" 'nixpkgs' "$@"
-write_packages_into "${HOME_MANAGER_DIR}/packages-unstable.nix" 'nixpkgs-unstable' "$@"
+write_packages_into "${HOME_MANAGER_PACKAGES_DIR}/stable.nix" 'nixpkgs' "$@"
+write_packages_into "${HOME_MANAGER_PACKAGES_DIR}/unstable.nix" 'nixpkgs-unstable' "$@"
