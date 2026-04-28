@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+check_at_least_1_arg "$@"
+
+# $1 = json file
+function sort_json_file() {
+  local json_file="$1"
+  readonly json_file
+  local temp_file
+  temp_file="$(mktemp)" || exit 1
+  readonly temp_file
+  sort_json "${json_file}" > "${temp_file}"
+  mv "${temp_file}" "${json_file}"
+}
+
+for file; do
+  sort_json_file "${file}"
+done
