@@ -29,6 +29,7 @@ else
   log "Skipping writing packages file"
 fi
 
+nix-channel --update
 nix flake update --flake "${HOME_MANAGER_DIR}"
 home-manager-switch
 
