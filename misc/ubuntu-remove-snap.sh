@@ -7,6 +7,11 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 trap 'printf "\033[0;31m[%s %s] ERROR: line %s (exit %s): %s\033[0m\n" "$(date +%T)" "${0##*/}" "${LINENO}" "$?" "${BASH_COMMAND}" >&2' ERR
 
+if ((BASH_VERSINFO[0] < 4)); then
+  echo 'bash 4+ required' >&2
+  exit 1
+fi
+
 function log() {
   echo -e "log [$(date +%T)]: $*" >&2
 }
