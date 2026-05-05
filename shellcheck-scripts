@@ -4,6 +4,7 @@ set -euo pipefail
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
+require_bash_version 4 3
 
 assert_paths_exist "$@"
 
