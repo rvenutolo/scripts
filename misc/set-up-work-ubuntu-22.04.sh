@@ -28,7 +28,7 @@ function dl() {
       sleep 15
     done
   else
-    tries=0
+    local tries=0
     until curl --disable --fail --silent --location --show-error "$1"; do
       ((tries += 1))
       if ((tries > 10)); then
@@ -66,7 +66,7 @@ if [[ -f '/var/run/reboot-required' ]]; then
 fi
 
 log 'Setting hostname'
-hostnamectl set-hostname 'silverstar'
+sudo hostnamectl set-hostname 'silverstar'
 
 log 'Removing apt packages'
 sudo apt-get remove --yes firefox
@@ -165,7 +165,6 @@ readonly gsettings=(
   'org.gnome.gedit.preferences.editor scheme Yaru-dark'
   'org.gnome.mutter center-new-windows true'
   'org.gnome.settings-daemon.plugins.color night-light-enabled true'
-  'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 1800'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 7200'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
   'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
@@ -207,7 +206,7 @@ if [[ ! -e '/dev/sr0' ]]; then
 
   log 'Installing system76-power'
   sudo add-apt-repository 'ppa:system76-dev/stable' --yes
-  sudo apt-get install system76-power gnome-shell-extension-system76-power gnome-shell-extension-prefs
+  sudo apt-get install --yes system76-power gnome-shell-extension-system76-power gnome-shell-extension-prefs
   sudo system76-power graphics 'hybrid'
 
   log 'Updating firmware'

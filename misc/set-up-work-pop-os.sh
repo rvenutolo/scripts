@@ -28,7 +28,7 @@ function dl() {
       sleep 15
     done
   else
-    tries=0
+    local tries=0
     until curl --disable --fail --silent --location --show-error "$1"; do
       ((tries += 1))
       if ((tries > 10)); then
@@ -69,7 +69,7 @@ log 'Setting timezone'
 sudo timedatectl set-timezone 'America/New_York'
 
 log 'Setting hostname'
-hostnamectl set-hostname 'silverstar'
+sudo hostnamectl set-hostname 'silverstar'
 
 log 'Removing apt packages'
 sudo apt-get remove --yes geary firefox libreoffice-*

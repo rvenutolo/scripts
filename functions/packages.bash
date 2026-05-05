@@ -98,7 +98,7 @@ function get_universal_packages() {
 # --quiet = don't output messages about disabled packages
 # --ignore [PACKAGE]... ignores those packages
 function get_distro_packages() {
-  check_at_least_2_arg "$@"
+  check_at_least_2_args "$@"
   local id="$1"
   readonly id
   shift

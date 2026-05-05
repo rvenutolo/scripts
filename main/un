@@ -19,7 +19,7 @@ for archive in "$@"; do
       *.lzma) xz --decompress --verbose --format=lzma "${archive}" ;;
       *.rar) unrar x "${archive}" ;;
       *.tar) tar --extract --verbose --file "${archive}" ;;
-      *.tbz2) tar --extract --verbose --bzip2 --file ;;
+      *.tbz2) tar --extract --verbose --bzip2 --file "${archive}" ;;
       *.tgz) tar --extract --verbose --gzip --file "${archive}" ;;
       *.xz) xz --decompress --verbose "${archive}" ;;
       *.zip) unzip "${archive}" ;;

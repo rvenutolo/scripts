@@ -21,6 +21,10 @@ fi
 
 for repo in 'rpmfusion-free-release' 'rpmfusion-nonfree-release'; do
   if ! dnf list --installed "${repo}" > '/dev/null' 2>&1 && prompt_yn "Add ${repo} repository?"; then
-    sudo dnf install "https://mirrors.rpmfusion.org/free/fedora/${repo}-$(rpm --eval='%fedora').noarch.rpm"
+    if [[ "${repo}" == 'rpmfusion-free-release' ]]; then
+      sudo dnf install "https://mirrors.rpmfusion.org/free/fedora/${repo}-$(rpm --eval='%fedora').noarch.rpm"
+    else
+      sudo dnf install "https://mirrors.rpmfusion.org/nonfree/fedora/${repo}-$(rpm --eval='%fedora').noarch.rpm"
+    fi
   fi
 done

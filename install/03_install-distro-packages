@@ -18,5 +18,5 @@ if executable_exists 'apt'; then
 elif executable_exists 'dnf'; then
   sudo dnf install --assumeyes "${packages[@]}"
 elif executable_exists 'pacman'; then
-  sudo pacman --needed --noconfirm "${packages[@]}"
+  sudo pacman --sync --needed --noconfirm "${packages[@]}"
 fi

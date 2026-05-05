@@ -14,7 +14,7 @@ function get_env_file_var_value() {
   check_exactly_2_args "$@"
   assert_file_exists "$1"
   assert_env_file_var_exists "$1" "$2"
-  grep "^$2=" "$1" | cut --delimiter='=' --fields='2'
+  grep "^$2=" "$1" | cut --delimiter='=' --fields='2-'
 }
 
 # $1 = env file
@@ -108,7 +108,6 @@ function prompt_env_file_value_with_default_if_empty() {
   check_exactly_3_args "$@"
   assert_file_exists "$1"
   assert_env_file_var_exists "$1" "$2"
-  prompt_env_file_var_value "$1" "$2" '' "$3"
   if is_env_file_var_value_empty "$1" "$2"; then
     prompt_env_file_value_with_default "$1" "$2" "${3:-}"
   fi

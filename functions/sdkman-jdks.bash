@@ -297,7 +297,7 @@ function set_default_jdk_to_latest_installed() {
 
 # $1 = major java version
 function prune_tem_jdks_for_major_version() {
-  check_exactly_1_arg "$1"
+  check_exactly_1_arg "$@"
   local latest_artifact_id
   latest_artifact_id="$(
     get_formatted_latest_available_tem_jdk_for_major_version "$1" \

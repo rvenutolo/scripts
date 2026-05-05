@@ -6,6 +6,14 @@ function dir_exists() {
   [[ -d "$1" ]]
 }
 
+# $1 = dir
+function assert_dir_exists() {
+  check_exactly_1_arg "$@"
+  if ! dir_exists "$1"; then
+    die "$1 does not exist"
+  fi
+}
+
 # $@ = targets
 function create_dir() {
   check_at_least_1_arg "$@"

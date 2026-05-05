@@ -15,7 +15,7 @@ eval set -- "${parsed_args}"
 while true; do
   case "$1" in
     -d | --dir)
-      readonly dir="$2"
+      dir="$2"
       shift 2
       ;;
     --)

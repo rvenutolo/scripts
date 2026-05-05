@@ -107,8 +107,8 @@ if executable_exists 'aa-enabled' && ! aa-enabled | contains_word_ignore_case 'y
   log "AppArmor is not enabled"
 fi
 
-if executable_exists 'sestatus' && sestatus | continas_perl_regex_ignore_case 'selinux status:\s+enabled'; then
-  log "SELinux is not enabled"
+if executable_exists 'sestatus' && sestatus | contains_perl_regex_ignore_case 'selinux status:\s+enabled'; then
+  log "SELinux is enabled"
 fi
 
 expected_files=(
@@ -197,7 +197,7 @@ expected_active_system_services=(
 if ! is_server; then
   expected_active_system_services+=('cups.service')
 fi
-if executable_exists 'ap-enabled'; then
+if executable_exists 'aa-enabled'; then
   expected_active_system_services+=('apparmor.service')
 fi
 if executable_exists 'CrashPlanDesktop'; then

@@ -26,8 +26,8 @@ if [[ -z "${delimiter+x}" ]]; then
     readonly delimiter=';'
   elif contains_exactly ',' <<< "${header_line}"; then
     readonly delimiter=','
-  elif contains_exactly '\t' <<< "${header_line}"; then
-    readonly delimiter='\t'
+  elif contains_exactly $'\t' <<< "${header_line}"; then
+    readonly delimiter=$'\t'
   elif contains_exactly '|' <<< "${header_line}"; then
     readonly delimiter='|'
   elif contains_exactly ':' <<< "${header_line}"; then
