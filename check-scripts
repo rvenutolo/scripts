@@ -18,4 +18,7 @@ if [[ "${#files[@]}" -eq 0 ]]; then
   exit 0
 fi
 
-shellcheck "${files[@]}"
+rc=0
+shfmt --list --indent=2 --case-indent --binary-next-line --space-redirects --diff "${files[@]}" || rc=1
+shellcheck "${files[@]}" || rc=1
+exit "${rc}"
