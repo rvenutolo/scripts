@@ -11,18 +11,33 @@ for archive in "$@"; do
     case "${archive}" in
       *.tar.bz2) tar --extract --verbose --bzip2 --file "${archive}" ;;
       *.tar.gz) tar --extract --verbose --gzip --file "${archive}" ;;
+      *.tar.lz) tar --extract --verbose --use-compress-program=lzip --file "${archive}" ;;
+      *.tar.lz4) tar --extract --verbose --use-compress-program=lz4 --file "${archive}" ;;
       *.tar.xz) tar --extract --verbose --xz --file "${archive}" ;;
       *.tar.zst) tar --extract --verbose --use-compress-program=unzstd --file "${archive}" ;;
+      *.tar.Z) tar --extract --verbose --compress --file "${archive}" ;;
       *.bz2) bzip2 --decompress --verbose "${archive}" ;;
+      *.cab) cabextract "${archive}" ;;
+      *.cpio) cpio --extract --make-directories < "${archive}" ;;
+      *.deb) dpkg-deb --extract "${archive}" . ;;
       *.exe) cabextract "${archive}" ;;
       *.gz) gzip --decompress --verbose "${archive}" ;;
+      *.lz) lzip --decompress "${archive}" ;;
+      *.lz4) lz4 --decompress "${archive}" ;;
       *.lzma) xz --decompress --verbose --format=lzma "${archive}" ;;
       *.rar) unrar x "${archive}" ;;
+      *.rpm) rpm2cpio "${archive}" | cpio --extract --make-directories ;;
       *.tar) tar --extract --verbose --file "${archive}" ;;
+      *.tbz) tar --extract --verbose --bzip2 --file "${archive}" ;;
       *.tbz2) tar --extract --verbose --bzip2 --file "${archive}" ;;
       *.tgz) tar --extract --verbose --gzip --file "${archive}" ;;
+      *.tlz) tar --extract --verbose --use-compress-program=lzip --file "${archive}" ;;
+      *.txz) tar --extract --verbose --xz --file "${archive}" ;;
+      *.tzst) tar --extract --verbose --use-compress-program=unzstd --file "${archive}" ;;
       *.xz) xz --decompress --verbose "${archive}" ;;
       *.zip) unzip "${archive}" ;;
+      *.zst) zstd --decompress "${archive}" ;;
+      *.Z) uncompress "${archive}" ;;
       *.7z) 7z x "${archive}" ;;
       *) die "Don't know how to extract '${archive}'" ;;
     esac
