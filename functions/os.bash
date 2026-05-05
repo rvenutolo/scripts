@@ -1,15 +1,25 @@
 #!/usr/bin/env bash
 
+# $1 = field name from /etc/os-release (e.g. ID, VERSION_CODENAME)
+function os_release_field() {
+  check_exactly_1_arg "$@"
+  (
+    # shellcheck disable=SC1091
+    source '/etc/os-release'
+    printf '%s\n' "${!1:-}"
+  )
+}
+
 #shellcheck disable=SC2120
 function os_id() {
   check_no_args "$@"
-  grep --only-matching --perl-regexp '^ID=\K\w+$' '/etc/os-release'
+  os_release_field 'ID'
 }
 
 #shellcheck disable=SC2120
 function os_codename() {
   check_no_args "$@"
-  grep --only-matching --perl-regexp '^VERSION_CODENAME=\K\w+$' '/etc/os-release'
+  os_release_field 'VERSION_CODENAME'
 }
 
 #shellcheck disable=SC2120
