@@ -13,8 +13,12 @@ readonly url='https://raw.githubusercontent.com/webmin/webmin/master/webmin-setu
 if ! is_server; then
   exit 0
 fi
-if ! is_debian && ! is_ubuntu && ! is_fedora; then
+if is_debian || is_ubuntu || is_fedora; then
+  :
+elif is_arch || is_leap || is_tumbleweed; then
   exit 0
+else
+  die "Unexpected distro: $(os_id)"
 fi
 if executable_exists "${executable}"; then
   exit 0

@@ -12,6 +12,8 @@ fi
 
 if is_debian || is_ubuntu; then
   enable_system_service_unit 'ssh.service'
-else
+elif is_arch || is_fedora || is_leap || is_tumbleweed; then
   enable_system_service_unit 'sshd.service'
+else
+  die "Unexpected distro: $(os_id)"
 fi
