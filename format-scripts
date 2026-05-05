@@ -4,8 +4,29 @@ set -euo pipefail
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-check_no_args "$@"
 
-shfmt --find "${SCRIPTS_DIR}" \
-  | grep --invert-match '/other/' \
-  | xargs --no-run-if-empty shfmt --list --indent '2' --case-indent --binary-next-line --space-redirects --write
+CHECK=0
+if [[ "${1:-}" == '--check' ]]; then
+  CHECK=1
+  shift
+fi
+readonly CHECK
+
+assert_paths_exist "$@"
+
+mapfile -t candidates < <(find_shell_scripts "$@")
+if [[ "${#candidates[@]}" -eq 0 ]]; then
+  exit 0
+fi
+
+files=()
+filter_shell_scripts files "${candidates[@]}"
+if [[ "${#files[@]}" -eq 0 ]]; then
+  exit 0
+fi
+
+if ((CHECK == 1)); then
+  shfmt --list --indent=2 --case-indent --binary-next-line --space-redirects --diff "${files[@]}"
+else
+  shfmt --list --indent=2 --case-indent --binary-next-line --space-redirects --write "${files[@]}"
+fi
