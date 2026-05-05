@@ -12,7 +12,7 @@ if is_debian; then
   log "Enabled backports repo"
 fi
 
-if is_arch; then
+if is_arch || is_cachyos; then
   if pacman-key --list-keys | contains_exactly_ignore_case 'FBA220DFC880C036'; then
     exit 0
   fi
