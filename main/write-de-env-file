@@ -28,7 +28,7 @@ readonly artifact_id
 version="$(eval_maven_expression 'project.version')"
 readonly version
 
-echo "\
+cat > "${env_file}" << EOF
 AWS_ACCESS_KEY_ID=xxx
 AWS_SECRET_ACCESS_KEY=xxx
 DE_APP_ARTIFACT=${artifact_id}
@@ -44,4 +44,4 @@ DE_APP_BASE=.
 DE_APP_CONF=conf
 DE_APP_OUTPUT=output
 DE_ENV=dev
-" > "${env_file}"
+EOF

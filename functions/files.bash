@@ -24,7 +24,7 @@ function is_readable_file() {
 function file_size_gb() {
   check_exactly_1_arg "$@"
   assert_file_exists "$1"
-  echo "scale=2; $(stat --format='%s' "$1") / 1073741824" | bc
+  printf '%s\n' "scale=2; $(stat --format='%s' "$1") / 1073741824" | bc
 }
 
 # $1 = old file location
@@ -157,7 +157,7 @@ function write_file() {
   fi
   log "Writing $1"
   create_dir "$(dirname "$1")"
-  echo "${2:-}" > "$1"
+  printf '%s\n' "${2:-}" > "$1"
   log "Wrote $1"
 }
 
@@ -177,7 +177,7 @@ function root_write_file() {
   fi
   log "Writing $1"
   root_create_dir "$(dirname "$1")"
-  echo "$2" | sudo tee "$1" > '/dev/null'
+  printf '%s\n' "$2" | sudo tee "$1" > '/dev/null'
   log "Wrote $1"
 }
 
@@ -187,7 +187,7 @@ function append_to_file() {
   check_exactly_2_args "$@"
   log "Appending to $1"
   create_dir "$(dirname "$1")"
-  echo "${2:-}" >> "$1"
+  printf '%s\n' "${2:-}" >> "$1"
   log "Appended to $1"
 }
 
@@ -197,7 +197,7 @@ function root_append_to_file() {
   check_exactly_2_args "$@"
   log "Appending to $1"
   root_create_dir "$(dirname "$1")"
-  echo "$2" | sudo tee --append "$1" > '/dev/null'
+  printf '%s\n' "$2" | sudo tee --append "$1" > '/dev/null'
   log "Appended to $1"
 }
 
@@ -206,6 +206,6 @@ function file_hash() {
   if file_exists "$1"; then
     sha256sum "$1" | cut --delimiter=' ' --fields=1
   else
-    echo '0'
+    printf '%s\n' '0'
   fi
 }

@@ -8,5 +8,5 @@ source "${SCRIPTS_DIR}/functions.bash"
 enable_err_trap
 check_no_args "$@"
 
-echo 'powersave' | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+printf '%s\n' 'powersave' | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 sudo cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor

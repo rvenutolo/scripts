@@ -13,12 +13,12 @@ function calc_elapsed() {
   local secs=$((elapsed - hrs * 3600 - mins * 60))
   readonly secs
   if [[ ${hrs} -gt 0 ]]; then
-    echo -n "${hrs}h "
+    printf '%s' "${hrs}h "
   fi
   if [[ ${mins} -gt 0 ]]; then
-    echo -n "${mins}m "
+    printf '%s' "${mins}m "
   fi
-  echo "${secs}s"
+  printf '%s\n' "${secs}s"
 }
 
 #shellcheck disable=SC2120

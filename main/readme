@@ -11,9 +11,9 @@ check_no_args "$@"
 shopt -s nocaseglob
 for readme_file in readme*; do
   if is_readable_file "${readme_file}"; then
-    echo "----------"
-    echo "${readme_file}"
-    echo "----------"
+    printf '%s\n' "----------"
+    printf '%s\n' "${readme_file}"
+    printf '%s\n' "----------"
     if executable_exists 'glow'; then
       glow "${readme_file}"
     else
