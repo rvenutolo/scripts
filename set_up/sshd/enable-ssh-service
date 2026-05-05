@@ -10,7 +10,7 @@ if ! executable_exists 'sshd'; then
   exit 0
 fi
 
-if is_debian || is_ubuntu || is_pop; then
+if is_debian || is_ubuntu; then
   enable_system_service_unit 'ssh.service'
 else
   enable_system_service_unit 'sshd.service'
