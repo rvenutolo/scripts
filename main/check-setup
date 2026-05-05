@@ -267,8 +267,8 @@ if ! is_server; then
   )
   for kvals in "${expected_kvals[@]}"; do
     IFS=' ' read -r k v <<< "${kvals}"
-    if [[ ! $(sysctl -n "${k}") -le "${v}" ]]; then
-      log "Kernel variable ${k} is >${v}: $(sysctl -n "${k}")"
+    if [[ ! $(sysctl --values "${k}") -le "${v}" ]]; then
+      log "Kernel variable ${k} is >${v}: $(sysctl --values "${k}")"
     fi
   done
 fi

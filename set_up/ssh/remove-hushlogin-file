@@ -16,5 +16,5 @@ if ! prompt_yn "Delete ${hushlogin_file}?"; then
 fi
 
 log "Removing: ${hushlogin_file}"
-rm "${hushlogin_file}"
+rm -- "${hushlogin_file}"
 log "Removed: ${hushlogin_file}"

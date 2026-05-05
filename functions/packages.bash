@@ -67,18 +67,18 @@ function get_universal_packages() {
   fi
   readonly package_list_column
   if [[ -z "${quiet}" ]]; then
-    IFS=$'\n'
-    for pkg_info in $(
+    local -a pkg_infos
+    mapfile -t pkg_infos < <(
       download_and_cat "${package_list_url}" \
         | awk \
           --field-separator ',' \
           --assign "type=${package_type}" \
           --assign "col=${package_list_column}" \
           '$2 == type && $col == "y" && $8 != "" { print "Disabled package: " $3 " (" $8 ")" }'
-    ); do
-      log "$pkg_info"
+    )
+    for pkg_info in "${pkg_infos[@]}"; do
+      log "${pkg_info}"
     done
-    unset IFS
   fi
   comm -23 \
     <(
@@ -155,17 +155,17 @@ function get_distro_packages() {
   fi
   readonly package_list_column
   if [[ -z "${quiet}" ]]; then
-    IFS=$'\n'
-    for pkg_info in $(
+    local -a pkg_infos
+    mapfile -t pkg_infos < <(
       download_and_cat "${package_list_url}" \
         | awk \
           --field-separator ',' \
           --assign "col=${package_list_column}" \
           '$col == "y" && $6 != "" { print "Disabled package: " $1 " (" $6 ")" }'
-    ); do
-      log "$pkg_info"
+    )
+    for pkg_info in "${pkg_infos[@]}"; do
+      log "${pkg_info}"
     done
-    unset IFS
   fi
   comm -23 \
     <(
@@ -229,17 +229,17 @@ function get_sdkman_packages() {
   fi
   readonly package_list_column
   if [[ -z "${quiet}" ]]; then
-    IFS=$'\n'
-    for pkg_info in $(
+    local -a pkg_infos
+    mapfile -t pkg_infos < <(
       download_and_cat "${package_list_url}" \
         | awk \
           --field-separator ',' \
           --assign "col=${package_list_column}" \
           '$col == "y" && $7 != "" { print "Disabled package: " $2 " (" $7 ")" }'
-    ); do
-      log "$pkg_info"
+    )
+    for pkg_info in "${pkg_infos[@]}"; do
+      log "${pkg_info}"
     done
-    unset IFS
   fi
   comm -23 \
     <(

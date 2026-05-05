@@ -8,7 +8,7 @@ check_no_args "$@"
 
 # $1 = pom file
 function get_sources() {
-  mvn -f "$1" \
+  mvn --file "$1" \
     org.apache.maven.plugins:maven-dependency-plugin:resolve-sources \
     org.apache.maven.plugins:maven-dependency-plugin:resolve \
     -Dclassifier=javadoc

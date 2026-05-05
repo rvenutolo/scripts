@@ -12,6 +12,7 @@ else
   check_exactly_1_arg "$@"
   temp_file="$(mktemp)" || exit 1
   readonly temp_file
+  trap 'rm --force -- "${temp_file}"' EXIT
   cp "$1" "${temp_file}"
   tail --lines '+2' "${temp_file}" > "$1"
 fi

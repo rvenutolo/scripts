@@ -8,7 +8,7 @@ function prompt_ny() {
     REPLY='n'
   fi
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
-    echo -e -n "\033[0;33m$1 [y/N]: \033[0m"
+    printf '\033[0;33m%s [y/N]: \033[0m' "$1"
     read -r
     if [[ "${REPLY}" == [yY] ]]; then
       REPLY='y'
@@ -27,7 +27,7 @@ function prompt_yn() {
     REPLY='y'
   fi
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
-    echo -e -n "\033[0;33m$1 [Y/n]: \033[0m"
+    printf '\033[0;33m%s [Y/n]: \033[0m' "$1"
     read -r
     if [[ "${REPLY}" == '' || "${REPLY}" == [yY] ]]; then
       REPLY='y'

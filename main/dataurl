@@ -6,8 +6,8 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_exactly_1_arg "$@"
 
-mimeType=$(file --brief --mime-type "$1") || exit 1
-if [[ $mimeType == text/* ]]; then
+mimeType="$(file --brief --mime-type "$1")" || exit 1
+if [[ "${mimeType}" == text/* ]]; then
   mimeType="${mimeType};charset=utf-8"
 fi
 readonly mimeType

@@ -24,5 +24,5 @@ function calc_elapsed() {
 #shellcheck disable=SC2120
 function shell_elapsed_time() {
   check_no_args "$@"
-  calc_elapsed 0 $SECONDS
+  calc_elapsed 0 "${SECONDS}"
 }

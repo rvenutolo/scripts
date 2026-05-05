@@ -17,5 +17,5 @@ fi
 echo "----------"
 echo "$1"
 echo "----------"
-ls -l "$1"
+ls --format=long "$1"
 file "$1"

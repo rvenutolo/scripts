@@ -40,7 +40,8 @@ function executable_exists() {
 
 log 'Removing snaps'
 while [[ "$(snap list 2> '/dev/null' | tail --lines='+2' | wc --lines)" -gt 0 ]]; do
-  for snap in $(snap list | tail -n '+2' | cut --delimiter=' ' --fields='1'); do
+  mapfile -t snaps < <(snap list | tail --lines='+2' | cut --delimiter=' ' --fields='1')
+  for snap in "${snaps[@]}"; do
     if snap remove --purge "${snap}" &> '/dev/null'; then
       log "Removed snap: ${snap}"
     fi
@@ -81,11 +82,11 @@ for dir in '/snap' '/var/snap' '/var/lib/snapd' '/var/cache/snapd' '/root/snap';
     if grep --quiet --fixed-strings --line-regexp "${dir}" <<< "${existing_mounts}"; then
       # if this dir exists in fstab, it is likely because I have a btrfs subvolume mounted at that dir
       log "Removing all files in: ${dir}"
-      rm -rf "${dir:?}/"*
+      rm --recursive --force -- "${dir:?}/"*
       log "Removed all files in: ${dir}"
     else
       log "Removing: ${dir}"
-      rm -rf "${dir}"
+      rm --recursive --force -- "${dir}"
       log "Removed: ${dir}"
     fi
   fi
@@ -96,11 +97,11 @@ for dir in "/home/"*; do
     if grep --quiet --fixed-strings --line-regexp "${dir}" <<< "${existing_mounts}"; then
       # if this dir exists in fstab, it is likely because I have a btrfs subvolume mounted at that dir
       log "Removing all files in: ${dir}/snap"
-      rm -rf "${dir}/snap/"*
+      rm --recursive --force -- "${dir}/snap/"*
       log "Removed all files in: ${dir}/snap"
     else
       log "Removing: ${dir}/snap"
-      rm -rf "${dir}/snap"
+      rm --recursive --force -- "${dir}/snap"
       log "Removed: ${dir}/snap"
     fi
   fi

@@ -20,7 +20,7 @@ for script in "${scripts_dir}"/**/*; do
   # don't attempt to execute any READMEs or scripts that intentionally have their executability turned off
   if [[ -x "${script}" ]]; then
     log "Running: ${script#"${scripts_dir}"/}"
-    "$script"
+    "${script}"
     log "Ran: ${script#"${scripts_dir}"/}"
   fi
 done

@@ -16,5 +16,5 @@ if ! prompt_yn "Delete ${xsession_errors_file}?"; then
 fi
 
 log "Removing: ${xsession_errors_file}"
-rm "${xsession_errors_file}"
+rm -- "${xsession_errors_file}"
 log "Removed: ${xsession_errors_file}"
