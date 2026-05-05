@@ -12,7 +12,7 @@ if stdin_exists; then
   tr '[:upper:]' '[:lower:]'
 else
   check_at_least_1_arg "$@"
-  for file; do
+  for file in "$@"; do
     dirname="$(dirname -- "${file}")" || exit 1
     filename="$(basename -- "${file}")" || exit 1
     lower_filename="$(echo "${filename}" | tr '[:upper:]' '[:lower:]')" || exit 1

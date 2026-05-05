@@ -12,7 +12,7 @@ if stdin_exists; then
   highlight --out-format=ansi --force
 else
   check_at_least_1_arg "$@"
-  for file; do
+  for file in "$@"; do
     case "${file}" in
       *.md) glow "${file}" ;;
       *) highlight --out-format=ansi --force "${file}" ;;

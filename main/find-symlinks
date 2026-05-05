@@ -35,6 +35,6 @@ readonly dir="${dir:-.}"
 
 check_at_least_1_arg "$@"
 
-for file; do
+for file in "$@"; do
   find -L "${dir}" -samefile "${file}" -exec echo "${file} {}" \; 2> '/dev/null' || true
 done | sort | column --table --table-columns 'FILE,LINK'
