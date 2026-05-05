@@ -8,11 +8,11 @@ IFS=$'\n\t'
 trap 'printf "\033[0;31m[%s %s] ERROR: line %s (exit %s): %s\033[0m\n" "$(date +%T)" "${0##*/}" "${LINENO}" "$?" "${BASH_COMMAND}" >&2' ERR
 
 function log() {
-  echo -e "log [$(date +%T)]: $*" >&2
+  printf 'log [%s]: %s\n' "$(date +%T)" "$*" >&2
 }
 
 function die() {
-  echo -e "DIE: $* (at ${BASH_SOURCE[1]}:${FUNCNAME[1]} line ${BASH_LINENO[0]}.)" >&2
+  printf 'DIE: %s (at %s:%s line %s.)\n' "$*" "${BASH_SOURCE[1]}" "${FUNCNAME[1]}" "${BASH_LINENO[0]}" >&2
   exit 1
 }
 

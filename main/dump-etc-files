@@ -8,7 +8,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 enable_err_trap
 
 function usage() {
-  echo "Usage: ${0##*/} [-d | --dir DIR] DISTRO..." >&2
+  printf '%s\n' "Usage: ${0##*/} [-d | --dir DIR] DISTRO..." >&2
 }
 
 parsed_args="$(getopt --alternative --name "${0##*/}" --options 'd:' --longoptions 'dir:' -- "$@")" || exit 1

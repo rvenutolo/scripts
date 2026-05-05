@@ -215,38 +215,40 @@ if restart_on_unhealthy || reverse_proxy; then
   fi
 fi
 
-echo "\
+cat > "${init_file}" << EOF
 #!/usr/bin/env bash
 
 set -Eeuo pipefail
+IFS=\$'\n\t'
 
 #shellcheck disable=SC1091
-source \"\${DOCKER_DIR}/scripts/common.bash\"
+source "\${DOCKER_DIR}/scripts/common.bash"
 
 copy_env_file_template
-" > "${init_file}"
+EOF
 
 if ! is_service; then
-  echo "\
+  cat >> "${init_file}" << EOF
 if prompt_yn 'Run ${app_name}?'; then
   log 'Running ${app_name}'
-  \"\$(this_script_dir)/run\"
+  "\$(this_script_dir)/run"
   log 'Ran ${app_name}'
 fi
-" >> "${init_file}"
-  echo "\
+EOF
+  cat > "${run_file}" << EOF
 #!/usr/bin/env bash
 
 set -Eeuo pipefail
+IFS=\$'\n\t'
 
 #shellcheck disable=SC1091
-source \"\${DOCKER_DIR}/scripts/common.bash\"
+source "\${DOCKER_DIR}/scripts/common.bash"
 
-docker compose \
-  --file \"\$(this_script_dir)/compose.yaml\" \
-  run \
-  --rm \
-  --name '${app_name}' \
+docker compose \\
+  --file "\$(this_script_dir)/compose.yaml" \\
+  run \\
+  --rm \\
+  --name '${app_name}' \\
   ${app_name}
-" > "${run_file}"
+EOF
 fi

@@ -16,8 +16,8 @@ if ! is_readable_file "$1"; then
   die "$1 is not readable"
 fi
 
-echo "----------"
-echo "$1"
-echo "----------"
+printf '%s\n' "----------"
+printf '%s\n' "$1"
+printf '%s\n' "----------"
 ls --format=long "$1"
 file "$1"

@@ -54,12 +54,12 @@ function prompt_for_value() {
         REPLY="$2"
       fi
     fi
-    echo "${REPLY}"
+    printf '%s\n' "${REPLY}"
   else
     REPLY=''
     while [[ -z "${REPLY}" ]]; do
       read -rp $'\e[0;33m'"$1"$': \e[0m'
     done
-    echo "${REPLY}"
+    printf '%s\n' "${REPLY}"
   fi
 }

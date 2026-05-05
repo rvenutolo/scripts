@@ -16,4 +16,4 @@ fi
 
 aws sso login --sso-session 'de' --profile "${profile}"
 aws --profile "${profile}" sts get-caller-identity
-echo "run: export AWS_PROFILE='${profile}'"
+printf '%s\n' "run: export AWS_PROFILE='${profile}'"

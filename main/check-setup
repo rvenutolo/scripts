@@ -182,8 +182,8 @@ if ! is_server; then
     for font in "${expected_fonts[@]}"; do
       if ! contains_word_ignore_case "${font}" <<< "${installed_fonts}" \
         && ! contains_word_ignore_case "${font}TTF" <<< "${installed_fonts}" \
-        && ! contains_word_ignore_case "$(echo -e "${font}" | tr --delete '[:space:]')" <<< "${installed_fonts}" \
-        && ! contains_word_ignore_case "$(echo -e "${font}TTF" | tr --delete '[:space:]')" <<< "${installed_fonts}"; then
+        && ! contains_word_ignore_case "$(printf '%b' "${font}" | tr --delete '[:space:]')" <<< "${installed_fonts}" \
+        && ! contains_word_ignore_case "$(printf '%b' "${font}TTF" | tr --delete '[:space:]')" <<< "${installed_fonts}"; then
         log "Font not available: ${font}"
       fi
     done

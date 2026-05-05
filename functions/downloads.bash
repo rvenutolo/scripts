@@ -17,7 +17,7 @@ function download_to_temp_file() {
   temp_file="$(mktemp)" || exit 1
   readonly temp_file
   download "$1" "${temp_file}"
-  echo "${temp_file}"
+  printf '%s\n' "${temp_file}"
 }
 
 # $1 = script url

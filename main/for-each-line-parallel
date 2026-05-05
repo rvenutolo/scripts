@@ -10,8 +10,8 @@ check_at_least_1_arg "$@"
 check_for_stdin
 
 # ex:
-# echo -e 'foo bar\nbaz' | for-each-line-parallel echo
+# printf '%s\n' 'foo bar' 'baz' | for-each-line-parallel printf '%s\n'
 # runs (in parallel):
-# echo foo bar
-# echo baz
+# printf '%s\n' 'foo bar'
+# printf '%s\n' 'baz'
 xargs --no-run-if-empty --max-procs="$(nproc)" --max-args=1 --delimiter='\n' "$@"

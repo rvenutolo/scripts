@@ -3,7 +3,7 @@
 # $1 = env
 function is_desktop_env() {
   check_exactly_1_arg "$@"
-  echo "${XDG_CURRENT_DESKTOP:-}" | contains_word_ignore_case "$1"
+  printf '%s\n' "${XDG_CURRENT_DESKTOP:-}" | contains_word_ignore_case "$1"
 }
 
 #shellcheck disable=SC2120

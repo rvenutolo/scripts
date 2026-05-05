@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# expected to pipe to this function, ex: echo 'foobar' | contains_exactly 'ooba'
+# expected to pipe to this function, ex: printf '%s\n' 'foobar' | contains_exactly 'ooba'
 # $1 = string
 function contains_exactly() {
   check_exactly_1_arg "$@"
@@ -8,7 +8,7 @@ function contains_exactly() {
   grep --quiet --fixed-strings -- "$1"
 }
 
-# expected to pipe to this function, ex: echo 'FOOBAR' | contains_exactly_ignore_case 'ooba'
+# expected to pipe to this function, ex: printf '%s\n' 'FOOBAR' | contains_exactly_ignore_case 'ooba'
 # $1 = string
 function contains_exactly_ignore_case() {
   check_exactly_1_arg "$@"
@@ -16,7 +16,7 @@ function contains_exactly_ignore_case() {
   grep --quiet --fixed-strings --ignore-case -- "$1"
 }
 
-# expected to pipe to this function, ex: echo 'foobar' | contains_regex '^foo'
+# expected to pipe to this function, ex: printf '%s\n' 'foobar' | contains_regex '^foo'
 # $1 = string
 function contains_regex() {
   check_exactly_1_arg "$@"
@@ -24,7 +24,7 @@ function contains_regex() {
   grep --quiet -- "$1"
 }
 
-# expected to pipe to this function, ex: echo 'FOOBAR' | contains_regex_ignore_case '^foo'
+# expected to pipe to this function, ex: printf '%s\n' 'FOOBAR' | contains_regex_ignore_case '^foo'
 # $1 = string
 function contains_regex_ignore_case() {
   check_exactly_1_arg "$@"
@@ -32,7 +32,7 @@ function contains_regex_ignore_case() {
   grep --quiet --ignore-case -- "$1"
 }
 
-# expected to pipe to this function, ex: echo 'foobar' | contains_perl_regex '^foo'
+# expected to pipe to this function, ex: printf '%s\n' 'foobar' | contains_perl_regex '^foo'
 # $1 = string
 function contains_perl_regex() {
   check_exactly_1_arg "$@"
@@ -40,7 +40,7 @@ function contains_perl_regex() {
   grep --quiet --perl-regexp -- "$1"
 }
 
-# expected to pipe to this function, ex: echo 'FOOBAR' | contains_perl_regex_ignore_case '^foo'
+# expected to pipe to this function, ex: printf '%s\n' 'FOOBAR' | contains_perl_regex_ignore_case '^foo'
 # $1 = string
 function contains_perl_regex_ignore_case() {
   check_exactly_1_arg "$@"
@@ -48,7 +48,7 @@ function contains_perl_regex_ignore_case() {
   grep --quiet --ignore-case --perl-regexp -- "$1"
 }
 
-# expected to pipe to this function, ex: echo 'foo bar baz' | contains_word 'bar'
+# expected to pipe to this function, ex: printf '%s\n' 'foo bar baz' | contains_word 'bar'
 # $1 = word
 function contains_word() {
   check_exactly_1_arg "$@"
@@ -56,7 +56,7 @@ function contains_word() {
   grep --quiet --fixed-strings --word-regexp -- "$1"
 }
 
-# expected to pipe to this function, ex: echo 'FOO BAR BAZ' | contains_word_ignore_case 'bar'
+# expected to pipe to this function, ex: printf '%s\n' 'FOO BAR BAZ' | contains_word_ignore_case 'bar'
 # $1 = word
 function contains_word_ignore_case() {
   check_exactly_1_arg "$@"
@@ -64,7 +64,7 @@ function contains_word_ignore_case() {
   grep --quiet --fixed-strings --ignore-case --word-regexp -- "$1"
 }
 
-# expected to pipe to this function, ex: echo 'foo bar baz' | contains_word_regex '^foo'
+# expected to pipe to this function, ex: printf '%s\n' 'foo bar baz' | contains_word_regex '^foo'
 # $1 = word
 function contains_word_regex() {
   check_exactly_1_arg "$@"
@@ -72,7 +72,7 @@ function contains_word_regex() {
   grep --quiet --word-regexp -- "$1"
 }
 
-# expected to pipe to this function, ex: echo 'FOO BAR BAZ' | contains_word_regex_ignore_case '^foo'
+# expected to pipe to this function, ex: printf '%s\n' 'FOO BAR BAZ' | contains_word_regex_ignore_case '^foo'
 # $1 = word
 function contains_word_regex_ignore_case() {
   check_exactly_1_arg "$@"

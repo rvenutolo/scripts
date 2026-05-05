@@ -24,7 +24,7 @@ else
         break
         ;;
       personal)
-        echo "Using Claude 'personal' profile"
+        printf '%s\n' "Using Claude 'personal' profile"
         break
         ;;
       *)
