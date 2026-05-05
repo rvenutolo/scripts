@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+IFS=$'\n\t'
 
 # elsewhere in the script needs sudo, so prompt for password before rest of script runs
 sudo --validate

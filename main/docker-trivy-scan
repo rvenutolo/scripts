@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${DOCKER_COMPOSE_DIR}/functions.bash"

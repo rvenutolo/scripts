@@ -4,6 +4,7 @@
 # $ bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-work-ubuntu-22.04.sh')"
 
 set -euo pipefail
+IFS=$'\n\t'
 
 function log() {
   echo -e "log [$(date +%T)]: $*" >&2
