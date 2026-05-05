@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -Eeuo pipefail
 IFS=$'\n\t'
 
 # elsewhere in the script needs sudo, so prompt for password before rest of script runs
@@ -8,6 +8,7 @@ sudo --validate
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
+enable_err_trap
 check_no_args "$@"
 
 if [[ -z "$(w --no-header "${USER}")" ]]; then

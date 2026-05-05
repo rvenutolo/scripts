@@ -1,20 +1,27 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -Eeuo pipefail
 IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
+enable_err_trap
 check_at_least_1_arg "$@"
 
 for file; do
   if [[ -e "${file}" ]]; then
     die "${file} already exists"
   fi
-  (
-    echo '#!/usr/bin/env bash'
-    echo ''
-    echo 'set -euo pipefail'
-  ) > "${file}"
+  cat > "${file}" << 'EOF'
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+enable_err_trap
+check_no_args "$@"
+EOF
   chmod +x "${file}"
 done

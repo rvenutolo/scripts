@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -Eeuo pipefail
 IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${DOCKER_COMPOSE_DIR}/functions.bash"
+enable_err_trap
 
 if [[ "$#" -eq 0 ]]; then
   mapfile -t images_to_scan < <(docker ps --format '{{.Image}}' | sort | uniq)

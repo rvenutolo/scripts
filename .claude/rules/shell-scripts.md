@@ -1,14 +1,28 @@
 - Claude MUST use the helper functions in `functions/*.bash` whenever an applicable helper exists. Do not write inline equivalents for operations that already have a helper (file mutation, prompts, OS detection, downloads, path manipulation, logging, arg-count guards, executable existence, symlinks, etc.). Before writing inline shell, scan `functions/*.bash` for a matching helper.
 - Claude may propose new helper functions when a piece of logic looks reusable across scripts, even if it is currently only needed in one place. Suggest the new helper (with proposed file and signature) rather than silently inlining.
-- `set -euo pipefail` is mandatory at the top of every top-level script (not in library files under `functions/`).
+- `set -Eeuo pipefail` is mandatory at the top of every top-level script (not in library files under `functions/`). The `-E` is required so the `ERR` trap inherits into shell functions and command substitutions.
+- `IFS=$'\n\t'` is mandatory immediately after the strict-mode pragma. Library files in `functions/` do NOT set it (strict mode and IFS are owned by the parent script).
 - `[[ ]]` over `[ ]`, long CLI options, quoted `"${var}"` everywhere — enforced by shellcheck.
 - Scripts under `set_up/` must be idempotent and self-gate — check current state before mutating, and exit cleanly when there is nothing to do.
-- After `set -euo pipefail`, source the function library and guard arg count:
+- Standard top-level skeleton — source the function library, enable the `ERR` trap, then guard arg count:
 
   ```bash
+  #!/usr/bin/env bash
+
+  set -Eeuo pipefail
+  IFS=$'\n\t'
+
   #shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions.bash"
+  enable_err_trap
   check_no_args "$@"   # or check_exactly_N_args / check_at_least_N_args / check_at_most_N_args
+  ```
+
+- `enable_err_trap` (from `functions/log.bash`) installs an `ERR` trap that prints a red, prefixed `ERROR: line N (exit C): cmd` line to stderr when any unhandled command fails under `set -e`. Call it once, immediately after sourcing `functions.bash`. It complements `die` (explicit user-visible failures) — the trap catches everything else.
+- Standalone scripts that do NOT source this repo's `functions.bash` (everything in `misc/`) cannot call `enable_err_trap`. Inline the trap directly after the `IFS=` line. (Note: scripts that source `${DOCKER_COMPOSE_DIR}/functions.bash` DO have access to this repo's helpers — that file transitively sources `${SCRIPTS_DIR}/functions.bash` — so use `enable_err_trap` there, not the inline form.)
+
+  ```bash
+  trap 'printf "\033[0;31m[%s %s] ERROR: line %s (exit %s): %s\033[0m\n" "$(date +%T)" "${0##*/}" "${LINENO}" "$?" "${BASH_COMMAND}" >&2' ERR
   ```
 
 - Library files under `functions/` get only the shebang — do NOT add `set -euo pipefail` or source `functions.bash`. Strict mode is owned by the parent script that sources them.

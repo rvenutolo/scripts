@@ -3,8 +3,9 @@
 # $ bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-work-ubuntu-22.04.sh')"
 # $ bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-work-ubuntu-22.04.sh')"
 
-set -euo pipefail
+set -Eeuo pipefail
 IFS=$'\n\t'
+trap 'printf "\033[0;31m[%s %s] ERROR: line %s (exit %s): %s\033[0m\n" "$(date +%T)" "${0##*/}" "${LINENO}" "$?" "${BASH_COMMAND}" >&2' ERR
 
 function log() {
   echo -e "log [$(date +%T)]: $*" >&2

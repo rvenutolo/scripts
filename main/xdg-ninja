@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -Eeuo pipefail
 IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
+enable_err_trap
 
 nix run 'github:b3nj5m1n/xdg-ninja' -- "$@"
