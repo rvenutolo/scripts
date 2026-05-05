@@ -13,6 +13,19 @@ function executable_exists() {
   )
 }
 
+# $1 = executable
+# Prints the absolute path of the executable (first match on PATH), or empty
+# if not found. Same PATH-stripping as executable_exists so wrappers in
+# main/ and other/ don't mask the real binary.
+function executable_path() {
+  check_exactly_1_arg "$@"
+  (
+    path_remove "${SCRIPTS_DIR}/main"
+    path_remove "${SCRIPTS_DIR}/other"
+    type -Pf "$1" 2> '/dev/null'
+  )
+}
+
 # $1 = function
 function function_exists() {
   check_exactly_1_arg "$@"

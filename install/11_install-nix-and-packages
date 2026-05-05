@@ -28,7 +28,7 @@ if ! executable_exists 'home-manager' && prompt_yn 'Install Nix home-manager and
   readonly home_manager_release
   nix run "${home_manager_release}" -- init --switch --flake "${HOME_MANAGER_DIR}"
   if executable_exists 'non-nixos-gpu-setup'; then
-    sudo "$(command -v non-nixos-gpu-setup)"
+    sudo "$(executable_path 'non-nixos-gpu-setup')"
   fi
   log 'Installed Nix home-manager and packages'
 fi
