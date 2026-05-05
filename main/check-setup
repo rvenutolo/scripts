@@ -35,7 +35,7 @@ fi
 
 user_groups="$(groups "${USER}")" || exit 1
 readonly user_groups
-all_groups="$(getent group | cut --delimiter=':' --fields='1')" || exit 1
+all_groups="$(getent group | cut --delimiter=':' --fields=1)" || exit 1
 readonly all_groups
 readonly groups=('adm' 'admin' 'docker' 'kvm' 'input' 'libvirt' 'libvirtd' 'sudo' 'sys' 'wheel')
 for group in "${groups[@]}"; do
@@ -290,11 +290,11 @@ if is_fedora; then
   dnf_conf_text="$(cat '/etc/dnf/dnf.conf')" || exit 1
   readonly dnf_conf_text
   for dnf_conf_val in "${expected_dnf_conf_vals[@]}"; do
-    if [[ -z "$(grep --fixed-strings "${dnf_conf_val}" <<< "${dnf_conf_text}" | cut --delimiter='=' --fields='2' | xargs)" ]]; then
+    if [[ -z "$(grep --fixed-strings "${dnf_conf_val}" <<< "${dnf_conf_text}" | cut --delimiter='=' --fields=2 | xargs)" ]]; then
       log "dnf conf ${dnf_conf_val} is not set"
     fi
   done
-  installed_packages="$(dnf list --installed | cut --delimiter=' ' --fields='1')" || exit 1
+  installed_packages="$(dnf list --installed | cut --delimiter=' ' --fields=1)" || exit 1
   readonly installed_packages
   readonly expected_rpm_fusions_packages=(
     'rpmfusion-free-appstream-data'

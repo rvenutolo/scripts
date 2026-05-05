@@ -47,7 +47,7 @@ function executable_exists() {
 
 log 'Removing snaps'
 while [[ "$(snap list 2> '/dev/null' | tail --lines='+2' | wc --lines)" -gt 0 ]]; do
-  mapfile -t snaps < <(snap list | tail --lines='+2' | cut --delimiter=' ' --fields='1')
+  mapfile -t snaps < <(snap list | tail --lines='+2' | cut --delimiter=' ' --fields=1)
   for snap in "${snaps[@]}"; do
     if snap remove --purge "${snap}" &> '/dev/null'; then
       log "Removed snap: ${snap}"

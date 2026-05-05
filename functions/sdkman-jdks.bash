@@ -83,21 +83,21 @@ function filter_for_latest_per_major_version() {
 function get_formatted_tem_jdk_major_version_field() {
   check_no_args "$@"
   check_for_stdin
-  cut --delimiter ';' --fields='1'
+  cut --delimiter ';' --fields=1
 }
 
 #shellcheck disable=SC2120
 function get_formatted_tem_jdk_version_field() {
   check_no_args "$@"
   check_for_stdin
-  cut --delimiter ';' --fields='2'
+  cut --delimiter ';' --fields=2
 }
 
 #shellcheck disable=SC2120
 function get_formatted_tem_jdk_artifact_id_field() {
   check_no_args "$@"
   check_for_stdin
-  cut --delimiter ';' --fields='3'
+  cut --delimiter ';' --fields=3
 }
 
 ### AVAILABLE JDKS

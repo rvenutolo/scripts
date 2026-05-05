@@ -41,7 +41,7 @@ EOF
 # $1 = packages file
 # $2 = regex ('\[' or ']'
 function get_line_number() {
-  grep --line-number --max-count='1' "$2" "$1" | cut --delimiter=':' --fields='1'
+  grep --line-number --max-count=1 "$2" "$1" | cut --delimiter=':' --fields=1
 }
 
 # $1 = packages file
