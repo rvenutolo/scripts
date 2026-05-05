@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -Eeuo pipefail
 IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
+enable_err_trap
 check_exactly_2_args "$@"
 
 if file_exists "$1" && file_exists "$2" || dir_exists "$1" && dir_exists "$2"; then
