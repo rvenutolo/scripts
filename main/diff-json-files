@@ -16,5 +16,5 @@ fi
 
 diff --color=always --report-identical-files --unified --text \
   <(jq --sort-keys . "$1") \
-  <(jq --sort-keys . "$2") |
-  skip_first_lines 3
+  <(jq --sort-keys . "$2") \
+  | skip_first_lines 3
