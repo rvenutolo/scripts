@@ -8,4 +8,4 @@ check_no_args "$@"
 
 sudo pacman-mirrors --country 'United_States,Canada'
 sudo pacman-mirrors --fasttrack
-sudo pacman -Syyu
+sudo pacman --sync --refresh --refresh --sysupgrade

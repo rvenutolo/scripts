@@ -11,6 +11,7 @@ function usage() {
 
 parsed_args="$(getopt --alternative --name "${0##*/}" --options 'd:' --longoptions 'dir:' -- "$@")" || exit 1
 readonly parsed_args
+# eval is required to re-tokenize the quoted output of getopt
 eval set -- "${parsed_args}"
 while true; do
   case "$1" in
@@ -31,7 +32,7 @@ done
 readonly dir="${dir:-.}"
 create_dir "${dir}"
 
-if [ "$#" -eq 0 ]; then
+if [[ "$#" -eq 0 ]]; then
   readonly distros=('alpine' 'archlinux' 'debian' 'fedora' 'ubuntu')
 else
   readonly distros=("$@")
@@ -43,4 +44,4 @@ for distro in "${distros[@]}"; do
   log "Dumped /etc from ${distro} to ${dir}/${distro}"
 done
 
-sudo chown -R "${USER}" "${dir}"/*
+sudo chown --recursive "${USER}" "${dir}"/*

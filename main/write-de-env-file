@@ -7,7 +7,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
 function eval_maven_expression() {
-  mvn -f "${pom_file}" help:evaluate -Dexpression="$1" -q -DforceStdout
+  mvn --file "${pom_file}" help:evaluate -Dexpression="$1" --quiet -DforceStdout
 }
 
 readonly pom_file='pom.xml'

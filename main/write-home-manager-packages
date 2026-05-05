@@ -14,7 +14,7 @@ function write_packages_file_skeleton() {
   if file_exists "${packages_file}"; then
     return 0
   fi
-  mkdir -p "$(dirname "${packages_file}")"
+  mkdir --parents "$(dirname "${packages_file}")"
   if [[ "${package_type}" == 'nixpkgs' ]]; then
     cat > "${packages_file}" <<'EOF'
 { pkgs, ... }:

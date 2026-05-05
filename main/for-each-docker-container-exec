@@ -6,6 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_at_least_1_arg "$@"
 
-for container in $(docker ps --format '{{.Names}}' | sort); do
+mapfile -t containers < <(docker ps --format '{{.Names}}' | sort)
+for container in "${containers[@]}"; do
   docker exec "${container}" "$@" | while read -r line; do echo "${container} ${line}"; done
 done | column --table --table-columns 'CONTAINER,RESULT' --table-columns-limit 2

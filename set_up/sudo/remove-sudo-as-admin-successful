@@ -16,5 +16,5 @@ if ! prompt_yn "Delete ${sudo_as_admin_file}?"; then
 fi
 
 log "Removing: ${sudo_as_admin_file}"
-rm "${sudo_as_admin_file}"
+rm -- "${sudo_as_admin_file}"
 log "Removed: ${sudo_as_admin_file}"

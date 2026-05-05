@@ -24,7 +24,7 @@ if ! file_exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt_yn 'Install SDKMAN
     if ((tries > 10)); then
       die "Failed to install SDKMAN in 10 tries"
     fi
-    rm -rf "${SDKMAN_DIR}"
+    rm --recursive --force -- "${SDKMAN_DIR}"
     sleep "$((base_sleep_time * tries))"
   done
   log 'Installed SDKMAN'

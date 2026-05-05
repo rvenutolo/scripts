@@ -8,5 +8,5 @@ check_no_args "$@"
 
 curl_wrapper --ipv4 ipinfo.io \
   | jq 'del(.readme)' \
-  | jq -r 'to_entries[]|"\(.key)|\(.value)"' \
+  | jq --raw-output 'to_entries[]|"\(.key)|\(.value)"' \
   | column --table --separator '|'

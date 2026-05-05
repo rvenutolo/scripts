@@ -16,5 +16,5 @@ if ! prompt_yn "Delete ${bash_logout_file}?"; then
 fi
 
 log "Removing: ${bash_logout_file}"
-rm "${bash_logout_file}"
+rm -- "${bash_logout_file}"
 log "Removed: ${bash_logout_file}"
