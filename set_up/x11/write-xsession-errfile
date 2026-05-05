@@ -12,6 +12,7 @@ if ! file_exists "${xsession_file}"; then
   exit 0
 fi
 
+# shellcheck disable=SC2016 # literal '$XDG_CACHE_HOME' is intentional - written to file as-is
 if file_contains_exactly "${xsession_file}" 'ERRFILE=$XDG_CACHE_HOME/X11/xsession-errors'; then
   exit 0
 fi
