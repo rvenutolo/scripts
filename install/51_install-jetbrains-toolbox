@@ -29,7 +29,7 @@ log 'Installing JetBrains Toolbox'
 create_dir "${toolbox_install_dir}" "${local_bin_dir}"
 archive_url="$(download_and_cat "${toolbox_release_info_url}" | jq --raw-output '.TBA[0].downloads.linux.link')" || exit 1
 readonly archive_url
-download_and_cat "${archive_url}" | tar --extract --gzip --directory="${toolbox_install_dir}" --strip-components='1'
+download_and_cat "${archive_url}" | tar --extract --gzip --directory="${toolbox_install_dir}" --strip-components=1
 chmod +x "${toolbox_install_binary}"
 link_file "${toolbox_install_binary}" "${local_bin_symlink}"
 log 'Installed JetBrains Toolbox'

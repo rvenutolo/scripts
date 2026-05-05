@@ -27,10 +27,10 @@ function remove_empty_lines() {
 function first_line() {
   if stdin_exists; then
     check_no_args "$@"
-    head --lines='1'
+    head --lines=1
   else
     check_exactly_1_arg "$@"
-    head --lines='1' "$1"
+    head --lines=1 "$1"
   fi
 }
 
@@ -38,10 +38,10 @@ function first_line() {
 function last_line() {
   if stdin_exists; then
     check_no_args "$@"
-    tail --lines='1'
+    tail --lines=1
   else
     check_exactly_1_arg "$@"
-    tail --lines='1' "$1"
+    tail --lines=1 "$1"
   fi
 }
 

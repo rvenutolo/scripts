@@ -10,5 +10,5 @@ check_no_args "$@"
 
 find '/usr/share/zoneinfo/' -type 'f' -print0 \
   | xargs --null md5sum \
-  | grep "$(md5sum '/etc/localtime' | cut --delimiter=' ' --fields='1')" \
+  | grep "$(md5sum '/etc/localtime' | cut --delimiter=' ' --fields=1)" \
   | sed 's|.*/zoneinfo/||'

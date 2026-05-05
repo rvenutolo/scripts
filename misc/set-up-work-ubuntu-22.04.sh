@@ -194,7 +194,7 @@ readonly gnome_extensions=(
   'https://extensions.gnome.org/extension/750/openweather/'
 )
 for url in "${gnome_extensions[@]}"; do
-  package_num="$(cut --delimiter='/' --fields='5' <<< "${url}")" || exit 1
+  package_num="$(cut --delimiter='/' --fields=5 <<< "${url}")" || exit 1
   log "Installing extension from URL: ${url}"
   gext --filesystem install "${package_num}"
 done
