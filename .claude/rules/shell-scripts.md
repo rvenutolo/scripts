@@ -16,12 +16,12 @@
 - Document positional parameters above each function with `# $1 = description` comments (use `# $@ = ...` for varargs).
 - Predicate functions (`is_*`, `*_exists`, etc.) end with a `[[ ... ]]` test or command whose exit status is the result — do not write explicit `return 0` / `return 1`.
 - Library functions in `functions/*.bash` use the same `check_*_args "$@"` guards as top-level scripts (not only top-level scripts get them).
-- Logging/erroring helpers: `log` / `log_with_date` / `die` from `functions/log.bash` (color-coded, stderr, prefixed with `${0##*/}`). These override the generic `log_info` / `log_warn` / `log_err` template from the global rules — do not use that template here.
+- Logging/erroring helpers from `functions/log.bash` (all color-coded, written to stderr, prefixed with `${0##*/}`): `log` (green, info-level), `log_with_date` (green, info-level with full date), `log_warn` (yellow, warn-level — use for non-fatal problems), `die` (red, error-level + `exit 1` with caller context). There is no separate `log_info` (use `log`) or `log_err` (use `die` if fatal, or `log_warn` if not).
 - `die` includes caller context via `${BASH_SOURCE[1]}:${FUNCNAME[1]}:${BASH_LINENO[0]}` — preserve this when modifying the helper.
 - Stdin presence: helpers `check_for_stdin` / `stdin_exists` from `functions/args.bash`. No inline `[[ -t 0 ]]`.
 - Existence checks: helpers `file_exists` / `assert_file_exists` (`functions/files.bash`), `dir_exists` / `assert_dir_exists` (`functions/dirs.bash`), `symlink_exists` (`functions/symlinks.bash`). Use the `assert_*` variants for entry-point validation (they call `die` with a consistent message); use the bare predicates for branching. No inline `[[ -f X ]]` + manual `die` rolls.
 - Interactive prompts: helpers `prompt_yn` / `prompt_ny` / `prompt_for_value` from `functions/prompt.bash`. Fall back to inline `read -rp $'\e[0;33mPrompt: \e[0m'` (colored `$'...'` form) only when no helper fits, and document why with a comment.
-- Executable-on-`PATH` check: helper `executable_exists` from `functions/commands.bash` (uses `type -aPf`, excludes builtins/aliases/functions). Overrides the global rule's `command -v` recommendation for this repo.
+- Executable-on-`PATH` check: helper `executable_exists` from `functions/commands.bash` (uses `type -aPf`, excludes builtins/aliases/functions, and strips `main/` and `other/` from `PATH` so wrappers in those dirs don't mask the real binary). Overrides the global rule's `command -v` recommendation for this repo — `command -v` would return scripts in `main/` that mask command names (e.g. `mvn`, `gradle`).
 - Idempotent file mutation (write/move/copy/link/append): helpers in `functions/files.bash` and `functions/symlinks.bash` — `write_file`, `append_to_file`, `move_file`, `copy_file`, `link_file`, `link_dir`. They implement the standard pattern: `cmp --silent` short-circuit on byte equality, `diff --color --unified ... || true` preview, `prompt_yn` confirmation, and parent-dir auto-creation via `create_dir "$(dirname "$dest")"`.
 - Parent-dir auto-creation before writing/moving/copying: helpers `create_dir "$(dirname "${dest}")"` (or `root_create_dir` for sudo writes). No inline `mkdir --parents` / `mkdir -p`.
 - Root-owned destinations: `root_*` variants (`root_write_file`, `root_append_to_file`, `root_move_file`, `root_copy_file`, `root_create_dir`). When no helper fits, use `sudo test -f`, `sudo cmp`, `sudo cat` for state checks, and `echo "${content}" | sudo tee [--append] "${file}" > '/dev/null'` for the write — no `sudo bash -c 'echo ... > ...'`.
@@ -37,3 +37,68 @@
 - Use `find -printf '<fmt>'` for structured output (e.g. `find . -printf '%u:%g\n'`) instead of parsing default `find` output.
 - Use `stat --format='<fmt>'` for file metadata. For non-integer arithmetic, pipe through `bc` (bash `(( ))` is integer-only): `echo "scale=2; $(stat --format='%s' "${f}") / 1073741824" | bc`.
 - New scripts must be created executable (`chmod +x`). `main/new-script` already does this — prefer it over hand-creating files.
+- Use `#!/usr/bin/env bash`
+- Use `(( ))` for arithmetic; never `let` or `expr`
+- Use `${var}` brace syntax consistently
+- Quote command substitutions: `"$(cmd)"`
+- Single-quote string literals when no expansion is needed: `'/dev/null'`, `'/etc/os-release'`, `'y'`. Reserve double quotes for expansion.
+- Do not quote numeric option arguments: `--fields=1`, `--max-args=1` (not `--fields='1'`)
+- Use `$(...)` not backticks
+- Indent with 2 spaces; never tabs
+- Constants and config: `readonly` and `UPPER_SNAKE_CASE` at top of script
+- For script-level values derived from positional args, declare `readonly NAME="$1"` immediately after arg-count validation (still `UPPER_SNAKE_CASE` if treated as a constant for the rest of the script)
+- Use `case ... in PATTERN) ;; *) ;; esac` instead of chained `[[ ]]` / `elif` when matching one variable against multiple string patterns
+- Apply `${VAR:-}` defaults only to optional positional args (`"${2:-}"`) — required positionals are already validated by arg-count guards, so let `set -u` catch programming mistakes there. The existing rule about not defaulting well-known env vars still applies.
+- Locals: `local` (or `local -r` for read-only) inside every function
+- Functions: `snake_case`, defined with `function name() { ... }` (always use `function` keyword)
+- Default safely under `set -u`: use `"${VAR:-default}"` for vars that may legitimately be unset; do NOT add defaults for well-known env vars expected to always be present (`HOME`, `USER`, `SDKMAN_DIR`, `PATH`, `SCRIPTS_DIR`, etc.) — let `set -u` catch them if missing
+- When parsing decimal strings that may have leading zeros (e.g. `date +%H` → `09`), use `10#` in arithmetic context (`$((10#${var}))`) or strip via `%-H`/`%-M` with GNU date — bash arithmetic treats `08`/`09` as invalid octal
+- Force-decimal numbers from external commands before arithmetic comparison
+- Tempfiles: `tmp="$(mktemp)"` and `trap 'rm --force -- "${tmp}"' EXIT` for cleanup
+- Heredocs: quote the terminator when no expansion wanted: `<<'EOF'`
+- Use `printf '%s\n' "$x"` over `echo "$x"` when `$x` could start with `-` or contain backslashes
+- Use `printf` (with explicit format string, including ANSI escapes like `'\033[0;32m%s\033[0m\n'` when colorizing) for any non-trivial output; never `echo -e`
+- Use `--` before user-supplied paths in destructive commands (`rm --force --`, `mv --`)
+- Iterate command output with `mapfile -t arr < <(cmd)`; never `for x in $(cmd)`
+- Iterate positional parameters explicitly: `for x in "$@"; do ...; done`, not the implicit `for x; do ...; done` (clearer at a glance what is being iterated)
+- Always pass `--no-run-if-empty` and an explicit `--max-args=N` to `xargs`
+- Always use `read -r` (or `read -rp PROMPT`); never bare `read` (matches ShellCheck SC2162 — `-r` prevents backslash mangling)
+- Scope `PATH` mutations inside a `( ... )` subshell so changes don't leak to the caller's environment
+- For non-interactive `curl`, use: `curl --disable --fail --silent --location --show-error`. `--disable` skips `~/.curlrc` so behavior doesn't depend on the invoking user's config
+- For non-interactive `wget`, use: `wget --no-config` (skips `~/.wgetrc` for the same reason)
+- Network retry idiom for transient failures:
+
+  ```bash
+  tries=0
+  until some_cmd; do
+    (( tries += 1 ))
+    if (( tries > 10 )); then
+      die "Failed after 10 tries"
+    fi
+    sleep 15
+  done
+  ```
+
+- Never parse `ls` output; use globs, `find`, or `fd`
+- Avoid `eval`; if needed, justify with comment
+- When suppressing pipefail in one spot: explicit `|| true` with comment, not blanket disable
+- All shell scripts must pass `shellcheck` before being considered complete (use the `./shellcheck-scripts` and `./check-scripts` wrappers documented in `CLAUDE.md`)
+- Use `# shellcheck disable=SCxxxx` only with a same-line comment justifying why
+- Set strict IFS alongside the strict-mode pragma: `IFS=$'\n\t'` immediately after `set -euo pipefail`
+- Use `set -E` and an `ERR` trap for stack-trace-style error reporting in non-trivial scripts:
+
+  ```bash
+  set -Eeuo pipefail
+  trap 'echo "error: line ${LINENO} (exit $?): ${BASH_COMMAND}" >&2' ERR
+  ```
+
+- Pin minimum bash version when using bash 4+ features (associative arrays, `mapfile`, `${var^^}`, etc.):
+
+  ```bash
+  if (( BASH_VERSINFO[0] < 4 )); then
+    echo 'bash 4+ required' >&2
+    exit 1
+  fi
+  ```
+
+- Always check `cd` results: `cd "${dir}" || exit 1`. Prefer scoped subshells over `pushd`/`popd`: `(cd "${dir}" && do_thing)`
