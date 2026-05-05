@@ -54,7 +54,7 @@
 - New scripts must be created executable (`chmod +x`). `main/new-script` already does this — prefer it over hand-creating files.
 - Use `#!/usr/bin/env bash`
 - Use `(( ))` for arithmetic; never `let` or `expr`
-- Use `${var}` brace syntax consistently
+- Use `${var}` brace syntax for all variables EXCEPT single-character shell specials and positional parameters (`$?`, `$#`, `$$`, `$!`, `$@`, `$*`, `$1`–`$9`) — leave those unbraced. Positionals `${10}` and above still require braces.
 - Quote command substitutions: `"$(cmd)"`
 - Single-quote string literals when no expansion is needed: `'/dev/null'`, `'/etc/os-release'`, `'y'`. Reserve double quotes for expansion.
 - Do not quote numeric option arguments: `--fields=1`, `--max-args=1` (not `--fields='1'`)
@@ -118,3 +118,47 @@
   ```
 
 - Always check `cd` results: `cd "${dir}" || exit 1`. Prefer scoped subshells over `pushd`/`popd`: `(cd "${dir}" && do_thing)`
+- SUID and SGID are forbidden on shell scripts. Use `sudo` to grant elevated access instead.
+- All error messages must be written to stderr. The repo's logging helpers already follow this — `log`, `log_with_date`, `log_warn`, and `die` all write to stderr.
+- Document non-trivial functions with a comment block above the definition: description, globals used or modified, arguments (using the `# $1 = description` style for each positional; `# $@ = ...` for varargs), outputs (stdout/stderr), and return value semantics. Library functions in `functions/*.bash` always require this; small internal helpers may be lighter.
+- Comment tricky, non-obvious, or important code sections; explain *why*, not *what*.
+- Use `TODO:` (all caps, no author identifier) to mark deferred work.
+- Maximum line length is 80 characters. Wrap long strings via here-docs or embedded newlines. Long URLs and file paths may exceed when necessary.
+- Pipeline formatting: a pipeline that fits on one line stays on one line. When wrapping, put one segment per line with the `|` at the start of the continuation line, indented 2 spaces from the opening command.
+- Control flow opener: `; then` and `; do` on the same line as `if`/`while`/`for`. `else` on its own line. `fi`/`done` on their own line, aligned with the opener.
+- `case` statement formatting: indent each alternative 2 spaces; multi-line alternatives put the pattern, the actions, and the closing `;;` on separate lines. Never use `;&` or `;;&` (fall-through) — write explicit cases instead.
+- Single-character integer specials (`$?`, `$#`, `$$`, `$!`) are exempt from the "quote everything" rule — quoting is optional since they cannot contain whitespace or globs.
+- Use `"$@"` to forward positional parameters; reach for `$*` only when you specifically need a single concatenated string.
+- Use bash arrays for lists of elements or command-line flags to avoid quoting complications. Always expand with `"${array[@]}"` (quoted, `@` not `*`). Do not use arrays for complex data structures — bash arrays are not the right tool.
+- In `[[ ]]`, prefer `==` over `=` for equality.
+- Never use `<` or `>` inside `[[ ]]` for numeric comparison (those are lexicographic). Use `(( a < b ))` or `[[ a -lt b ]]` instead.
+- Use `./*` rather than `*` when feeding glob results to commands so filenames beginning with `-` aren't treated as options.
+- Never pipe into `while`: the loop runs in a subshell, so any variable assignments inside are lost. Use process substitution (`while read -r ...; do ...; done < <(cmd)`) or read into an array first with `mapfile -t arr < <(cmd)`.
+- Avoid bare `(( expr ))` as a standalone statement when the expression can evaluate to zero — under `set -e`, an exit status of 1 from the arithmetic kills the script. Use `(( expr )) || true` (with a same-line comment), `: $(( expr ))` for side effects only, or capture the value with `result=$(( expr ))`.
+- Inside `$(( … ))`, omit the `${}` braces — the shell auto-resolves bare variable names: `$(( count + 1 ))` not `$(( ${count} + 1 ))`.
+- Never define aliases in scripts. Use shell functions instead (aliases are inert in non-interactive shells anyway).
+- Library functions are namespaced with `::`: a helper in `functions/files.bash` is `files::exists`, in `functions/log.bash` is `log::info`, etc. Internal/private helpers (not used across files) may keep plain `snake_case`.
+- Name loop variables after the items being iterated: `for file in "${files[@]}"` not `for x in "${files[@]}"`.
+- When using command substitution to assign a `local`, declare and assign on separate lines so the command's exit status is observable (`local` always returns 0 and masks the substitution's exit status):
+
+  ```bash
+  # wrong — masks cmd's exit status
+  local result="$(cmd)"
+
+  # right
+  local result
+  result="$(cmd)"
+  ```
+
+- File layout: only the shebang, strict-mode pragma, IFS, sourced libraries / `set` options, and constants appear before function definitions. All functions are grouped together below constants. No executable code is interleaved between function definitions.
+- For pipelines whose per-stage exit codes matter, capture `PIPESTATUS` into a variable on the very next line — any subsequent command overwrites it:
+
+  ```bash
+  cmd_a | cmd_b | cmd_c
+  status=( "${PIPESTATUS[@]}" )
+  ```
+
+- Prefer shell builtins, parameter expansion, and `=~` over external tools when they can do the job (`${var//pat/rep}` over `sed`, `${var%suffix}` over `cut`, `[[ "$s" =~ ^[0-9]+$ ]]` over `grep`). External commands are fine when the builtin form is unreadable.
+- Consistency tiebreaker: when picking between equivalent options, match the existing patterns in surrounding code rather than introducing a third variant. But "we've always done it this way" is not a reason to keep an outdated style when the rule book has changed — apply current rules to new code.
+- File extensions: top-level executables (everything under `main/`, `install/`, `set_up/`, `misc/`) have no extension; library files under `functions/` use the `.bash` extension and are NOT executable.
+- Filename conventions: executables use kebab-case (`new-script`, `format-scripts`, `run-install-scripts`); library files use snake_case with the `.bash` extension (`functions/files.bash`, `functions/log.bash`).
