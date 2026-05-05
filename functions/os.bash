@@ -25,6 +25,12 @@ function is_arch() {
 }
 
 #shellcheck disable=SC2120
+function is_cachyos() {
+  check_no_args "$@"
+  [[ "$(os_id)" == 'cachyos' ]]
+}
+
+#shellcheck disable=SC2120
 function is_fedora() {
   check_no_args "$@"
   [[ "$(os_id)" == 'fedora' ]]

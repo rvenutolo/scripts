@@ -16,7 +16,7 @@ fi
 # Other distros can install from the regular repos.
 if is_debian || is_ubuntu; then
   :
-elif is_arch || is_fedora || is_leap || is_tumbleweed; then
+elif is_arch || is_cachyos || is_fedora || is_leap || is_tumbleweed; then
   exit 0
 else
   die "Unexpected distro: $(os_id)"
