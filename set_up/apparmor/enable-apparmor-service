@@ -6,7 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-if ! executable_exists 'ap-enabled'; then
+if ! executable_exists 'aa-enabled'; then
   exit 0
 fi
 

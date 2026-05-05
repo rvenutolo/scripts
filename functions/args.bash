@@ -74,7 +74,7 @@ function check_exactly_4_args() {
 
 function check_at_least_4_args() {
   if [[ "$#" -lt 4 ]]; then
-    die 'Expected at least 3 arguments'
+    die 'Expected at least 4 arguments'
   fi
 }
 

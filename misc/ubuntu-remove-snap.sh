@@ -39,7 +39,7 @@ function executable_exists() {
 }
 
 log 'Removing snaps'
-while [[ "$(snap list 2> '/dev/null' | wc --lines)" -gt 0 ]]; do
+while [[ "$(snap list 2> '/dev/null' | tail --lines='+2' | wc --lines)" -gt 0 ]]; do
   for snap in $(snap list | tail -n '+2' | cut --delimiter=' ' --fields='1'); do
     if snap remove --purge "${snap}" &> '/dev/null'; then
       log "Removed snap: ${snap}"

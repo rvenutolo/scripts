@@ -7,10 +7,6 @@ source "${SCRIPTS_DIR}/functions.bash"
 check_at_least_1_arg "$@"
 
 log "Googling: $*"
-search=""
-for term; do
-  search="${search}%20${term}"
-done
-readonly search
+readonly search="${*// /%20}"
 xdg-open "https://www.google.com/search?q=${search}" > '/dev/null' 2>&1 &
 disown

@@ -51,7 +51,7 @@ function skip_first_lines() {
     local start_line=$(($1 + 1))
     tail --lines="+${start_line}"
   else
-    check_exactly_2_arg "$@"
+    check_exactly_2_args "$@"
     local start_line=$(($2 + 1))
     tail --lines="+${start_line}" "$1"
   fi

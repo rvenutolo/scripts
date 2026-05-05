@@ -14,7 +14,7 @@ check_no_args "$@"
 sudo --validate
 
 readonly scripts_dir="${SCRIPTS_DIR}/install"
-LC_COLLATE='C'
+export LC_COLLATE='C'
 for script in "${scripts_dir}"/*; do
   # don't attempt to execute any READMEs or scripts that intentionally have their executability turned off
   if [[ -x "${script}" ]]; then

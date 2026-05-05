@@ -18,6 +18,6 @@ fi
 
 log 'Updating font cache to include nixpkgs fonts'
 create_dir "${HOME}/.local/share/fonts"
-link_file "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
+link_dir "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
 fc-cache --force
 log 'Updated font cache to include nixpkgs fonts'

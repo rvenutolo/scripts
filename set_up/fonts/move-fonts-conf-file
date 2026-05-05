@@ -6,10 +6,6 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-if [[ -z "${HISTFILE:-}" ]]; then
-  exit 0
-fi
-
 readonly old_conf_file="${HOME}/.fonts.conf"
 readonly new_conf_file="${XDG_CONFIG_HOME}/fontconfig/fonts.conf"
 
