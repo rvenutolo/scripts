@@ -16,7 +16,7 @@ function write_packages_file_skeleton() {
   fi
   mkdir --parents "$(dirname "${packages_file}")"
   if [[ "${package_type}" == 'nixpkgs' ]]; then
-    cat > "${packages_file}" <<'EOF'
+    cat > "${packages_file}" << 'EOF'
 { pkgs, ... }:
 {
   home.packages = with pkgs; [
@@ -24,7 +24,7 @@ function write_packages_file_skeleton() {
 }
 EOF
   elif [[ "${package_type}" == 'nixpkgs-unstable' ]]; then
-    cat > "${packages_file}" <<'EOF'
+    cat > "${packages_file}" << 'EOF'
 { pkgs-unstable, ... }:
 {
   home.packages = with pkgs-unstable; [
