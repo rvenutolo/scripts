@@ -8,7 +8,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 enable_err_trap
 check_at_least_1_arg "$@"
 
-for file; do
+for file in "$@"; do
   if file_exists "${file}"; then
     target_file="${CRYPT_DIR}/$(basename -- "${file}")"
     log "Encrypting: ${file} to: ${target_file}"

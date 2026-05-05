@@ -8,7 +8,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 enable_err_trap
 check_at_least_1_arg "$@"
 
-for file; do
+for file in "$@"; do
   dirname="$(dirname -- "${file}")" || exit 1
   filename="$(basename -- "${file}")" || exit 1
   target_file="${dirname}/.${filename}"
