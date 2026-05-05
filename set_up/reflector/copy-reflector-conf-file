@@ -6,7 +6,7 @@ set -euo pipefail
 source "${SCRIPTS_DIR}/functions.bash"
 check_no_args "$@"
 
-if ! is_arch && ! is_endeavour; then
+if ! is_arch; then
   exit 0
 fi
 
