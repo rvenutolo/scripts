@@ -44,7 +44,7 @@
 
   ```bash
   # shellcheck disable=SC1091
-  ( . /etc/os-release && printf '%s\n' "${ID}" )
+  ( source '/etc/os-release' && printf '%s\n' "${ID}" )
   ```
 
   Use a subshell so the sourced variables don't leak.
@@ -95,6 +95,7 @@
 
 - Never parse `ls` output; use globs, `find`, or `fd`
 - Avoid `eval`; if needed, justify with comment
+- Use `source` instead of `.` when sourcing a file. The `source` keyword is more readable and unambiguous (a leading `.` is easy to overlook).
 - When suppressing pipefail in one spot: explicit `|| true` with comment, not blanket disable
 - All shell scripts must pass `shellcheck` before being considered complete (use the `./shellcheck-scripts` and `./check-scripts` wrappers documented in `CLAUDE.md`)
 - Use `# shellcheck disable=SCxxxx` only with a same-line comment justifying why
