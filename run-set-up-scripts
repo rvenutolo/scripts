@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -Eeuo pipefail
+IFS=$'\n\t'
 
 if [[ -f "${HOME}/.profile" ]]; then
   # shellcheck disable=SC1091
@@ -9,6 +10,7 @@ fi
 
 #shellcheck disable=SC1091,SC2153
 source "${SCRIPTS_DIR}/functions.bash"
+enable_err_trap
 check_no_args "$@"
 
 sudo --validate
