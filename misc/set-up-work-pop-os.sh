@@ -254,7 +254,7 @@ function main() {
 
   fi
 
-  # shellcheck disable=SC2016
+  # shellcheck disable=SC2016 # single quotes intentional, multi-line literal text
   log 'Finished
 You may want to do any of the following:
 - source ~/.bashrc"
