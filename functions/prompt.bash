@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# $1 = question
+# Prompt the user with a [y/N] question (default: no); return true if the user answers yes.
+# $1 = question text
 function prompt::ny() {
   args::check_exactly_1_arg "$@"
   REPLY=''
@@ -19,7 +20,8 @@ function prompt::ny() {
   [[ "${REPLY}" == 'y' ]]
 }
 
-# $1 = question
+# Prompt the user with a [Y/n] question (default: yes); return true if the user answers yes.
+# $1 = question text
 function prompt::yn() {
   args::check_exactly_1_arg "$@"
   REPLY=''
@@ -38,8 +40,11 @@ function prompt::yn() {
   [[ "${REPLY}" == 'y' ]]
 }
 
-# $1 = question
+# Prompt the user for a free-form value; loops until a non-empty response is given.
+# If a default is provided, it is shown in the prompt and accepted on empty input.
+# $1 = prompt text
 # $2 = default value (optional)
+# Output: stdout — the value entered by the user (or the default)
 function prompt::for_value() {
   args::check_at_least_1_arg "$@"
   args::check_at_most_2_args "$@"

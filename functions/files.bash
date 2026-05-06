@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 
-# $1 = file
+# Return true if the given path exists and is a regular file.
+# $1 = file path
 function files::exists() {
   args::check_exactly_1_arg "$@"
   [[ -f "$1" ]]
 }
 
-# $1 = file
+# Die if the given file does not exist.
+# $1 = file path
 function files::assert_exists() {
   args::check_exactly_1_arg "$@"
   if ! files::exists "$1"; then
@@ -14,21 +16,25 @@ function files::assert_exists() {
   fi
 }
 
-# $1 = file
+# Return true if the given file exists and is readable.
+# $1 = file path
 function files::is_readable() {
   args::check_exactly_1_arg "$@"
   [[ -r "$1" ]]
 }
 
-# $1 = file
+# Print the size of a file in gigabytes (two decimal places).
+# $1 = file path
+# Output: stdout — size in GB, e.g. "1.23"
 function files::size_gb() {
   args::check_exactly_1_arg "$@"
   files::assert_exists "$1"
   printf '%s\n' "scale=2; $(stat --format='%s' "$1") / 1073741824" | bc
 }
 
-# $1 = old file location
-# $2 = new file location
+# Move a file, prompting if the destination already exists; skips if source and dest are byte-identical.
+# $1 = source file path
+# $2 = destination file path
 function files::move() {
   args::check_exactly_2_args "$@"
   files::assert_exists "$1"
@@ -56,8 +62,9 @@ function files::move() {
   log::log "Moved: $1 -> $2"
 }
 
-# $1 = old file location
-# $2 = new file location
+# Move a file as root, prompting if the destination already exists; skips if byte-identical.
+# $1 = source file path
+# $2 = destination file path
 function files::root_move() {
   args::check_exactly_2_args "$@"
   files::assert_exists "$1"
@@ -85,8 +92,9 @@ function files::root_move() {
   log::log "Moved: $1 -> $2"
 }
 
-# $1 = old file location
-# $2 = new file location
+# Copy a file, prompting if the destination already exists; skips if byte-identical.
+# $1 = source file path
+# $2 = destination file path
 function files::copy() {
   args::check_exactly_2_args "$@"
   files::assert_exists "$1"
@@ -113,8 +121,9 @@ function files::copy() {
   log::log "Copied: $1 -> $2"
 }
 
-# $1 = source file
-# $2 = destination file
+# Copy a file as root, prompting if the destination already exists; skips if byte-identical.
+# $1 = source file path
+# $2 = destination file path
 function files::root_copy() {
   args::check_exactly_2_args "$@"
   files::assert_exists "$1"
@@ -141,8 +150,9 @@ function files::root_copy() {
   log::log "Copied: $1 -> $2"
 }
 
-# $1 = file
-# $2 = content
+# Write content to a file, prompting if the file already exists; skips if content is identical.
+# $1 = file path
+# $2 = content to write
 function files::write() {
   args::check_exactly_2_args "$@"
   if files::exists "$1"; then
@@ -161,8 +171,9 @@ function files::write() {
   log::log "Wrote $1"
 }
 
-# $1 = file
-# $2 = content
+# Write content to a root-owned file, prompting if the file already exists; skips if content is identical.
+# $1 = file path
+# $2 = content to write
 function files::root_write() {
   args::check_exactly_2_args "$@"
   if files::exists "$1"; then
@@ -181,8 +192,9 @@ function files::root_write() {
   log::log "Wrote $1"
 }
 
-# $1 = file
-# $2 = content
+# Append content to a file, creating the file and any missing parent directories as needed.
+# $1 = file path
+# $2 = content to append
 function files::append_to() {
   args::check_exactly_2_args "$@"
   log::log "Appending to $1"
@@ -191,8 +203,9 @@ function files::append_to() {
   log::log "Appended to $1"
 }
 
-# $1 = file
-# $2 = content
+# Append content to a root-owned file, creating the file and any missing parent directories as needed.
+# $1 = file path
+# $2 = content to append
 function files::root_append_to() {
   args::check_exactly_2_args "$@"
   log::log "Appending to $1"
@@ -201,7 +214,9 @@ function files::root_append_to() {
   log::log "Appended to $1"
 }
 
-# $1 = file
+# Print the SHA-256 hash of a file, or '0' if the file does not exist.
+# $1 = file path
+# Output: stdout — hex SHA-256 digest, or '0' if file is absent
 function files::hash() {
   if files::exists "$1"; then
     sha256sum "$1" | cut --delimiter=' ' --fields=1
