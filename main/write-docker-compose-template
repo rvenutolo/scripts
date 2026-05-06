@@ -13,35 +13,42 @@ readonly compose_file='./compose.yaml'
 readonly init_file='./init'
 readonly run_file='./run'
 
+# Append one or more lines to the compose file.
+# $@ = lines to append
 function write_to_compose_file() {
   args::check_at_least_1_arg "$@"
   printf '%s\n' "$@" >> "${compose_file}"
 }
 
+# Return true if the $service variable is set (i.e. this is a long-running service, not run-once).
 #shellcheck disable=SC2120
 function is_service() {
   args::check_no_args "$@"
   strings::is_not_empty "${service:-}"
 }
 
+# Return true if the $use_reverse_proxy variable is set.
 #shellcheck disable=SC2120
 function reverse_proxy() {
   args::check_no_args "$@"
   strings::is_not_empty "${use_reverse_proxy:-}"
 }
 
+# Return true if the $use_socket_proxy variable is set.
 #shellcheck disable=SC2120
 function socket_proxy() {
   args::check_no_args "$@"
   strings::is_not_empty "${use_socket_proxy:-}"
 }
 
+# Return true if the $on_unhealthy variable is set.
 #shellcheck disable=SC2120
 function restart_on_unhealthy() {
   args::check_no_args "$@"
   strings::is_not_empty "${on_unhealthy:-}"
 }
 
+# Return true if the $multiple_containers variable is set.
 #shellcheck disable=SC2120
 function multiple_containers() {
   args::check_no_args "$@"

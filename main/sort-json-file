@@ -9,7 +9,8 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_at_least_1_arg "$@"
 
-# $1 = json file
+# Sort all keys in the given JSON file in-place.
+# $1 = JSON file path
 function sort_json_file() {
   local json_file="$1"
   readonly json_file

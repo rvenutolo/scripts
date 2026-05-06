@@ -8,6 +8,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
 
+# Print usage information to stderr.
 function usage() {
   printf '%s\n' "Usage: ${0##*/} [-d | --dir DIR] DISTRO..." >&2
 }
