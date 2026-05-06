@@ -8,8 +8,9 @@ source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
 
-# $1 = packages file
-# $2 = 'nixpkgs' or 'nixpkgs-unstable'
+# Create a minimal Nix packages file skeleton if the file does not already exist.
+# $1 = packages file path
+# $2 = package set ('nixpkgs' or 'nixpkgs-unstable')
 function write_packages_file_skeleton() {
   args::check_exactly_2_args "$@"
   local packages_file="$1"
@@ -39,14 +40,19 @@ EOF
   fi
 }
 
-# $1 = packages file
-# $2 = regex ('\[' or ']'
+# Print the line number of the first line in a file matching the given regex.
+# $1 = packages file path
+# $2 = regex to match (e.g. '\[' or ']')
+# Output: stdout — line number as a plain integer
 function get_line_number() {
   grep --line-number --max-count=1 "$2" "$1" | cut --delimiter=':' --fields=1
 }
 
-# $1 = packages file
-# $2 = 'nixpkgs' or 'nixpkgs-unstable'
+# Write the current package list into the packages array inside a Nix packages file.
+# Creates the file skeleton if it does not exist. Extra args are forwarded to packages::get_universal.
+# $1 = packages file path
+# $2 = package set ('nixpkgs' or 'nixpkgs-unstable')
+# $3+ = extra arguments forwarded to packages::get_universal (e.g. --ignore, --quiet)
 function write_packages_into() {
   args::check_at_least_2_args "$@"
   local packages_file="$1"

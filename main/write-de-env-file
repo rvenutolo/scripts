@@ -12,6 +12,9 @@ args::check_no_args "$@"
 readonly pom_file='pom.xml'
 readonly env_file='.env'
 
+# Evaluate a Maven expression against the current project's POM and print the result.
+# $1 = Maven expression (e.g. "project.artifactId")
+# Output: stdout — evaluated expression value
 function eval_maven_expression() {
   mvn --file "${pom_file}" help:evaluate -Dexpression="$1" --quiet -DforceStdout
 }
