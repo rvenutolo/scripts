@@ -5,8 +5,8 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${DOCKER_COMPOSE_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
+log::enable_err_trap
+system::require_bash_version 4 0
 
 if [[ "$#" -eq 0 ]]; then
   mapfile -t images_to_scan < <(docker ps --format '{{.Image}}' | sort | uniq)
@@ -16,10 +16,10 @@ fi
 readonly images_to_scan
 
 readonly tmp_cache_dir='/tmp/grype/cache'
-create_dir "${tmp_cache_dir}"
+dirs::create "${tmp_cache_dir}"
 
 for image in "${images_to_scan[@]}"; do
-  log "Scanning: ${image}"
+  log::log "Scanning: ${image}"
   docker run \
     --rm \
     --volume "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock" \
@@ -27,5 +27,5 @@ for image in "${images_to_scan[@]}"; do
     --name "grype-${image//[:\/]/-}" \
     'anchore/grype:latest' \
     "docker:${image}"
-  log "Scanned: ${image}"
+  log::log "Scanned: ${image}"
 done

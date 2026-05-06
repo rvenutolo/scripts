@@ -5,18 +5,18 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! is_fedora; then
+if ! os::is_fedora; then
   exit 0
 fi
 if ! rpm --quiet --query 'PackageKit-command-not-found'; then
-  log 'PackageKit-command-not-found is not installed'
+  log::log 'PackageKit-command-not-found is not installed'
   exit 0
 fi
 
 readonly src_file="${HOME}/.etc/fedora-command-not-found.conf"
 readonly dest_file='/etc/PackageKit/CommandNotFound.conf'
-root_copy_file "${src_file}" "${dest_file}"
+files::root_copy "${src_file}" "${dest_file}"

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 # $1 = question
-function prompt_ny() {
-  check_exactly_1_arg "$@"
+function prompt::ny() {
+  args::check_exactly_1_arg "$@"
   REPLY=''
-  if auto_answer; then
+  if misc::auto_answer; then
     REPLY='n'
   fi
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
@@ -20,10 +20,10 @@ function prompt_ny() {
 }
 
 # $1 = question
-function prompt_yn() {
-  check_exactly_1_arg "$@"
+function prompt::yn() {
+  args::check_exactly_1_arg "$@"
   REPLY=''
-  if auto_answer; then
+  if misc::auto_answer; then
     REPLY='y'
   fi
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
@@ -40,24 +40,24 @@ function prompt_yn() {
 
 # $1 = question
 # $2 = default value (optional)
-function prompt_for_value() {
-  check_at_least_1_arg "$@"
-  check_at_most_2_args "$@"
-  if is_not_empty "${2:-}"; then
+function prompt::for_value() {
+  args::check_at_least_1_arg "$@"
+  args::check_at_most_2_args "$@"
+  if strings::is_not_empty "${2:-}"; then
     REPLY=''
-    if auto_answer; then
+    if misc::auto_answer; then
       REPLY="$2"
     fi
-    if is_empty "${REPLY}"; then
+    if strings::is_empty "${REPLY}"; then
       read -rp $'\e[0;33m'"$1 [$2"$']: \e[0m'
-      if is_empty "${REPLY}"; then
+      if strings::is_empty "${REPLY}"; then
         REPLY="$2"
       fi
     fi
     printf '%s\n' "${REPLY}"
   else
     REPLY=''
-    while is_empty "${REPLY}"; do
+    while strings::is_empty "${REPLY}"; do
       read -rp $'\e[0;33m'"$1"$': \e[0m'
     done
     printf '%s\n' "${REPLY}"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
 # $@ = array
-function array_to_lines() {
+function arrays::to_lines() {
   printf '%s\n' "$@"
 }

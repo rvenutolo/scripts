@@ -5,11 +5,11 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_at_most_1_arg "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_at_most_1_arg "$@"
 
-if is_not_empty "${1:-}"; then
+if strings::is_not_empty "${1:-}"; then
   readonly profile="$1"
 else
   readonly profile='de-core-dev'

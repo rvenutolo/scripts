@@ -10,8 +10,8 @@ fi
 
 #shellcheck disable=SC1091,SC2153
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-check_no_args "$@"
+log::enable_err_trap
+args::check_no_args "$@"
 
 sudo --validate
 
@@ -21,8 +21,8 @@ shopt -s globstar
 for script in "${scripts_dir}"/**/*; do
   # don't attempt to execute any READMEs or scripts that intentionally have their executability turned off
   if [[ -x "${script}" ]]; then
-    log "Running: ${script#"${scripts_dir}"/}"
+    log::log "Running: ${script#"${scripts_dir}"/}"
     "${script}"
-    log "Ran: ${script#"${scripts_dir}"/}"
+    log::log "Ran: ${script#"${scripts_dir}"/}"
   fi
 done

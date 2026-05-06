@@ -5,21 +5,21 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 readonly bashrc_file="/etc/bash.bashrc"
 
-if ! file_exists "${bashrc_file}"; then
+if ! files::exists "${bashrc_file}"; then
   exit 0
 fi
 
-if ! file_contains_regex "${bashrc_file}" 'if.*\.sudo_as_admin_successful'; then
+if ! grep::file_contains_regex "${bashrc_file}" 'if.*\.sudo_as_admin_successful'; then
   exit 0
 fi
 
-log "Removing sudo hint block from: ${bashrc_file}"
+log::log "Removing sudo hint block from: ${bashrc_file}"
 
 sudo cp "${bashrc_file}" "${bashrc_file}.$(date +%Y%m%d_%H%M%S).bak"
 
@@ -66,4 +66,4 @@ END {
 
 sudo mv "${bashrc_file}.tmp" "${bashrc_file}"
 
-log "Removed sudo hint block from: ${bashrc_file}"
+log::log "Removed sudo hint block from: ${bashrc_file}"

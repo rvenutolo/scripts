@@ -5,11 +5,11 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
+log::enable_err_trap
+system::require_bash_version 4 0
 
-if stdin_exists; then
-  check_exactly_1_arg "$@"
+if args::stdin_exists; then
+  args::check_exactly_1_arg "$@"
   awk --field-separator "$1" 'NR==1{nf=NF} NF!=nf{print "Line " NR " has " NF " fields (expected " nf "): " $0}'
 else
   awk --field-separator "$2" 'NR==1{nf=NF} NF!=nf{print "Line " NR " has " NF " fields (expected " nf "): " $0}' "$1"

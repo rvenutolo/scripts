@@ -5,8 +5,8 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 3
+log::enable_err_trap
+system::require_bash_version 4 3
 
 CHECK=0
 if [[ "${1:-}" == '--check' ]]; then
@@ -15,15 +15,15 @@ if [[ "${1:-}" == '--check' ]]; then
 fi
 readonly CHECK
 
-assert_paths_exist "$@"
+shell_scripts::assert_paths_exist "$@"
 
-mapfile -t candidates < <(find_shell_scripts "$@")
+mapfile -t candidates < <(shell_scripts::find "$@")
 if [[ "${#candidates[@]}" -eq 0 ]]; then
   exit 0
 fi
 
 files=()
-filter_shell_scripts files "${candidates[@]}"
+shell_scripts::filter files "${candidates[@]}"
 if [[ "${#files[@]}" -eq 0 ]]; then
   exit 0
 fi

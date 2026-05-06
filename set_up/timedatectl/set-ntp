@@ -5,17 +5,17 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if timedatectl show | contains_exactly 'NTP=yes'; then
+if timedatectl show | grep::contains_exactly 'NTP=yes'; then
   exit 0
 fi
-if ! prompt_yn 'Set timedatectl NTP on?'; then
+if ! prompt::yn 'Set timedatectl NTP on?'; then
   exit 0
 fi
 
-log 'Setting time NTP on'
+log::log 'Setting time NTP on'
 sudo timedatectl set-ntp on
-log 'Set time NTP on'
+log::log 'Set time NTP on'

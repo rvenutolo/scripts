@@ -5,31 +5,31 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! executable_exists 'nix' && prompt_yn 'Install Nix?'; then
-  log 'Installing Nix'
-  if ! dir_exists '/nix'; then
-    root_create_dir '/nix'
+if ! commands::executable_exists 'nix' && prompt::yn 'Install Nix?'; then
+  log::log 'Installing Nix'
+  if ! dirs::exists '/nix'; then
+    dirs::root_create '/nix'
   fi
   sudo chmod 755 '/nix'
   sudo chown --recursive "${USER}:" '/nix'
-  download_and_run_script 'https://nixos.org/nix/install' --no-daemon --no-modify-profile
-  log 'Installed Nix'
+  downloads::download_and_run_script 'https://nixos.org/nix/install' --no-daemon --no-modify-profile
+  log::log 'Installed Nix'
 fi
 
-if ! executable_exists 'home-manager' && prompt_yn 'Install Nix home-manager and packages?'; then
-  log 'Installing Nix home-manager and packages'
+if ! commands::executable_exists 'home-manager' && prompt::yn 'Install Nix home-manager and packages?'; then
+  log::log 'Installing Nix home-manager and packages'
   # shellcheck disable=SC1091
   source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
   write-home-manager-packages
   home_manager_release="$(grep --only-matching --perl-regexp '(?<=github:nix-community/)home-manager/release-\d{2}\.\d{2}' "${HOME_MANAGER_DIR}/flake.nix")" || exit 1
   readonly home_manager_release
   nix run "${home_manager_release}" -- init --switch --flake "${HOME_MANAGER_DIR}"
-  if executable_exists 'non-nixos-gpu-setup'; then
-    sudo "$(executable_path 'non-nixos-gpu-setup')"
+  if commands::executable_exists 'non-nixos-gpu-setup'; then
+    sudo "$(commands::executable_path 'non-nixos-gpu-setup')"
   fi
-  log 'Installed Nix home-manager and packages'
+  log::log 'Installed Nix home-manager and packages'
 fi

@@ -5,15 +5,15 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 readonly old_conf_file="${HOME}/.fonts.conf"
 readonly new_conf_file="${XDG_CONFIG_HOME}/fontconfig/fonts.conf"
 
-if ! file_exists "${old_conf_file}"; then
+if ! files::exists "${old_conf_file}"; then
   exit 0
 fi
 
-move_file "${old_conf_file}" "${new_conf_file}"
+files::move "${old_conf_file}" "${new_conf_file}"

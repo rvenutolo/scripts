@@ -5,22 +5,22 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! dir_exists "${HOME}/.nix-profile/share/fonts"; then
+if ! dirs::exists "${HOME}/.nix-profile/share/fonts"; then
   exit 0
 fi
-if symlink_exists "${HOME}/.local/share/fonts/nix"; then
+if symlinks::exists "${HOME}/.local/share/fonts/nix"; then
   exit 0
 fi
-if ! prompt_yn 'Link Nix fonts and update font cache?'; then
+if ! prompt::yn 'Link Nix fonts and update font cache?'; then
   exit 0
 fi
 
-log 'Updating font cache to include nixpkgs fonts'
-create_dir "${HOME}/.local/share/fonts"
-link_dir "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
+log::log 'Updating font cache to include nixpkgs fonts'
+dirs::create "${HOME}/.local/share/fonts"
+symlinks::link_dir "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
 fc-cache --force
-log 'Updated font cache to include nixpkgs fonts'
+log::log 'Updated font cache to include nixpkgs fonts'

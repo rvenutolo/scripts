@@ -5,29 +5,29 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
+log::enable_err_trap
+system::require_bash_version 4 0
 
-if ! executable_exists 'flatpak'; then
-  die 'flatpak executable not found'
+if ! commands::executable_exists 'flatpak'; then
+  log::die 'flatpak executable not found'
 fi
 
-mapfile -t flatpaks_from_package_list < <(get_universal_packages 'flatpak' "$@" | sort)
+mapfile -t flatpaks_from_package_list < <(packages::get_universal 'flatpak' "$@" | sort)
 readonly flatpaks_from_package_list
 
 mapfile -t flatpaks_installed < <(flatpak list --user --app --columns application | sort)
 readonly flatpaks_installed
 
-mapfile -t flatpaks_to_install < <(comm -23 <(array_to_lines "${flatpaks_from_package_list[@]}") <(array_to_lines "${flatpaks_installed[@]}"))
+mapfile -t flatpaks_to_install < <(comm -23 <(arrays::to_lines "${flatpaks_from_package_list[@]}") <(arrays::to_lines "${flatpaks_installed[@]}"))
 readonly flatpaks_to_install
 
-mapfile -t flatpaks_to_remove < <(comm -13 <(array_to_lines "${flatpaks_from_package_list[@]}") <(array_to_lines "${flatpaks_installed[@]}"))
+mapfile -t flatpaks_to_remove < <(comm -13 <(arrays::to_lines "${flatpaks_from_package_list[@]}") <(arrays::to_lines "${flatpaks_installed[@]}"))
 readonly flatpaks_to_remove
 
-if (("${#flatpaks_to_install[@]}")) && prompt_yn 'Install missing Flatpak packages?'; then
-  log 'Installing missing Flatpak packages'
-  array_to_lines "${flatpaks_to_install[@]}" | xargs --no-run-if-empty flatpak install --user --noninteractive
-  log 'Installed missing Flatpak packages'
+if (("${#flatpaks_to_install[@]}")) && prompt::yn 'Install missing Flatpak packages?'; then
+  log::log 'Installing missing Flatpak packages'
+  arrays::to_lines "${flatpaks_to_install[@]}" | xargs --no-run-if-empty flatpak install --user --noninteractive
+  log::log 'Installed missing Flatpak packages'
 fi
 
 for flatpak_to_remove in "${flatpaks_to_remove[@]}"; do
@@ -35,21 +35,21 @@ for flatpak_to_remove in "${flatpaks_to_remove[@]}"; do
     flatpak list --user --app --columns name --columns application \
       | awk --field-separator $'\t' --assign "to_remove=${flatpak_to_remove}" '$2 == to_remove { print $1 }'
   )" || exit 1
-  if prompt_yn "Remove ${flatpak_name} (${flatpak_to_remove})?"; then
-    log "Removing ${flatpak_name} (${flatpak_to_remove})"
+  if prompt::yn "Remove ${flatpak_name} (${flatpak_to_remove})?"; then
+    log::log "Removing ${flatpak_name} (${flatpak_to_remove})"
     flatpak remove --user --noninteractive "${flatpak_to_remove}"
-    log "Removed ${flatpak_name} (${flatpak_to_remove})"
+    log::log "Removed ${flatpak_name} (${flatpak_to_remove})"
   fi
 done
 
-log 'Removing unused Flatpak runtimes'
+log::log 'Removing unused Flatpak runtimes'
 flatpak uninstall --user --noninteractive --unused
-log 'Removed unused Flatpak runtimes'
+log::log 'Removed unused Flatpak runtimes'
 
-log 'Updating all Flatpak packages'
+log::log 'Updating all Flatpak packages'
 flatpak update --user --noninteractive
-log 'Updated all Flatpak packages'
+log::log 'Updated all Flatpak packages'
 
-if flatpak list --user --app | contains_word_ignore_case 'com.google.chrome'; then
+if flatpak list --user --app | grep::contains_word_ignore_case 'com.google.chrome'; then
   flatpak override --user --filesystem="${HOME}/.local/share/applications:create" --filesystem="${HOME}/.local/share/icons:create" 'com.google.Chrome'
 fi

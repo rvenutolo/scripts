@@ -5,9 +5,9 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 # $1 = pom file
 function get_sources() {
@@ -17,7 +17,7 @@ function get_sources() {
     -Dclassifier=javadoc
 }
 
-pom_files="$(list_pom_files)" || exit 1
+pom_files="$(mvn::list_pom_files)" || exit 1
 readonly pom_files
 while IFS='' read -r pom_file; do
   get_sources "${pom_file}"

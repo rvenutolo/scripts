@@ -5,19 +5,19 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
+log::enable_err_trap
+system::require_bash_version 4 0
 
 # $1 = packages file
 # $2 = 'nixpkgs' or 'nixpkgs-unstable'
 function write_packages_file_skeleton() {
-  check_exactly_2_args "$@"
+  args::check_exactly_2_args "$@"
   local packages_file="$1"
   local package_type="$2"
-  if file_exists "${packages_file}"; then
+  if files::exists "${packages_file}"; then
     return 0
   fi
-  create_dir "$(dirname "${packages_file}")"
+  dirs::create "$(dirname "${packages_file}")"
   if [[ "${package_type}" == 'nixpkgs' ]]; then
     cat > "${packages_file}" << 'EOF'
 { pkgs, ... }:
@@ -35,7 +35,7 @@ EOF
 }
 EOF
   else
-    die "Unexpected package type: '${package_type}'"
+    log::die "Unexpected package type: '${package_type}'"
   fi
 }
 
@@ -48,7 +48,7 @@ function get_line_number() {
 # $1 = packages file
 # $2 = 'nixpkgs' or 'nixpkgs-unstable'
 function write_packages_into() {
-  check_at_least_2_args "$@"
+  args::check_at_least_2_args "$@"
   local packages_file="$1"
   local package_type="$2"
   shift 2
@@ -60,7 +60,7 @@ function write_packages_into() {
     awk \
       "NR <= $(get_line_number "${packages_file}" '\[')" \
       "${packages_file}"
-    get_universal_packages "${package_type}" "$@" | sed 's/^/    /'
+    packages::get_universal "${package_type}" "$@" | sed 's/^/    /'
     awk \
       "NR >= $(get_line_number "${packages_file}" ']')" \
       "${packages_file}"

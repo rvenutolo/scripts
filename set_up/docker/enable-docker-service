@@ -5,18 +5,18 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! executable_exists 'dockerd'; then
+if ! commands::executable_exists 'dockerd'; then
   exit 0
 fi
 
-enable_system_service_unit 'docker.service'
+systemctl::enable_system_service_unit 'docker.service'
 
-if ! executable_exists 'containerd'; then
+if ! commands::executable_exists 'containerd'; then
   exit 0
 fi
 
-enable_system_service_unit 'containerd.service'
+systemctl::enable_system_service_unit 'containerd.service'

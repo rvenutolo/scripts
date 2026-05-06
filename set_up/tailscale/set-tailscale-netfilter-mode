@@ -5,10 +5,10 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-check_no_args "$@"
+log::enable_err_trap
+args::check_no_args "$@"
 
-if ! executable_exists 'tailscale'; then
+if ! commands::executable_exists 'tailscale'; then
   exit 0
 fi
 

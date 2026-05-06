@@ -5,11 +5,11 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if is_server; then
+if hosts::is_server; then
   exit 0
 fi
 
@@ -19,18 +19,18 @@ readonly toolbox_release_info_url='https://data.services.jetbrains.com/products/
 readonly local_bin_dir="${HOME}/.local/bin"
 readonly local_bin_symlink="${local_bin_dir}/jetbrains-toolbox"
 
-if file_exists "${local_bin_symlink}"; then
+if files::exists "${local_bin_symlink}"; then
   exit 0
 fi
-if ! prompt_yn 'Install JetBrains Toolbox?'; then
+if ! prompt::yn 'Install JetBrains Toolbox?'; then
   exit 0
 fi
 
-log 'Installing JetBrains Toolbox'
-create_dir "${toolbox_install_dir}" "${local_bin_dir}"
-archive_url="$(download_and_cat "${toolbox_release_info_url}" | jq --raw-output '.TBA[0].downloads.linux.link')" || exit 1
+log::log 'Installing JetBrains Toolbox'
+dirs::create "${toolbox_install_dir}" "${local_bin_dir}"
+archive_url="$(downloads::download_and_cat "${toolbox_release_info_url}" | jq --raw-output '.TBA[0].downloads.linux.link')" || exit 1
 readonly archive_url
-download_and_cat "${archive_url}" | tar --extract --gzip --directory="${toolbox_install_dir}" --strip-components=1
+downloads::download_and_cat "${archive_url}" | tar --extract --gzip --directory="${toolbox_install_dir}" --strip-components=1
 chmod +x "${toolbox_install_binary}"
-link_file "${toolbox_install_binary}" "${local_bin_symlink}"
-log 'Installed JetBrains Toolbox'
+symlinks::link_file "${toolbox_install_binary}" "${local_bin_symlink}"
+log::log 'Installed JetBrains Toolbox'

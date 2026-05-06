@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
-# path_remove "$(this_script_dir)"
+# path::remove "$(misc::this_script_dir)"
 #shellcheck disable=SC2120
-function this_script_dir() {
-  check_no_args "$@"
+function misc::this_script_dir() {
+  args::check_no_args "$@"
   cd -- "$(dirname -- "${BASH_SOURCE[1]}")" &> '/dev/null' && pwd
 }
 
 #shellcheck disable=SC2120
-function auto_answer() {
-  check_no_args "$@"
+function misc::auto_answer() {
+  args::check_no_args "$@"
   [[ "${SCRIPTS_AUTO_ANSWER:-}" == [Yy] ]]
 }

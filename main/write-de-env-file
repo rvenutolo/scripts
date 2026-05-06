@@ -5,9 +5,9 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 function eval_maven_expression() {
   mvn --file "${pom_file}" help:evaluate -Dexpression="$1" --quiet -DforceStdout
@@ -16,12 +16,12 @@ function eval_maven_expression() {
 readonly pom_file='pom.xml'
 readonly env_file='.env'
 
-if ! file_exists "${pom_file}"; then
-  die "${pom_file} is missing"
+if ! files::exists "${pom_file}"; then
+  log::die "${pom_file} is missing"
 fi
 
-if file_exists "${env_file}"; then
-  die "${env_file} exists"
+if files::exists "${env_file}"; then
+  log::die "${env_file} exists"
 fi
 
 artifact_id="$(eval_maven_expression 'project.artifactId')"

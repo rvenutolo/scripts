@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # $1 = url
-function download_and_cat() {
-  check_exactly_1_arg "$@"
+function downloads::download_and_cat() {
+  args::check_exactly_1_arg "$@"
   local temp_file
   temp_file="$(mktemp)" || exit 1
   readonly temp_file
@@ -11,8 +11,8 @@ function download_and_cat() {
 }
 
 # $1 = url
-function download_to_temp_file() {
-  check_exactly_1_arg "$@"
+function downloads::download_to_temp_file() {
+  args::check_exactly_1_arg "$@"
   local temp_file
   temp_file="$(mktemp)" || exit 1
   readonly temp_file
@@ -22,8 +22,8 @@ function download_to_temp_file() {
 
 # $1 = script url
 # $2+ args to pass to the script
-function download_and_run_script() {
-  check_at_least_1_arg "$@"
+function downloads::download_and_run_script() {
+  args::check_at_least_1_arg "$@"
   local temp_file
   temp_file="$(mktemp)" || exit 1
   readonly temp_file
@@ -35,8 +35,8 @@ function download_and_run_script() {
 
 # $1 = script url
 # $2+ args to pass to the script
-function download_and_run_script_as_root() {
-  check_at_least_1_arg "$@"
+function downloads::download_and_run_script_as_root() {
+  args::check_at_least_1_arg "$@"
   local temp_file
   temp_file="$(mktemp)" || exit 1
   readonly temp_file

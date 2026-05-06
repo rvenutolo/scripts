@@ -5,25 +5,25 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! is_fedora; then
+if ! os::is_fedora; then
   exit 0
 fi
 
-if ! executable_exists 'dnf'; then
-  log 'dnf executable not found'
+if ! commands::executable_exists 'dnf'; then
+  log::log 'dnf executable not found'
   exit 0
 fi
 
-if ! prompt_yn 'Add RPM Fusion repos?'; then
+if ! prompt::yn 'Add RPM Fusion repos?'; then
   exit 0
 fi
 
 for repo in 'rpmfusion-free-release' 'rpmfusion-nonfree-release'; do
-  if ! dnf list --installed "${repo}" > '/dev/null' 2>&1 && prompt_yn "Add ${repo} repository?"; then
+  if ! dnf list --installed "${repo}" > '/dev/null' 2>&1 && prompt::yn "Add ${repo} repository?"; then
     if [[ "${repo}" == 'rpmfusion-free-release' ]]; then
       sudo dnf install "https://mirrors.rpmfusion.org/free/fedora/${repo}-$(rpm --eval='%fedora').noarch.rpm"
     else

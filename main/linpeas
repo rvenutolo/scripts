@@ -5,19 +5,19 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
+log::enable_err_trap
+system::require_bash_version 4 0
 
 readonly url='https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas_linux_amd64'
 readonly linpeas_file="${XDG_DATA_HOME}/linpeas"
 linpeas_output="${HOME}/linpeas_$(date +%Y%m%d-%H%M%S).txt"
 readonly linpeas_output
 
-create_dir "$(dirname "${linpeas_file}")"
+dirs::create "$(dirname "${linpeas_file}")"
 etag-dl "${url}" "${linpeas_file}"
 chmod +x "${linpeas_file}"
 
-log "This can take a long time"
-log "Writing output to: ${linpeas_output}"
+log::log "This can take a long time"
+log::log "Writing output to: ${linpeas_output}"
 "${linpeas_file}" "$@" > "${linpeas_output}"
-log "Wrote output to: ${linpeas_output}, read it with 'less --raw-control-chars ${linpeas_output}'"
+log::log "Wrote output to: ${linpeas_output}, read it with 'less --raw-control-chars ${linpeas_output}'"

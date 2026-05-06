@@ -5,25 +5,25 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if is_debian; then
-  log "Enabling backports repo"
-  root_write_file '/etc/apt/sources.list.d/backports.list' "deb http://deb.debian.org/debian $(os_codename)-backports main"
-  log "Enabled backports repo"
+if os::is_debian; then
+  log::log "Enabling backports repo"
+  files::root_write '/etc/apt/sources.list.d/backports.list' "deb http://deb.debian.org/debian $(os::codename)-backports main"
+  log::log "Enabled backports repo"
 fi
 
-if is_arch || is_cachyos; then
-  if pacman-key --list-keys | contains_exactly_ignore_case 'FBA220DFC880C036'; then
+if os::is_arch || os::is_cachyos; then
+  if pacman-key --list-keys | grep::contains_exactly_ignore_case 'FBA220DFC880C036'; then
     exit 0
   fi
-  log 'Adding Chaotic AUR keyring and mirror list'
+  log::log 'Adding Chaotic AUR keyring and mirror list'
   sudo pacman-key --recv-key 'FBA220DFC880C036' --keyserver 'keyserver.ubuntu.com'
   sudo pacman-key --lsign-key 'FBA220DFC880C036'
   sudo pacman --upgrade --noconfirm \
     'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
     'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
-  log 'Added Chaotic AUR keyring and mirror list'
+  log::log 'Added Chaotic AUR keyring and mirror list'
 fi

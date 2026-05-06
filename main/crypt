@@ -5,16 +5,16 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_at_least_1_arg "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_at_least_1_arg "$@"
 
 for file in "$@"; do
-  if file_exists "${file}"; then
+  if files::exists "${file}"; then
     target_file="${CRYPT_DIR}/$(basename -- "${file}")"
-    log "Encrypting: ${file} to: ${target_file}"
+    log::log "Encrypting: ${file} to: ${target_file}"
     age --encrypt --recipient="${AGE_PUBLIC_KEY}" --armor --output="${target_file}" -- "${file}"
   else
-    die "${file} is not file"
+    log::die "${file} is not file"
   fi
 done

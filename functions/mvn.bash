@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-function list_pom_files() {
-  check_at_most_1_arg "$@"
+function mvn::list_pom_files() {
+  args::check_at_most_1_arg "$@"
   if [[ "$#" -eq 0 ]]; then
     local -r dir="."
   else

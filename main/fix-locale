@@ -5,11 +5,11 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-root_append_to_file '/etc/environment' 'LC_ALL=en_US.UTF-8'
-root_append_to_file '/etc/locale.gen' 'en_US.UTF-8 UTF-8'
-root_append_to_file '/etc/locale.conf' 'LANG=en_US.UTF-8'
+files::root_append_to '/etc/environment' 'LC_ALL=en_US.UTF-8'
+files::root_append_to '/etc/locale.gen' 'en_US.UTF-8 UTF-8'
+files::root_append_to '/etc/locale.conf' 'LANG=en_US.UTF-8'
 sudo locale-gen 'en_US.UTF-8'

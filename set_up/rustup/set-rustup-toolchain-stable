@@ -5,20 +5,20 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! executable_exists 'rustup'; then
+if ! commands::executable_exists 'rustup'; then
   exit 0
 fi
 if [[ "$(rustup toolchain list)" == 'stable'* ]]; then
   exit 0
 fi
-if ! prompt_yn 'Set rustup toolchain to stable?'; then
+if ! prompt::yn 'Set rustup toolchain to stable?'; then
   exit 0
 fi
 
-log 'Setting rustup toolchain to stable'
+log::log 'Setting rustup toolchain to stable'
 rustup toolchain install 'stable'
-log 'Set rustup toolchain to stable'
+log::log 'Set rustup toolchain to stable'

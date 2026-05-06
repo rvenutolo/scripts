@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 
 # $1 = env
-function is_desktop_env() {
-  check_exactly_1_arg "$@"
-  printf '%s\n' "${XDG_CURRENT_DESKTOP:-}" | contains_word_ignore_case "$1"
+function de::is_desktop_env() {
+  args::check_exactly_1_arg "$@"
+  printf '%s\n' "${XDG_CURRENT_DESKTOP:-}" | grep::contains_word_ignore_case "$1"
 }
 
 #shellcheck disable=SC2120
-function is_kde() {
-  check_no_args "$@"
+function de::is_kde() {
+  args::check_no_args "$@"
   [[ "${XDG_CURRENT_DESKTOP:-}" == 'KDE' ]]
 }
 
 #shellcheck disable=SC2120
-function is_gnome() {
-  check_no_args "$@"
+function de::is_gnome() {
+  args::check_no_args "$@"
   [[ "${XDG_CURRENT_DESKTOP:-}" == 'GNOME' ]] || [[ "${XDG_CURRENT_DESKTOP:-}" == 'ubuntu:GNOME' ]]
 }
 
 #shellcheck disable=SC2120
-function is_pop_shell() {
-  check_no_args "$@"
+function de::is_pop_shell() {
+  args::check_no_args "$@"
   [[ "${XDG_CURRENT_DESKTOP:-}" == 'pop:GNOME' ]]
 }

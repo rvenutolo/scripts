@@ -5,24 +5,24 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! is_work; then
+if ! hosts::is_work; then
   exit 0
 fi
-if ! is_ubuntu; then
-  log 'This is a work computer, but not Ubuntu. Skipping installing NVIDIA drivers'
+if ! os::is_ubuntu; then
+  log::log 'This is a work computer, but not Ubuntu. Skipping installing NVIDIA drivers'
   exit 0
 fi
-if dpkg-query --show --showformat='${Package};${Status}\n' 'nvidia-driver-*' 2> '/dev/null' | contains_regex_ignore_case '^nvidia-driver-[0-9][0-9][0-9];.*ok installed$'; then
+if dpkg-query --show --showformat='${Package};${Status}\n' 'nvidia-driver-*' 2> '/dev/null' | grep::contains_regex_ignore_case '^nvidia-driver-[0-9][0-9][0-9];.*ok installed$'; then
   exit 0
 fi
-if ! prompt_yn 'Install NVIDIA drivers?'; then
+if ! prompt::yn 'Install NVIDIA drivers?'; then
   exit 0
 fi
 
-log 'Installing NVIDIA drivers'
+log::log 'Installing NVIDIA drivers'
 sudo ubuntu-drivers install
-log 'Installed NVIDIA drivers'
+log::log 'Installed NVIDIA drivers'

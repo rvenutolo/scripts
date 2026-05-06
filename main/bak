@@ -5,20 +5,20 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_at_least_1_arg "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_at_least_1_arg "$@"
 
 filetime="$(date +%Y%m%d_%H%M%S)" || exit 1
 readonly filetime
 for file in "$@"; do
-  if file_exists "${file}" || dir_exists "${file}"; then
+  if files::exists "${file}" || dirs::exists "${file}"; then
     dirname="$(dirname -- "${file}")" || exit 1
     filename="$(basename -- "${file}")" || exit 1
     target_file="${dirname}/${filename}.${filetime}.bak"
     cp --archive -- "${file}" "${target_file}"
-    log "${file} -> ${target_file}"
+    log::log "${file} -> ${target_file}"
   else
-    die "${file} is not a regular file or directory"
+    log::die "${file} is not a regular file or directory"
   fi
 done

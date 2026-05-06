@@ -1,39 +1,39 @@
 #!/usr/bin/env bash
 
 # $1 = dir
-function dir_exists() {
-  check_exactly_1_arg "$@"
+function dirs::exists() {
+  args::check_exactly_1_arg "$@"
   [[ -d "$1" ]]
 }
 
 # $1 = dir
-function assert_dir_exists() {
-  check_exactly_1_arg "$@"
-  if ! dir_exists "$1"; then
-    die "$1 does not exist"
+function dirs::assert_exists() {
+  args::check_exactly_1_arg "$@"
+  if ! dirs::exists "$1"; then
+    log::die "$1 does not exist"
   fi
 }
 
 # $@ = targets
-function create_dir() {
-  check_at_least_1_arg "$@"
+function dirs::create() {
+  args::check_at_least_1_arg "$@"
   for target in "$@"; do
-    if ! dir_exists "${target}"; then
-      log "Creating ${target}"
+    if ! dirs::exists "${target}"; then
+      log::log "Creating ${target}"
       mkdir --parents "${target}"
-      log "Created ${target}"
+      log::log "Created ${target}"
     fi
   done
 }
 
 # $@ = targets
-function root_create_dir() {
-  check_at_least_1_arg "$@"
+function dirs::root_create() {
+  args::check_at_least_1_arg "$@"
   for target in "$@"; do
-    if ! dir_exists "${target}"; then
-      log "Creating ${target}"
+    if ! dirs::exists "${target}"; then
+      log::log "Creating ${target}"
       sudo mkdir --parents "${target}"
-      log "Created ${target}"
+      log::log "Created ${target}"
     fi
   done
 }

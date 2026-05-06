@@ -5,18 +5,18 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! executable_exists 'sshd'; then
+if ! commands::executable_exists 'sshd'; then
   exit 0
 fi
 
-if is_debian || is_ubuntu; then
-  enable_system_service_unit 'ssh.service'
-elif is_arch || is_cachyos || is_fedora || is_leap || is_tumbleweed; then
-  enable_system_service_unit 'sshd.service'
+if os::is_debian || os::is_ubuntu; then
+  systemctl::enable_system_service_unit 'ssh.service'
+elif os::is_arch || os::is_cachyos || os::is_fedora || os::is_leap || os::is_tumbleweed; then
+  systemctl::enable_system_service_unit 'sshd.service'
 else
-  die "Unexpected distro: $(os_id)"
+  log::die "Unexpected distro: $(os::id)"
 fi

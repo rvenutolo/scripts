@@ -5,15 +5,15 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_at_most_1_arg "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_at_most_1_arg "$@"
 
 if [[ "$#" -eq 1 ]]; then
   if [[ "$1" == 'debug' ]]; then
     readonly debug='true'
   else
-    die "Expected 1 arg: 'debug'"
+    log::die "Expected 1 arg: 'debug'"
   fi
 else
   readonly debug='false'
@@ -21,7 +21,7 @@ fi
 
 while read -r video_file; do
   if [[ "${debug}" == 'true' ]]; then
-    log "${video_file}"
+    log::log "${video_file}"
   fi
   audio_info="$(
     ffprobe "${video_file}" -show_entries 'stream=index,codec_name,channel_layout:stream_tags=language' -select_streams 'a' -loglevel '16' -output_format 'compact=p=0:nk=1' \

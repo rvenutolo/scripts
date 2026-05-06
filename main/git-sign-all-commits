@@ -5,12 +5,12 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if prompt_ny 'This will sign ALL commits (without checking commit authors). Continue?'; then
+if prompt::ny 'This will sign ALL commits (without checking commit authors). Continue?'; then
   FILTER_BRANCH_SQUELCH_WARNING='1' git filter-branch --force --commit-filter 'git commit-tree --gpg-sign "$@";'
 fi
 
-log "Check the log, then push changes with: git push --force --tags origin 'refs/heads/*'"
+log::log "Check the log, then push changes with: git push --force --tags origin 'refs/heads/*'"

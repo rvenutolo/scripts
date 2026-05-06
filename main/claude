@@ -5,23 +5,23 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
+log::enable_err_trap
+system::require_bash_version 4 0
 
 # remove this dir from the path so executing `claude` doesn't this run this script
-path_remove "$(this_script_dir)"
+path::remove "$(misc::this_script_dir)"
 
-if is_not_empty "${CLAUDE_CONFIG_DIR:-}"; then
+if strings::is_not_empty "${CLAUDE_CONFIG_DIR:-}"; then
   CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR}" exec claude "$@"
-elif is_not_empty "${CLAUDE_PROFILE:-}"; then
-  exec "$(this_script_dir)/claude-${CLAUDE_PROFILE}" "$@"
+elif strings::is_not_empty "${CLAUDE_PROFILE:-}"; then
+  exec "$(misc::this_script_dir)/claude-${CLAUDE_PROFILE}" "$@"
 else
-  log "Set CLAUDE_PROFILE='work' or CLAUDE_PROFILE='personal' to skip this prompt"
+  log::log "Set CLAUDE_PROFILE='work' or CLAUDE_PROFILE='personal' to skip this prompt"
   PS3='Select profile (1=work, 2=personal): '
   select profile in 'work' 'personal'; do
     case "${profile}" in
       work)
-        log "Using Claude 'work' profile"
+        log::log "Using Claude 'work' profile"
         break
         ;;
       personal)
@@ -29,9 +29,9 @@ else
         break
         ;;
       *)
-        log "Invalid choice: ${REPLY}"
+        log::log "Invalid choice: ${REPLY}"
         ;;
     esac
   done
-  exec "$(this_script_dir)/claude-${profile}" "$@"
+  exec "$(misc::this_script_dir)/claude-${profile}" "$@"
 fi
