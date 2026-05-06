@@ -5,19 +5,19 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! prompt_yn 'Update distro packages?'; then
+if ! prompt::yn 'Update distro packages?'; then
   exit 0
 fi
 
-if executable_exists 'apt'; then
+if commands::executable_exists 'apt'; then
   sudo apt update
   sudo apt upgrade --yes
-elif executable_exists 'dnf'; then
+elif commands::executable_exists 'dnf'; then
   sudo dnf upgrade
-elif executable_exists 'pacman'; then
+elif commands::executable_exists 'pacman'; then
   sudo pacman --sync --refresh --sysupgrade
 fi

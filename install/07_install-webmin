@@ -5,28 +5,28 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 readonly name='Webmin'
 readonly executable='webmin'
 readonly url='https://raw.githubusercontent.com/webmin/webmin/master/webmin-setup-repos.sh'
 
-if ! is_server; then
+if ! hosts::is_server; then
   exit 0
 fi
-if is_debian || is_ubuntu || is_fedora; then
+if os::is_debian || os::is_ubuntu || os::is_fedora; then
   :
-elif is_arch || is_cachyos || is_leap || is_tumbleweed; then
+elif os::is_arch || os::is_cachyos || os::is_leap || os::is_tumbleweed; then
   exit 0
 else
-  die "Unexpected distro: $(os_id)"
+  log::die "Unexpected distro: $(os::id)"
 fi
-if executable_exists "${executable}"; then
+if commands::executable_exists "${executable}"; then
   exit 0
 fi
-if ! prompt_yn "Install ${name}?"; then
+if ! prompt::yn "Install ${name}?"; then
   exit 0
 fi
 
@@ -42,16 +42,16 @@ function wget() {
 }
 export -f wget
 
-log "Adding ${name} repo"
-download_and_run_script_as_root "${url}" --force
-log "Added ${name} repo"
+log::log "Adding ${name} repo"
+downloads::download_and_run_script_as_root "${url}" --force
+log::log "Added ${name} repo"
 
-log "Installing ${name}"
-if executable_exists 'apt'; then
+log::log "Installing ${name}"
+if commands::executable_exists 'apt'; then
   sudo apt install --yes --install-recommends 'webmin'
-elif executable_exists 'dnf'; then
+elif commands::executable_exists 'dnf'; then
   sudo dnf install 'webmin'
 else
-  die 'Expected either apt or dnf to be available'
+  log::die 'Expected either apt or dnf to be available'
 fi
-log "Installed ${name}"
+log::log "Installed ${name}"

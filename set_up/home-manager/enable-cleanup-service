@@ -5,12 +5,12 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! executable_exists 'nix-collect-garbage' || ! executable_exists 'nix-store'; then
+if ! commands::executable_exists 'nix-collect-garbage' || ! commands::executable_exists 'nix-store'; then
   exit 0
 fi
 
-enable_user_service_unit 'home-manager-cleanup.timer'
+systemctl::enable_user_service_unit 'home-manager-cleanup.timer'

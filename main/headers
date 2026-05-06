@@ -5,35 +5,35 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
+log::enable_err_trap
+system::require_bash_version 4 0
 
-if stdin_exists; then
-  check_at_most_1_arg "$@"
-  header_line="$(first_line)" || exit 1
-  if is_not_empty "${1:-}"; then
+if args::stdin_exists; then
+  args::check_at_most_1_arg "$@"
+  header_line="$(text::first_line)" || exit 1
+  if strings::is_not_empty "${1:-}"; then
     readonly delimiter="$1"
   fi
 else
-  check_at_least_1_arg "$@"
-  check_at_most_2_args "$@"
-  header_line="$(first_line "$1")" || exit 1
-  if is_not_empty "${2:-}"; then
+  args::check_at_least_1_arg "$@"
+  args::check_at_most_2_args "$@"
+  header_line="$(text::first_line "$1")" || exit 1
+  if strings::is_not_empty "${2:-}"; then
     readonly delimiter="$2"
   fi
 fi
 readonly header_line
 
-if is_empty "${delimiter+x}"; then
-  if contains_exactly ';' <<< "${header_line}"; then
+if strings::is_empty "${delimiter+x}"; then
+  if grep::contains_exactly ';' <<< "${header_line}"; then
     readonly delimiter=';'
-  elif contains_exactly ',' <<< "${header_line}"; then
+  elif grep::contains_exactly ',' <<< "${header_line}"; then
     readonly delimiter=','
-  elif contains_exactly $'\t' <<< "${header_line}"; then
+  elif grep::contains_exactly $'\t' <<< "${header_line}"; then
     readonly delimiter=$'\t'
-  elif contains_exactly '|' <<< "${header_line}"; then
+  elif grep::contains_exactly '|' <<< "${header_line}"; then
     readonly delimiter='|'
-  elif contains_exactly ':' <<< "${header_line}"; then
+  elif grep::contains_exactly ':' <<< "${header_line}"; then
     readonly delimiter=':'
   else
     readonly delimiter=','

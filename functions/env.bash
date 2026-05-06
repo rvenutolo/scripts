@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # $@ = variable names
-function assert_var_set() {
-  check_at_least_1_arg "$@"
+function env::assert_var_set() {
+  args::check_at_least_1_arg "$@"
   for var in "$@"; do
-    if is_empty "${!var:-}"; then
-      die "${var} not set"
+    if strings::is_empty "${!var:-}"; then
+      log::die "${var} not set"
     fi
   done
 }

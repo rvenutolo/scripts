@@ -5,14 +5,14 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
+log::enable_err_trap
+system::require_bash_version 4 0
 
-if stdin_exists; then
-  check_no_args "$@"
+if args::stdin_exists; then
+  args::check_no_args "$@"
   tr '[:upper:]' '[:lower:]'
 else
-  check_at_least_1_arg "$@"
+  args::check_at_least_1_arg "$@"
   for file in "$@"; do
     dirname="$(dirname -- "${file}")" || exit 1
     filename="$(basename -- "${file}")" || exit 1
@@ -20,9 +20,9 @@ else
     target_file="${dirname}/${lower_filename}"
     if [[ "${lower_filename}" != "${filename}" ]]; then
       mv -- "${file}" "${target_file}"
-      log "${file} -> ${target_file}"
+      log::log "${file} -> ${target_file}"
     else
-      log "${file} not renamed"
+      log::log "${file} not renamed"
     fi
   done
 fi

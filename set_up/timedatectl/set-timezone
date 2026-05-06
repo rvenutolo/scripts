@@ -5,9 +5,9 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_at_most_1_arg "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_at_most_1_arg "$@"
 
 if [[ "$#" -eq 0 ]]; then
   readonly tz='America/New_York'
@@ -15,13 +15,13 @@ else
   readonly tz="$1"
 fi
 
-if timedatectl show | contains_regex "^Timezone=${tz}$"; then
+if timedatectl show | grep::contains_regex "^Timezone=${tz}$"; then
   exit 0
 fi
-if ! prompt_yn "Set timezone to: ${tz}"; then
+if ! prompt::yn "Set timezone to: ${tz}"; then
   exit 0
 fi
 
-log "Setting timezone to: ${tz}"
+log::log "Setting timezone to: ${tz}"
 sudo timedatectl set-timezone "${tz}"
-log "Set timezone to: ${tz}"
+log::log "Set timezone to: ${tz}"

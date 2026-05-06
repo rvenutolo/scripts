@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 
 # $1 = container name
-function container_is_running() {
-  check_exactly_1_arg "$@"
-  is_not_empty "$(docker ps --quiet --filter "name=^$1\$")" && [[ "$(docker container inspect --format '{{.State.Status}}' "$1")" == 'running' ]]
+function docker::container_is_running() {
+  args::check_exactly_1_arg "$@"
+  strings::is_not_empty "$(docker ps --quiet --filter "name=^$1\$")" && [[ "$(docker container inspect --format '{{.State.Status}}' "$1")" == 'running' ]]
 }
 
 # $1 = container name
-function wait_for_healthy_container() {
-  log "Waiting for $1 to be healthy"
+function docker::wait_for_healthy_container() {
+  log::log "Waiting for $1 to be healthy"
   until [[ "$(docker inspect --format '{{.State.Health.Status}}' "$1")" == 'healthy' ]]; do
     sleep 0.1
   done
 }
 
 # $1 = docker network name
-function create_docker_network() {
-  check_exactly_1_arg "$@"
+function docker::create_network() {
+  args::check_exactly_1_arg "$@"
   if ! docker network inspect "$1" &> '/dev/null'; then
-    log "Creating $1 network"
+    log::log "Creating $1 network"
     docker network create "$1"
-    log "Created $1 network"
+    log::log "Created $1 network"
   fi
 }

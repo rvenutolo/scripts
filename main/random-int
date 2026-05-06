@@ -5,10 +5,10 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_at_least_2_args "$@"
-check_at_most_3_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_at_least_2_args "$@"
+args::check_at_most_3_args "$@"
 
 if [[ "$#" -eq 3 ]]; then
   readonly num_output="$3"

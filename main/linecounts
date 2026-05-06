@@ -5,13 +5,13 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
+log::enable_err_trap
+system::require_bash_version 4 0
 
-if stdin_exists; then
-  check_no_args "$@"
+if args::stdin_exists; then
+  args::check_no_args "$@"
   sort | uniq --count | sort --numeric-sort --reverse
 else
-  check_exactly_1_arg "$@"
+  args::check_exactly_1_arg "$@"
   sort "$1" | uniq --count | sort --numeric-sort --reverse
 fi

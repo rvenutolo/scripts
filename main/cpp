@@ -5,9 +5,9 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_exactly_2_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_exactly_2_args "$@"
 
 # Copy file with a progress bar
 strace --quiet -ewrite cp -- "$1" "$2" 2>&1 | awk '{

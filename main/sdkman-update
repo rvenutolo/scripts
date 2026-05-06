@@ -5,9 +5,9 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 # set +u to avoid 'ZSH_VERSION: unbound variable'
 set +u
@@ -15,20 +15,20 @@ set +u
 # shellcheck disable=SC1091
 source "${SDKMAN_DIR}/bin/sdkman-init.sh"
 
-log 'Updating SDKMAN metadata'
-update_sdkman_metadata
-log 'Updated SDKMAN metadata'
+log::log 'Updating SDKMAN metadata'
+sdkman::update_metadata
+log::log 'Updated SDKMAN metadata'
 
-log 'Updating SDKMAN packages'
-install_sdkman_packages
-log 'Updated SDKMAN packages'
+log::log 'Updating SDKMAN packages'
+sdkman_packages::install_sdkman_packages
+log::log 'Updated SDKMAN packages'
 
-log 'Updating Temurin JDKs'
-install_latest_tem_jdks
-log 'Updated Temurin JDKs'
+log::log 'Updating Temurin JDKs'
+sdkman_jdks::install_latest_tem_jdks
+log::log 'Updated Temurin JDKs'
 
-log 'Setting default JDK'
-set_default_jdk_to_latest_installed
-log 'Set default JDK'
+log::log 'Setting default JDK'
+sdkman_jdks::set_default_jdk_to_latest_installed
+log::log 'Set default JDK'
 
 set -u

@@ -5,21 +5,21 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! prompt_yn 'Install distro packages?'; then
+if ! prompt::yn 'Install distro packages?'; then
   exit 0
 fi
 
-mapfile -t packages < <(get_distro_packages "$(os_id)" "$(os_codename)")
+mapfile -t packages < <(packages::get_distro "$(os::id)" "$(os::codename)")
 readonly packages
 
-if executable_exists 'apt'; then
+if commands::executable_exists 'apt'; then
   sudo apt install --install-recommends --yes "${packages[@]}"
-elif executable_exists 'dnf'; then
+elif commands::executable_exists 'dnf'; then
   sudo dnf install --assumeyes "${packages[@]}"
-elif executable_exists 'pacman'; then
+elif commands::executable_exists 'pacman'; then
   sudo pacman --sync --needed --noconfirm "${packages[@]}"
 fi

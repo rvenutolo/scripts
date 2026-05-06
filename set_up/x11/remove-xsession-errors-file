@@ -5,19 +5,19 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 readonly xsession_errors_file="${HOME}/.xsession-errors"
 
-if ! file_exists "${xsession_errors_file}"; then
+if ! files::exists "${xsession_errors_file}"; then
   exit 0
 fi
-if ! prompt_yn "Delete ${xsession_errors_file}?"; then
+if ! prompt::yn "Delete ${xsession_errors_file}?"; then
   exit 0
 fi
 
-log "Removing: ${xsession_errors_file}"
+log::log "Removing: ${xsession_errors_file}"
 rm -- "${xsession_errors_file}"
-log "Removed: ${xsession_errors_file}"
+log::log "Removed: ${xsession_errors_file}"

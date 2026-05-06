@@ -5,16 +5,16 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_exactly_1_arg "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_exactly_1_arg "$@"
 
-if ! file_exists "$1"; then
-  die "$1 does not exist"
+if ! files::exists "$1"; then
+  log::die "$1 does not exist"
 fi
 
-if ! is_readable_file "$1"; then
-  die "$1 is not readable"
+if ! files::is_readable "$1"; then
+  log::die "$1 is not readable"
 fi
 
 printf '%s\n' "----------"

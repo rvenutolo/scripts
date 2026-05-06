@@ -5,8 +5,8 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_exactly_1_arg "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_exactly_1_arg "$@"
 
-ipv4_to_num "$1"
+ip::ipv4_to_num "$1"

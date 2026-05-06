@@ -5,13 +5,13 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! file_exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt_yn 'Install SDKMAN?'; then
-  log 'Installing SDKMAN'
-  if dir_exists "${SDKMAN_DIR}"; then
+if ! files::exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt::yn 'Install SDKMAN?'; then
+  log::log 'Installing SDKMAN'
+  if dirs::exists "${SDKMAN_DIR}"; then
     # chezmoi will have created ~/.sdkman and the SDKMAN install script assumes
     # that the presence of this directory means that SDKMAN has already been
     # installed and will not actually install SDKMAN. This directory should only
@@ -22,21 +22,21 @@ if ! file_exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt_yn 'Install SDKMAN
   # Retry due to random timeouts
   readonly base_sleep_time=30
   tries=0
-  until download_and_run_script 'https://get.sdkman.io?rcupdate=false'; do
+  until downloads::download_and_run_script 'https://get.sdkman.io?rcupdate=false'; do
     ((tries += 1))
     if ((tries > 10)); then
-      die "Failed to install SDKMAN in 10 tries"
+      log::die "Failed to install SDKMAN in 10 tries"
     fi
     rm --recursive --force -- "${SDKMAN_DIR}"
     sleep "$((base_sleep_time * tries))"
   done
-  log 'Installed SDKMAN'
+  log::log 'Installed SDKMAN'
 fi
 
-if file_exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt_yn 'Install SDKMAN packages?'; then
+if files::exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt::yn 'Install SDKMAN packages?'; then
   sdkman-update
 fi
 
-if file_exists "${HOME}/.config/sdkman/config"; then
-  link_file "${HOME}/.config/sdkman/config" "${SDKMAN_DIR}/etc/config"
+if files::exists "${HOME}/.config/sdkman/config"; then
+  symlinks::link_file "${HOME}/.config/sdkman/config" "${SDKMAN_DIR}/etc/config"
 fi

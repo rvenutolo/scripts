@@ -5,19 +5,19 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 readonly bash_logout_file="${HOME}/.bash_logout"
 
-if ! file_exists "${bash_logout_file}"; then
+if ! files::exists "${bash_logout_file}"; then
   exit 0
 fi
-if ! prompt_yn "Delete ${bash_logout_file}?"; then
+if ! prompt::yn "Delete ${bash_logout_file}?"; then
   exit 0
 fi
 
-log "Removing: ${bash_logout_file}"
+log::log "Removing: ${bash_logout_file}"
 rm -- "${bash_logout_file}"
-log "Removed: ${bash_logout_file}"
+log::log "Removed: ${bash_logout_file}"

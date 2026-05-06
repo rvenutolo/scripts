@@ -5,10 +5,10 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_at_least_1_arg "$@"
-check_for_stdin
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_at_least_1_arg "$@"
+args::check_for_stdin
 
 # ex:
 # printf '%s\n' 'foo bar' 'baz' | for-each-line-parallel printf '%s\n'

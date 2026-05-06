@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 
 # $1 = package name
-function dpkg_package_installed() {
-  dpkg-query --show --showformat='${Package};${Status}\n' "$1" 2> '/dev/null' | contains_regex_ignore_case "^$1;.*ok installed\$"
+function packages::dpkg_package_installed() {
+  dpkg-query --show --showformat='${Package};${Status}\n' "$1" 2> '/dev/null' | grep::contains_regex_ignore_case "^$1;.*ok installed\$"
 }
 
 # $1 = packages list type (appimage flatpak nixpkgs)
 # --quiet = don't output messages about disabled packages
 # --ignore [PACKAGE]... ignores those packages
-function get_universal_packages() {
-  check_at_least_1_arg "$@"
-  require_bash_version 4 0
+function packages::get_universal() {
+  args::check_at_least_1_arg "$@"
+  system::require_bash_version 4 0
   local package_type
   case "$1" in
     appimage | flatpak | nixpkgs | nixpkgs-unstable)
       readonly package_type="$1"
       ;;
     *)
-      die "Unexpected package list type: $1"
+      log::die "Unexpected package list type: $1"
       ;;
   esac
   shift
@@ -27,7 +27,7 @@ function get_universal_packages() {
     case "$1" in
       --ignore)
         if [[ $# -lt 2 ]]; then
-          die '--ignore requires at least one argument'
+          log::die '--ignore requires at least one argument'
         fi
         shift
         while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
@@ -40,12 +40,12 @@ function get_universal_packages() {
         shift
         ;;
       -*)
-        die "Unexpected flag '$1'"
+        log::die "Unexpected flag '$1'"
         return 1
         ;;
       *)
         # Any remaining non-flag args can be treated as extra inputs or error
-        die "Unexpected argument '$1'"
+        log::die "Unexpected argument '$1'"
         return 1
         ;;
     esac
@@ -55,22 +55,22 @@ function get_universal_packages() {
   local package_list_url='https://raw.githubusercontent.com/rvenutolo/packages/main/universal.csv'
   readonly package_list_url
   local package_list_column
-  if is_personal && is_desktop; then
+  if hosts::is_personal && hosts::is_desktop; then
     package_list_column=4
-  elif is_personal && is_laptop; then
+  elif hosts::is_personal && hosts::is_laptop; then
     package_list_column=5
-  elif is_work && is_laptop; then
+  elif hosts::is_work && hosts::is_laptop; then
     package_list_column=6
-  elif is_server; then
+  elif hosts::is_server; then
     package_list_column=7
   else
-    die 'Could not determine which computer this is'
+    log::die 'Could not determine which computer this is'
   fi
   readonly package_list_column
-  if is_empty "${quiet}"; then
+  if strings::is_empty "${quiet}"; then
     local -a pkg_infos
     mapfile -t pkg_infos < <(
-      download_and_cat "${package_list_url}" \
+      downloads::download_and_cat "${package_list_url}" \
         | awk \
           --field-separator ',' \
           --assign "type=${package_type}" \
@@ -78,12 +78,12 @@ function get_universal_packages() {
           '$2 == type && $col == "y" && $8 != "" { print "Disabled package: " $3 " (" $8 ")" }'
     )
     for pkg_info in "${pkg_infos[@]}"; do
-      log "${pkg_info}"
+      log::log "${pkg_info}"
     done
   fi
   comm -23 \
     <(
-      download_and_cat "${package_list_url}" \
+      downloads::download_and_cat "${package_list_url}" \
         | awk \
           --field-separator ',' \
           --assign "type=${package_type}" \
@@ -98,9 +98,9 @@ function get_universal_packages() {
 # $2 = codename
 # --quiet = don't output messages about disabled packages
 # --ignore [PACKAGE]... ignores those packages
-function get_distro_packages() {
-  check_at_least_2_args "$@"
-  require_bash_version 4 0
+function packages::get_distro() {
+  args::check_at_least_2_args "$@"
+  system::require_bash_version 4 0
   local id="$1"
   readonly id
   shift
@@ -113,7 +113,7 @@ function get_distro_packages() {
     case "$1" in
       --ignore)
         if [[ $# -lt 2 ]]; then
-          die '--ignore requires at least one argument'
+          log::die '--ignore requires at least one argument'
         fi
         shift
         while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
@@ -126,12 +126,12 @@ function get_distro_packages() {
         shift
         ;;
       -*)
-        die "Unexpected flag '$1'"
+        log::die "Unexpected flag '$1'"
         return 1
         ;;
       *)
         # Any remaining non-flag args can be treated as extra inputs or error
-        die "Unexpected argument '$1'"
+        log::die "Unexpected argument '$1'"
         return 1
         ;;
     esac
@@ -140,38 +140,38 @@ function get_distro_packages() {
   readonly quiet
   local package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/${id}-${codename}.csv"
   readonly package_list_url
-  if ! curl_wrapper --output '/dev/null' --head "${package_list_url}"; then
-    die "No packages list for ${id} ${codename}"
+  if ! wrappers::curl --output '/dev/null' --head "${package_list_url}"; then
+    log::die "No packages list for ${id} ${codename}"
   fi
   local package_list_column
-  if is_personal && is_desktop; then
+  if hosts::is_personal && hosts::is_desktop; then
     package_list_column=2
-  elif is_personal && is_laptop; then
+  elif hosts::is_personal && hosts::is_laptop; then
     package_list_column=3
-  elif is_work && is_laptop; then
+  elif hosts::is_work && hosts::is_laptop; then
     package_list_column=4
-  elif is_server; then
+  elif hosts::is_server; then
     package_list_column=5
   else
-    die 'Could not determine which computer this is'
+    log::die 'Could not determine which computer this is'
   fi
   readonly package_list_column
-  if is_empty "${quiet}"; then
+  if strings::is_empty "${quiet}"; then
     local -a pkg_infos
     mapfile -t pkg_infos < <(
-      download_and_cat "${package_list_url}" \
+      downloads::download_and_cat "${package_list_url}" \
         | awk \
           --field-separator ',' \
           --assign "col=${package_list_column}" \
           '$col == "y" && $6 != "" { print "Disabled package: " $1 " (" $6 ")" }'
     )
     for pkg_info in "${pkg_infos[@]}"; do
-      log "${pkg_info}"
+      log::log "${pkg_info}"
     done
   fi
   comm -23 \
     <(
-      download_and_cat "${package_list_url}" \
+      downloads::download_and_cat "${package_list_url}" \
         | awk \
           --field-separator ',' \
           --assign "col=${package_list_column}" \
@@ -183,15 +183,15 @@ function get_distro_packages() {
 
 # --quiet = don't output messages about disabled packages
 # --ignore [PACKAGE]... ignores those packages
-function get_sdkman_packages() {
-  require_bash_version 4 0
+function packages::get_sdkman() {
+  system::require_bash_version 4 0
   local packages_to_ignore=()
   local quiet=''
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --ignore)
         if [[ $# -lt 2 ]]; then
-          die '--ignore requires at least one argument'
+          log::die '--ignore requires at least one argument'
         fi
         shift
         while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
@@ -204,12 +204,12 @@ function get_sdkman_packages() {
         shift
         ;;
       -*)
-        die "Unexpected flag '$1'"
+        log::die "Unexpected flag '$1'"
         return 1
         ;;
       *)
         # Any remaining non-flag args can be treated as extra inputs or error
-        die "Unexpected argument '$1'"
+        log::die "Unexpected argument '$1'"
         return 1
         ;;
     esac
@@ -219,34 +219,34 @@ function get_sdkman_packages() {
   local package_list_url='https://raw.githubusercontent.com/rvenutolo/packages/main/sdkman.csv'
   readonly package_list_url
   local package_list_column
-  if is_personal && is_desktop; then
+  if hosts::is_personal && hosts::is_desktop; then
     package_list_column=3
-  elif is_personal && is_laptop; then
+  elif hosts::is_personal && hosts::is_laptop; then
     package_list_column=4
-  elif is_work && is_laptop; then
+  elif hosts::is_work && hosts::is_laptop; then
     package_list_column=5
-  elif is_server; then
+  elif hosts::is_server; then
     package_list_column=6
   else
-    die 'Could not determine which computer this is'
+    log::die 'Could not determine which computer this is'
   fi
   readonly package_list_column
-  if is_empty "${quiet}"; then
+  if strings::is_empty "${quiet}"; then
     local -a pkg_infos
     mapfile -t pkg_infos < <(
-      download_and_cat "${package_list_url}" \
+      downloads::download_and_cat "${package_list_url}" \
         | awk \
           --field-separator ',' \
           --assign "col=${package_list_column}" \
           '$col == "y" && $7 != "" { print "Disabled package: " $2 " (" $7 ")" }'
     )
     for pkg_info in "${pkg_infos[@]}"; do
-      log "${pkg_info}"
+      log::log "${pkg_info}"
     done
   fi
   comm -23 \
     <(
-      download_and_cat "${package_list_url}" \
+      downloads::download_and_cat "${package_list_url}" \
         | awk \
           --field-separator ',' \
           --assign "col=${package_list_column}" \

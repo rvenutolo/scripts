@@ -8,30 +8,30 @@ sudo --validate
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if is_empty "$(w --no-header "${USER}")"; then
-  die "${USER} is not logged in"
+if strings::is_empty "$(w --no-header "${USER}")"; then
+  log::die "${USER} is not logged in"
 fi
 
 readonly expected_locale='LANG=en_US.UTF-8'
-if ! localectl | contains_exactly "${expected_locale}"; then
-  log "Locale is not: ${expected_locale}"
+if ! localectl | grep::contains_exactly "${expected_locale}"; then
+  log::log "Locale is not: ${expected_locale}"
 fi
 
-if ! timedatectl show | contains_exactly 'NTP=yes'; then
-  log "timedatectl NTP is not on"
+if ! timedatectl show | grep::contains_exactly 'NTP=yes'; then
+  log::log "timedatectl NTP is not on"
 fi
 
 readonly expected_tz='America/New_York'
-if ! timedatectl show | contains_regex "^Timezone=${expected_tz}$"; then
-  log "Timezone is NOT ${expected_tz}"
+if ! timedatectl show | grep::contains_regex "^Timezone=${expected_tz}$"; then
+  log::log "Timezone is NOT ${expected_tz}"
 fi
 
-if ! loginctl show-user "${USER}" --property=Linger 2> '/dev/null' | contains_word_ignore_case 'yes'; then
-  log "${USER} is not set to linger"
+if ! loginctl show-user "${USER}" --property=Linger 2> '/dev/null' | grep::contains_word_ignore_case 'yes'; then
+  log::log "${USER} is not set to linger"
 fi
 
 user_groups="$(groups "${USER}")" || exit 1
@@ -40,13 +40,13 @@ all_groups="$(getent group | cut --delimiter=':' --fields=1)" || exit 1
 readonly all_groups
 readonly groups=('adm' 'admin' 'docker' 'kvm' 'input' 'libvirt' 'libvirtd' 'sudo' 'sys' 'wheel')
 for group in "${groups[@]}"; do
-  if ! contains_word "${group}" <<< "${all_groups}"; then
+  if ! grep::contains_word "${group}" <<< "${all_groups}"; then
     continue
   fi
-  if contains_word "${group}" <<< "${user_groups}"; then
+  if grep::contains_word "${group}" <<< "${user_groups}"; then
     continue
   fi
-  log "User is not in group: ${group}"
+  log::log "User is not in group: ${group}"
 done
 
 readonly expected_vars=(
@@ -63,8 +63,8 @@ readonly expected_vars=(
   'SDKMAN_DIR'
 )
 for var in "${expected_vars[@]}"; do
-  if is_empty "${!var:-}"; then
-    log "Environment variable not set: ${var}"
+  if strings::is_empty "${!var:-}"; then
+    log::log "Environment variable not set: ${var}"
   fi
 done
 
@@ -75,43 +75,43 @@ CODE_DIR="${CODE_DIR:-"${HOME}/Code"}"
 SCRIPTS_DIR="${SCRIPTS_DIR:-"${CODE_DIR}/Personal/scripts"}"
 
 ## remove from path so scripts that mask commands are no longer on PATH, ex: mvn
-path_remove "${SCRIPTS_DIR}/main"
-path_remove "${SCRIPTS_DIR}/other"
+path::remove "${SCRIPTS_DIR}/main"
+path::remove "${SCRIPTS_DIR}/other"
 
-if executable_exists 'flatpak' && ! flatpak --user remotes | contains_word_ignore_case 'flathub'; then
-  log 'Flathub Flatpak repo is not installed'
+if commands::executable_exists 'flatpak' && ! flatpak --user remotes | grep::contains_word_ignore_case 'flathub'; then
+  log::log 'Flathub Flatpak repo is not installed'
 fi
 
 ## check that the `trash` command is from trash-cli and not trash-d
-if executable_exists 'trash' && ! trash --help | contains_word_ignore_case 'https://github.com/andreafrancia/trash-cli/issues'; then
-  log "trash command is not from trash-cli"
+if commands::executable_exists 'trash' && ! trash --help | grep::contains_word_ignore_case 'https://github.com/andreafrancia/trash-cli/issues'; then
+  log::log "trash command is not from trash-cli"
 fi
 
 ## check that the `tldr` command is from tealdeer
-if executable_exists 'tldr' && ! tldr --version | contains_word_ignore_case 'tealdeer'; then
-  log "tldr command is not from tealdeer"
+if commands::executable_exists 'tldr' && ! tldr --version | grep::contains_word_ignore_case 'tealdeer'; then
+  log::log "tldr command is not from tealdeer"
 fi
 
-if executable_exists 'ufw'; then
+if commands::executable_exists 'ufw'; then
   ufw_status="$(sudo ufw status verbose)" || exit 1
   readonly ufw_status
-  if ! contains_word_ignore_case 'status: active' <<< "${ufw_status}"; then
-    log "UFW is not active"
+  if ! grep::contains_word_ignore_case 'status: active' <<< "${ufw_status}"; then
+    log::log "UFW is not active"
   fi
-  if ! contains_word_ignore_case 'deny (incoming)' <<< "${ufw_status}"; then
-    log "UFW is not denying incoming by default"
+  if ! grep::contains_word_ignore_case 'deny (incoming)' <<< "${ufw_status}"; then
+    log::log "UFW is not denying incoming by default"
   fi
-  if ! contains_word_ignore_case 'allow (outgoing)' <<< "${ufw_status}"; then
-    log "UFW is not allowing outgoing by default"
+  if ! grep::contains_word_ignore_case 'allow (outgoing)' <<< "${ufw_status}"; then
+    log::log "UFW is not allowing outgoing by default"
   fi
 fi
 
-if executable_exists 'aa-enabled' && ! aa-enabled | contains_word_ignore_case 'yes'; then
-  log "AppArmor is not enabled"
+if commands::executable_exists 'aa-enabled' && ! aa-enabled | grep::contains_word_ignore_case 'yes'; then
+  log::log "AppArmor is not enabled"
 fi
 
-if executable_exists 'sestatus' && sestatus | contains_perl_regex_ignore_case 'selinux status:\s+enabled'; then
-  log "SELinux is enabled"
+if commands::executable_exists 'sestatus' && sestatus | grep::contains_perl_regex_ignore_case 'selinux status:\s+enabled'; then
+  log::log "SELinux is enabled"
 fi
 
 expected_files=(
@@ -126,7 +126,7 @@ expected_files=(
   '/etc/sudoers.d/disable-admin-flag'
   '/etc/sudoers.d/timestamp-timeout'
 )
-if is_personal; then
+if hosts::is_personal; then
   expected_files+=(
     '/etc/sysctl.d/kvals.conf'
     '/etc/sysctl.d/max-user-watches.conf'
@@ -134,11 +134,11 @@ if is_personal; then
 fi
 readonly expected_files
 for file in "${expected_files[@]}"; do
-  if ! file_exists "${file}"; then
-    log "Missing file: ${file}"
+  if ! files::exists "${file}"; then
+    log::log "Missing file: ${file}"
   fi
-  if ! is_readable_file "${file}"; then
-    log "Cannot read file: ${file}"
+  if ! files::is_readable "${file}"; then
+    log::log "Cannot read file: ${file}"
   fi
 done
 
@@ -149,12 +149,12 @@ readonly unwanted_files=(
   "${HOME}/.lesshst"
 )
 for file in "${unwanted_files[@]}"; do
-  if file_exists "${file}"; then
-    log "Unwanted file: ${file}"
+  if files::exists "${file}"; then
+    log::log "Unwanted file: ${file}"
   fi
 done
 
-if ! is_server; then
+if ! hosts::is_server; then
   readonly expected_fonts=(
     'Code New Roman'
     'Fantasque Sans Mono'
@@ -177,19 +177,19 @@ if ! is_server; then
     'Ubuntu Mono'
   )
 
-  if executable_exists 'fc-list'; then
+  if commands::executable_exists 'fc-list'; then
     installed_fonts="$(fc-list : family)" || exit 1
     readonly installed_fonts
     for font in "${expected_fonts[@]}"; do
-      if ! contains_word_ignore_case "${font}" <<< "${installed_fonts}" \
-        && ! contains_word_ignore_case "${font}TTF" <<< "${installed_fonts}" \
-        && ! contains_word_ignore_case "$(printf '%b' "${font}" | tr --delete '[:space:]')" <<< "${installed_fonts}" \
-        && ! contains_word_ignore_case "$(printf '%b' "${font}TTF" | tr --delete '[:space:]')" <<< "${installed_fonts}"; then
-        log "Font not available: ${font}"
+      if ! grep::contains_word_ignore_case "${font}" <<< "${installed_fonts}" \
+        && ! grep::contains_word_ignore_case "${font}TTF" <<< "${installed_fonts}" \
+        && ! grep::contains_word_ignore_case "$(printf '%b' "${font}" | tr --delete '[:space:]')" <<< "${installed_fonts}" \
+        && ! grep::contains_word_ignore_case "$(printf '%b' "${font}TTF" | tr --delete '[:space:]')" <<< "${installed_fonts}"; then
+        log::log "Font not available: ${font}"
       fi
     done
   else
-    log 'No fc-list, skipping font checks'
+    log::log 'No fc-list, skipping font checks'
   fi
 fi
 
@@ -197,44 +197,44 @@ expected_active_system_services=(
   'fail2ban.service'
   'ufw.service'
 )
-if ! is_server; then
+if ! hosts::is_server; then
   expected_active_system_services+=('cups.service')
 fi
-if executable_exists 'aa-enabled'; then
+if commands::executable_exists 'aa-enabled'; then
   expected_active_system_services+=('apparmor.service')
 fi
-if executable_exists 'CrashPlanDesktop'; then
+if commands::executable_exists 'CrashPlanDesktop'; then
   expected_active_system_services+=('crashplan-pro.service')
 fi
-if executable_exists 'containerd'; then
+if commands::executable_exists 'containerd'; then
   expected_active_system_services+=('containerd.service')
 fi
-if executable_exists 'pkgfile'; then
+if commands::executable_exists 'pkgfile'; then
   expected_active_system_services+=('pkgfile-update.timer')
 fi
-if executable_exists 'reflector'; then
+if commands::executable_exists 'reflector'; then
   expected_active_system_services+=('reflector.timer')
 fi
-if executable_exists 'tailscaled'; then
+if commands::executable_exists 'tailscaled'; then
   expected_active_system_services+=('tailscaled.service')
 fi
 readonly expected_active_system_services
 for service in "${expected_active_system_services[@]}"; do
   if ! systemctl is-active --quiet "${service}"; then
-    log "System service not active: ${service}"
+    log::log "System service not active: ${service}"
   fi
 done
 
 expected_enabled_system_services=(
   'sshd.service'
 )
-if executable_exists 'libvirtd'; then
+if commands::executable_exists 'libvirtd'; then
   expected_enabled_system_services+=('libvirtd.service')
 fi
 readonly expected_enabled_system_services
 for service in "${expected_enabled_system_services[@]}"; do
   if ! systemctl is-enabled --quiet "${service}"; then
-    log "System service not enabled: ${service}"
+    log::log "System service not enabled: ${service}"
   fi
 done
 
@@ -244,24 +244,24 @@ expected_active_user_services=(
   'trash-cleanup.timer'
   'trash-empty.timer'
 )
-if executable_exists 'dockerd'; then
+if commands::executable_exists 'dockerd'; then
   expected_active_user_services+=('docker.service')
 fi
 readonly expected_active_user_services
 for service in "${expected_active_user_services[@]}"; do
   if ! systemctl is-active --user --quiet "${service}"; then
-    log "User service not active: ${service}"
+    log::log "User service not active: ${service}"
   fi
 done
 
 readonly expected_enabled_user_services=()
 for service in "${expected_enabled_user_services[@]}"; do
   if ! systemctl is-enabled --user --quiet "${service}"; then
-    log "User service not enabled: ${service}"
+    log::log "User service not enabled: ${service}"
   fi
 done
 
-if ! is_server; then
+if ! hosts::is_server; then
   readonly expected_kvals=(
     'vm.dirty_background_ratio 5'
     'vm.dirty_ratio 5'
@@ -271,28 +271,28 @@ if ! is_server; then
   for kvals in "${expected_kvals[@]}"; do
     IFS=' ' read -r k v <<< "${kvals}"
     if [[ ! $(sysctl --values "${k}") -le "${v}" ]]; then
-      log "Kernel variable ${k} is >${v}: $(sysctl --values "${k}")"
+      log::log "Kernel variable ${k} is >${v}: $(sysctl --values "${k}")"
     fi
   done
 fi
 
-if executable_exists 'pacman'; then
+if commands::executable_exists 'pacman'; then
   pacman_conf_text="$(cat '/etc/pacman.conf')" || exit 1
   readonly pacman_conf_text
   for pacman_repo in 'multilib' 'chaotic-aur'; do
-    if ! contains_exactly "[${pacman_repo}]" <<< "${pacman_conf_text}"; then
-      log "Pacman ${pacman_repo} repo is missing"
+    if ! grep::contains_exactly "[${pacman_repo}]" <<< "${pacman_conf_text}"; then
+      log::log "Pacman ${pacman_repo} repo is missing"
     fi
   done
 fi
 
-if is_fedora; then
+if os::is_fedora; then
   readonly expected_dnf_conf_vals=('max_parallel_downloads' 'defaultyes' 'keepcache')
   dnf_conf_text="$(cat '/etc/dnf/dnf.conf')" || exit 1
   readonly dnf_conf_text
   for dnf_conf_val in "${expected_dnf_conf_vals[@]}"; do
-    if is_empty "$(grep --fixed-strings "${dnf_conf_val}" <<< "${dnf_conf_text}" | cut --delimiter='=' --fields=2 | xargs)"; then
-      log "dnf conf ${dnf_conf_val} is not set"
+    if strings::is_empty "$(grep --fixed-strings "${dnf_conf_val}" <<< "${dnf_conf_text}" | cut --delimiter='=' --fields=2 | xargs)"; then
+      log::log "dnf conf ${dnf_conf_val} is not set"
     fi
   done
   installed_packages="$(dnf list --installed | cut --delimiter=' ' --fields=1)" || exit 1
@@ -304,8 +304,8 @@ if is_fedora; then
     'rpmfusion-nonfree-release'
   )
   for rpm_fusion_pacakge in "${expected_rpm_fusions_packages[@]}"; do
-    if ! contains_word "${rpm_fusion_pacakge}" <<< "${installed_packages}"; then
-      log "${rpm_fusion_pacakge} is not installed"
+    if ! grep::contains_word "${rpm_fusion_pacakge}" <<< "${installed_packages}"; then
+      log::log "${rpm_fusion_pacakge} is not installed"
     fi
   done
 fi

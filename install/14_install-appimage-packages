@@ -5,22 +5,22 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! executable_exists 'appman' && prompt_yn 'Install AppMan?'; then
-  log 'Installing AppMan'
+if ! commands::executable_exists 'appman' && prompt::yn 'Install AppMan?'; then
+  log::log 'Installing AppMan'
   readonly appman_location="${HOME}/.local/bin/appman"
   download 'https://raw.githubusercontent.com/ivan-hc/AM/main/APP-MANAGER' "${appman_location}"
   chmod +x "${appman_location}"
-  log 'Installed AppMan'
+  log::log 'Installed AppMan'
 fi
 
-if ! executable_exists 'appman' || ! prompt_yn 'Install AppImage packages'; then
+if ! commands::executable_exists 'appman' || ! prompt::yn 'Install AppImage packages'; then
   exit 0
 fi
 
-log 'Installing AppMan packages'
-get_universal_packages 'appimage' | xargs --no-run-if-empty appman install
-log 'Installed AppMan packages'
+log::log 'Installing AppMan packages'
+packages::get_universal 'appimage' | xargs --no-run-if-empty appman install
+log::log 'Installed AppMan packages'

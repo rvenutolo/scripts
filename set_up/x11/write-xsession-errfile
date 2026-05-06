@@ -5,25 +5,25 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 readonly xsession_file='/etc/X11/Xsession'
 
-if ! file_exists "${xsession_file}"; then
+if ! files::exists "${xsession_file}"; then
   exit 0
 fi
 
 # shellcheck disable=SC2016 # literal '$XDG_CACHE_HOME' is intentional - written to file as-is
-if file_contains_exactly "${xsession_file}" 'ERRFILE=$XDG_CACHE_HOME/X11/xsession-errors'; then
+if grep::file_contains_exactly "${xsession_file}" 'ERRFILE=$XDG_CACHE_HOME/X11/xsession-errors'; then
   exit 0
 fi
 
-if ! file_contains_word "${xsession_file}" 'ERRFILE='; then
-  die "${xsession_file} does not contain 'ERRFILE='"
+if ! grep::file_contains_word "${xsession_file}" 'ERRFILE='; then
+  log::die "${xsession_file} does not contain 'ERRFILE='"
 fi
 
-log 'Setting X11 ERRFILE'
+log::log 'Setting X11 ERRFILE'
 sudo sed --in-place 's|^ERRFILE=.*$|ERRFILE=$XDG_CACHE_HOME/X11/xsession-errors|' "${xsession_file}"
-log 'Set X11 ERRFILE'
+log::log 'Set X11 ERRFILE'

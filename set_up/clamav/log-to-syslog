@@ -5,20 +5,20 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 readonly clamd_conf_file='/etc/clamav/clamd.conf'
 
-if ! file_exists "${clamd_conf_file}"; then
+if ! files::exists "${clamd_conf_file}"; then
   exit 0
 fi
 
-log 'Setting ClamAV to log to syslog'
-if file_contains_word "${clamd_conf_file}" 'LogSyslog'; then
+log::log 'Setting ClamAV to log to syslog'
+if grep::file_contains_word "${clamd_conf_file}" 'LogSyslog'; then
   sudo sed --in-place 's/^LogSyslog .*/LogSyslog true/' "${clamd_conf_file}"
 else
   sudo tee --append "${clamd_conf_file}" <<< 'LogSyslog true'
 fi
-log 'Set ClamAV to log to syslog'
+log::log 'Set ClamAV to log to syslog'

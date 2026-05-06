@@ -5,28 +5,28 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! is_arch && ! is_cachyos; then
+if ! os::is_arch && ! os::is_cachyos; then
   exit 0
 fi
 
-if ! executable_exists 'reflector'; then
-  log 'reflector executable not found'
+if ! commands::executable_exists 'reflector'; then
+  log::log 'reflector executable not found'
   exit 0
 fi
 
 readonly src_file="${HOME}/.etc/reflector.conf"
 readonly dest_file='/etc/xdg/reflector/reflector.conf'
 
-orig_hash="$(file_hash "${dest_file}")" || exit 1
+orig_hash="$(files::hash "${dest_file}")" || exit 1
 readonly orig_hash
-root_copy_file "${src_file}" "${dest_file}"
-cur_hash="$(file_hash "${dest_file}")" || exit 1
+files::root_copy "${src_file}" "${dest_file}"
+cur_hash="$(files::hash "${dest_file}")" || exit 1
 readonly cur_hash
 
 if [[ "${orig_hash}" != "${cur_hash}" ]]; then
-  restart_system_service_if_enabled 'reflector.service'
+  systemctl::restart_system_service_if_enabled 'reflector.service'
 fi

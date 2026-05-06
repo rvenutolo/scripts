@@ -5,11 +5,11 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-log 'Updating firmware'
+log::log 'Updating firmware'
 sudo fwupdmgr refresh --force
 sudo fwupdmgr update --offline --assume-yes
-log 'Updated firmware'
+log::log 'Updated firmware'

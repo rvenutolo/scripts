@@ -14,12 +14,12 @@
 
   #shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions.bash"
-  enable_err_trap
-  check_no_args "$@"   # or check_exactly_N_args / check_at_least_N_args / check_at_most_N_args
+  log::enable_err_trap
+  args::check_no_args "$@"   # or check_exactly_N_args / check_at_least_N_args / check_at_most_N_args
   ```
 
-- `enable_err_trap` (from `functions/log.bash`) installs an `ERR` trap that prints a red, prefixed `ERROR: line N (exit C): cmd` line to stderr when any unhandled command fails under `set -e`. Call it once, immediately after sourcing `functions.bash`. It complements `die` (explicit user-visible failures) — the trap catches everything else.
-- Standalone scripts that do NOT source this repo's `functions.bash` (everything in `misc/`) cannot call `enable_err_trap`. Inline the trap directly after the `IFS=` line. (Note: scripts that source `${DOCKER_COMPOSE_DIR}/functions.bash` DO have access to this repo's helpers — that file transitively sources `${SCRIPTS_DIR}/functions.bash` — so use `enable_err_trap` there, not the inline form.)
+- `log::enable_err_trap` (from `functions/log.bash`) installs an `ERR` trap that prints a red, prefixed `ERROR: line N (exit C): cmd` line to stderr when any unhandled command fails under `set -e`. Call it once, immediately after sourcing `functions.bash`. It complements `log::die` (explicit user-visible failures) — the trap catches everything else.
+- Standalone scripts that do NOT source this repo's `functions.bash` (everything in `misc/`) cannot call `log::enable_err_trap`. Inline the trap directly after the `IFS=` line. (Note: scripts that source `${DOCKER_COMPOSE_DIR}/functions.bash` DO have access to this repo's helpers — that file transitively sources `${SCRIPTS_DIR}/functions.bash` — so use `log::enable_err_trap` there, not the inline form.)
 
   ```bash
   trap 'printf "\033[0;31m[%s %s] ERROR: line %s (exit %s): %s\033[0m\n" "$(date +%T)" "${0##*/}" "${LINENO}" "$?" "${BASH_COMMAND}" >&2' ERR
@@ -30,18 +30,18 @@
 - Document positional parameters above each function with `# $1 = description` comments (use `# $@ = ...` for varargs).
 - Predicate functions (`is_*`, `*_exists`, etc.) end with a `[[ ... ]]` test or command whose exit status is the result — do not write explicit `return 0` / `return 1`.
 - Library functions in `functions/*.bash` use the same `check_*_args "$@"` guards as top-level scripts (not only top-level scripts get them).
-- Logging/erroring helpers from `functions/log.bash` (all color-coded, written to stderr, prefixed with `${0##*/}`): `log` (green, info-level), `log_with_date` (green, info-level with full date), `log_warn` (yellow, warn-level — use for non-fatal problems), `die` (red, error-level + `exit 1` with caller context). There is no separate `log_info` (use `log`) or `log_err` (use `die` if fatal, or `log_warn` if not).
-- `die` includes caller context via `${BASH_SOURCE[1]}:${FUNCNAME[1]}:${BASH_LINENO[0]}` — preserve this when modifying the helper.
-- Stdin presence: helpers `check_for_stdin` / `stdin_exists` from `functions/args.bash`. No inline `[[ -t 0 ]]`.
-- Existence checks: helpers `file_exists` / `assert_file_exists` (`functions/files.bash`), `dir_exists` / `assert_dir_exists` (`functions/dirs.bash`), `symlink_exists` (`functions/symlinks.bash`). Use the `assert_*` variants for entry-point validation (they call `die` with a consistent message); use the bare predicates for branching. No inline `[[ -f X ]]` + manual `die` rolls.
-- Interactive prompts: helpers `prompt_yn` / `prompt_ny` / `prompt_for_value` from `functions/prompt.bash`. Fall back to inline `read -rp $'\e[0;33mPrompt: \e[0m'` (colored `$'...'` form) only when no helper fits, and document why with a comment.
-- Empty-string tests: helpers `is_empty` / `is_not_empty` / `is_blank` from `functions/strings.bash`. Use these instead of inline `[[ -z "$x" ]]` / `[[ -n "$x" ]]`. `is_blank` is true for empty OR all-whitespace strings. Overrides the global `-z`/`-n` rule for this repo.
-- Executable-on-`PATH` check: helper `executable_exists` from `functions/commands.bash` (uses `type -aPf`, excludes builtins/aliases/functions, and strips `main/` and `other/` from `PATH` so wrappers in those dirs don't mask the real binary). Overrides the global rule's `command -v` recommendation for this repo — `command -v` would return scripts in `main/` that mask command names (e.g. `mvn`, `gradle`).
-- Executable-path resolution (when you need the absolute path, not just a yes/no): helper `executable_path` from `functions/commands.bash`. Same PATH-stripping as `executable_exists`. No inline `command -v BIN` or `which BIN` — those would return wrappers in `main/`/`other/` instead of the real binary.
-- Idempotent file mutation (write/move/copy/link/append): helpers in `functions/files.bash` and `functions/symlinks.bash` — `write_file`, `append_to_file`, `move_file`, `copy_file`, `link_file`, `link_dir`. They implement the standard pattern: `cmp --silent` short-circuit on byte equality, `diff --color --unified ... || true` preview, `prompt_yn` confirmation, and parent-dir auto-creation via `create_dir "$(dirname "$dest")"`.
-- Parent-dir auto-creation before writing/moving/copying: helpers `create_dir "$(dirname "${dest}")"` (or `root_create_dir` for sudo writes). No inline `mkdir --parents` / `mkdir -p`.
-- Root-owned destinations: `root_*` variants (`root_write_file`, `root_append_to_file`, `root_move_file`, `root_copy_file`, `root_create_dir`). When no helper fits, use `sudo test -f`, `sudo cmp`, `sudo cat` for state checks, and `echo "${content}" | sudo tee [--append] "${file}" > '/dev/null'` for the write — no `sudo bash -c 'echo ... > ...'`.
-- Symlinks: helpers `link_file` / `link_dir` from `functions/symlinks.bash`. No inline `ln --symbolic` / `ln -s` — the helpers handle the canonical-target short-circuit, diff/prompt confirmation, and parent-dir creation.
+- Logging/erroring helpers from `functions/log.bash` (all color-coded, written to stderr, prefixed with `${0##*/}`): `log::log` (green, info-level), `log::with_date` (green, info-level with full date), `log::warn` (yellow, warn-level — use for non-fatal problems), `log::die` (red, error-level + `exit 1` with caller context). There is no separate `log_info` (use `log::log`) or `log_err` (use `log::die` if fatal, or `log::warn` if not).
+- `log::die` includes caller context via `${BASH_SOURCE[1]}:${FUNCNAME[1]}:${BASH_LINENO[0]}` — preserve this when modifying the helper.
+- Stdin presence: helpers `args::check_for_stdin` / `args::stdin_exists` from `functions/args.bash`. No inline `[[ -t 0 ]]`.
+- Existence checks: helpers `files::exists` / `files::assert_exists` (`functions/files.bash`), `dirs::exists` / `dirs::assert_exists` (`functions/dirs.bash`), `symlinks::exists` (`functions/symlinks.bash`). Use the `assert_*` variants for entry-point validation (they call `log::die` with a consistent message); use the bare predicates for branching. No inline `[[ -f X ]]` + manual `log::die` rolls.
+- Interactive prompts: helpers `prompt::yn` / `prompt::ny` / `prompt::for_value` from `functions/prompt.bash`. Fall back to inline `read -rp $'\e[0;33mPrompt: \e[0m'` (colored `$'...'` form) only when no helper fits, and document why with a comment.
+- Empty-string tests: helpers `strings::is_empty` / `strings::is_not_empty` / `strings::is_blank` from `functions/strings.bash`. Use these instead of inline `[[ -z "$x" ]]` / `[[ -n "$x" ]]`. `strings::is_blank` is true for empty OR all-whitespace strings. Overrides the global `-z`/`-n` rule for this repo.
+- Executable-on-`PATH` check: helper `commands::executable_exists` from `functions/commands.bash` (uses `type -aPf`, excludes builtins/aliases/functions, and strips `main/` and `other/` from `PATH` so wrappers in those dirs don't mask the real binary). Overrides the global rule's `command -v` recommendation for this repo — `command -v` would return scripts in `main/` that mask command names (e.g. `mvn`, `gradle`).
+- Executable-path resolution (when you need the absolute path, not just a yes/no): helper `commands::executable_path` from `functions/commands.bash`. Same PATH-stripping as `commands::executable_exists`. No inline `command -v BIN` or `which BIN` — those would return wrappers in `main/`/`other/` instead of the real binary.
+- Idempotent file mutation (write/move/copy/link/append): helpers in `functions/files.bash` and `functions/symlinks.bash` — `files::write`, `files::append_to`, `files::move`, `files::copy`, `symlinks::link_file`, `symlinks::link_dir`. They implement the standard pattern: `cmp --silent` short-circuit on byte equality, `diff --color --unified ... || true` preview, `prompt::yn` confirmation, and parent-dir auto-creation via `dirs::create "$(dirname "$dest")"`.
+- Parent-dir auto-creation before writing/moving/copying: helpers `dirs::create "$(dirname "${dest}")"` (or `dirs::root_create` for sudo writes). No inline `mkdir --parents` / `mkdir -p`.
+- Root-owned destinations: `root_*` variants (`files::root_write`, `files::root_append_to`, `files::root_move`, `files::root_copy`, `dirs::root_create`). When no helper fits, use `sudo test -f`, `sudo cmp`, `sudo cat` for state checks, and `echo "${content}" | sudo tee [--append] "${file}" > '/dev/null'` for the write — no `sudo bash -c 'echo ... > ...'`.
+- Symlinks: helpers `symlinks::link_file` / `symlinks::link_dir` from `functions/symlinks.bash`. No inline `ln --symbolic` / `ln -s` — the helpers handle the canonical-target short-circuit, diff/prompt confirmation, and parent-dir creation.
 - Read values from `/etc/os-release` by sourcing it in a subshell, not by `grep`/`sed`/`awk`. The file is spec-defined as shell-sourceable, handles quoted values correctly, and exposes every field at once:
 
   ```bash
@@ -89,7 +89,7 @@
   until some_cmd; do
     (( tries += 1 ))
     if (( tries > 10 )); then
-      die "Failed after 10 tries"
+      log::die "Failed after 10 tries"
     fi
     sleep 15
   done
@@ -120,7 +120,7 @@
 
 - Always check `cd` results: `cd "${dir}" || exit 1`. Prefer scoped subshells over `pushd`/`popd`: `(cd "${dir}" && do_thing)`
 - SUID and SGID are forbidden on shell scripts. Use `sudo` to grant elevated access instead.
-- All error messages must be written to stderr. The repo's logging helpers already follow this — `log`, `log_with_date`, `log_warn`, and `die` all write to stderr.
+- All error messages must be written to stderr. The repo's logging helpers already follow this — `log::log`, `log::with_date`, `log::warn`, and `log::die` all write to stderr.
 - Document non-trivial functions with a comment block above the definition: description, globals used or modified, arguments (using the `# $1 = description` style for each positional; `# $@ = ...` for varargs), outputs (stdout/stderr), and return value semantics. Library functions in `functions/*.bash` always require this; small internal helpers may be lighter.
 - Comment tricky, non-obvious, or important code sections; explain *why*, not *what*.
 - Use `TODO:` (all caps, no author identifier) to mark deferred work.

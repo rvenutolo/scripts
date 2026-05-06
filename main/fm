@@ -5,22 +5,22 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_at_most_1_arg "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_at_most_1_arg "$@"
 
 disown_proc='n'
-if executable_exists 'xdg-open'; then
+if commands::executable_exists 'xdg-open'; then
   fm='xdg-open'
   disown_proc='y'
-elif executable_exists 'lf'; then
+elif commands::executable_exists 'lf'; then
   fm='lf'
-elif executable_exists 'ranger'; then
+elif commands::executable_exists 'ranger'; then
   fm='ranger'
-elif executable_exists 'fff'; then
+elif commands::executable_exists 'fff'; then
   fm='fff'
 else
-  die "Could not find a file manager"
+  log::die "Could not find a file manager"
 fi
 readonly fm disown_proc
 

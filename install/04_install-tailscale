@@ -5,18 +5,18 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 readonly name='Tailscale'
 readonly executable='tailscale'
 readonly url='https://tailscale.com/install.sh'
 
-if executable_exists "${executable}"; then
+if commands::executable_exists "${executable}"; then
   exit 0
 fi
-if ! prompt_yn "Install ${name}?"; then
+if ! prompt::yn "Install ${name}?"; then
   exit 0
 fi
 
@@ -32,6 +32,6 @@ function wget() {
 }
 export -f wget
 
-log "Installing ${name} via: ${url}"
-download_and_run_script "${url}"
-log "Installed ${name} via: ${url}"
+log::log "Installing ${name} via: ${url}"
+downloads::download_and_run_script "${url}"
+log::log "Installed ${name} via: ${url}"

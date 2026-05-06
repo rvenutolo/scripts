@@ -5,12 +5,12 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 for repo in 'crypt' 'packages' 'scripts'; do
-  log "Executing git pull for: ${repo}"
+  log::log "Executing git pull for: ${repo}"
   repo_dir="${CODE_DIR}/Personal/${repo}"
   git -C "${repo_dir}" pull
 done

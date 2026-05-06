@@ -5,17 +5,17 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 shopt -s nocaseglob
 for readme_file in readme*; do
-  if is_readable_file "${readme_file}"; then
+  if files::is_readable "${readme_file}"; then
     printf '%s\n' "----------"
     printf '%s\n' "${readme_file}"
     printf '%s\n' "----------"
-    if executable_exists 'glow'; then
+    if commands::executable_exists 'glow'; then
       glow "${readme_file}"
     else
       cat "${readme_file}"

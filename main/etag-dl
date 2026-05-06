@@ -5,18 +5,18 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_exactly_2_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_exactly_2_args "$@"
 
 readonly etags_dir="${XDG_CACHE_HOME}/etags"
-create_dir "${etags_dir}"
+dirs::create "${etags_dir}"
 
 etag_file="${etags_dir}/$(printf '%s\n' "$1" | tr --complement '[:alnum:]._-' '_').etag"
 readonly etag_file
 
-if ! file_exists "$2"; then
-  curl_wrapper --etag-save "${etag_file}" "$1" --output "$2"
+if ! files::exists "$2"; then
+  wrappers::curl --etag-save "${etag_file}" "$1" --output "$2"
 else
-  curl_wrapper --etag-compare "${etag_file}" --etag-save "${etag_file}" "$1" --output "$2"
+  wrappers::curl --etag-compare "${etag_file}" --etag-save "${etag_file}" "$1" --output "$2"
 fi

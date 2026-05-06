@@ -5,9 +5,9 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 user_groups="$(groups "${USER}")" || exit 1
 readonly user_groups
@@ -34,16 +34,16 @@ readonly groups=(
 )
 
 for group in "${groups[@]}"; do
-  if ! contains_word "${group}" <<< "${all_groups}"; then
+  if ! grep::contains_word "${group}" <<< "${all_groups}"; then
     continue
   fi
-  if contains_word "${group}" <<< "${user_groups}"; then
+  if grep::contains_word "${group}" <<< "${user_groups}"; then
     continue
   fi
-  if ! prompt_yn "Add ${USER} to group: ${group}?"; then
+  if ! prompt::yn "Add ${USER} to group: ${group}?"; then
     continue
   fi
-  log "Adding user to group: ${group}"
+  log::log "Adding user to group: ${group}"
   sudo usermod --append --groups "${group}" "${USER}"
-  log "Added user to group: ${group}"
+  log::log "Added user to group: ${group}"
 done

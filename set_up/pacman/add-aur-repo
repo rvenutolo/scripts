@@ -5,32 +5,32 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! is_arch && ! is_cachyos; then
+if ! os::is_arch && ! os::is_cachyos; then
   exit 0
 fi
-if ! executable_exists 'pacman'; then
-  log 'pacman executable not found'
-  exit 0
-fi
-
-if pacman-key --list-keys | contains_exactly_ignore_case 'FBA220DFC880C036'; then
-  exit 0
-fi
-if ! prompt_yn 'Add Chaotic AUR keyring and mirror list?'; then
+if ! commands::executable_exists 'pacman'; then
+  log::log 'pacman executable not found'
   exit 0
 fi
 
-log 'Adding Chaotic AUR keyring and mirror list'
+if pacman-key --list-keys | grep::contains_exactly_ignore_case 'FBA220DFC880C036'; then
+  exit 0
+fi
+if ! prompt::yn 'Add Chaotic AUR keyring and mirror list?'; then
+  exit 0
+fi
+
+log::log 'Adding Chaotic AUR keyring and mirror list'
 sudo pacman-key --recv-key 'FBA220DFC880C036' --keyserver 'keyserver.ubuntu.com'
 sudo pacman-key --lsign-key 'FBA220DFC880C036'
 sudo pacman --upgrade --noconfirm \
   'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
   'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
-log 'Added Chaotic AUR keyring and mirror list'
-log 'Refreshing pacman package database'
+log::log 'Added Chaotic AUR keyring and mirror list'
+log::log 'Refreshing pacman package database'
 sudo pacman --sync --refresh
-log 'Refreshed pacman package database'
+log::log 'Refreshed pacman package database'

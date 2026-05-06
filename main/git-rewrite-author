@@ -5,15 +5,15 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-old_email="$(prompt_for_value 'Email address to replace')" || exit 1
+old_email="$(prompt::for_value 'Email address to replace')" || exit 1
 readonly old_email
-new_email="$(prompt_for_value 'New email address')" || exit 1
+new_email="$(prompt::for_value 'New email address')" || exit 1
 readonly new_email
-new_name="$(prompt_for_value 'New name')" || exit 1
+new_name="$(prompt::for_value 'New name')" || exit 1
 readonly new_name
 
 FILTER_BRANCH_SQUELCH_WARNING='1' git filter-branch --force --env-filter "
@@ -32,4 +32,4 @@ then
 fi
 " --tag-name-filter cat -- --branches --tags
 
-log "Check the log, then push changes with: git push --force --tags origin 'refs/heads/*'"
+log::log "Check the log, then push changes with: git push --force --tags origin 'refs/heads/*'"

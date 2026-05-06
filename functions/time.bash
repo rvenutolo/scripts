@@ -2,8 +2,8 @@
 
 # $1 = start seconds
 # $2 = end seconds
-function calc_elapsed() {
-  check_exactly_2_args "$@"
+function time::calc_elapsed() {
+  args::check_exactly_2_args "$@"
   local elapsed=$(($2 - $1))
   readonly elapsed
   local hrs=$((elapsed / 3600))
@@ -22,7 +22,7 @@ function calc_elapsed() {
 }
 
 #shellcheck disable=SC2120
-function shell_elapsed_time() {
-  check_no_args "$@"
-  calc_elapsed 0 "${SECONDS}"
+function time::shell_elapsed_time() {
+  args::check_no_args "$@"
+  time::calc_elapsed 0 "${SECONDS}"
 }

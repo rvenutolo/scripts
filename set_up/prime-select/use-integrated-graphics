@@ -5,11 +5,11 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! is_work; then
+if ! hosts::is_work; then
   exit 0
 fi
 current_selection="$(prime-select query)" || exit 1
@@ -17,10 +17,10 @@ readonly current_selection
 if [[ "${current_selection}" == 'intel' ]]; then
   exit 0
 fi
-if ! prompt_yn 'Use integrated graphics?'; then
+if ! prompt::yn 'Use integrated graphics?'; then
   exit 0
 fi
 
-log 'Selecting integrated graphics'
+log::log 'Selecting integrated graphics'
 sudo prime-select 'intel'
-log 'Selected integrated graphics'
+log::log 'Selected integrated graphics'

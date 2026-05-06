@@ -5,32 +5,32 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 readonly name='Cockpit'
 readonly executable='cockpit-bridge'
 
-if ! is_server; then
+if ! hosts::is_server; then
   exit 0
 fi
 # On Debian and Ubuntu, install cockpit from backports repo.
 # Other distros can install from the regular repos.
-if is_debian || is_ubuntu; then
+if os::is_debian || os::is_ubuntu; then
   :
-elif is_arch || is_cachyos || is_fedora || is_leap || is_tumbleweed; then
+elif os::is_arch || os::is_cachyos || os::is_fedora || os::is_leap || os::is_tumbleweed; then
   exit 0
 else
-  die "Unexpected distro: $(os_id)"
+  log::die "Unexpected distro: $(os::id)"
 fi
-if executable_exists "${executable}"; then
+if commands::executable_exists "${executable}"; then
   exit 0
 fi
-if ! prompt_yn "Install ${name}?"; then
+if ! prompt::yn "Install ${name}?"; then
   exit 0
 fi
 
-log "Installing ${name}"
-sudo apt install --yes --target-release "$(os_codename)-backports" cockpit
-log "Installed ${name}"
+log::log "Installing ${name}"
+sudo apt install --yes --target-release "$(os::codename)-backports" cockpit
+log::log "Installed ${name}"

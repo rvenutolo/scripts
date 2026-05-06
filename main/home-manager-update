@@ -5,8 +5,8 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
+log::enable_err_trap
+system::require_bash_version 4 0
 
 write_packages=1
 args=()
@@ -26,16 +26,16 @@ done
 readonly write_packages
 readonly args
 
-if is_not_empty "${write_packages}"; then
+if strings::is_not_empty "${write_packages}"; then
   write-home-manager-packages "${args[@]}"
 else
-  log "Skipping writing packages file"
+  log::log "Skipping writing packages file"
 fi
 
 nix-channel --update
 nix flake update --flake "${HOME_MANAGER_DIR}"
 home-manager-switch
 
-if prompt_ny 'Run home-manager-maintenance?'; then
+if prompt::ny 'Run home-manager-maintenance?'; then
   home-manager-maintenance
 fi

@@ -5,18 +5,18 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! is_arch && ! is_cachyos; then
+if ! os::is_arch && ! os::is_cachyos; then
   exit 0
 fi
-if ! executable_exists 'pacman'; then
-  log 'pacman executable not found'
+if ! commands::executable_exists 'pacman'; then
+  log::log 'pacman executable not found'
   exit 0
 fi
 
 readonly src_file="${HOME}/.etc/pacman.conf"
 readonly dest_file='/etc/pacman.conf'
-root_copy_file "${src_file}" "${dest_file}"
+files::root_copy "${src_file}" "${dest_file}"

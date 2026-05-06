@@ -5,12 +5,12 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 images="$(podman images --all --filter=dangling=true --quiet)" || exit 1
 readonly images
-if is_not_empty "${images}"; then
+if strings::is_not_empty "${images}"; then
   podman rmi "${images}"
 fi

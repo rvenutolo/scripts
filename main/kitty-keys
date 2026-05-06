@@ -5,9 +5,9 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 # chezmoi external files stuff should get this file,
 # which is a script that should have one function: kitty_keys
@@ -17,5 +17,5 @@ if is_readable_files "${kitty_keys_file}"; then
   source "${kitty_keys_file}"
   kitty_keys
 else
-  die "${kitty_keys_file} is not a readable file"
+  log::die "${kitty_keys_file} is not a readable file"
 fi

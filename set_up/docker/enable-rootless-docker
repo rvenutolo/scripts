@@ -7,34 +7,34 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-check_no_args "$@"
+log::enable_err_trap
+args::check_no_args "$@"
 
-if ! executable_exists 'dockerd'; then
-  log 'dockerd executable not found'
+if ! commands::executable_exists 'dockerd'; then
+  log::log 'dockerd executable not found'
   exit 0
 fi
 
-if user_service_unit_file_exists 'docker.service'; then
+if systemctl::user_service_unit_file_exists 'docker.service'; then
   exit 0
 fi
 
-if ! prompt_ny 'Enable rootless Docker?'; then
+if ! prompt::ny 'Enable rootless Docker?'; then
   exit 0
 fi
 
-if ! executable_exists 'dockerd-rootless-setuptool.sh'; then
-  log 'dockerd-rootless-setuptool.sh executable not found'
+if ! commands::executable_exists 'dockerd-rootless-setuptool.sh'; then
+  log::log 'dockerd-rootless-setuptool.sh executable not found'
   exit 0
 fi
 
-disable_system_service_unit 'docker.service'
-disable_system_service_unit 'docker.socket'
+systemctl::disable_system_service_unit 'docker.service'
+systemctl::disable_system_service_unit 'docker.socket'
 
 sudo rm --force '/var/run/docker.sock'
 
-log 'Running rootless setup script'
+log::log 'Running rootless setup script'
 dockerd-rootless-setuptool.sh install
-log 'Ran rootless setup script'
+log::log 'Ran rootless setup script'
 
-enable_user_service_unit 'docker.service'
+systemctl::enable_user_service_unit 'docker.service'

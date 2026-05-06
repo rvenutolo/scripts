@@ -5,17 +5,17 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 if [[ "$(loginctl show-user "${USER}" --property='Linger')" == 'Linger=yes' ]]; then
   exit 0
 fi
-if ! prompt_yn "Set ${USER} to linger?"; then
+if ! prompt::yn "Set ${USER} to linger?"; then
   exit 0
 fi
 
-log 'Setting user to linger'
+log::log 'Setting user to linger'
 sudo loginctl enable-linger "${USER}"
-log 'Set user to linger'
+log::log 'Set user to linger'

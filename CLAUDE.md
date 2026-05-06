@@ -20,7 +20,7 @@ Personal collection of bash scripts for system setup, package install, and day-t
 - `install/` — numbered scripts run in order by `run-install-scripts` to provision a new machine. Files starting with all-caps names (e.g. `00_DISTRO_PACKAGES`, `70_WORK_ONLY`) are markers/data with executable bit off — the runner skips non-executable files. `90_REMOVE` etc. follow same pattern.
 - `set_up/` — idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script must self-check whether it should run.
 - `misc/` — one-off setup scripts (not on `PATH`, not auto-run). Scripts here are expected to be **standalone** — runnable on a fresh machine by someone without access to this repo's function library. Do NOT source `functions.bash` from `misc/` scripts; inline anything they need (including the `ERR` trap — see Script Conventions).
-- A small number of Docker-related scripts (e.g. `main/docker-grype-scan`, `main/docker-trivy-scan`) source `${DOCKER_COMPOSE_DIR}/functions.bash` from a separate Docker repo instead of this repo's `functions.bash` directly. That file in turn sources `${SCRIPTS_DIR}/functions.bash`, so all helpers from this repo (`enable_err_trap`, `log`, `die`, etc.) ARE available — no need to inline equivalents in those scripts.
+- A small number of Docker-related scripts (e.g. `main/docker-grype-scan`, `main/docker-trivy-scan`) source `${DOCKER_COMPOSE_DIR}/functions.bash` from a separate Docker repo instead of this repo's `functions.bash` directly. That file in turn sources `${SCRIPTS_DIR}/functions.bash`, so all helpers from this repo (`log::enable_err_trap`, `log::log`, `log::die`, etc.) ARE available — no need to inline equivalents in those scripts.
 - `functions/` — bash function library, all sourced via `functions.bash` (loops `functions/*.bash`).
 - `lib/` — vendored Groovy jars (used by some scripts).
 
@@ -41,7 +41,7 @@ To gate a script from the `install`/`set_up runners`, remove its executable bit 
 
 ## Function Library
 
-`functions/` is organized by topic — `args`, `arrays`, `commands`, `docker`, `downloads`, `env`, `files`, `grep`, `json`, `log`, `mvn`, `network`, `os`, `packages`, `path`, `prompt`, `sdkman*`, `strings`, `symlinks`, `system`, `systemctl`, `text`, `time`, `wrappers`, etc. When adding a helper, drop it in the topically-matching file; it's auto-sourced. If no existing topic fits, Claude may create a new `functions/<topic>.bash` file — but must ask first before adding the new topic.
+`functions/` is organized by topic — `args`, `arrays`, `commands`, `docker`, `downloads`, `env`, `files`, `grep`, `json`, `log::log`, `mvn`, `network`, `os`, `packages`, `path`, `prompt`, `sdkman`, `strings`, `symlinks`, `system`, `systemctl`, `text`, `time`, `wrappers`, etc. When adding a helper, drop it in the topically-matching file; it's auto-sourced. If no existing topic fits, Claude may create a new `functions/<topic>.bash` file — but must ask first before adding the new topic.
 
 ## Before Committing
 

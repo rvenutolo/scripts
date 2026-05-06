@@ -5,43 +5,43 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
 function write_to_compose_file() {
-  check_at_least_1_arg "$@"
+  args::check_at_least_1_arg "$@"
   printf '%s\n' "$@" >> "${compose_file}"
 }
 
 #shellcheck disable=SC2120
 function is_service() {
-  check_no_args "$@"
-  is_not_empty "${service:-}"
+  args::check_no_args "$@"
+  strings::is_not_empty "${service:-}"
 }
 
 #shellcheck disable=SC2120
 function reverse_proxy() {
-  check_no_args "$@"
-  is_not_empty "${use_reverse_proxy:-}"
+  args::check_no_args "$@"
+  strings::is_not_empty "${use_reverse_proxy:-}"
 }
 
 #shellcheck disable=SC2120
 function socket_proxy() {
-  check_no_args "$@"
-  is_not_empty "${use_socket_proxy:-}"
+  args::check_no_args "$@"
+  strings::is_not_empty "${use_socket_proxy:-}"
 }
 
 #shellcheck disable=SC2120
 function restart_on_unhealthy() {
-  check_no_args "$@"
-  is_not_empty "${on_unhealthy:-}"
+  args::check_no_args "$@"
+  strings::is_not_empty "${on_unhealthy:-}"
 }
 
 #shellcheck disable=SC2120
 function multiple_containers() {
-  check_no_args "$@"
-  is_not_empty "${multiple_containers:-}"
+  args::check_no_args "$@"
+  strings::is_not_empty "${multiple_containers:-}"
 }
 
 readonly compose_file='./compose.yaml'
@@ -49,39 +49,39 @@ readonly init_file='./init'
 readonly run_file='./run'
 
 for file in "${compose_file}" "${init_file}" "${run_file}"; do
-  if file_exists "${file}"; then
-    die "${file} exists"
+  if files::exists "${file}"; then
+    log::die "${file} exists"
   fi
 done
 
-app_name="$(prompt_for_value 'App name?')" || exit 1
+app_name="$(prompt::for_value 'App name?')" || exit 1
 readonly app_name
 app_constant_name="${app_name^^}"
 readonly app_constant_name="${app_constant_name//-/_}"
 
-image_name="$(prompt_for_value 'Image name?')" || exit 1
+image_name="$(prompt::for_value 'Image name?')" || exit 1
 readonly image_name
 
-image_tag="$(prompt_for_value 'Image tag?' 'latest')" || exit 1
+image_tag="$(prompt::for_value 'Image tag?' 'latest')" || exit 1
 readonly image_tag
 
-if prompt_yn 'Is this a service (not run-once)?'; then
+if prompt::yn 'Is this a service (not run-once)?'; then
   readonly service='1'
-  if prompt_yn 'Use reverse proxy?'; then
+  if prompt::yn 'Use reverse proxy?'; then
     readonly use_reverse_proxy='1'
-    port="$(prompt_for_value 'Port?')" || exit 1
+    port="$(prompt::for_value 'Port?')" || exit 1
     readonly port
   fi
-  if prompt_yn 'Restart on unhealthy status?'; then
+  if prompt::yn 'Restart on unhealthy status?'; then
     readonly on_unhealthy='1'
   fi
 fi
 
-if prompt_ny 'Use Docker socket proxy?'; then
+if prompt::ny 'Use Docker socket proxy?'; then
   readonly use_socket_proxy='1'
 fi
 
-if prompt_ny 'More than one non-socket-proxy container?'; then
+if prompt::ny 'More than one non-socket-proxy container?'; then
   readonly multiple_containers='1'
 fi
 
@@ -229,10 +229,10 @@ EOF
 
 if ! is_service; then
   cat >> "${init_file}" << EOF
-if prompt_yn 'Run ${app_name}?'; then
-  log 'Running ${app_name}'
-  "\$(this_script_dir)/run"
-  log 'Ran ${app_name}'
+if prompt::yn 'Run ${app_name}?'; then
+  log::log 'Running ${app_name}'
+  "\$(misc::this_script_dir)/run"
+  log::log 'Ran ${app_name}'
 fi
 EOF
   cat > "${run_file}" << EOF
@@ -245,7 +245,7 @@ IFS=\$'\n\t'
 source "\${DOCKER_DIR}/scripts/common.bash"
 
 docker compose \\
-  --file "\$(this_script_dir)/compose.yaml" \\
+  --file "\$(misc::this_script_dir)/compose.yaml" \\
   run \\
   --rm \\
   --name '${app_name}' \\

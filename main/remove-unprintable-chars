@@ -5,9 +5,9 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
-check_for_stdin
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
+args::check_for_stdin
 
 tr --complement --delete '[:print:]\n'

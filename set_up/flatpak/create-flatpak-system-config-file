@@ -5,20 +5,20 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
-enable_err_trap
-require_bash_version 4 0
-check_no_args "$@"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
 
-if ! executable_exists 'flatpak'; then
+if ! commands::executable_exists 'flatpak'; then
   exit 0
 fi
 
-if file_exists '/var/lib/flatpak/repo/config'; then
+if files::exists '/var/lib/flatpak/repo/config'; then
   exit 0
 fi
 
-root_create_dir '/var/lib/flatpak/repo/objects' '/var/lib/flatpak/repo/tmp'
-root_write_file '/var/lib/flatpak/repo/config' '[core]
+dirs::root_create '/var/lib/flatpak/repo/objects' '/var/lib/flatpak/repo/tmp'
+files::root_write '/var/lib/flatpak/repo/config' '[core]
 repo_version=1
 mode=bare-user-only
 min-free-space-size=500MB'
