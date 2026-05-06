@@ -20,6 +20,10 @@ function sort_json_file() {
   mv "${temp_file}" "${json_file}"
 }
 
-for file in "$@"; do
-  sort_json_file "${file}"
-done
+function main() {
+  for file in "$@"; do
+    sort_json_file "${file}"
+  done
+}
+
+main "$@"

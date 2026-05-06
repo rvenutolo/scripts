@@ -23,35 +23,36 @@ function wget() {
   command wget --no-config "$@"
 }
 
-if ! hosts::is_server; then
-  exit 0
-fi
-if os::is_debian || os::is_ubuntu || os::is_fedora; then
-  :
-elif os::is_arch || os::is_cachyos || os::is_leap || os::is_tumbleweed; then
-  exit 0
-else
-  log::die "Unexpected distro: $(os::id)"
-fi
-if commands::executable_exists "${executable}"; then
-  exit 0
-fi
-if ! prompt::yn "Install ${name}?"; then
-  exit 0
-fi
+function main() {
+  if ! hosts::is_server; then
+    exit 0
+  fi
+  if os::is_debian || os::is_ubuntu || os::is_fedora; then
+    :
+  elif os::is_arch || os::is_cachyos || os::is_leap || os::is_tumbleweed; then
+    exit 0
+  else
+    log::die "Unexpected distro: $(os::id)"
+  fi
+  if commands::executable_exists "${executable}"; then
+    exit 0
+  fi
+  if ! prompt::yn "Install ${name}?"; then
+    exit 0
+  fi
+  export -f curl wget
+  log::log "Adding ${name} repo"
+  downloads::download_and_run_script_as_root "${url}" --force
+  log::log "Added ${name} repo"
+  log::log "Installing ${name}"
+  if commands::executable_exists 'apt'; then
+    sudo apt install --yes --install-recommends 'webmin'
+  elif commands::executable_exists 'dnf'; then
+    sudo dnf install 'webmin'
+  else
+    log::die 'Expected either apt or dnf to be available'
+  fi
+  log::log "Installed ${name}"
+}
 
-export -f curl wget
-
-log::log "Adding ${name} repo"
-downloads::download_and_run_script_as_root "${url}" --force
-log::log "Added ${name} repo"
-
-log::log "Installing ${name}"
-if commands::executable_exists 'apt'; then
-  sudo apt install --yes --install-recommends 'webmin'
-elif commands::executable_exists 'dnf'; then
-  sudo dnf install 'webmin'
-else
-  log::die 'Expected either apt or dnf to be available'
-fi
-log::log "Installed ${name}"
+main "$@"

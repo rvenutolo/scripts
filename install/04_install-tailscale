@@ -23,15 +23,17 @@ function wget() {
   command wget --no-config "$@"
 }
 
-if commands::executable_exists "${executable}"; then
-  exit 0
-fi
-if ! prompt::yn "Install ${name}?"; then
-  exit 0
-fi
+function main() {
+  if commands::executable_exists "${executable}"; then
+    exit 0
+  fi
+  if ! prompt::yn "Install ${name}?"; then
+    exit 0
+  fi
+  export -f curl wget
+  log::log "Installing ${name} via: ${url}"
+  downloads::download_and_run_script "${url}"
+  log::log "Installed ${name} via: ${url}"
+}
 
-export -f curl wget
-
-log::log "Installing ${name} via: ${url}"
-downloads::download_and_run_script "${url}"
-log::log "Installed ${name} via: ${url}"
+main "$@"
