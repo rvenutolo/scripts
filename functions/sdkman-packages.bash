@@ -16,9 +16,9 @@ function uninstall_package_version() {
 #shellcheck disable=SC2120
 function install_sdkman_packages() {
   check_no_args "$@"
-  get_sdkman_packages | while read -r pkg; do
+  while read -r pkg; do
     install_sdkman_package "${pkg}"
-  done
+  done < <(get_sdkman_packages)
 }
 
 #shellcheck disable=SC2120
@@ -45,17 +45,17 @@ function prune_sdkman_package() {
   local current_version
   current_version="$(get_current_package_version "$1")" || exit 1
   readonly current_version
-  get_installed_packages_versions "$1" | while read -r version; do
+  while read -r version; do
     if [[ "${version}" != "${current_version}" ]]; then
       uninstall_package_version "$1" "${version}"
     fi
-  done
+  done < <(get_installed_packages_versions "$1")
 }
 
 #shellcheck disable=SC2120
 function prune_sdkman_packages() {
   check_no_args "$@"
-  get_installed_packages | while read -r package; do
+  while read -r package; do
     prune_sdkman_package "${package}"
-  done
+  done < <(get_installed_packages)
 }

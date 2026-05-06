@@ -266,9 +266,9 @@ function install_latest_tem_jdk() {
 #shellcheck disable=SC2120
 function install_latest_tem_jdks() {
   check_no_args "$@"
-  get_available_tem_jdk_major_versions | while read -r major_version; do
+  while read -r major_version; do
     install_latest_tem_jdk "${major_version}"
-  done
+  done < <(get_available_tem_jdk_major_versions)
 }
 
 ### SETTING DEFAULT JDK
@@ -304,19 +304,20 @@ function prune_tem_jdks_for_major_version() {
       | get_formatted_tem_jdk_artifact_id_field
   )" || exit 1
   readonly latest_artifact_id
-  get_formatted_installed_tem_jdks_for_major_version "$1" \
-    | get_formatted_tem_jdk_artifact_id_field \
-    | while read -r artifact_id; do
-      if [[ "${artifact_id}" != "${latest_artifact_id}" ]]; then
-        uninstall_jdk "${artifact_id}"
-      fi
-    done
+  while read -r artifact_id; do
+    if [[ "${artifact_id}" != "${latest_artifact_id}" ]]; then
+      uninstall_jdk "${artifact_id}"
+    fi
+  done < <(
+    get_formatted_installed_tem_jdks_for_major_version "$1" \
+      | get_formatted_tem_jdk_artifact_id_field
+  )
 }
 
 #shellcheck disable=SC2120
 function prune_tem_jdks() {
   check_no_args "$@"
-  get_installed_tem_jdk_major_versions | while read -r major_version; do
+  while read -r major_version; do
     prune_tem_jdks_for_major_version "${major_version}"
-  done
+  done < <(get_installed_tem_jdk_major_versions)
 }

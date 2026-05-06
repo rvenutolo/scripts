@@ -56,7 +56,7 @@ function list_all_sdkmanrc_files() {
 #shellcheck disable=SC2120
 function rewrite_sdkmanrc_file_java_versions() {
   check_no_args "$@"
-  list_all_sdkmanrc_files | while read -r file; do
+  while read -r file; do
     rewrite_sdkmanrc_file_java_version "${file}"
-  done
+  done < <(list_all_sdkmanrc_files)
 }
