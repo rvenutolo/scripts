@@ -16,6 +16,6 @@ while read -r video_file; do
       -select_streams 'v:0' \
       -loglevel '16' \
       -output_format 'csv=s=x:p=0'
-  )" || exit 1
+  )"
   printf '%s\n' "${resolution_info%x};${video_file}"
 done < <(find . -iregex '.*\.\(mkv\|mp4\)$' -printf '%P\n' | sort)

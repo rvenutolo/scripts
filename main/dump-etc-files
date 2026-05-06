@@ -28,7 +28,7 @@ function main() {
   sudo chown --recursive "${USER}" "${dir}"/*
 }
 
-parsed_args="$(getopt --alternative --name "${0##*/}" --options 'd:' --longoptions 'dir:' -- "$@")" || exit 1
+parsed_args="$(getopt --alternative --name "${0##*/}" --options 'd:' --longoptions 'dir:' -- "$@")"
 readonly parsed_args
 # eval is required to re-tokenize the quoted output of getopt
 eval set -- "${parsed_args}"

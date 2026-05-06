@@ -29,7 +29,7 @@ if ! commands::executable_exists 'home-manager' && prompt::yn 'Install Nix home-
     grep --only-matching --perl-regexp \
       '(?<=github:nix-community/)home-manager/release-\d{2}\.\d{2}' \
       "${HOME_MANAGER_DIR}/flake.nix"
-  )" || exit 1
+  )"
   readonly home_manager_release
   nix run "${home_manager_release}" -- init --switch --flake "${HOME_MANAGER_DIR}"
   if commands::executable_exists 'non-nixos-gpu-setup'; then

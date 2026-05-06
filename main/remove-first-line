@@ -13,7 +13,7 @@ if args::stdin_exists; then
   tail --lines '+2'
 else
   args::check_exactly_1_arg "$@"
-  temp_file="$(mktemp)" || exit 1
+  temp_file="$(mktemp)"
   readonly temp_file
   trap 'rm --force -- "${temp_file}"' EXIT
   cp "$1" "${temp_file}"

@@ -18,7 +18,7 @@ while read -r video_file; do
       -loglevel '16' \
       -output_format 'compact=p=0:nk=1' \
       | awk --field-separator '|' '{ print $1 " | " $4 " | " $2 " | " $3 }'
-  )" || exit 1
+  )"
   printf '%s\n' "${audio_info}"
   printf '%s\n' '---------'
 done < <(find . -iregex '.*\.\(mkv\|mp4\)$' -printf '%P\n' | sort)

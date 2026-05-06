@@ -34,9 +34,9 @@ if ! loginctl show-user "${USER}" --property=Linger 2> '/dev/null' | grep::conta
   log::log "${USER} is not set to linger"
 fi
 
-user_groups="$(groups "${USER}")" || exit 1
+user_groups="$(groups "${USER}")"
 readonly user_groups
-all_groups="$(getent group | cut --delimiter=':' --fields=1)" || exit 1
+all_groups="$(getent group | cut --delimiter=':' --fields=1)"
 readonly all_groups
 readonly groups=('adm' 'admin' 'docker' 'kvm' 'input' 'libvirt' 'libvirtd' 'sudo' 'sys' 'wheel')
 for group in "${groups[@]}"; do
@@ -94,7 +94,7 @@ if commands::executable_exists 'tldr' && ! tldr --version | grep::contains_word_
 fi
 
 if commands::executable_exists 'ufw'; then
-  ufw_status="$(sudo ufw status verbose)" || exit 1
+  ufw_status="$(sudo ufw status verbose)"
   readonly ufw_status
   if ! grep::contains_word_ignore_case 'status: active' <<< "${ufw_status}"; then
     log::log "UFW is not active"
@@ -180,7 +180,7 @@ if ! hosts::is_server; then
   )
 
   if commands::executable_exists 'fc-list'; then
-    installed_fonts="$(fc-list : family)" || exit 1
+    installed_fonts="$(fc-list : family)"
     readonly installed_fonts
     for font in "${expected_fonts[@]}"; do
       font_no_space="$(printf '%b' "${font}" | tr --delete '[:space:]')"
@@ -280,7 +280,7 @@ if ! hosts::is_server; then
 fi
 
 if commands::executable_exists 'pacman'; then
-  pacman_conf_text="$(cat '/etc/pacman.conf')" || exit 1
+  pacman_conf_text="$(cat '/etc/pacman.conf')"
   readonly pacman_conf_text
   for pacman_repo in 'multilib' 'chaotic-aur'; do
     if ! grep::contains_exactly "[${pacman_repo}]" <<< "${pacman_conf_text}"; then
@@ -291,7 +291,7 @@ fi
 
 if os::is_fedora; then
   readonly expected_dnf_conf_vals=('max_parallel_downloads' 'defaultyes' 'keepcache')
-  dnf_conf_text="$(cat '/etc/dnf/dnf.conf')" || exit 1
+  dnf_conf_text="$(cat '/etc/dnf/dnf.conf')"
   readonly dnf_conf_text
   for dnf_conf_val in "${expected_dnf_conf_vals[@]}"; do
     if strings::is_empty "$(
@@ -302,7 +302,7 @@ if os::is_fedora; then
       log::log "dnf conf ${dnf_conf_val} is not set"
     fi
   done
-  installed_packages="$(dnf list --installed | cut --delimiter=' ' --fields=1)" || exit 1
+  installed_packages="$(dnf list --installed | cut --delimiter=' ' --fields=1)"
   readonly installed_packages
   readonly expected_rpm_fusions_packages=(
     'rpmfusion-free-appstream-data'

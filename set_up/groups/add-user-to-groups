@@ -9,10 +9,10 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
-user_groups="$(groups "${USER}")" || exit 1
+user_groups="$(groups "${USER}")"
 readonly user_groups
 
-all_groups="$(getent group | cut --delimiter=':' --fields=1)" || exit 1
+all_groups="$(getent group | cut --delimiter=':' --fields=1)"
 readonly all_groups
 
 readonly groups=(

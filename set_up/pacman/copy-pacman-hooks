@@ -19,6 +19,6 @@ fi
 
 readonly hooks_dir="/etc/pacman.d/hooks"
 for hook_file in "${HOME}/.etc/pacman-"*".hook"; do
-  hook_file_name="$(basename "${hook_file}")" || exit 1
+  hook_file_name="$(basename "${hook_file}")"
   files::root_copy "${hook_file}" "${hooks_dir}/${hook_file_name:7}"
 done

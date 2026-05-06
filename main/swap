@@ -10,7 +10,7 @@ system::require_bash_version 4 0
 args::check_exactly_2_args "$@"
 
 if files::exists "$1" && files::exists "$2" || dirs::exists "$1" && dirs::exists "$2"; then
-  temp_file="$(mktemp)" || exit 1
+  temp_file="$(mktemp)"
   trap 'rm --force -- "${temp_file}"' EXIT
   mv -- "$1" "${temp_file}"
   mv -- "$2" "$1"

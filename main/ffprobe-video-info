@@ -17,7 +17,7 @@ while read -r video_file; do
       -loglevel '16' \
       -output_format 'compact=p=0:nk=1' \
       | awk --field-separator '|' '{ print $2 " | " $3 " | " $1 }'
-  )" || exit 1
+  )"
   size_gb="$(files::size_gb "${video_file}")"
   printf '%s\n' "${video_info} | ${size_gb}G | $(dirname "${video_file}") | $(basename "${video_file}")"
 done < <(find . -iregex '.*\.\(mkv\|mp4\)$' -printf '%P\n' | sort)

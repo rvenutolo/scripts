@@ -69,9 +69,9 @@ function env_file::prompt_var_value() {
   readonly prompt_text
   local var_value
   if strings::is_not_empty "${4:-}"; then
-    var_value="$(prompt::for_value "${prompt_text}" "$4")" || exit 1
+    var_value="$(prompt::for_value "${prompt_text}" "$4")"
   else
-    var_value="$(prompt::for_value "${prompt_text}")" || exit 1
+    var_value="$(prompt::for_value "${prompt_text}")"
   fi
   readonly var_value
   env_file::set_var_value "$1" "$2" "${var_value}"

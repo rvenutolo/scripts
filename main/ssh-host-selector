@@ -15,7 +15,7 @@ ssh_host="$(
     | cut --delimiter ' ' --fields 2 \
     | sort \
     | fzf --height=20 --exact --layout=reverse
-)" || exit 1
+)"
 readonly ssh_host
 
 ssh "${ssh_host}"

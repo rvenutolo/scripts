@@ -9,7 +9,7 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
-containers="$(podman ps --filter=status=exited --filter=status=created --quiet)" || exit 1
+containers="$(podman ps --filter=status=exited --filter=status=created --quiet)"
 readonly containers
 if strings::is_not_empty "${containers}"; then
   podman rm "${containers}"

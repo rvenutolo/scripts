@@ -30,7 +30,7 @@ while read -r video_file; do
       -loglevel '16' \
       -output_format 'compact=p=0:nk=1' \
       | awk --field-separator '|' '{ print $1 " | " $4 " | " $2 " | " $3 }'
-  )" || exit 1
+  )"
   if grep --quiet --invert-match --fixed-strings '| eng |' <<< "${audio_info}"; then
     printf '%s\n' "${video_file}"
     printf '%s\n' "${audio_info}"

@@ -10,8 +10,8 @@ system::require_bash_version 4 0
 args::check_at_least_1_arg "$@"
 
 for file in "$@"; do
-  dirname="$(dirname -- "${file}")" || exit 1
-  filename="$(basename -- "${file}")" || exit 1
+  dirname="$(dirname -- "${file}")"
+  filename="$(basename -- "${file}")"
   target_file="${dirname}/.${filename}"
   mv -- "${file}" "${target_file}"
   log::log "${file} -> ${target_file}"

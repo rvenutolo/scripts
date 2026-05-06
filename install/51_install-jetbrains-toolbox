@@ -31,7 +31,7 @@ dirs::create "${toolbox_install_dir}" "${local_bin_dir}"
 archive_url="$(
   downloads::download_and_cat "${toolbox_release_info_url}" \
     | jq --raw-output '.TBA[0].downloads.linux.link'
-)" || exit 1
+)"
 readonly archive_url
 downloads::download_and_cat "${archive_url}" \
   | tar --extract --gzip \
