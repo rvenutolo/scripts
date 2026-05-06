@@ -26,7 +26,7 @@ done
 readonly write_packages
 readonly args
 
-if [[ -n "${write_packages}" ]]; then
+if is_not_empty "${write_packages}"; then
   write-home-manager-packages "${args[@]}"
 else
   log "Skipping writing packages file"

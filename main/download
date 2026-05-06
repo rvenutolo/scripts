@@ -10,7 +10,7 @@ require_bash_version 4 0
 check_at_least_1_arg "$@"
 check_at_most_2_args "$@"
 
-if [[ -n "${2:-}" ]]; then
+if is_not_empty "${2:-}"; then
   tries=0
   until curl_wrapper "$1" --output "$2"; do
     ((tries += 1))

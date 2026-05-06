@@ -11,9 +11,9 @@ require_bash_version 4 0
 # remove this dir from the path so executing `claude` doesn't this run this script
 path_remove "$(this_script_dir)"
 
-if [[ -n "${CLAUDE_CONFIG_DIR:-}" ]]; then
+if is_not_empty "${CLAUDE_CONFIG_DIR:-}"; then
   CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR}" exec claude "$@"
-elif [[ -n "${CLAUDE_PROFILE:-}" ]]; then
+elif is_not_empty "${CLAUDE_PROFILE:-}"; then
   exec "$(this_script_dir)/claude-${CLAUDE_PROFILE}" "$@"
 else
   log "Set CLAUDE_PROFILE='work' or CLAUDE_PROFILE='personal' to skip this prompt"

@@ -12,7 +12,7 @@ enable_err_trap
 require_bash_version 4 0
 check_no_args "$@"
 
-if [[ -z "$(w --no-header "${USER}")" ]]; then
+if is_empty "$(w --no-header "${USER}")"; then
   die "${USER} is not logged in"
 fi
 
@@ -63,7 +63,7 @@ readonly expected_vars=(
   'SDKMAN_DIR'
 )
 for var in "${expected_vars[@]}"; do
-  if [[ -z "${!var:-}" ]]; then
+  if is_empty "${!var:-}"; then
     log "Environment variable not set: ${var}"
   fi
 done
@@ -291,7 +291,7 @@ if is_fedora; then
   dnf_conf_text="$(cat '/etc/dnf/dnf.conf')" || exit 1
   readonly dnf_conf_text
   for dnf_conf_val in "${expected_dnf_conf_vals[@]}"; do
-    if [[ -z "$(grep --fixed-strings "${dnf_conf_val}" <<< "${dnf_conf_text}" | cut --delimiter='=' --fields=2 | xargs)" ]]; then
+    if is_empty "$(grep --fixed-strings "${dnf_conf_val}" <<< "${dnf_conf_text}" | cut --delimiter='=' --fields=2 | xargs)"; then
       log "dnf conf ${dnf_conf_val} is not set"
     fi
   done

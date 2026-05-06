@@ -43,21 +43,21 @@ function prompt_yn() {
 function prompt_for_value() {
   check_at_least_1_arg "$@"
   check_at_most_2_args "$@"
-  if [[ -n "${2:-}" ]]; then
+  if is_not_empty "${2:-}"; then
     REPLY=''
     if auto_answer; then
       REPLY="$2"
     fi
-    if [[ "${REPLY}" == '' ]]; then
+    if is_empty "${REPLY}"; then
       read -rp $'\e[0;33m'"$1 [$2"$']: \e[0m'
-      if [[ "${REPLY}" == '' ]]; then
+      if is_empty "${REPLY}"; then
         REPLY="$2"
       fi
     fi
     printf '%s\n' "${REPLY}"
   else
     REPLY=''
-    while [[ -z "${REPLY}" ]]; do
+    while is_empty "${REPLY}"; do
       read -rp $'\e[0;33m'"$1"$': \e[0m'
     done
     printf '%s\n' "${REPLY}"

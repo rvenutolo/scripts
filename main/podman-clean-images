@@ -11,6 +11,6 @@ check_no_args "$@"
 
 images="$(podman images --all --filter=dangling=true --quiet)" || exit 1
 readonly images
-if [[ -n "${images}" ]]; then
+if is_not_empty "${images}"; then
   podman rmi "${images}"
 fi
