@@ -9,7 +9,7 @@ enable_err_trap
 require_bash_version 4 0
 check_no_args "$@"
 
-if [[ -z "${LESSHISTFILE:-}" ]]; then
+if is_empty "${LESSHISTFILE:-}"; then
   exit 0
 fi
 

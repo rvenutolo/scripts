@@ -11,20 +11,20 @@ require_bash_version 4 0
 if stdin_exists; then
   check_at_most_1_arg "$@"
   header_line="$(first_line)" || exit 1
-  if [[ -n "${1:-}" ]]; then
+  if is_not_empty "${1:-}"; then
     readonly delimiter="$1"
   fi
 else
   check_at_least_1_arg "$@"
   check_at_most_2_args "$@"
   header_line="$(first_line "$1")" || exit 1
-  if [[ -n "${2:-}" ]]; then
+  if is_not_empty "${2:-}"; then
     readonly delimiter="$2"
   fi
 fi
 readonly header_line
 
-if [[ -z "${delimiter+x}" ]]; then
+if is_empty "${delimiter+x}"; then
   if contains_exactly ';' <<< "${header_line}"; then
     readonly delimiter=';'
   elif contains_exactly ',' <<< "${header_line}"; then

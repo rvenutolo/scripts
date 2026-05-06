@@ -23,7 +23,7 @@ function is_env_file_var_value_empty() {
   check_exactly_2_args "$@"
   assert_file_exists "$1"
   assert_env_file_var_exists "$1" "$2"
-  [[ -z "$(get_env_file_var_value "$1" "$2")" ]]
+  is_empty "$(get_env_file_var_value "$1" "$2")"
 }
 
 # $1 = env file
@@ -61,14 +61,14 @@ function prompt_env_file_var_value() {
   assert_file_exists "$1"
   assert_env_file_var_exists "$1" "$2"
   local prompt_text
-  if [[ -n "${3:-}" ]]; then
+  if is_not_empty "${3:-}"; then
     prompt_text="Enter value for $2 ( $3 )"
   else
     prompt_text="Enter value for $2"
   fi
   readonly prompt_text
   local var_value
-  if [[ -n "${4:-}" ]]; then
+  if is_not_empty "${4:-}"; then
     var_value="$(prompt_for_value "${prompt_text}" "$4")" || exit 1
   else
     var_value="$(prompt_for_value "${prompt_text}")" || exit 1

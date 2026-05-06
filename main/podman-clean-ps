@@ -11,6 +11,6 @@ check_no_args "$@"
 
 containers="$(podman ps --filter=status=exited --filter=status=created --quiet)" || exit 1
 readonly containers
-if [[ -n "${containers}" ]]; then
+if is_not_empty "${containers}"; then
   podman rm "${containers}"
 fi

@@ -67,7 +67,7 @@ function get_universal_packages() {
     die 'Could not determine which computer this is'
   fi
   readonly package_list_column
-  if [[ -z "${quiet}" ]]; then
+  if is_empty "${quiet}"; then
     local -a pkg_infos
     mapfile -t pkg_infos < <(
       download_and_cat "${package_list_url}" \
@@ -156,7 +156,7 @@ function get_distro_packages() {
     die 'Could not determine which computer this is'
   fi
   readonly package_list_column
-  if [[ -z "${quiet}" ]]; then
+  if is_empty "${quiet}"; then
     local -a pkg_infos
     mapfile -t pkg_infos < <(
       download_and_cat "${package_list_url}" \
@@ -231,7 +231,7 @@ function get_sdkman_packages() {
     die 'Could not determine which computer this is'
   fi
   readonly package_list_column
-  if [[ -z "${quiet}" ]]; then
+  if is_empty "${quiet}"; then
     local -a pkg_infos
     mapfile -t pkg_infos < <(
       download_and_cat "${package_list_url}" \

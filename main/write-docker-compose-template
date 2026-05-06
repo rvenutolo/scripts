@@ -17,31 +17,31 @@ function write_to_compose_file() {
 #shellcheck disable=SC2120
 function is_service() {
   check_no_args "$@"
-  [[ -n "${service:-}" ]]
+  is_not_empty "${service:-}"
 }
 
 #shellcheck disable=SC2120
 function reverse_proxy() {
   check_no_args "$@"
-  [[ -n "${use_reverse_proxy:-}" ]]
+  is_not_empty "${use_reverse_proxy:-}"
 }
 
 #shellcheck disable=SC2120
 function socket_proxy() {
   check_no_args "$@"
-  [[ -n "${use_socket_proxy:-}" ]]
+  is_not_empty "${use_socket_proxy:-}"
 }
 
 #shellcheck disable=SC2120
 function restart_on_unhealthy() {
   check_no_args "$@"
-  [[ -n "${on_unhealthy:-}" ]]
+  is_not_empty "${on_unhealthy:-}"
 }
 
 #shellcheck disable=SC2120
 function multiple_containers() {
   check_no_args "$@"
-  [[ -n "${multiple_containers:-}" ]]
+  is_not_empty "${multiple_containers:-}"
 }
 
 readonly compose_file='./compose.yaml'
