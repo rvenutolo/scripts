@@ -1,6 +1,8 @@
 ---
 name: shell-script-rules-check
 description: Audits a single shell script against the merged shell-script rules (project + global) and applies fixes. TRIGGER RULES — (1) When the user explicitly invokes the slash command `/shell-script-rules-check <path>`, run the skill immediately without asking. (2) When the user makes a natural-language request that sounds like this skill's purpose ("check shell rules on X", "lint this script against the rules", "audit X for rule compliance", "see if this follows the shell-script rules", or any paraphrase), do NOT auto-run — first ask the user "Run the shell-script-rules-check skill on <path>?" and only proceed if they confirm. Never silently invoke the skill from a natural-language request. The skill produces a violations report (mechanical vs. judgment-call), applies mechanical fixes itself, and asks the user about judgment calls. It does NOT commit.
+agent: true
+model: sonnet
 ---
 
 # shell-script-rules-check
