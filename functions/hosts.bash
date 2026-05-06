@@ -27,5 +27,7 @@ function hosts::is_laptop() {
 #shellcheck disable=SC2120
 function hosts::is_server() {
   args::check_no_args "$@"
-  [[ "$(hostname)" != "${PERSONAL_DESKTOP_HOSTNAME}" && "$(hostname)" != "${PERSONAL_LAPTOP_HOSTNAME}" && "$(hostname)" != "${WORK_LAPTOP_HOSTNAME}" ]]
+  [[ "$(hostname)" != "${PERSONAL_DESKTOP_HOSTNAME}" &&
+  "$(hostname)" != "${PERSONAL_LAPTOP_HOSTNAME}" &&
+  "$(hostname)" != "${WORK_LAPTOP_HOSTNAME}" ]]
 }

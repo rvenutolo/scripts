@@ -18,10 +18,18 @@ readonly flatpaks_from_package_list
 mapfile -t flatpaks_installed < <(flatpak list --user --app --columns application | sort)
 readonly flatpaks_installed
 
-mapfile -t flatpaks_to_install < <(comm -23 <(arrays::to_lines "${flatpaks_from_package_list[@]}") <(arrays::to_lines "${flatpaks_installed[@]}"))
+mapfile -t flatpaks_to_install < <(
+  comm -23 \
+    <(arrays::to_lines "${flatpaks_from_package_list[@]}") \
+    <(arrays::to_lines "${flatpaks_installed[@]}")
+)
 readonly flatpaks_to_install
 
-mapfile -t flatpaks_to_remove < <(comm -13 <(arrays::to_lines "${flatpaks_from_package_list[@]}") <(arrays::to_lines "${flatpaks_installed[@]}"))
+mapfile -t flatpaks_to_remove < <(
+  comm -13 \
+    <(arrays::to_lines "${flatpaks_from_package_list[@]}") \
+    <(arrays::to_lines "${flatpaks_installed[@]}")
+)
 readonly flatpaks_to_remove
 
 if (("${#flatpaks_to_install[@]}")) && prompt::yn 'Install missing Flatpak packages?'; then
@@ -51,5 +59,8 @@ flatpak update --user --noninteractive
 log::log 'Updated all Flatpak packages'
 
 if flatpak list --user --app | grep::contains_word_ignore_case 'com.google.chrome'; then
-  flatpak override --user --filesystem="${HOME}/.local/share/applications:create" --filesystem="${HOME}/.local/share/icons:create" 'com.google.Chrome'
+  flatpak override --user \
+    --filesystem="${HOME}/.local/share/applications:create" \
+    --filesystem="${HOME}/.local/share/icons:create" \
+    'com.google.Chrome'
 fi

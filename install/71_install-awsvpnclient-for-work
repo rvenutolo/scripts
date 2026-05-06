@@ -27,11 +27,15 @@ readonly public_key_target_file='/etc/apt/trusted.gpg.d/awsvpnclient_public_key.
 readonly list_target_file='/etc/apt/sources.list.d/aws-vpn-client.list'
 
 log::log "Adding AWS VPN Client public key"
-files::root_write "${public_key_target_file}" "$(downloads::download_and_cat 'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc')"
+files::root_write "${public_key_target_file}" "$(
+  downloads::download_and_cat \
+    'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc'
+)"
 log::log "Added AWS VPN Client public key"
 
 log::log "Adding AWS VPN Client source list file"
-files::root_write "${list_target_file}" "deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu main"
+files::root_write "${list_target_file}" \
+  "deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu main"
 log::log "Added AWS VPN Client source list file"
 
 log::log 'Installing AWS VPN Client'

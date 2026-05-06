@@ -83,7 +83,8 @@ if commands::executable_exists 'flatpak' && ! flatpak --user remotes | grep::con
 fi
 
 ## check that the `trash` command is from trash-cli and not trash-d
-if commands::executable_exists 'trash' && ! trash --help | grep::contains_word_ignore_case 'https://github.com/andreafrancia/trash-cli/issues'; then
+if commands::executable_exists 'trash' \
+  && ! trash --help | grep::contains_word_ignore_case 'https://github.com/andreafrancia/trash-cli/issues'; then
   log::log "trash command is not from trash-cli"
 fi
 
@@ -110,7 +111,8 @@ if commands::executable_exists 'aa-enabled' && ! aa-enabled | grep::contains_wor
   log::log "AppArmor is not enabled"
 fi
 
-if commands::executable_exists 'sestatus' && sestatus | grep::contains_perl_regex_ignore_case 'selinux status:\s+enabled'; then
+if commands::executable_exists 'sestatus' \
+  && sestatus | grep::contains_perl_regex_ignore_case 'selinux status:\s+enabled'; then
   log::log "SELinux is enabled"
 fi
 
@@ -181,10 +183,11 @@ if ! hosts::is_server; then
     installed_fonts="$(fc-list : family)" || exit 1
     readonly installed_fonts
     for font in "${expected_fonts[@]}"; do
+      font_no_space="$(printf '%b' "${font}" | tr --delete '[:space:]')"
       if ! grep::contains_word_ignore_case "${font}" <<< "${installed_fonts}" \
         && ! grep::contains_word_ignore_case "${font}TTF" <<< "${installed_fonts}" \
-        && ! grep::contains_word_ignore_case "$(printf '%b' "${font}" | tr --delete '[:space:]')" <<< "${installed_fonts}" \
-        && ! grep::contains_word_ignore_case "$(printf '%b' "${font}TTF" | tr --delete '[:space:]')" <<< "${installed_fonts}"; then
+        && ! grep::contains_word_ignore_case "${font_no_space}" <<< "${installed_fonts}" \
+        && ! grep::contains_word_ignore_case "${font_no_space}TTF" <<< "${installed_fonts}"; then
         log::log "Font not available: ${font}"
       fi
     done
@@ -291,7 +294,11 @@ if os::is_fedora; then
   dnf_conf_text="$(cat '/etc/dnf/dnf.conf')" || exit 1
   readonly dnf_conf_text
   for dnf_conf_val in "${expected_dnf_conf_vals[@]}"; do
-    if strings::is_empty "$(grep --fixed-strings "${dnf_conf_val}" <<< "${dnf_conf_text}" | cut --delimiter='=' --fields=2 | xargs)"; then
+    if strings::is_empty "$(
+      grep --fixed-strings "${dnf_conf_val}" <<< "${dnf_conf_text}" \
+        | cut --delimiter='=' --fields=2 \
+        | xargs
+    )"; then
       log::log "dnf conf ${dnf_conf_val} is not set"
     fi
   done

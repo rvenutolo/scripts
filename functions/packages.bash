@@ -2,7 +2,8 @@
 
 # $1 = package name
 function packages::dpkg_package_installed() {
-  dpkg-query --show --showformat='${Package};${Status}\n' "$1" 2> '/dev/null' | grep::contains_regex_ignore_case "^$1;.*ok installed\$"
+  dpkg-query --show --showformat='${Package};${Status}\n' "$1" 2> '/dev/null' \
+    | grep::contains_regex_ignore_case "^$1;.*ok installed\$"
 }
 
 # $1 = packages list type (appimage flatpak nixpkgs)

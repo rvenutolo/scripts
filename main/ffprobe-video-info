@@ -11,8 +11,13 @@ args::check_no_args "$@"
 
 while read -r video_file; do
   video_info="$(
-    ffprobe "${video_file}" -show_entries 'stream=codec_name,width,height' -select_streams 'v:0' -loglevel '16' -output_format 'compact=p=0:nk=1' \
+    ffprobe "${video_file}" \
+      -show_entries 'stream=codec_name,width,height' \
+      -select_streams 'v:0' \
+      -loglevel '16' \
+      -output_format 'compact=p=0:nk=1' \
       | awk --field-separator '|' '{ print $2 " | " $3 " | " $1 }'
   )" || exit 1
-  printf '%s\n' "${video_info} | $(files::size_gb "${video_file}")G | $(dirname "${video_file}") | $(basename "${video_file}")"
+  size_gb="$(files::size_gb "${video_file}")"
+  printf '%s\n' "${video_info} | ${size_gb}G | $(dirname "${video_file}") | $(basename "${video_file}")"
 done < <(find . -iregex '.*\.\(mkv\|mp4\)$' -printf '%P\n' | sort)

@@ -11,7 +11,8 @@ args::check_no_args "$@"
 
 if os::is_debian; then
   log::log "Enabling backports repo"
-  files::root_write '/etc/apt/sources.list.d/backports.list' "deb http://deb.debian.org/debian $(os::codename)-backports main"
+  files::root_write '/etc/apt/sources.list.d/backports.list' \
+    "deb http://deb.debian.org/debian $(os::codename)-backports main"
   log::log "Enabled backports repo"
 fi
 

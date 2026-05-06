@@ -24,7 +24,11 @@ while read -r video_file; do
     log::log "${video_file}"
   fi
   audio_info="$(
-    ffprobe "${video_file}" -show_entries 'stream=index,codec_name,channel_layout:stream_tags=language' -select_streams 'a' -loglevel '16' -output_format 'compact=p=0:nk=1' \
+    ffprobe "${video_file}" \
+      -show_entries 'stream=index,codec_name,channel_layout:stream_tags=language' \
+      -select_streams 'a' \
+      -loglevel '16' \
+      -output_format 'compact=p=0:nk=1' \
       | awk --field-separator '|' '{ print $1 " | " $4 " | " $2 " | " $3 }'
   )" || exit 1
   if grep --quiet --invert-match --fixed-strings '| eng |' <<< "${audio_info}"; then
