@@ -26,6 +26,20 @@
   ```
 
 - Library files under `functions/` get only the shebang — do NOT add `set -euo pipefail` or source `functions.bash`. Strict mode is owned by the parent script that sources them.
+- **`functions/*.bash` exemption list** — library files are exempt from the following rules that apply to top-level scripts:
+  - `set -Eeuo pipefail` strict-mode pragma (parent owns strict mode)
+  - `IFS=$'\n\t'` (parent owns IFS)
+  - `source "${SCRIPTS_DIR}/functions.bash"` (would be circular)
+  - `log::enable_err_trap` call (parent installs the trap)
+  - The inline `ERR` trap form (only used by standalone `misc/` scripts)
+  - Top-level `args::check_*_args "$@"` guard (library files have no top-level args; functions inside them still use `check_*_args` guards)
+  - `main "$@"` final-line / `function main()` requirement (library files have no entry point)
+  - File-layout rule that constants must precede functions (library files contain only function definitions; no constants section)
+  - File extension: library files use `.bash` (top-level executables have no extension)
+  - Filename casing: library files use `snake_case` (top-level executables use `kebab-case`)
+  - Executable bit: library files must NOT be executable (top-level scripts must be executable)
+  - Creation via `main/new-script`: library files are hand-created (the helper is for top-level executables)
+  All other rules (helper-function usage, quoting, `[[ ]]` over `[ ]`, `(( ))` arithmetic, comment block above non-trivial functions, `local`/`local -r` inside every function, predicate-function return-via-exit-status, namespaced `::` function names, etc.) apply equally to library files.
 - Create new scripts via `main/new-script <path>` (handles header + exec bit).
 - Document positional parameters above each function with `# $1 = description` comments (use `# $@ = ...` for varargs).
 - Predicate functions (`is_*`, `*_exists`, etc.) end with a `[[ ... ]]` test or command whose exit status is the result — do not write explicit `return 0` / `return 1`.
