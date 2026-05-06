@@ -16,20 +16,18 @@ function eval_maven_expression() {
   mvn --file "${pom_file}" help:evaluate -Dexpression="$1" --quiet -DforceStdout
 }
 
-if ! files::exists "${pom_file}"; then
-  log::die "${pom_file} is missing"
-fi
-
-if files::exists "${env_file}"; then
-  log::die "${env_file} exists"
-fi
-
-artifact_id="$(eval_maven_expression 'project.artifactId')"
-readonly artifact_id
-version="$(eval_maven_expression 'project.version')"
-readonly version
-
-cat > "${env_file}" << EOF
+function main() {
+  if ! files::exists "${pom_file}"; then
+    log::die "${pom_file} is missing"
+  fi
+  if files::exists "${env_file}"; then
+    log::die "${env_file} exists"
+  fi
+  local artifact_id
+  artifact_id="$(eval_maven_expression 'project.artifactId')"
+  local version
+  version="$(eval_maven_expression 'project.version')"
+  cat > "${env_file}" << EOF
 AWS_ACCESS_KEY_ID=xxx
 AWS_SECRET_ACCESS_KEY=xxx
 DE_APP_ARTIFACT=${artifact_id}
@@ -46,3 +44,6 @@ DE_APP_CONF=conf
 DE_APP_OUTPUT=output
 DE_ENV=dev
 EOF
+}
+
+main "$@"

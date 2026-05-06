@@ -12,6 +12,22 @@ function usage() {
   printf '%s\n' "Usage: ${0##*/} [-d | --dir DIR] DISTRO..." >&2
 }
 
+function main() {
+  dirs::create "${dir}"
+  local distros
+  if [[ "$#" -eq 0 ]]; then
+    distros=('alpine' 'archlinux' 'debian' 'fedora' 'ubuntu')
+  else
+    distros=("$@")
+  fi
+  for distro in "${distros[@]}"; do
+    log::log "Dumping /etc from ${distro} to ${dir}/${distro}"
+    docker run --rm --volume "${dir}/${distro}:/host" "${distro}:latest" sh -c 'cp -r /etc /host'
+    log::log "Dumped /etc from ${distro} to ${dir}/${distro}"
+  done
+  sudo chown --recursive "${USER}" "${dir}"/*
+}
+
 parsed_args="$(getopt --alternative --name "${0##*/}" --options 'd:' --longoptions 'dir:' -- "$@")" || exit 1
 readonly parsed_args
 # eval is required to re-tokenize the quoted output of getopt
@@ -33,18 +49,5 @@ while true; do
   esac
 done
 readonly dir="${dir:-.}"
-dirs::create "${dir}"
 
-if [[ "$#" -eq 0 ]]; then
-  readonly distros=('alpine' 'archlinux' 'debian' 'fedora' 'ubuntu')
-else
-  readonly distros=("$@")
-fi
-
-for distro in "${distros[@]}"; do
-  log::log "Dumping /etc from ${distro} to ${dir}/${distro}"
-  docker run --rm --volume "${dir}/${distro}:/host" "${distro}:latest" sh -c 'cp -r /etc /host'
-  log::log "Dumped /etc from ${distro} to ${dir}/${distro}"
-done
-
-sudo chown --recursive "${USER}" "${dir}"/*
+main "$@"

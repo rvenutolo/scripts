@@ -41,75 +41,79 @@ function executable_exists() {
   type -aPf "$1" > '/dev/null' 2>&1
 }
 
-if [[ "${EUID}" != 0 ]]; then
-  die "You need to run this script with root privileges"
-fi
+function main() {
+  if [[ "${EUID}" != 0 ]]; then
+    die "You need to run this script with root privileges"
+  fi
 
-log 'Removing snaps'
-while [[ "$(snap list 2> '/dev/null' | tail --lines='+2' | wc --lines)" -gt 0 ]]; do
-  mapfile -t snaps < <(snap list | tail --lines='+2' | cut --delimiter=' ' --fields=1)
-  for snap in "${snaps[@]}"; do
-    if snap remove --purge "${snap}" &> '/dev/null'; then
-      log "Removed snap: ${snap}"
+  log 'Removing snaps'
+  while [[ "$(snap list 2> '/dev/null' | tail --lines='+2' | wc --lines)" -gt 0 ]]; do
+    mapfile -t snaps < <(snap list | tail --lines='+2' | cut --delimiter=' ' --fields=1)
+    for snap in "${snaps[@]}"; do
+      if snap remove --purge "${snap}" &> '/dev/null'; then
+        log "Removed snap: ${snap}"
+      fi
+    done
+  done
+  log 'Removed snaps'
+
+  log 'Disabling snapd services'
+  systemctl disable --now 'snapd.service'
+  systemctl disable --now 'snapd.socket'
+  systemctl disable --now 'snapd.seeded.service'
+  log 'Disabled snapd services'
+
+  log 'Masking snapd'
+  systemctl mask 'snapd'
+  log 'Masked snapd'
+
+  log 'Removing snapd package'
+  apt remove --autoremove --yes 'snapd'
+  log 'Removed snapd package'
+
+  log 'Writing /etc/apt/preferences.d/disable-snap.pref'
+  printf '%s\n' \
+    'Package: snapd' \
+    'Pin: release a=*' \
+    'Pin-Priority: -10' \
+    | tee '/etc/apt/preferences.d/disable-snap.pref' > '/dev/null'
+
+  log 'Updating apt package index'
+  sudo apt update
+  log 'Updated apt package index'
+
+  local existing_mounts
+  existing_mounts="$(grep --invert '^\s*#' '/etc/fstab' | awk '{ print $2 }')" || exit 1
+
+  for dir in '/snap' '/var/snap' '/var/lib/snapd' '/var/cache/snapd' '/root/snap'; do
+    if [[ -d "${dir}" ]]; then
+      if grep --quiet --fixed-strings --line-regexp "${dir}" <<< "${existing_mounts}"; then
+        # if this dir exists in fstab, it is likely because I have a btrfs subvolume mounted at that dir
+        log "Removing all files in: ${dir}"
+        rm --recursive --force -- "${dir:?}/"*
+        log "Removed all files in: ${dir}"
+      else
+        log "Removing: ${dir}"
+        rm --recursive --force -- "${dir}"
+        log "Removed: ${dir}"
+      fi
     fi
   done
-done
-log 'Removed snaps'
 
-log 'Disabling snapd services'
-systemctl disable --now 'snapd.service'
-systemctl disable --now 'snapd.socket'
-systemctl disable --now 'snapd.seeded.service'
-log 'Disabled snapd services'
-
-log 'Masking snapd'
-systemctl mask 'snapd'
-log 'Masked snapd'
-
-log 'Removing snapd package'
-apt remove --autoremove --yes 'snapd'
-log 'Removed snapd package'
-
-log 'Writing /etc/apt/preferences.d/disable-snap.pref'
-printf '%s\n' \
-  'Package: snapd' \
-  'Pin: release a=*' \
-  'Pin-Priority: -10' \
-  | tee '/etc/apt/preferences.d/disable-snap.pref' > '/dev/null'
-
-log 'Updating apt package index'
-sudo apt update
-log 'Updated apt package index'
-
-existing_mounts="$(grep --invert '^\s*#' '/etc/fstab' | awk '{ print $2 }')" || exit 1
-readonly existing_mounts
-
-for dir in '/snap' '/var/snap' '/var/lib/snapd' '/var/cache/snapd' '/root/snap'; do
-  if [[ -d "${dir}" ]]; then
-    if grep --quiet --fixed-strings --line-regexp "${dir}" <<< "${existing_mounts}"; then
-      # if this dir exists in fstab, it is likely because I have a btrfs subvolume mounted at that dir
-      log "Removing all files in: ${dir}"
-      rm --recursive --force -- "${dir:?}/"*
-      log "Removed all files in: ${dir}"
-    else
-      log "Removing: ${dir}"
-      rm --recursive --force -- "${dir}"
-      log "Removed: ${dir}"
+  for dir in "/home/"*; do
+    if [[ -d "${dir}/snap" ]]; then
+      if grep --quiet --fixed-strings --line-regexp "${dir}" <<< "${existing_mounts}"; then
+        # if this dir exists in fstab, it is likely because I have a btrfs subvolume mounted at that dir
+        log "Removing all files in: ${dir}/snap"
+        rm --recursive --force -- "${dir}/snap/"*
+        log "Removed all files in: ${dir}/snap"
+      else
+        log "Removing: ${dir}/snap"
+        rm --recursive --force -- "${dir}/snap"
+        log "Removed: ${dir}/snap"
+      fi
     fi
-  fi
-done
+  done
+}
 
-for dir in "/home/"*; do
-  if [[ -d "${dir}/snap" ]]; then
-    if grep --quiet --fixed-strings --line-regexp "${dir}" <<< "${existing_mounts}"; then
-      # if this dir exists in fstab, it is likely because I have a btrfs subvolume mounted at that dir
-      log "Removing all files in: ${dir}/snap"
-      rm --recursive --force -- "${dir}/snap/"*
-      log "Removed all files in: ${dir}/snap"
-    else
-      log "Removing: ${dir}/snap"
-      rm --recursive --force -- "${dir}/snap"
-      log "Removed: ${dir}/snap"
-    fi
-  fi
-done
+main "$@"

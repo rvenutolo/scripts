@@ -12,6 +12,12 @@ function usage() {
   printf '%s\n' "Usage: ${0##*/} [-d | --dir DIR] FILE..." >&2
 }
 
+function main() {
+  for file in "$@"; do
+    find -L "${dir}" -samefile "${file}" -exec printf '%s\n' "${file} {}" \; 2> '/dev/null' || true
+  done | sort | column --table --table-columns 'FILE,LINK'
+}
+
 parsed_args="$(getopt --alternative --name "${0##*/}" --options 'd:' --longoptions 'dir:' -- "$@")" || exit 1
 readonly parsed_args
 # eval is required to re-tokenize the quoted output of getopt
@@ -36,6 +42,4 @@ readonly dir="${dir:-.}"
 
 args::check_at_least_1_arg "$@"
 
-for file in "$@"; do
-  find -L "${dir}" -samefile "${file}" -exec printf '%s\n' "${file} {}" \; 2> '/dev/null' || true
-done | sort | column --table --table-columns 'FILE,LINK'
+main "$@"
