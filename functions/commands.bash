@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# $1 = executable
+# Return true if the named executable is on PATH, excluding wrappers in main/ and other/.
+# $1 = executable name
 function commands::executable_exists() {
   args::check_exactly_1_arg "$@"
   (
@@ -13,10 +14,9 @@ function commands::executable_exists() {
   )
 }
 
-# $1 = executable
-# Prints the absolute path of the executable (first match on PATH), or empty
-# if not found. Same PATH-stripping as commands::executable_exists so wrappers in
-# main/ and other/ don't mask the real binary.
+# Print the absolute path of an executable (first match on PATH), excluding wrappers in main/ and other/.
+# $1 = executable name
+# Output: stdout — absolute path, or empty string if not found
 function commands::executable_path() {
   args::check_exactly_1_arg "$@"
   (
@@ -26,7 +26,8 @@ function commands::executable_path() {
   )
 }
 
-# $1 = function
+# Return true if the named shell function is defined in the current shell.
+# $1 = function name
 function commands::function_exists() {
   args::check_exactly_1_arg "$@"
   declare -f "$1" > '/dev/null' 2>&1

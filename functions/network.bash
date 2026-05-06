@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 
+# Print the local IPv4 address used for outbound traffic.
+# Output: stdout — local IP address (e.g. "192.168.1.42")
 #shellcheck disable=SC2120
 function network::local_ip() {
   args::check_no_args "$@"
   ip -oneline route get to '8.8.8.8' | sed --quiet 's/.*src \([0-9.]\+\).*/\1/p'
 }
 
+# Print the local network CIDR range (one of the RFC-1918 private ranges).
+# Dies if the local IP does not fall within any known private range.
+# Output: stdout — CIDR range (e.g. "192.168.0.0/16")
 function network::local_network() {
   args::check_no_args "$@"
   local ip_num

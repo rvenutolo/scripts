@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# $1 = path to remove
+# Remove all occurrences of a directory from PATH.
+# $1 = directory path to remove
 function path::remove() {
   args::check_exactly_1_arg "$@"
   PATH="$(
@@ -10,13 +11,15 @@ function path::remove() {
   )"
 }
 
-# $1 = path to append
+# Append a directory to PATH (removing any existing occurrence first to avoid duplicates).
+# $1 = directory path to append
 function path::append() {
   args::check_exactly_1_arg "$@"
   path::remove "$1" && PATH="${PATH}:$1"
 }
 
-# $1 = path to prepend
+# Prepend a directory to PATH (removing any existing occurrence first to avoid duplicates).
+# $1 = directory path to prepend
 function path::prepend() {
   args::check_exactly_1_arg "$@"
   path::remove "$1" && PATH="$1:${PATH}"

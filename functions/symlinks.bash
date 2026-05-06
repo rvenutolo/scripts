@@ -1,21 +1,27 @@
 #!/usr/bin/env bash
 
-# $1 = symlink
+# Return true if the given path exists and is a symbolic link.
+# $1 = symlink path
 function symlinks::exists() {
   args::check_exactly_1_arg "$@"
   [[ -L "$1" ]]
 }
 
-# $1 = symlink
+# Print the target of a symbolic link; dies if the symlink does not exist.
+# $1 = symlink path
+# Output: stdout — symlink target path
 function symlinks::get_target() {
+  args::check_exactly_1_arg "$@"
   if ! symlinks::exists "$1"; then
     log::die "Symbolic link does not exist: $1"
   fi
   readlink "$1"
 }
 
-# $1 = target file
-# $2 = link file
+# Create a symbolic link from a file to a link path, prompting if the destination already exists.
+# No-ops if the link already points to the correct target.
+# $1 = target file path
+# $2 = link path to create
 function symlinks::link_file() {
   args::check_exactly_2_args "$@"
   files::assert_exists "$1"
@@ -38,8 +44,10 @@ function symlinks::link_file() {
   log::log "Linked: $1 -> $2"
 }
 
-# $1 = target directory
-# $2 = link path
+# Create a symbolic link from a directory to a link path, prompting if the destination already exists.
+# No-ops if the link already points to the correct target.
+# $1 = target directory path
+# $2 = link path to create
 function symlinks::link_dir() {
   args::check_exactly_2_args "$@"
   dirs::assert_exists "$1"

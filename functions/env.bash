@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# $@ = variable names
+# Die if any of the named environment variables is unset or empty.
+# $@ = variable names to check
 function env::assert_var_set() {
   args::check_at_least_1_arg "$@"
   for var in "$@"; do
