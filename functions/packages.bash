@@ -10,6 +10,7 @@ function dpkg_package_installed() {
 # --ignore [PACKAGE]... ignores those packages
 function get_universal_packages() {
   check_at_least_1_arg "$@"
+  require_bash_version 4 0
   local package_type
   case "$1" in
     appimage | flatpak | nixpkgs | nixpkgs-unstable)
@@ -99,6 +100,7 @@ function get_universal_packages() {
 # --ignore [PACKAGE]... ignores those packages
 function get_distro_packages() {
   check_at_least_2_args "$@"
+  require_bash_version 4 0
   local id="$1"
   readonly id
   shift
@@ -182,6 +184,7 @@ function get_distro_packages() {
 # --quiet = don't output messages about disabled packages
 # --ignore [PACKAGE]... ignores those packages
 function get_sdkman_packages() {
+  require_bash_version 4 0
   local packages_to_ignore=()
   local quiet=''
   while [[ $# -gt 0 ]]; do

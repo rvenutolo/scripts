@@ -6,5 +6,6 @@ IFS=$'\n\t'
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
 enable_err_trap
+require_bash_version 4 0
 
 nix run 'github:b3nj5m1n/xdg-ninja' -- "$@"

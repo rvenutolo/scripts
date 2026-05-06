@@ -47,6 +47,7 @@ function find_shell_scripts() {
 # $2..$N = candidate paths
 function filter_shell_scripts() {
   check_at_least_1_arg "$@"
+  require_bash_version 4 3
   local -n _out_ref="$1"
   shift
   _out_ref=()

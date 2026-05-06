@@ -6,6 +6,7 @@ IFS=$'\n\t'
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
 enable_err_trap
+require_bash_version 4 0
 
 # SP  ' '  0x20 = · U+00B7 Middle Dot
 # TAB '\t' 0x09 = ￫ U+FFEB Halfwidth Rightwards Arrow
