@@ -9,6 +9,10 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
+readonly compose_file='./compose.yaml'
+readonly init_file='./init'
+readonly run_file='./run'
+
 function write_to_compose_file() {
   args::check_at_least_1_arg "$@"
   printf '%s\n' "$@" >> "${compose_file}"
@@ -43,10 +47,6 @@ function multiple_containers() {
   args::check_no_args "$@"
   strings::is_not_empty "${multiple_containers:-}"
 }
-
-readonly compose_file='./compose.yaml'
-readonly init_file='./init'
-readonly run_file='./run'
 
 for file in "${compose_file}" "${init_file}" "${run_file}"; do
   if files::exists "${file}"; then

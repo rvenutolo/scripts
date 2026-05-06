@@ -9,12 +9,12 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
+readonly pom_file='pom.xml'
+readonly env_file='.env'
+
 function eval_maven_expression() {
   mvn --file "${pom_file}" help:evaluate -Dexpression="$1" --quiet -DforceStdout
 }
-
-readonly pom_file='pom.xml'
-readonly env_file='.env'
 
 if ! files::exists "${pom_file}"; then
   log::die "${pom_file} is missing"

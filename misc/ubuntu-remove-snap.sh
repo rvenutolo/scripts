@@ -21,10 +21,6 @@ function die() {
   exit 1
 }
 
-if [[ "${EUID}" != 0 ]]; then
-  die "You need to run this script with root privileges"
-fi
-
 # $1 = question
 function prompt_yn() {
   REPLY=''
@@ -44,6 +40,10 @@ function executable_exists() {
   # executables / no builtins, aliases, or functions
   type -aPf "$1" > '/dev/null' 2>&1
 }
+
+if [[ "${EUID}" != 0 ]]; then
+  die "You need to run this script with root privileges"
+fi
 
 log 'Removing snaps'
 while [[ "$(snap list 2> '/dev/null' | tail --lines='+2' | wc --lines)" -gt 0 ]]; do
