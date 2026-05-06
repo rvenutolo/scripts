@@ -12,7 +12,7 @@ args::check_no_args "$@"
 if ! hosts::is_work; then
   exit 0
 fi
-current_selection="$(prime-select query)" || exit 1
+current_selection="$(prime-select query)"
 readonly current_selection
 if [[ "${current_selection}" == 'intel' ]]; then
   exit 0

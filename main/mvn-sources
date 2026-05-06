@@ -19,7 +19,7 @@ function get_sources() {
 
 function main() {
   local pom_files
-  pom_files="$(mvn::list_pom_files)" || exit 1
+  pom_files="$(mvn::list_pom_files)"
   while IFS='' read -r pom_file; do
     get_sources "${pom_file}"
   done <<< "${pom_files}"

@@ -55,22 +55,22 @@ function main() {
     fi
   done
 
-  app_name="$(prompt::for_value 'App name?')" || exit 1
+  app_name="$(prompt::for_value 'App name?')"
   readonly app_name
   app_constant_name="${app_name^^}"
   readonly app_constant_name="${app_constant_name//-/_}"
 
-  image_name="$(prompt::for_value 'Image name?')" || exit 1
+  image_name="$(prompt::for_value 'Image name?')"
   readonly image_name
 
-  image_tag="$(prompt::for_value 'Image tag?' 'latest')" || exit 1
+  image_tag="$(prompt::for_value 'Image tag?' 'latest')"
   readonly image_tag
 
   if prompt::yn 'Is this a service (not run-once)?'; then
     readonly service='1'
     if prompt::yn 'Use reverse proxy?'; then
       readonly use_reverse_proxy='1'
-      port="$(prompt::for_value 'Port?')" || exit 1
+      port="$(prompt::for_value 'Port?')"
       readonly port
     fi
     if prompt::yn 'Restart on unhealthy status?'; then

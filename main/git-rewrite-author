@@ -9,11 +9,11 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
-old_email="$(prompt::for_value 'Email address to replace')" || exit 1
+old_email="$(prompt::for_value 'Email address to replace')"
 readonly old_email
-new_email="$(prompt::for_value 'New email address')" || exit 1
+new_email="$(prompt::for_value 'New email address')"
 readonly new_email
-new_name="$(prompt::for_value 'New name')" || exit 1
+new_name="$(prompt::for_value 'New name')"
 readonly new_name
 
 FILTER_BRANCH_SQUELCH_WARNING='1' git filter-branch --force --env-filter "

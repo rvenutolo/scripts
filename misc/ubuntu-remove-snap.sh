@@ -83,7 +83,7 @@ function main() {
   log 'Updated apt package index'
 
   local existing_mounts
-  existing_mounts="$(grep --invert '^\s*#' '/etc/fstab' | awk '{ print $2 }')" || exit 1
+  existing_mounts="$(grep --invert '^\s*#' '/etc/fstab' | awk '{ print $2 }')"
 
   for dir in '/snap' '/var/snap' '/var/lib/snapd' '/var/cache/snapd' '/root/snap'; do
     if [[ -d "${dir}" ]]; then

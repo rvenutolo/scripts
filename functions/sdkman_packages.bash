@@ -43,7 +43,7 @@ function sdkman_packages::get_current_package_version() {
 function sdkman_packages::prune_sdkman_package() {
   args::check_exactly_1_arg "$@"
   local current_version
-  current_version="$(sdkman_packages::get_current_package_version "$1")" || exit 1
+  current_version="$(sdkman_packages::get_current_package_version "$1")"
   readonly current_version
   while read -r version; do
     if [[ "${version}" != "${current_version}" ]]; then

@@ -15,7 +15,7 @@ dirs::create "${keys_dir}"
 readonly age_key_file="${keys_dir}/age.key"
 if ! files::exists "${age_key_file}"; then
   log::log "Downloading: ${age_key_file}"
-  temp_file="$(downloads::download_to_temp_file 'https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/age.key')" || exit 1
+  temp_file="$(downloads::download_to_temp_file 'https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/age.key')"
   if [[ -s "${temp_file}" ]]; then
     log::log "Decrypting: ${age_key_file}"
     until age --decrypt --output "${age_key_file}" "${temp_file}"; do :; done
@@ -28,7 +28,7 @@ for filename in 'id_ed25519' 'id_ed25519.pub'; do
   key_file="${keys_dir}/${filename}"
   if ! files::exists "${key_file}"; then
     log::log "Downloading: ${key_file}"
-    temp_file="$(downloads::download_to_temp_file "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${filename}")" || exit 1
+    temp_file="$(downloads::download_to_temp_file "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${filename}")"
     if [[ -s "${temp_file}" ]]; then
       log::log "Decrypting: ${key_file}"
       age --decrypt --identity "${age_key_file}" --output "${key_file}" "${temp_file}"
@@ -43,14 +43,14 @@ mapfile -t urls < <(
     | jq --raw-output '.[].download_url'
 )
 for url in "${urls[@]}"; do
-  filename="$(basename "${url}")" || exit 1
+  filename="$(basename "${url}")"
   if [[ "${filename}" == 'age.key' || "${filename}" == 'id_ed25519' || "${filename}" == 'id_ed25519.pub' ]]; then
     continue
   fi
   key_file="${keys_dir}/${filename}"
   if ! files::exists "${key_file}" && prompt::ny "Download ${filename}?"; then
     log::log "Downloading: ${filename}"
-    temp_file="$(downloads::download_to_temp_file "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${filename}")" || exit 1
+    temp_file="$(downloads::download_to_temp_file "https://raw.githubusercontent.com/rvenutolo/crypt/main/keys/${filename}")"
     if [[ -s "${temp_file}" ]]; then
       log::log "Decrypting: ${key_file}"
       age --decrypt --identity "${age_key_file}" --output "${key_file}" "${temp_file}"

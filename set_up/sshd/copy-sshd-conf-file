@@ -16,10 +16,10 @@ fi
 readonly src_file="${HOME}/.etc/sshd.conf"
 readonly dest_file='/etc/ssh/sshd_config.d/sshd.conf'
 
-orig_hash="$(files::hash "${dest_file}")" || exit 1
+orig_hash="$(files::hash "${dest_file}")"
 readonly orig_hash
 files::root_copy "${src_file}" "${dest_file}"
-cur_hash="$(files::hash "${dest_file}")" || exit 1
+cur_hash="$(files::hash "${dest_file}")"
 readonly cur_hash
 
 if [[ "${orig_hash}" != "${cur_hash}" ]]; then

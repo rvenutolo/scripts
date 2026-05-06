@@ -7,7 +7,7 @@ function path::remove() {
     printf '%s' "${PATH}" \
       | awk --assign 'RS=:' --assign 'ORS=:' --assign "path=$1" '$0 != path' \
       | sed 's/:$//'
-  )" || exit 1
+  )"
 }
 
 # $1 = path to append

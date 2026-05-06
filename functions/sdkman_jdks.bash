@@ -258,7 +258,7 @@ function sdkman_jdks::install_latest_tem_jdk() {
   latest_artifact_id="$(
     sdkman_jdks::get_formatted_latest_available_tem_jdk_for_major_version "$1" \
       | sdkman_jdks::get_formatted_tem_jdk_artifact_id_field
-  )" || exit 1
+  )"
   readonly latest_artifact_id
   sdkman_jdks::install_jdk "${latest_artifact_id}"
 }
@@ -281,7 +281,7 @@ function sdkman_jdks::set_default_sdk_to_latest_installed_for_major_version() {
   new_default_artifact_id="$(
     sdkman_jdks::get_formatted_latest_installed_tem_jdk_for_major_version "$1" \
       | sdkman_jdks::get_formatted_tem_jdk_artifact_id_field
-  )" || exit 1
+  )"
   readonly new_default_artifact_id
   sdkman_jdks::set_default_jdk_by_id "${new_default_artifact_id}"
 }
@@ -302,7 +302,7 @@ function sdkman_jdks::prune_tem_jdks_for_major_version() {
   latest_artifact_id="$(
     sdkman_jdks::get_formatted_latest_available_tem_jdk_for_major_version "$1" \
       | sdkman_jdks::get_formatted_tem_jdk_artifact_id_field
-  )" || exit 1
+  )"
   readonly latest_artifact_id
   while read -r artifact_id; do
     if [[ "${artifact_id}" != "${latest_artifact_id}" ]]; then

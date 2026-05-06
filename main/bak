@@ -9,12 +9,12 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_at_least_1_arg "$@"
 
-filetime="$(date +%Y%m%d_%H%M%S)" || exit 1
+filetime="$(date +%Y%m%d_%H%M%S)"
 readonly filetime
 for file in "$@"; do
   if files::exists "${file}" || dirs::exists "${file}"; then
-    dirname="$(dirname -- "${file}")" || exit 1
-    filename="$(basename -- "${file}")" || exit 1
+    dirname="$(dirname -- "${file}")"
+    filename="$(basename -- "${file}")"
     target_file="${dirname}/${filename}.${filetime}.bak"
     cp --archive -- "${file}" "${target_file}"
     log::log "${file} -> ${target_file}"

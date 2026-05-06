@@ -14,7 +14,7 @@ function sort_json_file() {
   local json_file="$1"
   readonly json_file
   local temp_file
-  temp_file="$(mktemp)" || exit 1
+  temp_file="$(mktemp)"
   readonly temp_file
   json::sort "${json_file}" > "${temp_file}"
   mv "${temp_file}" "${json_file}"

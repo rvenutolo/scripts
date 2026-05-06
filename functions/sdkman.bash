@@ -33,7 +33,7 @@ function sdkman::rewrite_sdkmanrc_file_java_version() {
   args::check_exactly_1_arg "$@"
   files::assert_exists "$1"
   local current_java_artifact_id
-  current_java_artifact_id="$(sdkman::get_sdkmanrc_file_java_artifact_id "$1")" || exit 1
+  current_java_artifact_id="$(sdkman::get_sdkmanrc_file_java_artifact_id "$1")"
   readonly current_java_artifact_id
   if sdkman_jdks::is_tem_jdk_artifact_installed "${current_java_artifact_id}"; then
     return 0
@@ -44,7 +44,7 @@ function sdkman::rewrite_sdkmanrc_file_java_version() {
   local new_java_artifact_id
   new_java_artifact_id="$(
     sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version "${major_version}"
-  )" || exit 1
+  )"
   readonly new_java_artifact_id
   sdkman::overwrite_sdkmanrc_file_java_artifact_id "$1" "${new_java_artifact_id}"
 }

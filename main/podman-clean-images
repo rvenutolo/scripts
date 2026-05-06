@@ -9,7 +9,7 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
-images="$(podman images --all --filter=dangling=true --quiet)" || exit 1
+images="$(podman images --all --filter=dangling=true --quiet)"
 readonly images
 if strings::is_not_empty "${images}"; then
   podman rmi "${images}"

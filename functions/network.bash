@@ -9,7 +9,7 @@ function network::local_ip() {
 function network::local_network() {
   args::check_no_args "$@"
   local ip_num
-  ip_num="$(ip::ipv4_to_num "$(network::local_ip)" || exit 1)" || exit 1
+  ip_num="$(ip::ipv4_to_num "$(network::local_ip)")"
   readonly ip_num
   if [[ $(ip::ipv4_to_num '10.0.0.0') -le "${ip_num}" && "${ip_num}" -le $(ip::ipv4_to_num '10.255.255.255') ]]; then
     printf '%s\n' '10.0.0.0/8'
