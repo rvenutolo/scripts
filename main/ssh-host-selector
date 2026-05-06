@@ -6,6 +6,7 @@ IFS=$'\n\t'
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
 enable_err_trap
+require_bash_version 4 0
 check_no_args "$@"
 
 ssh_host="$(grep '^Host' ~/.ssh/config.private | grep --invert-match '[?*]' | cut --delimiter ' ' --fields 2 | sort | fzf --height=20 --exact --layout=reverse)" || exit 1

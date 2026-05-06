@@ -6,6 +6,7 @@ IFS=$'\n\t'
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
 enable_err_trap
+require_bash_version 4 0
 
 readonly url='https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas_linux_amd64'
 readonly linpeas_file="${XDG_DATA_HOME}/linpeas"
