@@ -3,7 +3,8 @@
 # $1 = container name
 function docker::container_is_running() {
   args::check_exactly_1_arg "$@"
-  strings::is_not_empty "$(docker ps --quiet --filter "name=^$1\$")" && [[ "$(docker container inspect --format '{{.State.Status}}' "$1")" == 'running' ]]
+  strings::is_not_empty "$(docker ps --quiet --filter "name=^$1\$")" \
+    && [[ "$(docker container inspect --format '{{.State.Status}}' "$1")" == 'running' ]]
 }
 
 # $1 = container name

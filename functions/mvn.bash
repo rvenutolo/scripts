@@ -7,5 +7,9 @@ function mvn::list_pom_files() {
   else
     local -r dir="$1"
   fi
-  find "${dir}" -type 'd' \( ! -readable -o ! -executable \) -prune -o -name 'target' -prune -o -type 'f' -name 'pom.xml' -print | sort
+  find "${dir}" \
+    -type 'd' \( ! -readable -o ! -executable \) -prune \
+    -o -name 'target' -prune \
+    -o -type 'f' -name 'pom.xml' -print \
+    | sort
 }

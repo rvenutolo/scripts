@@ -42,7 +42,9 @@ function sdkman::rewrite_sdkmanrc_file_java_version() {
   major_version="$(sdkman_jdks::get_jdk_major_version "${current_java_artifact_id}")"
   readonly major_version
   local new_java_artifact_id
-  new_java_artifact_id="$(sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version "${major_version}")" || exit 1
+  new_java_artifact_id="$(
+    sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version "${major_version}"
+  )" || exit 1
   readonly new_java_artifact_id
   sdkman::overwrite_sdkmanrc_file_java_artifact_id "$1" "${new_java_artifact_id}"
 }

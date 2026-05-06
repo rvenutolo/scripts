@@ -14,7 +14,9 @@ path::remove "$(misc::this_script_dir)"
 dir="${PWD}"
 project_root="${PWD}"
 while [[ "${dir}" != / ]]; do
-  if files::exists "${dir}/settings.gradle" || files::exists "${dir}/settings.gradle.kts" || files::exists "${dir}/gradlew"; then
+  if files::exists "${dir}/settings.gradle" \
+    || files::exists "${dir}/settings.gradle.kts" \
+    || files::exists "${dir}/gradlew"; then
     readonly project_root="${dir}"
     break
   fi

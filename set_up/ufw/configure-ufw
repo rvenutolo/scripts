@@ -20,7 +20,8 @@ if ! sudo ufw status verbose | grep::contains_word_ignore_case 'deny (incoming)'
   fi
 fi
 
-if ! sudo ufw status verbose | grep::contains_perl_regex_ignore_case 'anywhere on tailscale0\s+allow in\s+anywhere'; then
+if ! sudo ufw status verbose \
+  | grep::contains_perl_regex_ignore_case 'anywhere on tailscale0\s+allow in\s+anywhere'; then
   if prompt::yn 'Set UFW to allow incoming traffic from tailnet?'; then
     sudo ufw allow in on 'tailscale0'
   fi
@@ -32,7 +33,9 @@ if ! sudo ufw status verbose | grep::contains_perl_regex_ignore_case '22/tcp\s+a
   fi
 fi
 
-if hosts::is_server && ! sudo ufw status verbose | grep::contains_perl_regex_ignore_case '45876/tcp\s+allow in\s+169\.254\.0\.0/16'; then
+if hosts::is_server \
+  && ! sudo ufw status verbose \
+  | grep::contains_perl_regex_ignore_case '45876/tcp\s+allow in\s+169\.254\.0\.0/16'; then
   if prompt::ny 'Set UFW to allow incoming traffic on port 45876 (beszel) from 169.254.0.0/16 (docker IP range)?'; then
     sudo ufw allow from '169.254.0.0/16' to any port '45876' proto 'tcp'
   fi

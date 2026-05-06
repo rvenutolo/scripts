@@ -16,7 +16,8 @@ if ! os::is_ubuntu; then
   log::log 'This is a work computer, but not Ubuntu. Skipping installing NVIDIA drivers'
   exit 0
 fi
-if dpkg-query --show --showformat='${Package};${Status}\n' 'nvidia-driver-*' 2> '/dev/null' | grep::contains_regex_ignore_case '^nvidia-driver-[0-9][0-9][0-9];.*ok installed$'; then
+if dpkg-query --show --showformat='${Package};${Status}\n' 'nvidia-driver-*' 2> '/dev/null' \
+  | grep::contains_regex_ignore_case '^nvidia-driver-[0-9][0-9][0-9];.*ok installed$'; then
   exit 0
 fi
 if ! prompt::yn 'Install NVIDIA drivers?'; then
