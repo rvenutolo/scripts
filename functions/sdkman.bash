@@ -2,7 +2,7 @@
 
 # Strip ANSI escape codes and blank lines from stdin (used to clean sdk command output).
 # Output: stdout — cleaned text
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman::clean_output() {
   args::check_no_args "$@"
   args::check_for_stdin
@@ -10,7 +10,7 @@ function sdkman::clean_output() {
 }
 
 # Refresh SDKMAN metadata (runs 'sdk update' and cleans output).
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman::update_metadata() {
   args::check_no_args "$@"
   sdk update | sdkman::clean_output
@@ -59,14 +59,14 @@ function sdkman::rewrite_sdkmanrc_file_java_version() {
 
 # Find and print the paths of all .sdkmanrc files under $HOME.
 # Output: stdout — sorted list of .sdkmanrc file paths, one per line
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman::list_all_sdkmanrc_files() {
   args::check_no_args "$@"
   find "${HOME}" -type 'd' \( ! -readable -o ! -executable \) -prune -o -type 'f' -name '.sdkmanrc' -print | sort
 }
 
 # Update the java entry in every .sdkmanrc file found under $HOME.
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman::rewrite_sdkmanrc_file_java_versions() {
   args::check_no_args "$@"
   while read -r file; do

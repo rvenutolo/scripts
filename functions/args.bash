@@ -105,7 +105,7 @@ function args::check_at_least_4_args() {
 }
 
 # Die if stdin has no data available (i.e., a terminal is attached).
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, but shellcheck can't see all call sites
 function args::check_for_stdin() {
   args::check_no_args "$@"
   if [[ -t 0 ]]; then
@@ -114,7 +114,7 @@ function args::check_for_stdin() {
 }
 
 # Return true if stdin has data available (i.e., not a terminal).
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, but shellcheck can't see all call sites
 function args::stdin_exists() {
   args::check_no_args "$@"
   ! [[ -t 0 ]]

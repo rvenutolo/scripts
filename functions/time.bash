@@ -25,7 +25,7 @@ function time::calc_elapsed() {
 
 # Print the elapsed time since the current shell session started (using $SECONDS).
 # Output: stdout — elapsed time in "Xh Xm Xs" format
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function time::shell_elapsed_time() {
   args::check_no_args "$@"
   time::calc_elapsed 0 "${SECONDS}"

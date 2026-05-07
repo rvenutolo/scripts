@@ -14,7 +14,7 @@ function system::require_bash_version() {
 }
 
 # Prompt and then reload sysctl configuration via 'sudo sysctl --system'.
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function system::reload_sysctl_conf() {
   args::check_no_args "$@"
   if prompt::yn 'Reload sysctl configuration?'; then

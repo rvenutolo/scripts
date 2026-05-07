@@ -16,7 +16,7 @@ function sdkman_packages::uninstall_package_version() {
 }
 
 # Install the latest version of every SDKMAN package listed for this machine.
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_packages::install_sdkman_packages() {
   args::check_no_args "$@"
   while read -r pkg; do
@@ -26,7 +26,7 @@ function sdkman_packages::install_sdkman_packages() {
 
 # Print the names of all installed SDKMAN packages (excluding java).
 # Output: stdout — package names, one per line, sorted
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_packages::get_installed_packages() {
   args::check_no_args "$@"
   find "${SDKMAN_CANDIDATES_DIR}" -maxdepth '1' -mindepth '1' -type 'd' ! -name 'java' -printf '%f\n' | sort
@@ -63,7 +63,7 @@ function sdkman_packages::prune_sdkman_package() {
 }
 
 # Uninstall all outdated versions of every installed SDKMAN package (excluding java).
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_packages::prune_sdkman_packages() {
   args::check_no_args "$@"
   while read -r package; do

@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-#shellcheck disable=SC1091
+# shellcheck disable=SC1091 # functions.bash is sourced via SCRIPTS_DIR, not a relative path
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
@@ -71,7 +71,7 @@ function write_packages_into() {
       "NR >= $(get_line_number "${packages_file}" ']')" \
       "${packages_file}"
   } >> "${temp_file}"
-  mv "${temp_file}" "${packages_file}"
+  mv -- "${temp_file}" "${packages_file}"
 }
 
 function main() {

@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-#shellcheck disable=SC1091
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
@@ -13,7 +13,7 @@ args::check_at_most_2_args "$@"
 if strings::is_not_empty "${2:-}"; then
   tries=0
   until wrappers::curl "$1" --output "$2"; do
-    ((tries += 1))
+    ((tries += 1)) || true # increment; || true guards against set -e if value is 0
     if ((tries > 10)); then
       log::die "Failed to get in 10 tries: $1"
     fi
@@ -22,7 +22,7 @@ if strings::is_not_empty "${2:-}"; then
 else
   tries=0
   until wrappers::curl "$1"; do
-    ((tries += 1))
+    ((tries += 1)) || true # increment; || true guards against set -e if value is 0
     if ((tries > 10)); then
       log::die "Failed to get in 10 tries: $1"
     fi

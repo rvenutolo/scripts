@@ -19,7 +19,7 @@ function env_file::get_var_value() {
   args::check_exactly_2_args "$@"
   files::assert_exists "$1"
   env_file::assert_var_exists "$1" "$2"
-  grep "^$2=" "$1" | cut --delimiter='=' --fields='2-'
+  grep --regexp="^$2=" -- "$1" | cut --delimiter='=' --fields='2-'
 }
 
 # Return true if the given variable exists in the env file but has an empty value.

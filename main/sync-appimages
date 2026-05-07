@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-#shellcheck disable=SC1091
+# shellcheck disable=SC1091 # functions.bash is sourced via SCRIPTS_DIR, not a relative path
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
@@ -17,7 +17,7 @@ readonly appimages_from_package_list
 
 mapfile -t appimages_installed < <(
   find "${XDG_DATA_HOME}/appman/" \
-    -mindepth '1' -maxdepth '1' -type 'd' ! -name 'appman' -printf '%f\n' \
+    -mindepth 1 -maxdepth 1 -type 'd' ! -name 'appman' -printf '%f\n' \
     | sort
 )
 readonly appimages_installed
@@ -38,7 +38,7 @@ readonly appimages_to_remove
 
 if (("${#appimages_to_install[@]}")) && prompt::yn 'Install missing AppImage packages?'; then
   log::log 'Installing missing AppImage packages'
-  arrays::to_lines "${appimages_to_install[@]}" | xargs --no-run-if-empty appman install
+  arrays::to_lines "${appimages_to_install[@]}" | xargs --no-run-if-empty --max-args=1 appman install
   log::log 'Installed missing AppImage packages'
 fi
 

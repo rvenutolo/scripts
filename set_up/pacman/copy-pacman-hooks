@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-#shellcheck disable=SC1091
+# shellcheck disable=SC1091 # source path not known statically
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
@@ -17,7 +17,7 @@ if ! commands::executable_exists 'pacman'; then
   exit 0
 fi
 
-readonly hooks_dir="/etc/pacman.d/hooks"
+readonly hooks_dir='/etc/pacman.d/hooks'
 for hook_file in "${HOME}/.etc/pacman-"*".hook"; do
   hook_file_name="$(basename "${hook_file}")"
   files::root_copy "${hook_file}" "${hooks_dir}/${hook_file_name:7}"

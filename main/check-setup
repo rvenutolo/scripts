@@ -6,7 +6,7 @@ IFS=$'\n\t'
 # elsewhere in the script needs sudo, so prompt for password before rest of script runs
 sudo --validate
 
-#shellcheck disable=SC1091
+# shellcheck disable=SC1091 # functions.bash is not statically followable
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0

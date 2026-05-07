@@ -8,6 +8,7 @@ function downloads::download_and_cat() {
   local temp_file
   temp_file="$(mktemp)"
   readonly temp_file
+  trap 'rm --force -- "${temp_file}"' EXIT
   download "$1" "${temp_file}"
   cat "${temp_file}"
 }
@@ -20,6 +21,7 @@ function downloads::download_to_temp_file() {
   local temp_file
   temp_file="$(mktemp)"
   readonly temp_file
+  trap 'rm --force -- "${temp_file}"' EXIT
   download "$1" "${temp_file}"
   printf '%s\n' "${temp_file}"
 }
@@ -32,6 +34,7 @@ function downloads::download_and_run_script() {
   local temp_file
   temp_file="$(mktemp)"
   readonly temp_file
+  trap 'rm --force -- "${temp_file}"' EXIT
   download "$1" "${temp_file}"
   chmod +x "${temp_file}"
   shift
@@ -46,6 +49,7 @@ function downloads::download_and_run_script_as_root() {
   local temp_file
   temp_file="$(mktemp)"
   readonly temp_file
+  trap 'rm --force -- "${temp_file}"' EXIT
   download "$1" "${temp_file}"
   chmod +x "${temp_file}"
   shift

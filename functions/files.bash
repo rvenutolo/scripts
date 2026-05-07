@@ -43,7 +43,7 @@ function files::move() {
   fi
   if files::exists "$2"; then
     if cmp --silent "$1" "$2"; then
-      rm "$1"
+      rm --force -- "$1"
       return 0
     else
       diff --color --unified "$2" "$1" || true
@@ -58,7 +58,7 @@ function files::move() {
   fi
   log::log "Moving: $1 -> $2"
   dirs::create "$(dirname "$2")"
-  mv "$1" "$2"
+  mv -- "$1" "$2"
   log::log "Moved: $1 -> $2"
 }
 
@@ -73,7 +73,7 @@ function files::root_move() {
   fi
   if sudo test -f "$2"; then
     if sudo cmp --silent "$1" "$2"; then
-      sudo rm "$1"
+      sudo rm --force -- "$1"
       return 0
     else
       sudo diff --color --unified "$2" "$1" || true
@@ -88,7 +88,7 @@ function files::root_move() {
   fi
   log::log "Moving: $1 -> $2"
   dirs::root_create "$(dirname "$2")"
-  sudo mv "$1" "$2"
+  sudo mv -- "$1" "$2"
   log::log "Moved: $1 -> $2"
 }
 
@@ -167,7 +167,7 @@ function files::write() {
   fi
   log::log "Writing $1"
   dirs::create "$(dirname "$1")"
-  printf '%s\n' "${2:-}" > "$1"
+  printf '%s\n' "$2" > "$1"
   log::log "Wrote $1"
 }
 
@@ -199,7 +199,7 @@ function files::append_to() {
   args::check_exactly_2_args "$@"
   log::log "Appending to $1"
   dirs::create "$(dirname "$1")"
-  printf '%s\n' "${2:-}" >> "$1"
+  printf '%s\n' "$2" >> "$1"
   log::log "Appended to $1"
 }
 
@@ -218,6 +218,7 @@ function files::root_append_to() {
 # $1 = file path
 # Output: stdout — hex SHA-256 digest, or '0' if file is absent
 function files::hash() {
+  args::check_exactly_1_arg "$@"
   if files::exists "$1"; then
     sha256sum "$1" | cut --delimiter=' ' --fields=1
   else

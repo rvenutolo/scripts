@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-#shellcheck disable=SC1091
+# shellcheck disable=SC1091 # functions.bash is sourced via SCRIPTS_DIR, not a relative path
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
@@ -12,7 +12,7 @@ args::check_no_args "$@"
 # set +u to avoid 'ZSH_VERSION: unbound variable'
 set +u
 
-# shellcheck disable=SC1091
+# shellcheck disable=SC1091 # sdkman-init.sh path is dynamic via SDKMAN_DIR env var
 source "${SDKMAN_DIR}/bin/sdkman-init.sh"
 
 log::log 'Updating SDKMAN metadata'
