@@ -41,7 +41,7 @@ function sdkman_jdks::set_default_jdk_by_id() {
 
 # Print all available Temurin JDKs in semicolon-delimited format.
 # Output: stdout — lines with fields: major;version;artifact-id;installed('y'/'n')
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::get_formatted_all_tem_jdks() {
   args::check_no_args "$@"
   sdk list java \
@@ -60,7 +60,7 @@ function sdkman_jdks::get_formatted_all_tem_jdks() {
 
 # Filter formatted JDK lines (from stdin) to only those marked as installed.
 # Output: stdout — matching lines in semicolon-delimited format
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::filter_for_installed() {
   args::check_no_args "$@"
   args::check_for_stdin
@@ -78,7 +78,7 @@ function sdkman_jdks::filter_for_major_version() {
 
 # Filter formatted JDK lines (from stdin) to retain only the first (latest) entry per major version.
 # Output: stdout — one line per major version in semicolon-delimited format
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::filter_for_latest_per_major_version() {
   args::check_no_args "$@"
   args::check_for_stdin
@@ -89,7 +89,7 @@ function sdkman_jdks::filter_for_latest_per_major_version() {
 
 # Extract the major version field (column 1) from semicolon-delimited JDK lines on stdin.
 # Output: stdout — major version numbers, one per line
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::get_formatted_tem_jdk_major_version_field() {
   args::check_no_args "$@"
   args::check_for_stdin
@@ -98,7 +98,7 @@ function sdkman_jdks::get_formatted_tem_jdk_major_version_field() {
 
 # Extract the full version field (column 2) from semicolon-delimited JDK lines on stdin.
 # Output: stdout — version strings, one per line
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::get_formatted_tem_jdk_version_field() {
   args::check_no_args "$@"
   args::check_for_stdin
@@ -107,7 +107,7 @@ function sdkman_jdks::get_formatted_tem_jdk_version_field() {
 
 # Extract the artifact ID field (column 3) from semicolon-delimited JDK lines on stdin.
 # Output: stdout — artifact IDs, one per line
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::get_formatted_tem_jdk_artifact_id_field() {
   args::check_no_args "$@"
   args::check_for_stdin
@@ -118,7 +118,7 @@ function sdkman_jdks::get_formatted_tem_jdk_artifact_id_field() {
 
 # Print the latest available Temurin JDK entry per major version in semicolon-delimited format.
 # Output: stdout — one line per major version: major;version;artifact-id;installed('y'/'n')
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::get_formatted_latest_available_tem_jdk_major_versions() {
   args::check_no_args "$@"
   sdkman_jdks::get_formatted_all_tem_jdks \
@@ -138,7 +138,7 @@ function sdkman_jdks::get_formatted_latest_available_tem_jdk_for_major_version()
 
 # Print all available Temurin JDK major version numbers, sorted numerically.
 # Output: stdout — major version numbers, one per line
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::get_available_tem_jdk_major_versions() {
   args::check_no_args "$@"
   sdkman_jdks::get_formatted_all_tem_jdks \
@@ -149,7 +149,7 @@ function sdkman_jdks::get_available_tem_jdk_major_versions() {
 
 # Print the highest available Temurin JDK major version number.
 # Output: stdout — major version number (e.g. "21")
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::get_latest_available_tem_jdk_major_version() {
   args::check_no_args "$@"
   sdkman_jdks::get_available_tem_jdk_major_versions \
@@ -169,7 +169,7 @@ function sdkman_jdks::check_available_tem_jdk_major_version() {
 
 # Print all installed Temurin JDK entries in semicolon-delimited format.
 # Output: stdout — lines with fields: major;version;artifact-id;installed('y'/'n')
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::get_formatted_installed_tem_jdks() {
   args::check_no_args "$@"
   sdkman_jdks::get_formatted_all_tem_jdks \
@@ -188,7 +188,7 @@ function sdkman_jdks::get_formatted_installed_tem_jdks_for_major_version() {
 
 # Print the latest installed Temurin JDK entry per major version in semicolon-delimited format.
 # Output: stdout — one line per major version: major;version;artifact-id;installed('y'/'n')
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::get_formatted_latest_installed_tem_jdk_major_versions() {
   args::check_no_args "$@"
   sdkman_jdks::get_formatted_all_tem_jdks \
@@ -210,7 +210,7 @@ function sdkman_jdks::get_formatted_latest_installed_tem_jdk_for_major_version()
 
 # Print all installed Temurin JDK major version numbers, sorted numerically.
 # Output: stdout — major version numbers, one per line
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::get_installed_tem_jdk_major_versions() {
   args::check_no_args "$@"
   sdkman_jdks::get_formatted_all_tem_jdks \
@@ -222,7 +222,7 @@ function sdkman_jdks::get_installed_tem_jdk_major_versions() {
 
 # Print the highest installed Temurin JDK major version number.
 # Output: stdout — major version number (e.g. "21")
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::get_latest_installed_tem_jdk_major_version() {
   args::check_no_args "$@"
   sdkman_jdks::get_installed_tem_jdk_major_versions \
@@ -274,7 +274,7 @@ function sdkman_jdks::install_latest_tem_jdk() {
 }
 
 # Install the latest available Temurin JDK for every available major version.
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::install_latest_tem_jdks() {
   args::check_no_args "$@"
   while read -r major_version; do
@@ -299,7 +299,7 @@ function sdkman_jdks::set_default_sdk_to_latest_installed_for_major_version() {
 }
 
 # Set the SDKMAN default java to the latest installed Temurin JDK across all major versions.
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::set_default_jdk_to_latest_installed() {
   args::check_no_args "$@"
   sdkman_jdks::set_default_sdk_to_latest_installed_for_major_version \
@@ -329,7 +329,7 @@ function sdkman_jdks::prune_tem_jdks_for_major_version() {
 }
 
 # Uninstall all outdated installed Temurin JDKs across every installed major version.
-#shellcheck disable=SC2120
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function sdkman_jdks::prune_tem_jdks() {
   args::check_no_args "$@"
   while read -r major_version; do

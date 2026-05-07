@@ -3,13 +3,13 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-#shellcheck disable=SC1091
+# shellcheck disable=SC1091 # functions.bash is sourced via SCRIPTS_DIR, not a relative path
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
 find '/usr/share/zoneinfo/' -type 'f' -print0 \
-  | xargs --null md5sum \
+  | xargs --null --no-run-if-empty --max-args=100 md5sum \
   | grep "$(md5sum '/etc/localtime' | cut --delimiter=' ' --fields=1)" \
   | sed 's|.*/zoneinfo/||'

@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-#shellcheck disable=SC1091
+# shellcheck disable=SC1091 # functions.bash is sourced via SCRIPTS_DIR, not a relative path
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
@@ -12,13 +12,13 @@ args::check_at_least_1_arg "$@"
 # Sort all keys in the given JSON file in-place.
 # $1 = JSON file path
 function sort_json_file() {
-  local json_file="$1"
-  readonly json_file
+  args::check_exactly_1_arg "$@"
+  local -r json_file="$1"
   local temp_file
   temp_file="$(mktemp)"
-  readonly temp_file
+  trap 'rm --force -- "${temp_file}"' EXIT
   json::sort "${json_file}" > "${temp_file}"
-  mv "${temp_file}" "${json_file}"
+  mv -- "${temp_file}" "${json_file}"
 }
 
 function main() {

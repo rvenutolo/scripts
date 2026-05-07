@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-#shellcheck disable=SC1091
+# shellcheck disable=SC1091 # functions.bash is sourced via SCRIPTS_DIR, not a relative path
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
@@ -34,7 +34,7 @@ readonly flatpaks_to_remove
 
 if (("${#flatpaks_to_install[@]}")) && prompt::yn 'Install missing Flatpak packages?'; then
   log::log 'Installing missing Flatpak packages'
-  arrays::to_lines "${flatpaks_to_install[@]}" | xargs --no-run-if-empty flatpak install --user --noninteractive
+  arrays::to_lines "${flatpaks_to_install[@]}" | xargs --no-run-if-empty --max-args=100 flatpak install --user --noninteractive
   log::log 'Installed missing Flatpak packages'
 fi
 

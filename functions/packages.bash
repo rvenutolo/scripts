@@ -3,6 +3,7 @@
 # Return true if the given dpkg package is installed and in an 'ok installed' state.
 # $1 = package name
 function packages::dpkg_package_installed() {
+  args::check_exactly_1_arg "$@"
   dpkg-query --show --showformat='${Package};${Status}\n' "$1" 2> '/dev/null' \
     | grep::contains_regex_ignore_case "^$1;.*ok installed\$"
 }

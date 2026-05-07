@@ -3,19 +3,14 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-#shellcheck disable=SC1091
+# shellcheck disable=SC1091 # functions.bash is not statically followable
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
 args::check_exactly_2_args "$@"
 
-if ! files::exists "$1"; then
-  log::die "File does not exist: $1"
-fi
-
-if ! files::exists "$2"; then
-  log::die "File does not exist: $2"
-fi
+files::assert_exists "$1"
+files::assert_exists "$2"
 
 diff --color=always --report-identical-files --unified --text \
   <(jq --sort-keys . "$1") \

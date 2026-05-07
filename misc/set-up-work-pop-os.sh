@@ -139,7 +139,7 @@ function main() {
     /tmp/chezmoi init --apply 'rvenutolo'
   fi
 
-  #shellcheck disable=SC1091
+  # shellcheck disable=SC1091 # .profile is sourced from HOME, not a relative path
   source "${HOME}/.profile"
 
   log 'Running install scripts'

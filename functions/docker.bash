@@ -11,6 +11,7 @@ function docker::container_is_running() {
 # Block until the named Docker container reports a health status of 'healthy'.
 # $1 = container name
 function docker::wait_for_healthy_container() {
+  args::check_exactly_1_arg "$@"
   log::log "Waiting for $1 to be healthy"
   until [[ "$(docker inspect --format '{{.State.Health.Status}}' "$1")" == 'healthy' ]]; do
     sleep 0.1
