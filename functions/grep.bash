@@ -95,8 +95,10 @@ function grep::contains_word_regex_ignore_case() {
 # $2 = string to search for
 function grep::file_contains_exactly() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  grep --quiet --fixed-strings -- "$2" "$1"
+  local -r file="$1"
+  local -r str="$2"
+  files::assert_exists "${file}"
+  grep --quiet --fixed-strings -- "${str}" "${file}"
 }
 
 # Return true if the given file contains the exact fixed string (case-insensitive).
@@ -104,8 +106,10 @@ function grep::file_contains_exactly() {
 # $2 = string to search for
 function grep::file_contains_exactly_ignore_case() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  grep --quiet --fixed-strings --ignore-case -- "$2" "$1"
+  local -r file="$1"
+  local -r str="$2"
+  files::assert_exists "${file}"
+  grep --quiet --fixed-strings --ignore-case -- "${str}" "${file}"
 }
 
 # Return true if the given file contains a line matching the given regex.
@@ -113,8 +117,10 @@ function grep::file_contains_exactly_ignore_case() {
 # $2 = regex pattern
 function grep::file_contains_regex() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  grep --quiet -- "$2" "$1"
+  local -r file="$1"
+  local -r pattern="$2"
+  files::assert_exists "${file}"
+  grep --quiet -- "${pattern}" "${file}"
 }
 
 # Return true if the given file contains a line matching the given regex (case-insensitive).
@@ -122,8 +128,10 @@ function grep::file_contains_regex() {
 # $2 = regex pattern
 function grep::file_contains_regex_ignore_case() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  grep --quiet --ignore-case -- "$2" "$1"
+  local -r file="$1"
+  local -r pattern="$2"
+  files::assert_exists "${file}"
+  grep --quiet --ignore-case -- "${pattern}" "${file}"
 }
 
 # Return true if the given file contains a line matching the given Perl-compatible regex.
@@ -131,8 +139,10 @@ function grep::file_contains_regex_ignore_case() {
 # $2 = Perl-compatible regex pattern
 function grep::file_contains_perl_regex() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  grep --quiet --perl-regexp -- "$2" "$1"
+  local -r file="$1"
+  local -r pattern="$2"
+  files::assert_exists "${file}"
+  grep --quiet --perl-regexp -- "${pattern}" "${file}"
 }
 
 # Return true if the given file contains a line matching the given Perl-compatible regex (case-insensitive).
@@ -140,8 +150,10 @@ function grep::file_contains_perl_regex() {
 # $2 = Perl-compatible regex pattern
 function grep::file_contains_perl_regex_ignore_case() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  grep --quiet --ignore-case --perl-regexp -- "$2" "$1"
+  local -r file="$1"
+  local -r pattern="$2"
+  files::assert_exists "${file}"
+  grep --quiet --ignore-case --perl-regexp -- "${pattern}" "${file}"
 }
 
 # Return true if the given file contains the exact fixed string as a whole word.
@@ -149,8 +161,10 @@ function grep::file_contains_perl_regex_ignore_case() {
 # $2 = word to search for
 function grep::file_contains_word() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  grep --quiet --fixed-strings --word-regexp -- "$2" "$1"
+  local -r file="$1"
+  local -r word="$2"
+  files::assert_exists "${file}"
+  grep --quiet --fixed-strings --word-regexp -- "${word}" "${file}"
 }
 
 # Return true if the given file contains the exact fixed string as a whole word (case-insensitive).
@@ -158,8 +172,10 @@ function grep::file_contains_word() {
 # $2 = word to search for
 function grep::file_contains_word_ignore_case() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  grep --quiet --fixed-strings --ignore-case --word-regexp -- "$2" "$1"
+  local -r file="$1"
+  local -r word="$2"
+  files::assert_exists "${file}"
+  grep --quiet --fixed-strings --ignore-case --word-regexp -- "${word}" "${file}"
 }
 
 # Return true if the given file contains a whole-word regex match.
@@ -167,8 +183,10 @@ function grep::file_contains_word_ignore_case() {
 # $2 = regex pattern (matched as whole word)
 function grep::file_contains_word_regex() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  grep --quiet --word-regexp -- "$2" "$1"
+  local -r file="$1"
+  local -r pattern="$2"
+  files::assert_exists "${file}"
+  grep --quiet --word-regexp -- "${pattern}" "${file}"
 }
 
 # Return true if the given file contains a whole-word regex match (case-insensitive).
@@ -176,6 +194,8 @@ function grep::file_contains_word_regex() {
 # $2 = regex pattern (matched as whole word)
 function grep::file_contains_word_regex_ignore_case() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  grep --quiet --ignore-case --word-regexp -- "$2" "$1"
+  local -r file="$1"
+  local -r pattern="$2"
+  files::assert_exists "${file}"
+  grep --quiet --ignore-case --word-regexp -- "${pattern}" "${file}"
 }

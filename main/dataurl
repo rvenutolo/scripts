@@ -8,10 +8,11 @@ source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
 args::check_exactly_1_arg "$@"
+readonly INPUT_FILE="$1"
 
-MIME_TYPE="$(file --brief --mime-type "$1")"
+MIME_TYPE="$(file --brief --mime-type "${INPUT_FILE}")"
 if [[ "${MIME_TYPE}" == text/* ]]; then
   MIME_TYPE="${MIME_TYPE};charset=utf-8"
 fi
 readonly MIME_TYPE
-printf '%s\n' "data:${MIME_TYPE};base64,$(openssl base64 -in "$1" | tr --delete '\n')"
+printf '%s\n' "data:${MIME_TYPE};base64,$(openssl base64 -in "${INPUT_FILE}" | tr --delete '\n')"

@@ -10,16 +10,19 @@ system::require_bash_version 4 0
 
 if args::stdin_exists; then
   args::check_at_most_1_arg "$@"
+  readonly DELIMITER_ARG="${1:-}"
   header_line="$(text::first_line)"
-  if strings::is_not_empty "${1:-}"; then
-    readonly delimiter="$1"
+  if strings::is_not_empty "${DELIMITER_ARG}"; then
+    readonly delimiter="${DELIMITER_ARG}"
   fi
 else
   args::check_at_least_1_arg "$@"
   args::check_at_most_2_args "$@"
-  header_line="$(text::first_line "$1")"
-  if strings::is_not_empty "${2:-}"; then
-    readonly delimiter="$2"
+  readonly INPUT_FILE="$1"
+  readonly DELIMITER_ARG="${2:-}"
+  header_line="$(text::first_line "${INPUT_FILE}")"
+  if strings::is_not_empty "${DELIMITER_ARG}"; then
+    readonly delimiter="${DELIMITER_ARG}"
   fi
 fi
 readonly header_line

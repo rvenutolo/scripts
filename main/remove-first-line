@@ -13,9 +13,10 @@ if args::stdin_exists; then
   tail --lines '+2'
 else
   args::check_exactly_1_arg "$@"
+  readonly FILE="$1"
   temp_file="$(mktemp)"
   readonly temp_file
   trap 'rm --force -- "${temp_file}"' EXIT
-  cp "$1" "${temp_file}"
-  tail --lines '+2' "${temp_file}" > "$1"
+  cp "${FILE}" "${temp_file}"
+  tail --lines '+2' "${temp_file}" > "${FILE}"
 fi

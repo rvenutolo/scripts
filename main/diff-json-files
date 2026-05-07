@@ -8,11 +8,13 @@ source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
 args::check_exactly_2_args "$@"
+readonly FILE_A="$1"
+readonly FILE_B="$2"
 
-files::assert_exists "$1"
-files::assert_exists "$2"
+files::assert_exists "${FILE_A}"
+files::assert_exists "${FILE_B}"
 
 diff --color=always --report-identical-files --unified --text \
-  <(jq --sort-keys . "$1") \
-  <(jq --sort-keys . "$2") \
+  <(jq --sort-keys . "${FILE_A}") \
+  <(jq --sort-keys . "${FILE_B}") \
   | text::skip_first_lines 3

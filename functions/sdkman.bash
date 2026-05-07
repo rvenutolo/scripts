@@ -21,8 +21,9 @@ function sdkman::update_metadata() {
 # Output: stdout — artifact ID string (e.g. "21.0.3-tem")
 function sdkman::get_sdkmanrc_file_java_artifact_id() {
   args::check_exactly_1_arg "$@"
-  files::assert_exists "$1"
-  sed --quiet 's/^java=\(.*\)/\1/p' "$1"
+  local -r sdkmanrc_file="$1"
+  files::assert_exists "${sdkmanrc_file}"
+  sed --quiet 's/^java=\(.*\)/\1/p' "${sdkmanrc_file}"
 }
 
 # Overwrite the java artifact ID in an .sdkmanrc file.
@@ -30,8 +31,10 @@ function sdkman::get_sdkmanrc_file_java_artifact_id() {
 # $2 = new artifact ID (e.g. "21.0.3-tem")
 function sdkman::overwrite_sdkmanrc_file_java_artifact_id() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  sed --in-place --expression "s/^java=.*/java=$2/" "$1"
+  local -r sdkmanrc_file="$1"
+  local -r artifact_id="$2"
+  files::assert_exists "${sdkmanrc_file}"
+  sed --in-place --expression "s/^java=.*/java=${artifact_id}/" "${sdkmanrc_file}"
 }
 
 # Update the java entry in an .sdkmanrc file to the latest installed Temurin JDK for the same major version.
@@ -39,9 +42,10 @@ function sdkman::overwrite_sdkmanrc_file_java_artifact_id() {
 # $1 = .sdkmanrc file path
 function sdkman::rewrite_sdkmanrc_file_java_version() {
   args::check_exactly_1_arg "$@"
-  files::assert_exists "$1"
+  local -r sdkmanrc_file="$1"
+  files::assert_exists "${sdkmanrc_file}"
   local current_java_artifact_id
-  current_java_artifact_id="$(sdkman::get_sdkmanrc_file_java_artifact_id "$1")"
+  current_java_artifact_id="$(sdkman::get_sdkmanrc_file_java_artifact_id "${sdkmanrc_file}")"
   readonly current_java_artifact_id
   if sdkman_jdks::is_tem_jdk_artifact_installed "${current_java_artifact_id}"; then
     return 0
@@ -54,7 +58,7 @@ function sdkman::rewrite_sdkmanrc_file_java_version() {
     sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version "${major_version}"
   )"
   readonly new_java_artifact_id
-  sdkman::overwrite_sdkmanrc_file_java_artifact_id "$1" "${new_java_artifact_id}"
+  sdkman::overwrite_sdkmanrc_file_java_artifact_id "${sdkmanrc_file}" "${new_java_artifact_id}"
 }
 
 # Find and print the paths of all .sdkmanrc files under $HOME.

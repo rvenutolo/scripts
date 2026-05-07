@@ -31,11 +31,12 @@ function downloads::download_to_temp_file() {
 # $2+ = arguments to pass to the script
 function downloads::download_and_run_script() {
   args::check_at_least_1_arg "$@"
+  local -r url="$1"
   local temp_file
   temp_file="$(mktemp)"
   readonly temp_file
   trap 'rm --force -- "${temp_file}"' EXIT
-  download "$1" "${temp_file}"
+  download "${url}" "${temp_file}"
   chmod +x "${temp_file}"
   shift
   "${temp_file}" "$@"
@@ -46,11 +47,12 @@ function downloads::download_and_run_script() {
 # $2+ = arguments to pass to the script
 function downloads::download_and_run_script_as_root() {
   args::check_at_least_1_arg "$@"
+  local -r url="$1"
   local temp_file
   temp_file="$(mktemp)"
   readonly temp_file
   trap 'rm --force -- "${temp_file}"' EXIT
-  download "$1" "${temp_file}"
+  download "${url}" "${temp_file}"
   chmod +x "${temp_file}"
   shift
   sudo "${temp_file}" "$@"

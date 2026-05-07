@@ -8,6 +8,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
 args::check_exactly_1_arg "$@"
+readonly INPUT_FILE="$1"
 
 # Download the input file from Periscope
 
@@ -26,5 +27,5 @@ awk --field-separator ',' \
   --assign "last_idx=${last_name_idx}" \
   --assign "first_idx=${first_name_idx}" \
   '$status_idx == "Member in Good Standing" && $phone_idx != "" { print $last_idx, $first_idx, $phone_idx }' \
-  "$1" \
+  "${INPUT_FILE}" \
   | sort >> "${file}"

@@ -4,8 +4,9 @@
 # $1 = file path
 function shell_scripts::has_shell_shebang() {
   args::check_exactly_1_arg "$@"
+  local -r file="$1"
   local first_line
-  first_line="$(head --lines=1 -- "$1")"
+  first_line="$(head --lines=1 -- "${file}")"
   [[ "${first_line}" =~ ^#!.*[/\ ](ba)?sh([[:space:]]|$) ]]
 }
 

@@ -13,8 +13,9 @@ if args::stdin_exists; then
   highlight --out-format=ansi --force | less --raw-control-chars
 else
   args::check_exactly_1_arg "$@"
-  case "$1" in
-    *.md) glow "$1" | less --raw-control-chars ;;
-    *) highlight --out-format=ansi --force "$1" | less --raw-control-chars ;;
+  readonly FILE="$1"
+  case "${FILE}" in
+    *.md) glow "${FILE}" | less --raw-control-chars ;;
+    *) highlight --out-format=ansi --force "${FILE}" | less --raw-control-chars ;;
   esac
 fi

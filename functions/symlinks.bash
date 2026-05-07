@@ -12,10 +12,11 @@ function symlinks::exists() {
 # Output: stdout — symlink target path
 function symlinks::get_target() {
   args::check_exactly_1_arg "$@"
-  if ! symlinks::exists "$1"; then
-    log::die "Symbolic link does not exist: $1"
+  local -r symlink="$1"
+  if ! symlinks::exists "${symlink}"; then
+    log::die "Symbolic link does not exist: ${symlink}"
   fi
-  readlink "$1"
+  readlink "${symlink}"
 }
 
 # Create a symbolic link from a file to a link path, prompting if the destination already exists.
@@ -24,24 +25,26 @@ function symlinks::get_target() {
 # $2 = link path to create
 function symlinks::link_file() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  if [[ -L "$2" && "$(readlink --canonicalize "$2")" == "$(readlink --canonicalize "$1")" ]]; then
+  local -r target="$1"
+  local -r link="$2"
+  files::assert_exists "${target}"
+  if [[ -L "${link}" && "$(readlink --canonicalize "${link}")" == "$(readlink --canonicalize "${target}")" ]]; then
     return 0
   fi
-  if files::exists "$2"; then
-    diff --color --unified "$2" "$1" || true
-    if ! prompt::yn "$2 exists - Link: $1 -> $2?"; then
+  if files::exists "${link}"; then
+    diff --color --unified "${link}" "${target}" || true
+    if ! prompt::yn "${link} exists - Link: ${target} -> ${link}?"; then
       return 0
     fi
   else
-    if ! prompt::yn "Link: $1 -> $2?"; then
+    if ! prompt::yn "Link: ${target} -> ${link}?"; then
       return 0
     fi
   fi
-  log::log "Linking: $1 -> $2"
-  dirs::create "$(dirname "$2")"
-  ln --symbolic --force "$1" "$2"
-  log::log "Linked: $1 -> $2"
+  log::log "Linking: ${target} -> ${link}"
+  dirs::create "$(dirname "${link}")"
+  ln --symbolic --force "${target}" "${link}"
+  log::log "Linked: ${target} -> ${link}"
 }
 
 # Create a symbolic link from a directory to a link path, prompting if the destination already exists.
@@ -50,21 +53,23 @@ function symlinks::link_file() {
 # $2 = link path to create
 function symlinks::link_dir() {
   args::check_exactly_2_args "$@"
-  dirs::assert_exists "$1"
-  if [[ -L "$2" && "$(readlink --canonicalize "$2")" == "$(readlink --canonicalize "$1")" ]]; then
+  local -r target="$1"
+  local -r link="$2"
+  dirs::assert_exists "${target}"
+  if [[ -L "${link}" && "$(readlink --canonicalize "${link}")" == "$(readlink --canonicalize "${target}")" ]]; then
     return 0
   fi
-  if dirs::exists "$2"; then
-    if ! prompt::yn "$2 exists - Link: $1 -> $2?"; then
+  if dirs::exists "${link}"; then
+    if ! prompt::yn "${link} exists - Link: ${target} -> ${link}?"; then
       return 0
     fi
   else
-    if ! prompt::yn "Link: $1 -> $2?"; then
+    if ! prompt::yn "Link: ${target} -> ${link}?"; then
       return 0
     fi
   fi
-  log::log "Linking: $1 -> $2"
-  dirs::create "$(dirname "$2")"
-  ln --symbolic --force "$1" "$2"
-  log::log "Linked: $1 -> $2"
+  log::log "Linking: ${target} -> ${link}"
+  dirs::create "$(dirname "${link}")"
+  ln --symbolic --force "${target}" "${link}"
+  log::log "Linked: ${target} -> ${link}"
 }

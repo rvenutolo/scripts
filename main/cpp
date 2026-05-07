@@ -8,9 +8,11 @@ source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
 args::check_exactly_2_args "$@"
+readonly SRC="$1"
+readonly DEST="$2"
 
 # Copy file with a progress bar
-strace --quiet -ewrite cp -- "$1" "$2" 2>&1 | awk '{
+strace --quiet -ewrite cp -- "${SRC}" "${DEST}" 2>&1 | awk '{
   count += $NF
   if (count % 10 == 0) {
     percent = count / total_size * 100
@@ -23,4 +25,4 @@ strace --quiet -ewrite cp -- "$1" "$2" 2>&1 | awk '{
         printf "]\r"
   }
 }
-END { print "" }' total_size="$(stat --format='%s' "$1")" count=0
+END { print "" }' total_size="$(stat --format='%s' "${SRC}")" count=0

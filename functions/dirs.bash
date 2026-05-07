@@ -11,8 +11,9 @@ function dirs::exists() {
 # $1 = dir path
 function dirs::assert_exists() {
   args::check_exactly_1_arg "$@"
-  if ! dirs::exists "$1"; then
-    log::die "$1 does not exist"
+  local -r dir="$1"
+  if ! dirs::exists "${dir}"; then
+    log::die "${dir} does not exist"
   fi
 }
 

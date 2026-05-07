@@ -11,8 +11,9 @@ function files::exists() {
 # $1 = file path
 function files::assert_exists() {
   args::check_exactly_1_arg "$@"
-  if ! files::exists "$1"; then
-    log::die "$1 does not exist"
+  local -r file="$1"
+  if ! files::exists "${file}"; then
+    log::die "${file} does not exist"
   fi
 }
 
@@ -35,8 +36,9 @@ function files::is_readable() {
 # Output: stdout — size in GB, e.g. "1.23"
 function files::size_gb() {
   args::check_exactly_1_arg "$@"
-  files::assert_exists "$1"
-  printf '%s\n' "scale=2; $(stat --format='%s' "$1") / 1073741824" | bc
+  local -r file="$1"
+  files::assert_exists "${file}"
+  printf '%s\n' "scale=2; $(stat --format='%s' "${file}") / 1073741824" | bc
 }
 
 # Move a file, prompting if the destination already exists; skips if source and dest are byte-identical.
@@ -44,29 +46,31 @@ function files::size_gb() {
 # $2 = destination file path
 function files::move() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  if [[ "$1" == "$2" ]]; then
+  local -r src="$1"
+  local -r dest="$2"
+  files::assert_exists "${src}"
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
-  if files::exists "$2"; then
-    if cmp --silent "$1" "$2"; then
-      rm --force -- "$1"
+  if files::exists "${dest}"; then
+    if cmp --silent "${src}" "${dest}"; then
+      rm --force -- "${src}"
       return 0
     else
-      diff --color --unified "$2" "$1" || true
-      if ! prompt::yn "$2 exists - Overwrite: $1 -> $2?"; then
+      diff --color --unified "${dest}" "${src}" || true
+      if ! prompt::yn "${dest} exists - Overwrite: ${src} -> ${dest}?"; then
         return 0
       fi
     fi
   else
-    if ! prompt::yn "Move $1 -> $2?"; then
+    if ! prompt::yn "Move ${src} -> ${dest}?"; then
       return 0
     fi
   fi
-  log::log "Moving: $1 -> $2"
-  dirs::create "$(dirname "$2")"
-  mv -- "$1" "$2"
-  log::log "Moved: $1 -> $2"
+  log::log "Moving: ${src} -> ${dest}"
+  dirs::create "$(dirname "${dest}")"
+  mv -- "${src}" "${dest}"
+  log::log "Moved: ${src} -> ${dest}"
 }
 
 # Move a file without prompting, overwriting destination if it exists. For programmatic temp-file-to-dest moves
@@ -75,14 +79,16 @@ function files::move() {
 # $2 = destination file path
 function files::move_no_prompt() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  if [[ "$1" == "$2" ]]; then
+  local -r src="$1"
+  local -r dest="$2"
+  files::assert_exists "${src}"
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
-  log::log "Moving: $1 -> $2"
-  dirs::create "$(dirname "$2")"
-  mv --force -- "$1" "$2"
-  log::log "Moved: $1 -> $2"
+  log::log "Moving: ${src} -> ${dest}"
+  dirs::create "$(dirname "${dest}")"
+  mv --force -- "${src}" "${dest}"
+  log::log "Moved: ${src} -> ${dest}"
 }
 
 # Move a file as root, prompting if the destination already exists; skips if byte-identical.
@@ -90,29 +96,31 @@ function files::move_no_prompt() {
 # $2 = destination file path
 function files::root_move() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  if [[ "$1" == "$2" ]]; then
+  local -r src="$1"
+  local -r dest="$2"
+  files::assert_exists "${src}"
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
-  if sudo test -f "$2"; then
-    if sudo cmp --silent "$1" "$2"; then
-      sudo rm --force -- "$1"
+  if sudo test -f "${dest}"; then
+    if sudo cmp --silent "${src}" "${dest}"; then
+      sudo rm --force -- "${src}"
       return 0
     else
-      sudo diff --color --unified "$2" "$1" || true
-      if ! prompt::yn "$2 exists - Overwrite: $1 -> $2?"; then
+      sudo diff --color --unified "${dest}" "${src}" || true
+      if ! prompt::yn "${dest} exists - Overwrite: ${src} -> ${dest}?"; then
         return 0
       fi
     fi
   else
-    if ! prompt::yn "Move $1 -> $2?"; then
+    if ! prompt::yn "Move ${src} -> ${dest}?"; then
       return 0
     fi
   fi
-  log::log "Moving: $1 -> $2"
-  dirs::root_create "$(dirname "$2")"
-  sudo mv -- "$1" "$2"
-  log::log "Moved: $1 -> $2"
+  log::log "Moving: ${src} -> ${dest}"
+  dirs::root_create "$(dirname "${dest}")"
+  sudo mv -- "${src}" "${dest}"
+  log::log "Moved: ${src} -> ${dest}"
 }
 
 # Copy a file, prompting if the destination already exists; skips if byte-identical.
@@ -120,28 +128,30 @@ function files::root_move() {
 # $2 = destination file path
 function files::copy() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  if [[ "$1" == "$2" ]]; then
+  local -r src="$1"
+  local -r dest="$2"
+  files::assert_exists "${src}"
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
-  if files::exists "$2"; then
-    if cmp --silent "$1" "$2"; then
+  if files::exists "${dest}"; then
+    if cmp --silent "${src}" "${dest}"; then
       return 0
     else
-      diff --color --unified "$2" "$1" || true
-      if ! prompt::yn "$2 exists - Overwrite: $1 -> $2?"; then
+      diff --color --unified "${dest}" "${src}" || true
+      if ! prompt::yn "${dest} exists - Overwrite: ${src} -> ${dest}?"; then
         return 0
       fi
     fi
   else
-    if ! prompt::yn "Copy $1 -> $2?"; then
+    if ! prompt::yn "Copy ${src} -> ${dest}?"; then
       return 0
     fi
   fi
-  log::log "Copying: $1 -> $2"
-  dirs::create "$(dirname "$2")"
-  cp "$1" "$2"
-  log::log "Copied: $1 -> $2"
+  log::log "Copying: ${src} -> ${dest}"
+  dirs::create "$(dirname "${dest}")"
+  cp "${src}" "${dest}"
+  log::log "Copied: ${src} -> ${dest}"
 }
 
 # Copy a file as root, prompting if the destination already exists; skips if byte-identical.
@@ -149,28 +159,30 @@ function files::copy() {
 # $2 = destination file path
 function files::root_copy() {
   args::check_exactly_2_args "$@"
-  files::assert_exists "$1"
-  if [[ "$1" == "$2" ]]; then
+  local -r src="$1"
+  local -r dest="$2"
+  files::assert_exists "${src}"
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
-  if sudo test -f "$2"; then
-    if sudo cmp --silent "$1" "$2"; then
+  if sudo test -f "${dest}"; then
+    if sudo cmp --silent "${src}" "${dest}"; then
       return 0
     else
-      sudo diff --color --unified "$2" "$1" || true
-      if ! prompt::yn "$2 exists - Overwrite: $1 -> $2?"; then
+      sudo diff --color --unified "${dest}" "${src}" || true
+      if ! prompt::yn "${dest} exists - Overwrite: ${src} -> ${dest}?"; then
         return 0
       fi
     fi
   else
-    if ! prompt::yn "Copy $1 -> $2?"; then
+    if ! prompt::yn "Copy ${src} -> ${dest}?"; then
       return 0
     fi
   fi
-  log::log "Copying: $1 -> $2"
-  dirs::root_create "$(dirname "$2")"
-  sudo cp "$1" "$2"
-  log::log "Copied: $1 -> $2"
+  log::log "Copying: ${src} -> ${dest}"
+  dirs::root_create "$(dirname "${dest}")"
+  sudo cp "${src}" "${dest}"
+  log::log "Copied: ${src} -> ${dest}"
 }
 
 # Write content to a file, prompting if the file already exists; skips if content is identical.
@@ -178,20 +190,22 @@ function files::root_copy() {
 # $2 = content to write
 function files::write() {
   args::check_exactly_2_args "$@"
-  if files::exists "$1"; then
-    if [[ "$(< "$1")" == "$2" ]]; then
+  local -r file="$1"
+  local -r content="$2"
+  if files::exists "${file}"; then
+    if [[ "$(< "${file}")" == "${content}" ]]; then
       return 0
     else
-      diff --color --unified "$1" - <<< "$2" || true
-      if ! prompt::yn "$1 exists - Overwrite?"; then
+      diff --color --unified "${file}" - <<< "${content}" || true
+      if ! prompt::yn "${file} exists - Overwrite?"; then
         return 0
       fi
     fi
   fi
-  log::log "Writing $1"
-  dirs::create "$(dirname "$1")"
-  printf '%s\n' "$2" > "$1"
-  log::log "Wrote $1"
+  log::log "Writing ${file}"
+  dirs::create "$(dirname "${file}")"
+  printf '%s\n' "${content}" > "${file}"
+  log::log "Wrote ${file}"
 }
 
 # Write content to a root-owned file, prompting if the file already exists; skips if content is identical.
@@ -199,20 +213,22 @@ function files::write() {
 # $2 = content to write
 function files::root_write() {
   args::check_exactly_2_args "$@"
-  if files::exists "$1"; then
-    if [[ "$(sudo cat "$1")" == "$2" ]]; then
+  local -r file="$1"
+  local -r content="$2"
+  if files::exists "${file}"; then
+    if [[ "$(sudo cat "${file}")" == "${content}" ]]; then
       return 0
     else
-      sudo diff --color --unified "$1" - <<< "$2" || true
-      if ! prompt::yn "$1 exists - Overwrite?"; then
+      sudo diff --color --unified "${file}" - <<< "${content}" || true
+      if ! prompt::yn "${file} exists - Overwrite?"; then
         return 0
       fi
     fi
   fi
-  log::log "Writing $1"
-  dirs::root_create "$(dirname "$1")"
-  printf '%s\n' "$2" | sudo tee "$1" > '/dev/null'
-  log::log "Wrote $1"
+  log::log "Writing ${file}"
+  dirs::root_create "$(dirname "${file}")"
+  printf '%s\n' "${content}" | sudo tee "${file}" > '/dev/null'
+  log::log "Wrote ${file}"
 }
 
 # Append content to a file, creating the file and any missing parent directories as needed.
@@ -220,10 +236,12 @@ function files::root_write() {
 # $2 = content to append
 function files::append_to() {
   args::check_exactly_2_args "$@"
-  log::log "Appending to $1"
-  dirs::create "$(dirname "$1")"
-  printf '%s\n' "$2" >> "$1"
-  log::log "Appended to $1"
+  local -r file="$1"
+  local -r content="$2"
+  log::log "Appending to ${file}"
+  dirs::create "$(dirname "${file}")"
+  printf '%s\n' "${content}" >> "${file}"
+  log::log "Appended to ${file}"
 }
 
 # Append content to a root-owned file, creating the file and any missing parent directories as needed.
@@ -231,10 +249,12 @@ function files::append_to() {
 # $2 = content to append
 function files::root_append_to() {
   args::check_exactly_2_args "$@"
-  log::log "Appending to $1"
-  dirs::root_create "$(dirname "$1")"
-  printf '%s\n' "$2" | sudo tee --append "$1" > '/dev/null'
-  log::log "Appended to $1"
+  local -r file="$1"
+  local -r content="$2"
+  log::log "Appending to ${file}"
+  dirs::root_create "$(dirname "${file}")"
+  printf '%s\n' "${content}" | sudo tee --append "${file}" > '/dev/null'
+  log::log "Appended to ${file}"
 }
 
 # Print the SHA-256 hash of a file, or '0' if the file does not exist.
@@ -242,8 +262,9 @@ function files::root_append_to() {
 # Output: stdout — hex SHA-256 digest, or '0' if file is absent
 function files::hash() {
   args::check_exactly_1_arg "$@"
-  if files::exists "$1"; then
-    sha256sum "$1" | cut --delimiter=' ' --fields=1
+  local -r file="$1"
+  if files::exists "${file}"; then
+    sha256sum "${file}" | cut --delimiter=' ' --fields=1
   else
     printf '%s\n' '0'
   fi
