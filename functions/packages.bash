@@ -47,12 +47,10 @@ function packages::get_universal() {
         ;;
       -*)
         log::die "Unexpected flag '$1'"
-        return 1
         ;;
       *)
         # Any remaining non-flag args can be treated as extra inputs or error
         log::die "Unexpected argument '$1'"
-        return 1
         ;;
     esac
   done
@@ -136,12 +134,10 @@ function packages::get_distro() {
         ;;
       -*)
         log::die "Unexpected flag '$1'"
-        return 1
         ;;
       *)
         # Any remaining non-flag args can be treated as extra inputs or error
         log::die "Unexpected argument '$1'"
-        return 1
         ;;
     esac
   done
@@ -217,12 +213,10 @@ function packages::get_sdkman() {
         ;;
       -*)
         log::die "Unexpected flag '$1'"
-        return 1
         ;;
       *)
         # Any remaining non-flag args can be treated as extra inputs or error
         log::die "Unexpected argument '$1'"
-        return 1
         ;;
     esac
   done

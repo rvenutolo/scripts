@@ -16,6 +16,13 @@ function files::assert_exists() {
   fi
 }
 
+# Return true if the given path exists as any filesystem entry (regular file, directory, symlink, device, etc.).
+# $1 = path to test
+function files::any_exists() {
+  args::check_exactly_1_arg "$@"
+  [[ -e "$1" ]]
+}
+
 # Return true if the given file exists and is readable.
 # $1 = file path
 function files::is_readable() {
@@ -59,6 +66,22 @@ function files::move() {
   log::log "Moving: $1 -> $2"
   dirs::create "$(dirname "$2")"
   mv -- "$1" "$2"
+  log::log "Moved: $1 -> $2"
+}
+
+# Move a file without prompting, overwriting destination if it exists. For programmatic temp-file-to-dest moves
+# where interactive confirmation would be inappropriate. Creates parent directory of destination if needed.
+# $1 = source file path
+# $2 = destination file path
+function files::move_no_prompt() {
+  args::check_exactly_2_args "$@"
+  files::assert_exists "$1"
+  if [[ "$1" == "$2" ]]; then
+    log::die "File paths are the same"
+  fi
+  log::log "Moving: $1 -> $2"
+  dirs::create "$(dirname "$2")"
+  mv --force -- "$1" "$2"
   log::log "Moved: $1 -> $2"
 }
 
@@ -156,7 +179,7 @@ function files::root_copy() {
 function files::write() {
   args::check_exactly_2_args "$@"
   if files::exists "$1"; then
-    if [[ "$(cat "$1")" == "$2" ]]; then
+    if [[ "$(< "$1")" == "$2" ]]; then
       return 0
     else
       diff --color --unified "$1" - <<< "$2" || true

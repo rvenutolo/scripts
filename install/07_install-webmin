@@ -13,6 +13,9 @@ readonly name='Webmin'
 readonly executable='webmin'
 readonly url='https://raw.githubusercontent.com/webmin/webmin/master/webmin-setup-repos.sh'
 
+# Local function overrides (not wrappers::curl/wrappers::wget) because the downloaded install script
+# calls bare `curl`/`wget` and inherits these via `export -f` below. The full wrappers::* helpers add
+# `--silent --fail` etc. which would suppress install progress output.
 # wrapper around curl to disable reading the config that is intended for interactive use
 function curl() {
   command curl --disable "$@"

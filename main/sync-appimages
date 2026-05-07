@@ -7,6 +7,7 @@ IFS=$'\n\t'
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
+# pass-through: any arg count valid ($@ forwarded as filter args to packages::get_universal)
 
 if ! commands::executable_exists 'appman'; then
   log::die 'appman executable not found'
@@ -45,6 +46,7 @@ fi
 for appimage_to_remove in "${appimages_to_remove[@]}"; do
   if prompt::yn "Remove ${appimage_to_remove}?"; then
     log::log "Removing ${appimage_to_remove}"
+    # appman has no long form for -R (remove); short flag is the only option
     # I don't know why remove operation exit code is non-zero
     appman -R "${appimage_to_remove}" || true
     log::log "Removed ${appimage_to_remove}"

@@ -71,7 +71,7 @@ function write_packages_into() {
       "NR >= $(get_line_number "${packages_file}" ']')" \
       "${packages_file}"
   } >> "${temp_file}"
-  mv -- "${temp_file}" "${packages_file}"
+  files::move_no_prompt "${temp_file}" "${packages_file}"
 }
 
 function main() {

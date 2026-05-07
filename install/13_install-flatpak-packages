@@ -25,7 +25,7 @@ if ! prompt::yn 'Install Flatpak packages?'; then
 fi
 
 log::log 'Installing Flatpak packages'
-packages::get_universal 'flatpak' | xargs --no-run-if-empty flatpak install --user --noninteractive
+packages::get_universal 'flatpak' | xargs --no-run-if-empty --max-args=100 flatpak install --user --noninteractive
 log::log 'Installed Flatpak packages'
 
 if flatpak list --user --app | grep::contains_exactly_ignore_case 'com.google.chrome'; then

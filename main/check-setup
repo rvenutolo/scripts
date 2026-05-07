@@ -183,7 +183,7 @@ if ! hosts::is_server; then
     installed_fonts="$(fc-list : family)"
     readonly installed_fonts
     for font in "${expected_fonts[@]}"; do
-      font_no_space="$(printf '%b' "${font}" | tr --delete '[:space:]')"
+      font_no_space="${font//[[:space:]]/}"
       if ! grep::contains_word_ignore_case "${font}" <<< "${installed_fonts}" \
         && ! grep::contains_word_ignore_case "${font}TTF" <<< "${installed_fonts}" \
         && ! grep::contains_word_ignore_case "${font_no_space}" <<< "${installed_fonts}" \
@@ -280,7 +280,7 @@ if ! hosts::is_server; then
 fi
 
 if commands::executable_exists 'pacman'; then
-  pacman_conf_text="$(cat '/etc/pacman.conf')"
+  pacman_conf_text="$(< '/etc/pacman.conf')"
   readonly pacman_conf_text
   for pacman_repo in 'multilib' 'chaotic-aur'; do
     if ! grep::contains_exactly "[${pacman_repo}]" <<< "${pacman_conf_text}"; then
@@ -291,13 +291,14 @@ fi
 
 if os::is_fedora; then
   readonly expected_dnf_conf_vals=('max_parallel_downloads' 'defaultyes' 'keepcache')
-  dnf_conf_text="$(cat '/etc/dnf/dnf.conf')"
+  dnf_conf_text="$(< '/etc/dnf/dnf.conf')"
   readonly dnf_conf_text
   for dnf_conf_val in "${expected_dnf_conf_vals[@]}"; do
     if strings::is_empty "$(
-      grep --fixed-strings "${dnf_conf_val}" <<< "${dnf_conf_text}" \
-        | cut --delimiter='=' --fields=2 \
-        | xargs
+      strings::trim "$(
+        grep --fixed-strings "${dnf_conf_val}" <<< "${dnf_conf_text}" \
+          | cut --delimiter='=' --fields=2
+      )"
     )"; then
       log::log "dnf conf ${dnf_conf_val} is not set"
     fi
