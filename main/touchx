@@ -10,7 +10,7 @@ system::require_bash_version 4 0
 args::check_at_least_1_arg "$@"
 
 for file in "$@"; do
-  if [[ -e "${file}" ]] && ! files::exists "${file}"; then
+  if files::any_exists "${file}" && ! files::exists "${file}"; then
     log::log "${file} is NOT a file"
   else
     touch "${file}"

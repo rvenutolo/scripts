@@ -21,6 +21,17 @@ function strings::is_blank() {
   [[ -z "${1//[[:space:]]/}" ]]
 }
 
+# Print the string with leading and trailing whitespace removed.
+# $1 = string
+# Output: stdout — trimmed string
+function strings::trim() {
+  args::check_exactly_1_arg "$@"
+  local trimmed="$1"
+  trimmed="${trimmed#"${trimmed%%[![:space:]]*}"}"
+  trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+  printf '%s\n' "${trimmed}"
+}
+
 # Print the string with a trailing slash appended if it does not already end with one.
 # $1 = string
 # Output: stdout — string guaranteed to end with '/'

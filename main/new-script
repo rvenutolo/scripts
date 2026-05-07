@@ -10,7 +10,7 @@ system::require_bash_version 4 0
 args::check_at_least_1_arg "$@"
 
 for file in "$@"; do
-  if [[ -e "${file}" ]]; then
+  if files::any_exists "${file}"; then
     log::die "${file} already exists"
   fi
   cat > "${file}" << 'EOF'
@@ -19,7 +19,7 @@ for file in "$@"; do
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-#shellcheck disable=SC1091
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0

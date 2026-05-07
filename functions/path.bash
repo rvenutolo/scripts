@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# These functions intentionally mutate the caller's PATH (they do NOT scope mutations to a subshell).
+# Callers that want PATH changes confined to a block must wrap the call in their own ( ... ) subshell.
+
 # Remove all occurrences of a directory from PATH.
 # $1 = directory path to remove
 function path::remove() {

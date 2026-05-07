@@ -12,5 +12,6 @@ if args::stdin_exists; then
   args::check_exactly_1_arg "$@"
   awk --field-separator "$1" 'NR==1{nf=NF} NF!=nf{print "Line " NR " has " NF " fields (expected " nf "): " $0}'
 else
+  args::check_exactly_2_args "$@"
   awk --field-separator "$2" 'NR==1{nf=NF} NF!=nf{print "Line " NR " has " NF " fields (expected " nf "): " $0}' "$1"
 fi

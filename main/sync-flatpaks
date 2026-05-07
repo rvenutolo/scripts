@@ -7,6 +7,7 @@ IFS=$'\n\t'
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
+# pass-through: any arg count valid ($@ forwarded as filter args to packages::get_universal)
 
 if ! commands::executable_exists 'flatpak'; then
   log::die 'flatpak executable not found'

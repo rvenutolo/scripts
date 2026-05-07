@@ -12,7 +12,7 @@ args::check_no_args "$@"
 # chezmoi external files stuff should get this file,
 # which is a script that should have one function: kitty_keys
 readonly kitty_keys_file="${XDG_CONFIG_HOME}/kitty/kitty_keys.sh"
-if is_readable_files "${kitty_keys_file}"; then
+if files::is_readable "${kitty_keys_file}"; then
   # shellcheck disable=SC1090 # kitty_keys_file path is dynamic at runtime
   source "${kitty_keys_file}"
   kitty_keys

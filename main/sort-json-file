@@ -18,7 +18,7 @@ function sort_json_file() {
   temp_file="$(mktemp)"
   trap 'rm --force -- "${temp_file}"' EXIT
   json::sort "${json_file}" > "${temp_file}"
-  mv -- "${temp_file}" "${json_file}"
+  files::move_no_prompt "${temp_file}" "${json_file}"
 }
 
 function main() {

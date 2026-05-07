@@ -12,9 +12,10 @@ function shell_scripts::has_shell_shebang() {
 # Die if any of the given paths does not exist on disk.
 # $@ = paths to validate
 function shell_scripts::assert_paths_exist() {
+  # pass-through: any arg count valid (variadic; no-ops on empty input)
   local arg
   for arg in "$@"; do
-    if [[ ! -e "${arg}" ]]; then
+    if ! files::any_exists "${arg}"; then
       log::die "${arg} does not exist"
     fi
   done

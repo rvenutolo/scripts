@@ -22,5 +22,5 @@ if ! commands::executable_exists 'appman' || ! prompt::yn 'Install AppImage pack
 fi
 
 log::log 'Installing AppMan packages'
-packages::get_universal 'appimage' | xargs --no-run-if-empty appman install
+packages::get_universal 'appimage' | xargs --no-run-if-empty --max-args=1 appman install
 log::log 'Installed AppMan packages'

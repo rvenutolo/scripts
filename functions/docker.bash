@@ -9,11 +9,21 @@ function docker::container_is_running() {
 }
 
 # Block until the named Docker container reports a health status of 'healthy'.
+# Optional second arg caps how long to wait; unset means wait forever.
 # $1 = container name
+# $2 = optional timeout in seconds (default: no timeout)
 function docker::wait_for_healthy_container() {
-  args::check_exactly_1_arg "$@"
-  log::log "Waiting for $1 to be healthy"
-  until [[ "$(docker inspect --format '{{.State.Health.Status}}' "$1")" == 'healthy' ]]; do
+  args::check_at_least_1_arg "$@"
+  args::check_at_most_2_args "$@"
+  local -r container="$1"
+  # 99999999 seconds is ~3 years — effectively "no timeout"
+  local -r timeout_seconds="${2:-99999999}"
+  log::log "Waiting for ${container} to be healthy"
+  local -r start="${SECONDS}"
+  until [[ "$(docker inspect --format '{{.State.Health.Status}}' "${container}")" == 'healthy' ]]; do
+    if ((SECONDS - start >= timeout_seconds)); then
+      log::die "${container} did not become healthy within ${timeout_seconds}s"
+    fi
     sleep 0.1
   done
 }
