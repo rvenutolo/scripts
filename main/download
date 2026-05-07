@@ -9,22 +9,24 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_at_least_1_arg "$@"
 args::check_at_most_2_args "$@"
+readonly URL="$1"
+readonly OUTPUT_FILE="${2:-}"
 
-if strings::is_not_empty "${2:-}"; then
+if strings::is_not_empty "${OUTPUT_FILE}"; then
   tries=0
-  until wrappers::curl "$1" --output "$2"; do
+  until wrappers::curl "${URL}" --output "${OUTPUT_FILE}"; do
     ((tries += 1)) || true # increment; || true guards against set -e if value is 0
     if ((tries > 10)); then
-      log::die "Failed to get in 10 tries: $1"
+      log::die "Failed to get in 10 tries: ${URL}"
     fi
     sleep 15
   done
 else
   tries=0
-  until wrappers::curl "$1"; do
+  until wrappers::curl "${URL}"; do
     ((tries += 1)) || true # increment; || true guards against set -e if value is 0
     if ((tries > 10)); then
-      log::die "Failed to get in 10 tries: $1"
+      log::die "Failed to get in 10 tries: ${URL}"
     fi
     sleep 15
   done

@@ -13,5 +13,6 @@ if args::stdin_exists; then
   awk '{$1=$1};1'
 else
   args::check_exactly_1_arg "$@"
-  awk '{$1=$1};1' "$1"
+  readonly FILE="$1"
+  awk '{$1=$1};1' "${FILE}"
 fi

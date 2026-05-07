@@ -9,11 +9,13 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_at_least_2_args "$@"
 args::check_at_most_3_args "$@"
+readonly MIN="$1"
+readonly MAX="$2"
 
 if [[ "$#" -eq 3 ]]; then
-  readonly num_output="$3"
+  readonly NUM_OUTPUT="$3"
 else
-  readonly num_output=1
+  readonly NUM_OUTPUT=1
 fi
 
-shuf --input-range "$1-$2" --head-count "${num_output}"
+shuf --input-range "${MIN}-${MAX}" --head-count "${NUM_OUTPUT}"

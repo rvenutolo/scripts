@@ -8,6 +8,7 @@ source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
 args::check_exactly_1_arg "$@"
+readonly INPUT_FILE="$1"
 
 # Download the input file from Periscope
 
@@ -30,4 +31,4 @@ next(reader) # skip header line
 writer = csv.writer(sys.stdout)
 for row in reader:
     writer.writerow([row[2], row[0], row[3], row[5]])
-' < "$1" | sort >> "${file}"
+' < "${INPUT_FILE}" | sort >> "${file}"

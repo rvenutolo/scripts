@@ -10,11 +10,11 @@ system::require_bash_version 4 0
 args::check_at_most_1_arg "$@"
 
 if [[ "$#" -eq 0 ]]; then
-  screenshot_file="${HOME}/screenshot_$(date +%Y%m%d_%H%M%S).png"
-  readonly screenshot_file
+  SCREENSHOT_FILE="${HOME}/screenshot_$(date +%Y%m%d_%H%M%S).png"
+  readonly SCREENSHOT_FILE
 else
-  readonly screenshot_file="$1"
+  readonly SCREENSHOT_FILE="$1"
 fi
 
-shotgun --geometry "$(hacksaw)" --format 'png' "${screenshot_file}"
-log::log "Saved to: ${screenshot_file}"
+shotgun --geometry "$(hacksaw)" --format 'png' "${SCREENSHOT_FILE}"
+log::log "Saved to: ${SCREENSHOT_FILE}"

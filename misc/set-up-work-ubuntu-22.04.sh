@@ -24,22 +24,24 @@ function die() {
 # $1 = URL
 # $2 = output file (optional)
 function dl() {
-  log "Downloading: $1"
-  if [[ -n "${2:-}" ]]; then
+  local -r url="$1"
+  local -r output_file="${2:-}"
+  log "Downloading: ${url}"
+  if [[ -n "${output_file}" ]]; then
     local tries=0
-    until curl --disable --fail --silent --location --show-error "$1" --output "$2"; do
+    until curl --disable --fail --silent --location --show-error "${url}" --output "${output_file}"; do
       ((tries += 1))
       if ((tries > 10)); then
-        die "Failed to get in 10 tries: $1"
+        die "Failed to get in 10 tries: ${url}"
       fi
       sleep 15
     done
   else
     local tries=0
-    until curl --disable --fail --silent --location --show-error "$1"; do
+    until curl --disable --fail --silent --location --show-error "${url}"; do
       ((tries += 1))
       if ((tries > 10)); then
-        die "Failed to get in 10 tries: $1"
+        die "Failed to get in 10 tries: ${url}"
       fi
       sleep 15
     done
@@ -49,10 +51,12 @@ function dl() {
 # $1 = URL
 # $2 = output file (optional)
 function dl_decrypt() {
-  if [[ -n "${2:-}" ]]; then
-    dl "$1" | age --decrypt --identity "${HOME}/.keys/age.key" --output "$2"
+  local -r url="$1"
+  local -r output_file="${2:-}"
+  if [[ -n "${output_file}" ]]; then
+    dl "${url}" | age --decrypt --identity "${HOME}/.keys/age.key" --output "${output_file}"
   else
-    dl "$1" | age --decrypt --identity "${HOME}/.keys/age.key"
+    dl "${url}" | age --decrypt --identity "${HOME}/.keys/age.key"
   fi
 }
 

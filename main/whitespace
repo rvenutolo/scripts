@@ -17,5 +17,6 @@ if args::stdin_exists; then
   sed 's/ /·/g;s/\t/￫/g;s/\r/§/g;s/$/¶/g'
 else
   args::check_exactly_1_arg "$@"
-  sed 's/ /·/g;s/\t/￫/g;s/\r/§/g;s/$/¶/g' "$1"
+  readonly FILE="$1"
+  sed 's/ /·/g;s/\t/￫/g;s/\r/§/g;s/$/¶/g' "${FILE}"
 fi

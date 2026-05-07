@@ -8,15 +8,17 @@ source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
 args::check_exactly_2_args "$@"
+readonly URL="$1"
+readonly OUTPUT_FILE="$2"
 
 readonly etags_dir="${XDG_CACHE_HOME}/etags"
 dirs::create "${etags_dir}"
 
-etag_file="${etags_dir}/$(printf '%s\n' "$1" | tr --complement '[:alnum:]._-' '_').etag"
+etag_file="${etags_dir}/$(printf '%s\n' "${URL}" | tr --complement '[:alnum:]._-' '_').etag"
 readonly etag_file
 
-if ! files::exists "$2"; then
-  wrappers::curl --etag-save "${etag_file}" "$1" --output "$2"
+if ! files::exists "${OUTPUT_FILE}"; then
+  wrappers::curl --etag-save "${etag_file}" "${URL}" --output "${OUTPUT_FILE}"
 else
-  wrappers::curl --etag-compare "${etag_file}" --etag-save "${etag_file}" "$1" --output "$2"
+  wrappers::curl --etag-compare "${etag_file}" --etag-save "${etag_file}" "${URL}" --output "${OUTPUT_FILE}"
 fi

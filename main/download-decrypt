@@ -9,11 +9,13 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_at_least_1_arg "$@"
 args::check_at_most_2_args "$@"
+readonly URL="$1"
+readonly OUTPUT_FILE="${2:-}"
 
-temp_file="$(downloads::download_to_temp_file "$1")"
+temp_file="$(downloads::download_to_temp_file "${URL}")"
 readonly temp_file
-if strings::is_not_empty "${2:-}"; then
-  age --decrypt --identity "${AGE_PRIVATE_KEY_FILE}" --output "$2" "${temp_file}"
+if strings::is_not_empty "${OUTPUT_FILE}"; then
+  age --decrypt --identity "${AGE_PRIVATE_KEY_FILE}" --output "${OUTPUT_FILE}" "${temp_file}"
 else
   age --decrypt --identity "${AGE_PRIVATE_KEY_FILE}" "${temp_file}"
 fi

@@ -16,7 +16,9 @@ readonly env_file='.env'
 # $1 = Maven expression (e.g. "project.artifactId")
 # Output: stdout — evaluated expression value
 function eval_maven_expression() {
-  mvn --file "${pom_file}" help:evaluate -Dexpression="$1" --quiet -DforceStdout
+  args::check_exactly_1_arg "$@"
+  local -r expression="$1"
+  mvn --file "${pom_file}" help:evaluate -Dexpression="${expression}" --quiet -DforceStdout
 }
 
 function main() {

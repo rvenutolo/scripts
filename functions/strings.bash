@@ -37,12 +37,13 @@ function strings::trim() {
 # Output: stdout — string guaranteed to end with '/'
 function strings::ensure_trailing_slash() {
   args::check_exactly_1_arg "$@"
-  if strings::is_not_empty "$1"; then
-    case "$1" in
-      */) printf '%s\n' "$1" ;;
-      *) printf '%s\n' "$1/" ;;
+  local -r str="$1"
+  if strings::is_not_empty "${str}"; then
+    case "${str}" in
+      */) printf '%s\n' "${str}" ;;
+      *) printf '%s\n' "${str}/" ;;
     esac
   else
-    printf '%s\n' "$1"
+    printf '%s\n' "${str}"
   fi
 }

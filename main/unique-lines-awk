@@ -13,5 +13,6 @@ if args::stdin_exists; then
   awk '!x[$0]++'
 else
   args::check_exactly_1_arg "$@"
-  awk '!x[$0]++' "$1"
+  readonly FILE="$1"
+  awk '!x[$0]++' "${FILE}"
 fi

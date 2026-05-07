@@ -10,7 +10,8 @@ system::require_bash_version 4 0
 args::check_at_most_1_arg "$@"
 
 if [[ "$#" -eq 1 ]]; then
-  if [[ "$1" == 'debug' ]]; then
+  readonly MODE="$1"
+  if [[ "${MODE}" == 'debug' ]]; then
     readonly debug='true'
   else
     log::die "Expected 1 arg: 'debug'"

@@ -77,7 +77,41 @@
 - Use `$(...)` not backticks
 - Indent with 2 spaces; never tabs
 - Constants and config: `readonly` and `UPPER_SNAKE_CASE` at top of script
-- For script-level values derived from positional args, declare `readonly NAME="$1"` immediately after arg-count validation (still `UPPER_SNAKE_CASE` if treated as a constant for the rest of the script)
+- Top-level scripts with named positional args must bind each `$1`/`$2`/etc. to a `readonly` `UPPER_SNAKE_CASE` constant immediately after the `args::check_*_args "$@"` guard, then reference the named constant thereafter — never use `$1`/`$2`/etc. inline in the script body. Improves readability and self-documents intent. Exemptions: pass-through scripts forwarding `"$@"` verbatim; variadic scripts that only iterate `"$@"` (loop variable provides the name); single-use of `$1` on the first executable line where binding adds noise without readability gain (author's call).
+
+  ```bash
+  # wrong — bare positionals scattered through script body
+  args::check_exactly_2_args "$@"
+  cp --archive -- "$1" "$2"
+  log::log "$1 -> $2"
+
+  # right — bind once, name everywhere
+  args::check_exactly_2_args "$@"
+  readonly SRC="$1"
+  readonly DEST="$2"
+  cp --archive -- "${SRC}" "${DEST}"
+  log::log "${SRC} -> ${DEST}"
+  ```
+
+- Functions with named positional parameters must bind each `$1`/`$2`/etc. to a `local` (or `local -r`) variable on the first lines of the function body (after any `args::check_*_args "$@"` guard), then reference the named variable thereafter — never use `$1`/`$2`/etc. inline in the function body. The `local` name should match the `# $1 = description` doc comment above the function. Exemptions: variadic functions iterating `"$@"`; pass-through functions forwarding `"$@"` verbatim; single-use of `$1` on the first executable line where binding adds noise without readability gain (author's call).
+
+  ```bash
+  # wrong — bare positionals scattered through body
+  function files::copy() {
+    args::check_exactly_2_args "$@"
+    cp --archive -- "$1" "$2"
+    log::log "$1 -> $2"
+  }
+
+  # right — bind once, name everywhere
+  function files::copy() {
+    args::check_exactly_2_args "$@"
+    local -r src="$1"
+    local -r dest="$2"
+    cp --archive -- "${src}" "${dest}"
+    log::log "${src} -> ${dest}"
+  }
+  ```
 - Use `case ... in PATTERN) ;; *) ;; esac` instead of chained `[[ ]]` / `elif` when matching one variable against multiple string patterns
 - Apply `${VAR:-}` defaults only to optional positional args (`"${2:-}"`) — required positionals are already validated by arg-count guards, so let `set -u` catch programming mistakes there. The existing rule about not defaulting well-known env vars still applies.
 - Locals: `local` (or `local -r` for read-only) inside every function. Use `snake_case` (lowercase) for local and other non-constant variables; reserve `UPPER_SNAKE_CASE` for constants, exported vars, and environment vars.
@@ -95,6 +129,7 @@
 - Always pass `--no-run-if-empty` and an explicit `--max-args=N` to `xargs`
 - Always use `read -r` (or `read -rp PROMPT`); never bare `read` (matches ShellCheck SC2162 — `-r` prevents backslash mangling)
 - Scope `PATH` mutations inside a `( ... )` subshell so changes don't leak to the caller's environment
+- Any script that modifies `PATH` must include a comment explaining why. Applies to direct assignments and `export PATH=...` — not to invocations of the repo's PATH-related helper functions (those are self-documenting).
 - For non-interactive `curl`, use: `curl --disable --fail --silent --location --show-error`. `--disable` skips `~/.curlrc` so behavior doesn't depend on the invoking user's config
 - For non-interactive `wget`, use: `wget --no-config` (skips `~/.wgetrc` for the same reason)
 - Network retry idiom for transient failures:

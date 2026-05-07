@@ -37,7 +37,8 @@ function sdkman_packages::get_installed_packages() {
 # Output: stdout — version strings, one per line, sorted
 function sdkman_packages::get_installed_packages_versions() {
   args::check_exactly_1_arg "$@"
-  find "${SDKMAN_CANDIDATES_DIR}/$1" -maxdepth '1' -mindepth '1' -type 'd' -printf '%f\n' | sort
+  local -r package="$1"
+  find "${SDKMAN_CANDIDATES_DIR}/${package}" -maxdepth '1' -mindepth '1' -type 'd' -printf '%f\n' | sort
 }
 
 # Print the currently active version of the given SDKMAN package (via the 'current' symlink target).
@@ -45,21 +46,23 @@ function sdkman_packages::get_installed_packages_versions() {
 # Output: stdout — active version string
 function sdkman_packages::get_current_package_version() {
   args::check_exactly_1_arg "$@"
-  symlinks::get_target "${SDKMAN_CANDIDATES_DIR}/$1/current"
+  local -r package="$1"
+  symlinks::get_target "${SDKMAN_CANDIDATES_DIR}/${package}/current"
 }
 
 # Uninstall all versions of an SDKMAN package except the currently active one.
 # $1 = package name
 function sdkman_packages::prune_sdkman_package() {
   args::check_exactly_1_arg "$@"
+  local -r package="$1"
   local current_version
-  current_version="$(sdkman_packages::get_current_package_version "$1")"
+  current_version="$(sdkman_packages::get_current_package_version "${package}")"
   readonly current_version
   while read -r version; do
     if [[ "${version}" != "${current_version}" ]]; then
-      sdkman_packages::uninstall_package_version "$1" "${version}"
+      sdkman_packages::uninstall_package_version "${package}" "${version}"
     fi
-  done < <(sdkman_packages::get_installed_packages_versions "$1")
+  done < <(sdkman_packages::get_installed_packages_versions "${package}")
 }
 
 # Uninstall all outdated versions of every installed SDKMAN package (excluding java).

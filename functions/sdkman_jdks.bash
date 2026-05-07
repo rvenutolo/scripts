@@ -130,10 +130,11 @@ function sdkman_jdks::get_formatted_latest_available_tem_jdk_major_versions() {
 # Output: stdout — one line: major;version;artifact-id;installed('y'/'n')
 function sdkman_jdks::get_formatted_latest_available_tem_jdk_for_major_version() {
   args::check_exactly_1_arg "$@"
-  sdkman_jdks::check_available_tem_jdk_major_version "$@"
+  local -r major_version="$1"
+  sdkman_jdks::check_available_tem_jdk_major_version "${major_version}"
   sdkman_jdks::get_formatted_all_tem_jdks \
     | sdkman_jdks::filter_for_latest_per_major_version \
-    | sdkman_jdks::filter_for_major_version "$1"
+    | sdkman_jdks::filter_for_major_version "${major_version}"
 }
 
 # Print all available Temurin JDK major version numbers, sorted numerically.
@@ -160,8 +161,9 @@ function sdkman_jdks::get_latest_available_tem_jdk_major_version() {
 # $1 = major java version
 function sdkman_jdks::check_available_tem_jdk_major_version() {
   args::check_exactly_1_arg "$@"
-  if ! sdkman_jdks::get_available_tem_jdk_major_versions | grep::contains_word "$1"; then
-    log::die "Java version $1 is not available"
+  local -r major_version="$1"
+  if ! sdkman_jdks::get_available_tem_jdk_major_versions | grep::contains_word "${major_version}"; then
+    log::die "Java version ${major_version} is not available"
   fi
 }
 
@@ -181,9 +183,10 @@ function sdkman_jdks::get_formatted_installed_tem_jdks() {
 # Output: stdout — lines with fields: major;version;artifact-id;installed('y'/'n')
 function sdkman_jdks::get_formatted_installed_tem_jdks_for_major_version() {
   args::check_exactly_1_arg "$@"
+  local -r major_version="$1"
   sdkman_jdks::get_formatted_all_tem_jdks \
     | sdkman_jdks::filter_for_installed \
-    | sdkman_jdks::filter_for_major_version "$1"
+    | sdkman_jdks::filter_for_major_version "${major_version}"
 }
 
 # Print the latest installed Temurin JDK entry per major version in semicolon-delimited format.
@@ -201,11 +204,12 @@ function sdkman_jdks::get_formatted_latest_installed_tem_jdk_major_versions() {
 # Output: stdout — one line: major;version;artifact-id;installed('y'/'n')
 function sdkman_jdks::get_formatted_latest_installed_tem_jdk_for_major_version() {
   args::check_exactly_1_arg "$@"
-  sdkman_jdks::check_installed_tem_jdk_major_version "$@"
+  local -r major_version="$1"
+  sdkman_jdks::check_installed_tem_jdk_major_version "${major_version}"
   sdkman_jdks::get_formatted_all_tem_jdks \
     | sdkman_jdks::filter_for_installed \
     | sdkman_jdks::filter_for_latest_per_major_version \
-    | sdkman_jdks::filter_for_major_version "$1"
+    | sdkman_jdks::filter_for_major_version "${major_version}"
 }
 
 # Print all installed Temurin JDK major version numbers, sorted numerically.
@@ -233,8 +237,9 @@ function sdkman_jdks::get_latest_installed_tem_jdk_major_version() {
 # $1 = major java version
 function sdkman_jdks::check_installed_tem_jdk_major_version() {
   args::check_exactly_1_arg "$@"
-  if ! sdkman_jdks::get_installed_tem_jdk_major_versions | grep::contains_word "$1"; then
-    log::die "Java version $1 is not installed"
+  local -r major_version="$1"
+  if ! sdkman_jdks::get_installed_tem_jdk_major_versions | grep::contains_word "${major_version}"; then
+    log::die "Java version ${major_version} is not installed"
   fi
 }
 
@@ -252,7 +257,8 @@ function sdkman_jdks::is_tem_jdk_artifact_installed() {
 # Output: stdout — artifact ID (e.g. "21.0.3-tem")
 function sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version() {
   args::check_exactly_1_arg "$@"
-  sdkman_jdks::get_formatted_installed_tem_jdks_for_major_version "$1" \
+  local -r major_version="$1"
+  sdkman_jdks::get_formatted_installed_tem_jdks_for_major_version "${major_version}" \
     | text::first_line \
     | sdkman_jdks::get_formatted_tem_jdk_artifact_id_field
 }
@@ -263,10 +269,11 @@ function sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version
 # $1 = major version
 function sdkman_jdks::install_latest_tem_jdk() {
   args::check_exactly_1_arg "$@"
-  sdkman_jdks::check_available_tem_jdk_major_version "$1"
+  local -r major_version="$1"
+  sdkman_jdks::check_available_tem_jdk_major_version "${major_version}"
   local latest_artifact_id
   latest_artifact_id="$(
-    sdkman_jdks::get_formatted_latest_available_tem_jdk_for_major_version "$1" \
+    sdkman_jdks::get_formatted_latest_available_tem_jdk_for_major_version "${major_version}" \
       | sdkman_jdks::get_formatted_tem_jdk_artifact_id_field
   )"
   readonly latest_artifact_id
@@ -288,10 +295,11 @@ function sdkman_jdks::install_latest_tem_jdks() {
 # $1 = major java version
 function sdkman_jdks::set_default_sdk_to_latest_installed_for_major_version() {
   args::check_exactly_1_arg "$@"
-  sdkman_jdks::check_installed_tem_jdk_major_version "$1"
+  local -r major_version="$1"
+  sdkman_jdks::check_installed_tem_jdk_major_version "${major_version}"
   local new_default_artifact_id
   new_default_artifact_id="$(
-    sdkman_jdks::get_formatted_latest_installed_tem_jdk_for_major_version "$1" \
+    sdkman_jdks::get_formatted_latest_installed_tem_jdk_for_major_version "${major_version}" \
       | sdkman_jdks::get_formatted_tem_jdk_artifact_id_field
   )"
   readonly new_default_artifact_id
@@ -312,9 +320,10 @@ function sdkman_jdks::set_default_jdk_to_latest_installed() {
 # $1 = major java version
 function sdkman_jdks::prune_tem_jdks_for_major_version() {
   args::check_exactly_1_arg "$@"
+  local -r major_version="$1"
   local latest_artifact_id
   latest_artifact_id="$(
-    sdkman_jdks::get_formatted_latest_available_tem_jdk_for_major_version "$1" \
+    sdkman_jdks::get_formatted_latest_available_tem_jdk_for_major_version "${major_version}" \
       | sdkman_jdks::get_formatted_tem_jdk_artifact_id_field
   )"
   readonly latest_artifact_id
@@ -323,7 +332,7 @@ function sdkman_jdks::prune_tem_jdks_for_major_version() {
       sdkman_jdks::uninstall_jdk "${artifact_id}"
     fi
   done < <(
-    sdkman_jdks::get_formatted_installed_tem_jdks_for_major_version "$1" \
+    sdkman_jdks::get_formatted_installed_tem_jdks_for_major_version "${major_version}" \
       | sdkman_jdks::get_formatted_tem_jdk_artifact_id_field
   )
 }

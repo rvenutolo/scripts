@@ -6,7 +6,9 @@
 # Output: stdout — elapsed time in "Xh Xm Xs" format (hours and minutes omitted when zero)
 function time::calc_elapsed() {
   args::check_exactly_2_args "$@"
-  local elapsed=$(($2 - $1))
+  local -r start_time="$1"
+  local -r end_time="$2"
+  local elapsed=$((end_time - start_time))
   readonly elapsed
   local hrs=$((elapsed / 3600))
   readonly hrs

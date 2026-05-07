@@ -13,5 +13,6 @@ if args::stdin_exists; then
   sort | uniq --count | sort --numeric-sort --reverse
 else
   args::check_exactly_1_arg "$@"
-  sort "$1" | uniq --count | sort --numeric-sort --reverse
+  readonly FILE="$1"
+  sort "${FILE}" | uniq --count | sort --numeric-sort --reverse
 fi

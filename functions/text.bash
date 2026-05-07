@@ -64,13 +64,16 @@ function text::last_line() {
 function text::skip_first_lines() {
   if args::stdin_exists; then
     args::check_exactly_1_arg "$@"
+    local -r skip_count="$1"
     local start_line
-    start_line=$(($1 + 1))
+    start_line=$((skip_count + 1))
     tail --lines="+${start_line}"
   else
     args::check_exactly_2_args "$@"
+    local -r file="$1"
+    local -r skip_count="$2"
     local start_line
-    start_line=$(($2 + 1))
-    tail --lines="+${start_line}" "$1"
+    start_line=$((skip_count + 1))
+    tail --lines="+${start_line}" "${file}"
   fi
 }

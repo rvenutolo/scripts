@@ -8,17 +8,18 @@ source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
 args::check_exactly_1_arg "$@"
+readonly INPUT_FILE="$1"
 
-if ! files::exists "$1"; then
-  log::die "$1 does not exist"
+if ! files::exists "${INPUT_FILE}"; then
+  log::die "${INPUT_FILE} does not exist"
 fi
 
-if ! files::is_readable "$1"; then
-  log::die "$1 is not readable"
+if ! files::is_readable "${INPUT_FILE}"; then
+  log::die "${INPUT_FILE} is not readable"
 fi
 
 printf '%s\n' "----------"
-printf '%s\n' "$1"
+printf '%s\n' "${INPUT_FILE}"
 printf '%s\n' "----------"
-ls --format=long "$1"
-file "$1"
+ls --format=long "${INPUT_FILE}"
+file "${INPUT_FILE}"

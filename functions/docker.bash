@@ -4,8 +4,9 @@
 # $1 = container name
 function docker::container_is_running() {
   args::check_exactly_1_arg "$@"
-  strings::is_not_empty "$(docker ps --quiet --filter "name=^$1\$")" \
-    && [[ "$(docker container inspect --format '{{.State.Status}}' "$1")" == 'running' ]]
+  local -r container="$1"
+  strings::is_not_empty "$(docker ps --quiet --filter "name=^${container}\$")" \
+    && [[ "$(docker container inspect --format '{{.State.Status}}' "${container}")" == 'running' ]]
 }
 
 # Block until the named Docker container reports a health status of 'healthy'.
@@ -32,9 +33,10 @@ function docker::wait_for_healthy_container() {
 # $1 = docker network name
 function docker::create_network() {
   args::check_exactly_1_arg "$@"
-  if ! docker network inspect "$1" &> '/dev/null'; then
-    log::log "Creating $1 network"
-    docker network create "$1"
-    log::log "Created $1 network"
+  local -r network="$1"
+  if ! docker network inspect "${network}" &> '/dev/null'; then
+    log::log "Creating ${network} network"
+    docker network create "${network}"
+    log::log "Created ${network} network"
   fi
 }
