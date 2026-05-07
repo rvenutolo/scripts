@@ -80,7 +80,7 @@
 - For script-level values derived from positional args, declare `readonly NAME="$1"` immediately after arg-count validation (still `UPPER_SNAKE_CASE` if treated as a constant for the rest of the script)
 - Use `case ... in PATTERN) ;; *) ;; esac` instead of chained `[[ ]]` / `elif` when matching one variable against multiple string patterns
 - Apply `${VAR:-}` defaults only to optional positional args (`"${2:-}"`) — required positionals are already validated by arg-count guards, so let `set -u` catch programming mistakes there. The existing rule about not defaulting well-known env vars still applies.
-- Locals: `local` (or `local -r` for read-only) inside every function
+- Locals: `local` (or `local -r` for read-only) inside every function. Use `snake_case` (lowercase) for local and other non-constant variables; reserve `UPPER_SNAKE_CASE` for constants, exported vars, and environment vars.
 - Functions: `snake_case`, defined with `function name() { ... }` (always use `function` keyword)
 - Default safely under `set -u`: use `"${VAR:-default}"` for vars that may legitimately be unset; do NOT add defaults for well-known env vars expected to always be present (`HOME`, `USER`, `SDKMAN_DIR`, `PATH`, `SCRIPTS_DIR`, etc.) — let `set -u` catch them if missing
 - When parsing decimal strings that may have leading zeros (e.g. `date +%H` → `09`), use `10#` in arithmetic context (`$((10#${var}))`) or strip via `%-H`/`%-M` with GNU date — bash arithmetic treats `08`/`09` as invalid octal
