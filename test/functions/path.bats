@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+# shellcheck disable=SC2123 # tests intentionally mutate PATH to exercise path::* helpers
+
 setup() {
   load '../test_helper/common'
   # shellcheck disable=SC1091
