@@ -9,24 +9,24 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
-# set +u and disable ERR trap to avoid false failures from SDKMAN internals
-set +u
-trap - ERR
+# Subshell isolates set +u and trap - ERR so parent strict mode is never touched.
+# Both are needed: set -u and ERR trap (via -E) are inherited by subshells.
+(
+  set +u
+  trap - ERR
 
-# shellcheck disable=SC1091 # sdkman-init.sh path is dynamic via SDKMAN_DIR env var
-source "${SDKMAN_DIR}/bin/sdkman-init.sh"
+  # shellcheck disable=SC1091 # sdkman-init.sh path is dynamic via SDKMAN_DIR env var
+  source "${SDKMAN_DIR}/bin/sdkman-init.sh"
 
-log::log 'Pruning SDKMAN packages'
-sdkman_packages::prune_sdkman_packages
-log::log 'Pruned SDKMAN packages'
+  log::log 'Pruning SDKMAN packages'
+  sdkman_packages::prune_sdkman_packages
+  log::log 'Pruned SDKMAN packages'
 
-log::log 'Pruning Temurin JDKs'
-sdkman_jdks::prune_tem_jdks
-log::log 'Pruned Temurin JDKs'
+  log::log 'Pruning Temurin JDKs'
+  sdkman_jdks::prune_tem_jdks
+  log::log 'Pruned Temurin JDKs'
 
-log::log 'Rewriting .sdkmanrc files'
-sdkman::rewrite_sdkmanrc_file_java_versions
-log::log 'Rewrote .sdkmanrc files'
-
-set -u
-log::enable_err_trap
+  log::log 'Rewriting .sdkmanrc files'
+  sdkman::rewrite_sdkmanrc_file_java_versions
+  log::log 'Rewrote .sdkmanrc files'
+)
