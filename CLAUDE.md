@@ -91,15 +91,26 @@ Tests are **specification-driven**: each test encodes what the function *should*
 - `functions/text.bash` — `remove_ansi`, `remove_empty_lines`, `first_line`, `last_line`, `skip_first_lines` (Phase B)
 - `functions/grep.bash` — all 20 `contains_*` and `file_contains_*` variants (Phase B)
 - `functions/json.bash` — `sort` (Phase B)
-- `functions/env_file.bash` — pure half: `assert_var_exists`, `get_var_value`, `is_var_value_empty`, `set_var_value`, `set_var_value_if_empty` (Phase C)
+- `functions/env_file.bash` — pure half: `assert_var_exists`, `get_var_value`, `is_var_value_empty`, `set_var_value`, `set_var_value_if_empty` (Phase C); interactive `prompt_*` family: 8 functions covering value, value-with-default, password, and password-with-symbols variants plus their `_if_empty` siblings (Phase D)
 
-Phase D will cover the interactive `prompt_*` family in `env_file.bash`. Side-effecting helpers (sudo, network, package managers) remain out of scope until a mocking strategy is settled.
+Side-effecting helpers (sudo, network, package managers) remain out of scope until a mocking strategy is settled.
 
 ### Dual-mode helper
 
 Several helpers (`text::*`, `json::sort`) accept input from EITHER stdin OR a file path. To avoid copy-pasting the test pattern, source `test/test_helper/dual_mode` in `setup()` and use `dual_mode::assert_stdin <fn> <input> <expected>` and `dual_mode::assert_file <fn> <input> <expected>`. The latter writes input to a per-test tmpfile under `${BATS_TEST_TMPDIR}` (BATS auto-cleans). `grep::*` functions are NOT dual-mode (each is stdin-only OR file-only) — write tests against them directly with `run` + heredoc / tmpfile fixtures.
 
 For env-file tests (read+write tmpfile fixtures), source `test/test_helper/env_file_fixture` and use `env_file_fixture::create <content> [<basename>]` which writes content to `${BATS_TEST_TMPDIR}/<basename>` (default `env`) and echoes the path.
+
+### Prompt-mocking pattern
+
+Interactive `env_file::prompt_*` tests use a hybrid strategy:
+
+- **Default-accepted path** — set `SCRIPTS_AUTO_ANSWER=y` and supply a default. `misc::auto_answer` short-circuits the `read -rp` and the default is written to the file.
+- **Typed-value path** — wrap the call in `bash -c "..."` with stdin fed via `<<<` (use the `prompt_via_stdin` helper in `env_file.bats`). The `read -rp` fires and reads the typed value from stdin.
+
+`passwords::generate` and `passwords::generate_with_symbols` are mocked in `setup()` (and re-declared inside `prompt_via_stdin` since function definitions don't survive `bash -c` boundaries) so password-fn tests are deterministic. Mocks return `MOCK_PASSWORD_64` and `MOCK_PASSWORD_SYMBOLS` respectively.
+
+Note: `read -rp` writes the prompt text to `/dev/tty`, which BATS `run` does not capture. Prompt-text content (var name, info, default substrings shown to the user) cannot be asserted via `assert_output`. Tests verify file mutation only; UI text is not under test.
 
 ### `path::*` testing note
 
