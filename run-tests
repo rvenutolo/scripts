@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+# pass-through: any arg count valid (forwarded to bats)
+
+readonly BATS_BIN="${SCRIPTS_DIR}/test/bats/bin/bats"
+readonly DEFAULT_TARGET="${SCRIPTS_DIR}/test/functions"
+
+function main() {
+  if ! files::exists "${BATS_BIN}"; then
+    log::die "bats not found at ${BATS_BIN} — run: git submodule update --init --recursive"
+  fi
+  if (($# == 0)); then
+    "${BATS_BIN}" --recursive "${DEFAULT_TARGET}"
+  else
+    "${BATS_BIN}" "$@"
+  fi
+}
+
+main "$@"
