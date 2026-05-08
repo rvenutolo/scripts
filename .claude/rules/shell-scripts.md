@@ -20,6 +20,21 @@
 
 - **Pass-through scripts and variadic library functions are exempt from the arg-count guard requirement.** A pass-through script forwards `"$@"` to an underlying tool (e.g. `main/claude` wraps the real `claude` binary, `main/sync-flatpaks` accepts optional filter args) and has no fixed arity. A variadic library function takes 0+ items of the same kind. In both cases, omit the `args::check_*_args "$@"` guard and add a same-line comment explaining why: `# pass-through: any arg count valid` (or similar). The comment is mandatory — silent omission is not allowed.
 - `log::enable_err_trap` (from `functions/log.bash`) installs an `ERR` trap that prints a red, prefixed `ERROR: line N (exit C): cmd` line to stderr when any unhandled command fails under `set -e`. Call it once, immediately after sourcing `functions.bash`. It complements `log::die` (explicit user-visible failures) — the trap catches everything else.
+- When sourcing or calling code from an external tool (e.g. SDKMAN, NVM, RVM), that code may use non-zero exit status for non-error conditions (e.g. `grep` returning 1 for "no match"), which fires false ERR trap hits, and may also reference unbound variables. Bracket the external block with both `set +u` / `trap - ERR` before and `set -u` / `log::enable_err_trap` after:
+
+  ```bash
+  # set +u and disable ERR trap to avoid false failures from <tool> internals
+  set +u
+  trap - ERR
+
+  # shellcheck disable=SC1091
+  source "/path/to/external-init.sh"
+  external_tool_command
+  # ... more external calls ...
+
+  set -u
+  log::enable_err_trap
+  ```
 - Standalone scripts that do NOT source this repo's `functions.bash` (everything in `misc/`) cannot call `log::enable_err_trap`. Inline the trap directly after the `IFS=` line. (Note: scripts that source `${DOCKER_COMPOSE_DIR}/functions.bash` DO have access to this repo's helpers — that file transitively sources `${SCRIPTS_DIR}/functions.bash` — so use `log::enable_err_trap` there, not the inline form.)
 
   ```bash

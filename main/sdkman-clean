@@ -9,8 +9,9 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
-# set +u to avoid 'ZSH_VERSION: unbound variable'
+# set +u and disable ERR trap to avoid false failures from SDKMAN internals
 set +u
+trap - ERR
 
 # shellcheck disable=SC1091 # sdkman-init.sh path is dynamic via SDKMAN_DIR env var
 source "${SDKMAN_DIR}/bin/sdkman-init.sh"
@@ -28,3 +29,4 @@ sdkman::rewrite_sdkmanrc_file_java_versions
 log::log 'Rewrote .sdkmanrc files'
 
 set -u
+log::enable_err_trap
