@@ -81,6 +81,23 @@ Tests are **specification-driven**: each test encodes what the function *should*
 4. Per function: one assertion per intended behavior, plus the standard edge-case sweep — empty input, whitespace-only, single char, multi-line, leading/trailing separators, arg-count boundaries.
 5. Run `./run-tests test/functions/<name>.bats` and triage failures: genuine bug → fix the function; ambiguity → escalate; test bug → fix the test.
 
+### What is tested
+
+- `functions/strings.bash` — `is_empty`, `is_not_empty`, `is_blank`, `trim`, `ensure_trailing_slash` (Phase A)
+- `functions/args.bash` — all 13 `check_*` arity helpers, `stdin_exists`, `check_for_stdin` (Phase A)
+- `functions/path.bash` — `remove`, `append`, `prepend` (Phase A)
+- `functions/arrays.bash` — `to_lines` (Phase B)
+- `functions/time.bash` — `calc_elapsed`, `shell_elapsed_time` (Phase B)
+- `functions/text.bash` — `remove_ansi`, `remove_empty_lines`, `first_line`, `last_line`, `skip_first_lines` (Phase B)
+- `functions/grep.bash` — all 20 `contains_*` and `file_contains_*` variants (Phase B)
+- `functions/json.bash` — `sort` (Phase B)
+
+Phase C will cover the pure half of `env_file.bash`. Phase D will cover the interactive `prompt_*` family. Side-effecting helpers (sudo, network, package managers) remain out of scope until a mocking strategy is settled.
+
+### Dual-mode helper
+
+Several helpers (`text::*`, `json::sort`) accept input from EITHER stdin OR a file path. To avoid copy-pasting the test pattern, source `test/test_helper/dual_mode` in `setup()` and use `dual_mode::assert_stdin <fn> <input> <expected>` and `dual_mode::assert_file <fn> <input> <expected>`. The latter writes input to a per-test tmpfile under `${BATS_TEST_TMPDIR}` (BATS auto-cleans). `grep::*` functions are NOT dual-mode (each is stdin-only OR file-only) — write tests against them directly with `run` + heredoc / tmpfile fixtures.
+
 ### `path::*` testing note
 
 `path::remove`, `path::append`, and `path::prepend` mutate the caller's `PATH`. Do NOT wrap them in `run` — `run` executes in a subshell and the mutation is discarded. Set a local `PATH`, call the function directly, then assert on `PATH`. BATS isolates each `@test` in its own subshell, so mutations do not leak between tests.
