@@ -5,6 +5,8 @@
 
 # Remove all occurrences of a directory from PATH.
 # When PATH equals exactly the directory, clears PATH without invoking awk/sed.
+# Uses awk -v (not --assign) because mawk — the default awk on Debian/Ubuntu — does
+# not accept --assign. -v is POSIX and works on every awk implementation.
 # $1 = directory path to remove
 function path::remove() {
   args::check_exactly_1_arg "$@"
