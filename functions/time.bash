@@ -8,7 +8,10 @@ function time::calc_elapsed() {
   args::check_exactly_2_args "$@"
   local -r start_time="$1"
   local -r end_time="$2"
-  local elapsed=$((end_time - start_time))
+  if ((10#${end_time} < 10#${start_time})); then
+    log::die 'end_time must be >= start_time'
+  fi
+  local elapsed=$((10#${end_time} - 10#${start_time}))
   readonly elapsed
   local hrs=$((elapsed / 3600))
   readonly hrs
