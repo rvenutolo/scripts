@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 
-# Return true if the given file's first line contains a bash or sh shebang.
+# Return true if the given file's first line contains a bash, sh, or bats
+# shebang. bats is included because shfmt and shellcheck both auto-detect it
+# from the shebang and apply their bats-aware dialect.
 # $1 = file path
 function shell_scripts::has_shell_shebang() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
   local first_line
   first_line="$(head --lines=1 -- "${file}")"
-  [[ "${first_line}" =~ ^#!.*[/\ ](ba)?sh([[:space:]]|$) ]]
+  [[ "${first_line}" =~ ^#!.*[/\ ](((ba)?sh)|bats)([[:space:]]|$) ]]
 }
 
 # Die if any of the given paths does not exist on disk.
