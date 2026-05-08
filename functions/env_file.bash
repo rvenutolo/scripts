@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 
+# Die if the given env var name is not a valid shell-style identifier.
+# Closes regex-injection in `^${var_name}=` patterns used throughout this file.
+# $1 = candidate variable name
+function env_file::_assert_valid_var_name() {
+  args::check_exactly_1_arg "$@"
+  local -r var_name="$1"
+  if ! [[ "${var_name}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+    log::die "Invalid env var name: ${var_name}"
+  fi
+}
+
 # Die if the given variable does not exist as a key in the env file.
 # $1 = env file path
 # $2 = variable name
@@ -7,6 +18,7 @@ function env_file::assert_var_exists() {
   args::check_exactly_2_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   if ! grep::file_contains_regex "${env_file}" "^${var_name}="; then
     log::die "${var_name} does not exist in ${env_file}"
@@ -21,6 +33,7 @@ function env_file::get_var_value() {
   args::check_exactly_2_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   grep --regexp="^${var_name}=" -- "${env_file}" | cut --delimiter='=' --fields='2-'
@@ -33,6 +46,7 @@ function env_file::is_var_value_empty() {
   args::check_exactly_2_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   strings::is_empty "$(env_file::get_var_value "${env_file}" "${var_name}")"
@@ -47,6 +61,10 @@ function env_file::set_var_value() {
   local -r env_file="$1"
   local -r var_name="$2"
   local -r new_value="$3"
+  env_file::_assert_valid_var_name "${var_name}"
+  if [[ "${new_value}" == *$'\n'* ]]; then
+    log::die 'env file values cannot contain newlines'
+  fi
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   local value_escaped
@@ -64,6 +82,7 @@ function env_file::set_var_value_if_empty() {
   local -r env_file="$1"
   local -r var_name="$2"
   local -r new_value="$3"
+  env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   if env_file::is_var_value_empty "${env_file}" "${var_name}"; then
@@ -81,6 +100,7 @@ function env_file::prompt_var_value() {
   args::check_at_most_4_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   local prompt_text
@@ -110,6 +130,7 @@ function env_file::prompt_var_value_if_empty() {
   args::check_at_most_4_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   if env_file::is_var_value_empty "${env_file}" "${var_name}"; then
@@ -126,6 +147,7 @@ function env_file::prompt_value_with_default() {
   local -r env_file="$1"
   local -r var_name="$2"
   local -r default_value="$3"
+  env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   env_file::prompt_var_value "${env_file}" "${var_name}" '' "${default_value}"
@@ -140,6 +162,7 @@ function env_file::prompt_value_with_default_if_empty() {
   local -r env_file="$1"
   local -r var_name="$2"
   local -r default_value="$3"
+  env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   if env_file::is_var_value_empty "${env_file}" "${var_name}"; then
@@ -156,6 +179,7 @@ function env_file::prompt_pw_value() {
   args::check_at_most_3_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   env_file::prompt_var_value "${env_file}" "${var_name}" "${3:-}" "$(passwords::generate)"
@@ -170,6 +194,7 @@ function env_file::prompt_pw_with_symbols_value() {
   args::check_at_most_3_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   env_file::prompt_var_value "${env_file}" "${var_name}" "${3:-}" "$(passwords::generate_with_symbols)"
@@ -184,6 +209,7 @@ function env_file::prompt_pw_value_if_empty() {
   args::check_at_most_3_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   if env_file::is_var_value_empty "${env_file}" "${var_name}"; then
@@ -200,6 +226,7 @@ function env_file::prompt_pw_with_symbols_value_if_empty() {
   args::check_at_most_3_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   if env_file::is_var_value_empty "${env_file}" "${var_name}"; then
