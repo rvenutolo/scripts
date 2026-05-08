@@ -32,8 +32,58 @@ Personal collection of bash scripts for system setup, package install, and day-t
 - `./run-install-scripts` — provision new machine. Sources `~/.profile`, validates sudo, runs every executable file under `install/` in `LC_COLLATE=C` order.
 - `./run-set-up-scripts` — same pattern, recursive over `set_up/**/*`.
 - `main/new-script <path>` — scaffolds a new script with the standard header + exec bit.
+- `./run-tests [<bats-args>...]` — runs BATS tests under `test/functions/` recursively when called with no args, or forwards args to the vendored bats binary.
 
 To gate a script from the `install`/`set_up runners`, remove its executable bit (`chmod -x`).
+
+## Testing
+
+A subset of `functions/*.bash` is exercised under [BATS](https://github.com/bats-core/bats-core). BATS itself, plus `bats-support` and `bats-assert`, are vendored as git submodules under `test/`.
+
+### Layout
+
+```
+test/
+  bats/                       # submodule — bats-core (excluded from format/shellcheck)
+  test_helper/
+    bats-support/             # submodule (excluded)
+    bats-assert/              # submodule (excluded)
+    common.bash               # shared loader; sourced by each .bats setup()
+  functions/
+    strings.bats              # tests for functions/strings.bash
+    args.bats                 # tests for functions/args.bash
+    path.bats                 # tests for functions/path.bash
+```
+
+### Running
+
+- `./run-tests` — runs everything under `test/functions/`.
+- `./run-tests test/functions/strings.bats` — single file.
+- `./run-tests --filter-regex 'is_blank' test/functions/strings.bats` — subset by name.
+
+### Bootstrap on a fresh clone
+
+```
+git submodule update --init --recursive
+```
+
+The `run-tests` wrapper aborts with this hint if `test/bats/bin/bats` is missing.
+
+### Testing philosophy
+
+Tests are **specification-driven**: each test encodes what the function *should* do based on its name, doc comment, and reasonable invariants — not what the current implementation happens to do. When a test fails, the default response is to fix the function, not the test. Genuinely ambiguous cases get raised before being silently encoded.
+
+### Adding tests
+
+1. Pick a `functions/<name>.bash` file.
+2. Create `test/functions/<name>.bats`.
+3. In `setup()`, `load '../test_helper/common'` and `source` the file under test plus any of its dependencies (e.g. `args.bash` for any helper that uses `args::check_*`).
+4. Per function: one assertion per intended behavior, plus the standard edge-case sweep — empty input, whitespace-only, single char, multi-line, leading/trailing separators, arg-count boundaries.
+5. Run `./run-tests test/functions/<name>.bats` and triage failures: genuine bug → fix the function; ambiguity → escalate; test bug → fix the test.
+
+### `path::*` testing note
+
+`path::remove`, `path::append`, and `path::prepend` mutate the caller's `PATH`. Do NOT wrap them in `run` — `run` executes in a subshell and the mutation is discarded. Set a local `PATH`, call the function directly, then assert on `PATH`. BATS isolates each `@test` in its own subshell, so mutations do not leak between tests.
 
 ## Script Conventions
 
