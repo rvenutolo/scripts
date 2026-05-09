@@ -94,7 +94,7 @@ Tests are **specification-driven**: each test encodes what the function *should*
 - `functions/env_file.bash` — pure half: `assert_var_exists`, `get_var_value`, `is_var_value_empty`, `set_var_value`, `set_var_value_if_empty` (Phase C); interactive `prompt_*` family: 8 functions covering value, value-with-default, password, and password-with-symbols variants plus their `_if_empty` siblings (Phase D)
 - `functions/ip.bash` — `ipv4_to_num`, `num_to_ipv4` (Phase E)
 - `functions/env.bash` — `assert_var_set` (Phase E)
-- `functions/misc.bash` — `auto_answer` (Phase E; `this_script_dir` deferred to Phase F)
+- `functions/misc.bash` — `auto_answer` (Phase E); `this_script_dir` (Phase F; tested via tmp caller scripts under `${BATS_TEST_TMPDIR}`)
 - `functions/commands.bash` — `executable_exists`, `executable_path`, `function_exists` (Phase E)
 - `functions/passwords.bash` — `generate`, `generate_with_symbols` (Phase E; skipped if pwgen missing)
 - `functions/log.bash` — `log`, `with_date`, `warn`, `die`, `_err_trap_handler`, `enable_err_trap` (Phase E)
@@ -104,6 +104,10 @@ Tests are **specification-driven**: each test encodes what the function *should*
 - `functions/prompt.bash` — `yn`, `ny`, `for_value` (Phase E)
 - `functions/shell_scripts.bash` — `has_shell_shebang`, `assert_paths_exist`, `find`, `filter` (Phase E)
 - `functions/files.bash` — `exists`, `assert_exists`, `any_exists`, `is_readable`, `size_gb`, `hash`, `write`/`write_quiet`, `move`/`move_quiet`/`move_no_prompt`/`move_no_prompt_quiet`, `copy`/`copy_quiet`, `append_to`/`append_to_quiet` (Phase E; all `root_*` variants deferred to Phase G)
+- `functions/de.bash` — `is_kde`, `is_gnome`, `is_pop_shell`, `is_desktop_env` (Phase F)
+- `functions/user.bash` — `check_not_root`, `check_is_root` (Phase F; root-state branches via `unshare --user --map-root-user`, skipped if unavailable)
+- `functions/system.bash` — `require_bash_version` (Phase F; `reload_sysctl_conf` deferred to Phase G)
+- `functions/os.bash` — `release_field`, `id`, `codename`, `arch`, `is_arch`, `is_cachyos`, `is_fedora`, `is_debian`, `is_ubuntu`, `is_leap`, `is_tumbleweed` (Phase F; uses new `os_release_fixture` helper to override `source` for `/etc/os-release` and `path_shim` to stub `dpkg`)
 
 Side-effecting helpers (sudo, network, package managers) remain out of scope until a mocking strategy is settled.
 
@@ -114,6 +118,8 @@ Several helpers (`text::*`, `json::sort`) accept input from EITHER stdin OR a fi
 For env-file tests (read+write tmpfile fixtures), source `test/test_helper/env_file_fixture` and use `env_file_fixture::create <content> [<basename>]` which writes content to `${BATS_TEST_TMPDIR}/<basename>` (default `env`) and echoes the path.
 
 For tests that need to stub external commands (e.g. `hostname`, fake binaries for `commands::*` tests), source `test/test_helper/path_shim` and use `path_shim::add <name> <body>` to drop an executable shim into a per-test `${BATS_TEST_TMPDIR}/bin` (auto-prepended to `PATH`).
+
+For `os.bats` tests that need to stub `/etc/os-release`, source `test/test_helper/os_release_fixture` and call `os_release_fixture::create KEY=VALUE ...` to write a fixture file under `${BATS_TEST_TMPDIR}`, then `os_release_fixture::install_source_override` to install a shell function override of the `source` builtin that redirects calls to `/etc/os-release` at the fixture. The override is a function (functions take precedence over builtins for unqualified names) and is exported, so it propagates into bash subshells inside `os::release_field`.
 
 ### Prompt-mocking pattern
 
