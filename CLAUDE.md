@@ -92,6 +92,18 @@ Tests are **specification-driven**: each test encodes what the function *should*
 - `functions/grep.bash` — all 20 `contains_*` and `file_contains_*` variants (Phase B)
 - `functions/json.bash` — `sort` (Phase B)
 - `functions/env_file.bash` — pure half: `assert_var_exists`, `get_var_value`, `is_var_value_empty`, `set_var_value`, `set_var_value_if_empty` (Phase C); interactive `prompt_*` family: 8 functions covering value, value-with-default, password, and password-with-symbols variants plus their `_if_empty` siblings (Phase D)
+- `functions/ip.bash` — `ipv4_to_num`, `num_to_ipv4` (Phase E)
+- `functions/env.bash` — `assert_var_set` (Phase E)
+- `functions/misc.bash` — `auto_answer` (Phase E; `this_script_dir` deferred to Phase F)
+- `functions/commands.bash` — `executable_exists`, `executable_path`, `function_exists` (Phase E)
+- `functions/passwords.bash` — `generate`, `generate_with_symbols` (Phase E; skipped if pwgen missing)
+- `functions/log.bash` — `log`, `with_date`, `warn`, `die`, `_err_trap_handler`, `enable_err_trap` (Phase E)
+- `functions/dirs.bash` — `exists`, `assert_exists`, `create` (Phase E; `root_create` deferred to Phase G)
+- `functions/symlinks.bash` — `exists`, `get_target`, `link_file`, `link_dir` (Phase E)
+- `functions/hosts.bash` — `is_personal`, `is_work`, `is_desktop`, `is_laptop`, `is_server` (Phase E)
+- `functions/prompt.bash` — `yn`, `ny`, `for_value` (Phase E)
+- `functions/shell_scripts.bash` — `has_shell_shebang`, `assert_paths_exist`, `find`, `filter` (Phase E)
+- `functions/files.bash` — `exists`, `assert_exists`, `any_exists`, `is_readable`, `size_gb`, `hash`, `write`/`write_quiet`, `move`/`move_quiet`/`move_no_prompt`/`move_no_prompt_quiet`, `copy`/`copy_quiet`, `append_to`/`append_to_quiet` (Phase E; all `root_*` variants deferred to Phase G)
 
 Side-effecting helpers (sudo, network, package managers) remain out of scope until a mocking strategy is settled.
 
@@ -100,6 +112,8 @@ Side-effecting helpers (sudo, network, package managers) remain out of scope unt
 Several helpers (`text::*`, `json::sort`) accept input from EITHER stdin OR a file path. To avoid copy-pasting the test pattern, source `test/test_helper/dual_mode` in `setup()` and use `dual_mode::assert_stdin <fn> <input> <expected>` and `dual_mode::assert_file <fn> <input> <expected>`. The latter writes input to a per-test tmpfile under `${BATS_TEST_TMPDIR}` (BATS auto-cleans). `grep::*` functions are NOT dual-mode (each is stdin-only OR file-only) — write tests against them directly with `run` + heredoc / tmpfile fixtures.
 
 For env-file tests (read+write tmpfile fixtures), source `test/test_helper/env_file_fixture` and use `env_file_fixture::create <content> [<basename>]` which writes content to `${BATS_TEST_TMPDIR}/<basename>` (default `env`) and echoes the path.
+
+For tests that need to stub external commands (e.g. `hostname`, fake binaries for `commands::*` tests), source `test/test_helper/path_shim` and use `path_shim::add <name> <body>` to drop an executable shim into a per-test `${BATS_TEST_TMPDIR}/bin` (auto-prepended to `PATH`).
 
 ### Prompt-mocking pattern
 
