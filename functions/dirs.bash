@@ -21,11 +21,11 @@ function dirs::assert_exists() {
 # $@ = target directory paths
 function dirs::create() {
   args::check_at_least_1_arg "$@"
-  for target in "$@"; do
-    if ! dirs::exists "${target}"; then
-      log::log "Creating ${target}"
-      mkdir --parents "${target}"
-      log::log "Created ${target}"
+  for dir in "$@"; do
+    if ! dirs::exists "${dir}"; then
+      log::log "Creating ${dir}"
+      mkdir --parents "${dir}"
+      log::log "Created ${dir}"
     fi
   done
 }
@@ -34,11 +34,11 @@ function dirs::create() {
 # $@ = target directory paths
 function dirs::root_create() {
   args::check_at_least_1_arg "$@"
-  for target in "$@"; do
-    if ! dirs::exists "${target}"; then
-      log::log "Creating ${target}"
-      sudo mkdir --parents "${target}"
-      log::log "Created ${target}"
+  for dir in "$@"; do
+    if ! dirs::exists "${dir}"; then
+      log::log "Creating ${dir}"
+      sudo mkdir --parents "${dir}"
+      log::log "Created ${dir}"
     fi
   done
 }

@@ -4,56 +4,52 @@
 # $1 = file path (optional; reads stdin if omitted)
 # Output: stdout — text with ANSI codes removed
 # expected to pipe to this function: ex my_command | text::remove_ansi
-# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function text::remove_ansi() {
-  if args::stdin_exists; then
-    args::check_no_args "$@"
-    sed --regexp-extended "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g"
-  else
+  if [[ $# -gt 0 ]]; then
     args::check_exactly_1_arg "$@"
     sed --regexp-extended "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$1"
+  else
+    args::check_for_stdin
+    sed --regexp-extended "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g"
   fi
 }
 
 # Remove blank lines (empty or whitespace-only) from stdin or a file.
 # $1 = file path (optional; reads stdin if omitted)
 # Output: stdout — text with blank lines removed
-# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function text::remove_empty_lines() {
-  if args::stdin_exists; then
-    args::check_no_args "$@"
-    sed '/^[[:space:]]*$/d'
-  else
+  if [[ $# -gt 0 ]]; then
     args::check_exactly_1_arg "$@"
     sed '/^[[:space:]]*$/d' "$1"
+  else
+    args::check_for_stdin
+    sed '/^[[:space:]]*$/d'
   fi
 }
 
 # Print the first line of stdin or a file.
 # $1 = file path (optional; reads stdin if omitted)
 # Output: stdout — first line of input
-# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function text::first_line() {
-  if args::stdin_exists; then
-    args::check_no_args "$@"
-    head --lines=1
-  else
+  if [[ $# -gt 0 ]]; then
     args::check_exactly_1_arg "$@"
     head --lines=1 "$1"
+  else
+    args::check_for_stdin
+    head --lines=1
   fi
 }
 
 # Print the last line of stdin or a file.
 # $1 = file path (optional; reads stdin if omitted)
 # Output: stdout — last line of input
-# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 function text::last_line() {
-  if args::stdin_exists; then
-    args::check_no_args "$@"
-    tail --lines=1
-  else
+  if [[ $# -gt 0 ]]; then
     args::check_exactly_1_arg "$@"
     tail --lines=1 "$1"
+  else
+    args::check_for_stdin
+    tail --lines=1
   fi
 }
 
@@ -62,18 +58,18 @@ function text::last_line() {
 # With file:  $1 = file path, $2 = number of lines to skip.
 # Output: stdout — remaining lines after the skipped prefix
 function text::skip_first_lines() {
-  if args::stdin_exists; then
-    args::check_exactly_1_arg "$@"
-    local -r skip_count="$1"
-    local start_line
-    start_line=$((skip_count + 1))
-    tail --lines="+${start_line}"
-  else
+  if [[ $# -gt 1 ]]; then
     args::check_exactly_2_args "$@"
     local -r file="$1"
     local -r skip_count="$2"
     local start_line
     start_line=$((skip_count + 1))
     tail --lines="+${start_line}" "${file}"
+  else
+    args::check_exactly_1_arg "$@"
+    local -r skip_count="$1"
+    local start_line
+    start_line=$((skip_count + 1))
+    tail --lines="+${start_line}"
   fi
 }
