@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
-# Return true if the given path exists and is a symbolic link.
-# $1 = symlink path
+# @description Return true if the given path exists and is a symbolic link.
+# @arg $1 symlink path
 function symlinks::exists() {
   args::check_exactly_1_arg "$@"
   [[ -L "$1" ]]
 }
 
-# Print the target of a symbolic link; dies if the symlink does not exist.
-# $1 = symlink path
+# @description Print the target of a symbolic link; dies if the symlink does not exist.
 # Output: stdout — symlink target path
+# @arg $1 symlink path
 function symlinks::get_target() {
   args::check_exactly_1_arg "$@"
   local -r symlink="$1"
@@ -19,10 +19,10 @@ function symlinks::get_target() {
   readlink "${symlink}"
 }
 
-# Create a symbolic link from a file to a link path, prompting if the destination already exists.
+# @description Create a symbolic link from a file to a link path, prompting if the destination already exists.
 # No-ops if the link already points to the correct target.
-# $1 = target file path
-# $2 = link path to create
+# @arg $1 target file path
+# @arg $2 link path to create
 function symlinks::link_file() {
   args::check_exactly_2_args "$@"
   local -r target="$1"
@@ -47,10 +47,10 @@ function symlinks::link_file() {
   log::log "Linked: ${target} -> ${link}"
 }
 
-# Create a symbolic link from a directory to a link path, prompting if the destination already exists.
+# @description Create a symbolic link from a directory to a link path, prompting if the destination already exists.
 # No-ops if the link already points to the correct target.
-# $1 = target directory path
-# $2 = link path to create
+# @arg $1 target directory path
+# @arg $2 link path to create
 function symlinks::link_dir() {
   args::check_exactly_2_args "$@"
   local -r target="$1"
