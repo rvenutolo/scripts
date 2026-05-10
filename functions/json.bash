@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Sort JSON keys recursively. Reads from stdin or a file argument.
-# $1 = JSON file path (optional; reads stdin if omitted)
+# @description Sort JSON keys recursively. Reads from stdin or a file argument.
 # Output: stdout — JSON with all object keys sorted
+# @arg $1 JSON file path (optional; reads stdin if omitted)
 function json::sort() {
   if [[ $# -gt 0 ]]; then
     args::check_exactly_1_arg "$@"
