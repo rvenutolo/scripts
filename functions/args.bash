@@ -117,6 +117,8 @@ function args::check_for_stdin() {
 # @description Return true if stdin has data available (i.e., not a terminal).
 # shellcheck disable=SC2120 # called with no args by callers, but shellcheck can't see all call sites
 # @noargs
+# @exitcode 0 if true
+# @exitcode 1 if false
 function args::stdin_exists() {
   args::check_no_args "$@"
   ! [[ -t 0 ]]

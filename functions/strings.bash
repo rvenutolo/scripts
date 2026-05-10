@@ -2,6 +2,8 @@
 
 # @description Return true if the string is empty (zero length).
 # @arg $1 string to test
+# @exitcode 0 if true
+# @exitcode 1 if false
 function strings::is_empty() {
   args::check_exactly_1_arg "$@"
   [[ -z "$1" ]]
@@ -9,6 +11,8 @@ function strings::is_empty() {
 
 # @description Return true if the string is non-empty (at least one character).
 # @arg $1 string to test
+# @exitcode 0 if true
+# @exitcode 1 if false
 function strings::is_not_empty() {
   args::check_exactly_1_arg "$@"
   [[ -n "$1" ]]
@@ -16,6 +20,8 @@ function strings::is_not_empty() {
 
 # @description Return true if the string is empty or contains only whitespace characters.
 # @arg $1 string to test
+# @exitcode 0 if true
+# @exitcode 1 if false
 function strings::is_blank() {
   args::check_exactly_1_arg "$@"
   [[ -z "${1//[[:space:]]/}" ]]
