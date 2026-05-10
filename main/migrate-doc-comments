@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+
+# @description Convert legacy '# $N = description' doc comments above functions
+#              into shdoc-style tags ('# @description', '# @arg $N <name> <desc>',
+#              '# @noargs', '# @arg $@ <desc>', '# @exitcode N <meaning>').
+#              Edits files in place. Single-use migration tool — recoverable from
+#              git history after deletion.
+# @arg $@ files paths to .bash files or scripts to migrate
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+system::require_bash_version 4 3
+args::check_at_least_1_arg "$@"
+
+# @description Convert one file in place. Idempotent: lines already in shdoc form
+#              are passed through. Each function gets a header that includes:
+#              - existing prose '#' lines above the function become '# @description'
+#                (multiple lines preserved; first non-tag '#' line becomes the description)
+#              - lines '# $N = text' become '# @arg $N text'
+#              - lines '# $@ = text' become '# @arg $@ text'
+#              - lines '# $? = text' become '# @exitcode 0 text' (best-effort; may need polish)
+#              - functions with no '$N =' lines and no '$@ =' line get '# @noargs'
+#              - functions with no doc comment at all get '# @description TODO' + '# @noargs',
+#                and a warning is logged to stderr
+# @arg $1 file path
+function migrate_one_file() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+
+  awk '
+    function flush_header(name,    i, has_arg, has_noargs, has_desc, prose) {
+      has_arg = 0; has_noargs = 0; has_desc = 0
+      prose = ""
+      for (i = 0; i < hdr_n; i++) {
+        if (hdr[i] ~ /^#[[:space:]]*@/) {
+          if (hdr[i] ~ /@arg/) has_arg = 1
+          if (hdr[i] ~ /@noargs/) has_noargs = 1
+          if (hdr[i] ~ /@description/) has_desc = 1
+        }
+      }
+      out_n = 0
+      for (i = 0; i < hdr_n; i++) {
+        line = hdr[i]
+        if (line ~ /^#[[:space:]]*\$([0-9]+|@)[[:space:]]*=[[:space:]]*/) {
+          if (match(line, /\$([0-9]+|@)/)) {
+            arg = substr(line, RSTART, RLENGTH)
+            sub(/^#[[:space:]]*\$([0-9]+|@)[[:space:]]*=[[:space:]]*/, "", line)
+            out[out_n++] = "# @arg " arg " " line
+            has_arg = 1
+          } else {
+            out[out_n++] = line
+          }
+        } else if (line ~ /^#[[:space:]]*\$\?[[:space:]]*=[[:space:]]*/) {
+          sub(/^#[[:space:]]*\$\?[[:space:]]*=[[:space:]]*/, "", line)
+          out[out_n++] = "# @exitcode 0 " line
+        } else if (line ~ /^#[[:space:]]*@/) {
+          out[out_n++] = line
+        } else if (line ~ /^#/) {
+          sub(/^#[[:space:]]?/, "", line)
+          if (prose == "") prose = line
+          else prose = prose "\n# " line
+        }
+      }
+      final_n = 0
+      if (prose != "" && !has_desc) {
+        n = split(prose, parr, "\n")
+        final[final_n++] = "# @description " parr[1]
+        for (i = 2; i <= n; i++) final[final_n++] = parr[i]
+      } else if (!has_desc && prose == "") {
+        final[final_n++] = "# @description TODO"
+        printf("WARN: %s: function %s missing description\n", FILENAME, name) > "/dev/stderr"
+      } else if (prose != "") {
+        n = split(prose, parr, "\n")
+        for (i = 1; i <= n; i++) final[final_n++] = (i == 1 ? "# " parr[i] : parr[i])
+      }
+      for (i = 0; i < out_n; i++) final[final_n++] = out[i]
+      if (!has_arg && !has_noargs) final[final_n++] = "# @noargs"
+      for (i = 0; i < final_n; i++) print final[i]
+      hdr_n = 0
+    }
+
+    BEGIN { hdr_n = 0; collecting = 0 }
+
+    /^[[:space:]]*function[[:space:]]+[A-Za-z_][A-Za-z0-9_:]*[[:space:]]*\(/ ||
+    /^[[:space:]]*[A-Za-z_][A-Za-z0-9_:]*[[:space:]]*\([[:space:]]*\)[[:space:]]*\{/ {
+      fname = $0
+      sub(/^[[:space:]]*function[[:space:]]+/, "", fname)
+      sub(/[[:space:]]*\(.*$/, "", fname)
+      flush_header(fname)
+      print
+      collecting = 0
+      next
+    }
+
+    /^#/ {
+      hdr[hdr_n++] = $0
+      collecting = 1
+      next
+    }
+
+    /^[[:space:]]*$/ {
+      if (collecting) {
+        for (i = 0; i < hdr_n; i++) print hdr[i]
+        hdr_n = 0
+        collecting = 0
+      }
+      print
+      next
+    }
+
+    {
+      for (i = 0; i < hdr_n; i++) print hdr[i]
+      hdr_n = 0
+      collecting = 0
+      print
+    }
+
+    END {
+      for (i = 0; i < hdr_n; i++) print hdr[i]
+    }
+  ' "${file}" > "${file}.migrated"
+  files::move_no_prompt_quiet "${file}.migrated" "${file}"
+}
+
+function main() {
+  args::check_at_least_1_arg "$@"
+  local file
+  for file in "$@"; do
+    if ! files::exists "${file}"; then
+      log::warn "Skipping (not a file): ${file}"
+      continue
+    fi
+    log::log "Migrating ${file}"
+    migrate_one_file "${file}"
+  done
+}
+
+main "$@"
