@@ -4,6 +4,8 @@
 # shebang. bats is included because shfmt and shellcheck both auto-detect it
 # from the shebang and apply their bats-aware dialect.
 # @arg $1 file path
+# @exitcode 0 if true
+# @exitcode 1 if false
 function shell_scripts::has_shell_shebang() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"

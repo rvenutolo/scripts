@@ -2,6 +2,8 @@
 
 # @description Return true if the named executable is on PATH, excluding wrappers in main/ and other/.
 # @arg $1 executable name
+# @exitcode 0 if true
+# @exitcode 1 if false
 function commands::executable_exists() {
   args::check_exactly_1_arg "$@"
   (
@@ -28,6 +30,8 @@ function commands::executable_path() {
 
 # @description Return true if the named shell function is defined in the current shell.
 # @arg $1 function name
+# @exitcode 0 if true
+# @exitcode 1 if false
 function commands::function_exists() {
   args::check_exactly_1_arg "$@"
   declare -f "$1" > '/dev/null' 2>&1

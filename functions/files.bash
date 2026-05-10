@@ -9,6 +9,8 @@ function files::exists() {
 
 # @description Die if the given file does not exist.
 # @arg $1 file path
+# @exitcode 0 if true
+# @exitcode 1 if false
 function files::assert_exists() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
@@ -19,6 +21,8 @@ function files::assert_exists() {
 
 # @description Return true if the given path exists as any filesystem entry (regular file, directory, symlink, device, etc.).
 # @arg $1 path to test
+# @exitcode 0 if true
+# @exitcode 1 if false
 function files::any_exists() {
   args::check_exactly_1_arg "$@"
   [[ -e "$1" ]]
@@ -26,6 +30,8 @@ function files::any_exists() {
 
 # @description Return true if the given file exists and is readable.
 # @arg $1 file path
+# @exitcode 0 if true
+# @exitcode 1 if false
 function files::is_readable() {
   args::check_exactly_1_arg "$@"
   [[ -r "$1" ]]

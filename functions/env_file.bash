@@ -14,6 +14,8 @@ function env_file::_assert_valid_var_name() {
 # @description Die if the given variable does not exist as a key in the env file.
 # @arg $1 env file path
 # @arg $2 variable name
+# @exitcode 0 if true
+# @exitcode 1 if false
 function env_file::assert_var_exists() {
   args::check_exactly_2_args "$@"
   local -r env_file="$1"
@@ -42,6 +44,8 @@ function env_file::get_var_value() {
 # @description Return true if the given variable exists in the env file but has an empty value.
 # @arg $1 env file path
 # @arg $2 variable name
+# @exitcode 0 if true
+# @exitcode 1 if false
 function env_file::is_var_value_empty() {
   args::check_exactly_2_args "$@"
   local -r env_file="$1"
