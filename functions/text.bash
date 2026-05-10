@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# Strip ANSI escape sequences from stdin or a file.
-# $1 = file path (optional; reads stdin if omitted)
+# @description Strip ANSI escape sequences from stdin or a file.
 # Output: stdout — text with ANSI codes removed
 # expected to pipe to this function: ex my_command | text::remove_ansi
+# @arg $1 file path (optional; reads stdin if omitted)
 function text::remove_ansi() {
   if [[ $# -gt 0 ]]; then
     args::check_exactly_1_arg "$@"
@@ -14,9 +14,9 @@ function text::remove_ansi() {
   fi
 }
 
-# Remove blank lines (empty or whitespace-only) from stdin or a file.
-# $1 = file path (optional; reads stdin if omitted)
+# @description Remove blank lines (empty or whitespace-only) from stdin or a file.
 # Output: stdout — text with blank lines removed
+# @arg $1 file path (optional; reads stdin if omitted)
 function text::remove_empty_lines() {
   if [[ $# -gt 0 ]]; then
     args::check_exactly_1_arg "$@"
@@ -27,9 +27,9 @@ function text::remove_empty_lines() {
   fi
 }
 
-# Print the first line of stdin or a file.
-# $1 = file path (optional; reads stdin if omitted)
+# @description Print the first line of stdin or a file.
 # Output: stdout — first line of input
+# @arg $1 file path (optional; reads stdin if omitted)
 function text::first_line() {
   if [[ $# -gt 0 ]]; then
     args::check_exactly_1_arg "$@"
@@ -40,9 +40,9 @@ function text::first_line() {
   fi
 }
 
-# Print the last line of stdin or a file.
-# $1 = file path (optional; reads stdin if omitted)
+# @description Print the last line of stdin or a file.
 # Output: stdout — last line of input
+# @arg $1 file path (optional; reads stdin if omitted)
 function text::last_line() {
   if [[ $# -gt 0 ]]; then
     args::check_exactly_1_arg "$@"
@@ -53,10 +53,11 @@ function text::last_line() {
   fi
 }
 
-# Print all lines after the first N lines of stdin or a file.
+# @description Print all lines after the first N lines of stdin or a file.
 # With stdin: $1 = number of lines to skip.
 # With file:  $1 = file path, $2 = number of lines to skip.
 # Output: stdout — remaining lines after the skipped prefix
+# @noargs
 function text::skip_first_lines() {
   if [[ $# -gt 1 ]]; then
     args::check_exactly_2_args "$@"
