@@ -3,11 +3,11 @@
 # These functions intentionally mutate the caller's PATH (they do NOT scope mutations to a subshell).
 # Callers that want PATH changes confined to a block must wrap the call in their own ( ... ) subshell.
 
-# Remove all occurrences of a directory from PATH.
+# @description Remove all occurrences of a directory from PATH.
 # When PATH equals exactly the directory, clears PATH without invoking awk/sed.
 # Uses awk -v (not --assign) because mawk — the default awk on Debian/Ubuntu — does
 # not accept --assign. -v is POSIX and works on every awk implementation.
-# $1 = directory path to remove
+# @arg $1 directory path to remove
 function path::remove() {
   args::check_exactly_1_arg "$@"
   local -r dir="$1"
@@ -24,9 +24,9 @@ function path::remove() {
   )"
 }
 
-# Append a directory to PATH (removing any existing occurrence first to avoid duplicates).
+# @description Append a directory to PATH (removing any existing occurrence first to avoid duplicates).
 # When PATH is empty, sets PATH to just the directory — no stray leading colon.
-# $1 = directory path to append
+# @arg $1 directory path to append
 function path::append() {
   args::check_exactly_1_arg "$@"
   local -r dir="$1"
@@ -38,9 +38,9 @@ function path::append() {
   PATH="${PATH}:${dir}"
 }
 
-# Prepend a directory to PATH (removing any existing occurrence first to avoid duplicates).
+# @description Prepend a directory to PATH (removing any existing occurrence first to avoid duplicates).
 # When PATH is empty, sets PATH to just the directory — no stray trailing colon.
-# $1 = directory path to prepend
+# @arg $1 directory path to prepend
 function path::prepend() {
   args::check_exactly_1_arg "$@"
   local -r dir="$1"
