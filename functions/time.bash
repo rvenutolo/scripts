@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# Print a human-readable elapsed time string (e.g. "1h 2m 3s") for a seconds interval.
-# $1 = start time in seconds (e.g. from $SECONDS or date +%s)
-# $2 = end time in seconds
+# @description Print a human-readable elapsed time string (e.g. "1h 2m 3s") for a seconds interval.
 # Output: stdout — elapsed time in "Xh Xm Xs" format (hours and minutes omitted when zero)
+# @arg $1 start time in seconds (e.g. from $SECONDS or date +%s)
+# @arg $2 end time in seconds
 function time::calc_elapsed() {
   args::check_exactly_2_args "$@"
   local -r start_time="$1"
@@ -28,9 +28,10 @@ function time::calc_elapsed() {
   printf '%s\n' "${secs}s"
 }
 
-# Print the elapsed time since the current shell session started (using $SECONDS).
+# @description Print the elapsed time since the current shell session started (using $SECONDS).
 # Output: stdout — elapsed time in "Xh Xm Xs" format
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+# @noargs
 function time::shell_elapsed_time() {
   args::check_no_args "$@"
   time::calc_elapsed 0 "${SECONDS}"
