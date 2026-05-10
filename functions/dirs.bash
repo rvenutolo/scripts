@@ -9,6 +9,8 @@ function dirs::exists() {
 
 # @description Die if the given directory does not exist.
 # @arg $1 dir path
+# @exitcode 0 if true
+# @exitcode 1 if false
 function dirs::assert_exists() {
   args::check_exactly_1_arg "$@"
   local -r dir="$1"
