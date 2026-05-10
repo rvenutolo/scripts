@@ -42,6 +42,8 @@ function os::arch() {
 # @description Return true if the current OS is Arch Linux.
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
+# @exitcode 0 if true
+# @exitcode 1 if false
 function os::is_arch() {
   args::check_no_args "$@"
   [[ "$(os::id)" == 'arch' ]]
@@ -50,6 +52,8 @@ function os::is_arch() {
 # @description Return true if the current OS is CachyOS.
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
+# @exitcode 0 if true
+# @exitcode 1 if false
 function os::is_cachyos() {
   args::check_no_args "$@"
   [[ "$(os::id)" == 'cachyos' ]]
@@ -58,6 +62,8 @@ function os::is_cachyos() {
 # @description Return true if the current OS is Fedora.
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
+# @exitcode 0 if true
+# @exitcode 1 if false
 function os::is_fedora() {
   args::check_no_args "$@"
   [[ "$(os::id)" == 'fedora' ]]
@@ -66,6 +72,8 @@ function os::is_fedora() {
 # @description Return true if the current OS is Debian.
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
+# @exitcode 0 if true
+# @exitcode 1 if false
 function os::is_debian() {
   args::check_no_args "$@"
   [[ "$(os::id)" == 'debian' ]]
@@ -74,6 +82,8 @@ function os::is_debian() {
 # @description Return true if the current OS is Ubuntu.
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
+# @exitcode 0 if true
+# @exitcode 1 if false
 function os::is_ubuntu() {
   args::check_no_args "$@"
   [[ "$(os::id)" == 'ubuntu' ]]
@@ -82,6 +92,8 @@ function os::is_ubuntu() {
 # @description Return true if the current OS is openSUSE Leap.
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
+# @exitcode 0 if true
+# @exitcode 1 if false
 function os::is_leap() {
   args::check_no_args "$@"
   [[ "$(os::id)" == 'opensuse-leap' ]]
@@ -90,6 +102,8 @@ function os::is_leap() {
 # @description Return true if the current OS is openSUSE Tumbleweed.
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
+# @exitcode 0 if true
+# @exitcode 1 if false
 function os::is_tumbleweed() {
   args::check_no_args "$@"
   [[ "$(os::id)" == 'opensuse-tumbleweed' ]]
