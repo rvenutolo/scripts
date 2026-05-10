@@ -401,13 +401,174 @@ setup() {
   assert_output --partial 'Expected exactly 2 arguments'
 }
 
-# ---------- root_* skipped (Phase G) ----------
+# ---------- root_* family (Phase G) ----------
 
-@test "root_write: skipped (Phase G)" { skip 'requires sudo (Phase G)'; }
-@test "root_write_quiet: skipped (Phase G)" { skip 'requires sudo (Phase G)'; }
-@test "root_move: skipped (Phase G)" { skip 'requires sudo (Phase G)'; }
-@test "root_move_quiet: skipped (Phase G)" { skip 'requires sudo (Phase G)'; }
-@test "root_copy: skipped (Phase G)" { skip 'requires sudo (Phase G)'; }
-@test "root_copy_quiet: skipped (Phase G)" { skip 'requires sudo (Phase G)'; }
-@test "root_append_to: skipped (Phase G)" { skip 'requires sudo (Phase G)'; }
-@test "root_append_to_quiet: skipped (Phase G)" { skip 'requires sudo (Phase G)'; }
+setup_files_root_helpers() {
+  load '../test_helper/path_shim'
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/test/test_helper/cli_shim.bash"
+  cli_shim::install_passthrough_sudo
+}
+
+@test "root_write: writes new file via sudo passthrough" {
+  setup_files_root_helpers
+  local target="${BATS_TEST_TMPDIR}/out"
+  run files::root_write "${target}" 'hello'
+  assert_success
+  [[ "$(< "${target}")" == 'hello' ]]
+  assert_output --partial "Writing ${target}"
+}
+
+@test "root_write: skips when content identical" {
+  setup_files_root_helpers
+  local target="${BATS_TEST_TMPDIR}/out"
+  printf 'hello\n' > "${target}"
+  run files::root_write "${target}" 'hello'
+  assert_success
+  refute_output --partial 'Writing'
+}
+
+@test "root_write: overwrites when confirm=y" {
+  setup_files_root_helpers
+  local target="${BATS_TEST_TMPDIR}/out"
+  printf 'old\n' > "${target}"
+  # shellcheck disable=SC2030,SC2031
+  export SCRIPTS_AUTO_ANSWER=y # intentional: export reaches child process via `run`
+  run files::root_write "${target}" 'new'
+  assert_success
+  [[ "$(< "${target}")" == 'new' ]]
+}
+
+@test "root_write_quiet: writes without log noise" {
+  setup_files_root_helpers
+  local target="${BATS_TEST_TMPDIR}/out"
+  run files::root_write_quiet "${target}" 'hello'
+  assert_success
+  [[ "$(< "${target}")" == 'hello' ]]
+  refute_output --partial 'Writing'
+}
+
+@test "root_append_to: appends to file via sudo passthrough" {
+  setup_files_root_helpers
+  local target="${BATS_TEST_TMPDIR}/log"
+  printf 'line1\n' > "${target}"
+  run files::root_append_to "${target}" 'line2'
+  assert_success
+  run cat "${target}"
+  assert_line --index 0 'line1'
+  assert_line --index 1 'line2'
+}
+
+@test "root_append_to: creates file when missing" {
+  setup_files_root_helpers
+  local target="${BATS_TEST_TMPDIR}/new/log"
+  run files::root_append_to "${target}" 'line1'
+  assert_success
+  [[ "$(< "${target}")" == 'line1' ]]
+}
+
+@test "root_append_to_quiet: appends without log noise" {
+  setup_files_root_helpers
+  local target="${BATS_TEST_TMPDIR}/log"
+  printf 'line1\n' > "${target}"
+  run files::root_append_to_quiet "${target}" 'line2'
+  assert_success
+  refute_output --partial 'Appending'
+}
+
+@test "root_move: moves file via sudo passthrough when confirm=y" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  local dest="${BATS_TEST_TMPDIR}/dest"
+  printf 'data\n' > "${src}"
+  # shellcheck disable=SC2030,SC2031
+  export SCRIPTS_AUTO_ANSWER=y # intentional: export reaches child process via `run`
+  run files::root_move "${src}" "${dest}"
+  assert_success
+  [[ ! -f "${src}" ]]
+  [[ "$(< "${dest}")" == 'data' ]]
+  assert_output --partial "Moving: ${src} -> ${dest}"
+}
+
+@test "root_move: deletes src when dest is byte-identical" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  local dest="${BATS_TEST_TMPDIR}/dest"
+  printf 'same\n' > "${src}"
+  printf 'same\n' > "${dest}"
+  run files::root_move "${src}" "${dest}"
+  assert_success
+  [[ ! -f "${src}" ]]
+}
+
+@test "root_move: dies when src missing" {
+  setup_files_root_helpers
+  run files::root_move "${BATS_TEST_TMPDIR}/nope" "${BATS_TEST_TMPDIR}/dest"
+  assert_failure
+  assert_output --partial 'does not exist'
+}
+
+@test "root_move: dies when src and dest are same" {
+  setup_files_root_helpers
+  local p="${BATS_TEST_TMPDIR}/p"
+  printf 'x\n' > "${p}"
+  run files::root_move "${p}" "${p}"
+  assert_failure
+  assert_output --partial 'File paths are the same'
+}
+
+@test "root_move_quiet: moves without log noise" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  local dest="${BATS_TEST_TMPDIR}/dest"
+  printf 'data\n' > "${src}"
+  # shellcheck disable=SC2030,SC2031
+  export SCRIPTS_AUTO_ANSWER=y # intentional: export reaches child process via `run`
+  run files::root_move_quiet "${src}" "${dest}"
+  assert_success
+  refute_output --partial 'Moving'
+}
+
+@test "root_copy: copies file via sudo passthrough when confirm=y" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  local dest="${BATS_TEST_TMPDIR}/dest"
+  printf 'data\n' > "${src}"
+  # shellcheck disable=SC2030,SC2031
+  export SCRIPTS_AUTO_ANSWER=y # intentional: export reaches child process via `run`
+  run files::root_copy "${src}" "${dest}"
+  assert_success
+  [[ -f "${src}" ]]
+  [[ "$(< "${dest}")" == 'data' ]]
+  assert_output --partial "Copying: ${src} -> ${dest}"
+}
+
+@test "root_copy: skips when dest byte-identical" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  local dest="${BATS_TEST_TMPDIR}/dest"
+  printf 'same\n' > "${src}"
+  printf 'same\n' > "${dest}"
+  run files::root_copy "${src}" "${dest}"
+  assert_success
+  refute_output --partial 'Copying'
+}
+
+@test "root_copy: dies when src missing" {
+  setup_files_root_helpers
+  run files::root_copy "${BATS_TEST_TMPDIR}/nope" "${BATS_TEST_TMPDIR}/dest"
+  assert_failure
+  assert_output --partial 'does not exist'
+}
+
+@test "root_copy_quiet: copies without log noise" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  local dest="${BATS_TEST_TMPDIR}/dest"
+  printf 'data\n' > "${src}"
+  # shellcheck disable=SC2030,SC2031
+  export SCRIPTS_AUTO_ANSWER=y # intentional: export reaches child process via `run`
+  run files::root_copy_quiet "${src}" "${dest}"
+  assert_success
+  refute_output --partial 'Copying'
+}
