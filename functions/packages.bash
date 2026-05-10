@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 
-# Return true if the given dpkg package is installed and in an 'ok installed' state.
-# $1 = package name
+# @description Return true if the given dpkg package is installed and in an 'ok installed' state.
+# @arg $1 package name
 function packages::dpkg_package_installed() {
   args::check_exactly_1_arg "$@"
   dpkg-query --show --showformat='${Package};${Status}\n' "$1" 2> '/dev/null' \
     | grep::contains_regex_ignore_case "^$1;.*ok installed\$"
 }
 
-# Print the list of universal packages (appimage/flatpak/nixpkgs) that should be installed on this machine.
+# @description Print the list of universal packages (appimage/flatpak/nixpkgs) that should be installed on this machine.
 # Filters by package type and the column matching the current host, excluding disabled packages.
-# $1 = package list type (appimage, flatpak, nixpkgs, or nixpkgs-unstable)
 # --quiet = suppress messages about disabled packages
 # --ignore [PACKAGE]... = omit the named packages from output
 # Output: stdout — package names, one per line, sorted
+# @arg $1 package list type (appimage, flatpak, nixpkgs, or nixpkgs-unstable)
 function packages::get_universal() {
   args::check_at_least_1_arg "$@"
   system::require_bash_version 4 0
@@ -98,13 +98,13 @@ function packages::get_universal() {
     <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
 }
 
-# Print the list of distro packages that should be installed on this machine for the given OS release.
+# @description Print the list of distro packages that should be installed on this machine for the given OS release.
 # Fetches the package CSV for the given distro id+codename and filters by current host type.
-# $1 = OS id (e.g. "ubuntu")
-# $2 = OS codename (e.g. "jammy")
 # --quiet = suppress messages about disabled packages
 # --ignore [PACKAGE]... = omit the named packages from output
 # Output: stdout — package names, one per line, sorted
+# @arg $1 OS id (e.g. "ubuntu")
+# @arg $2 OS codename (e.g. "jammy")
 function packages::get_distro() {
   args::check_at_least_2_args "$@"
   system::require_bash_version 4 0
@@ -186,11 +186,12 @@ function packages::get_distro() {
     <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
 }
 
-# Print the list of SDKMAN packages that should be installed on this machine.
+# @description Print the list of SDKMAN packages that should be installed on this machine.
 # Fetches the sdkman.csv package list and filters by current host type.
 # --quiet = suppress messages about disabled packages
 # --ignore [PACKAGE]... = omit the named packages from output
 # Output: stdout — package names, one per line, sorted
+# @noargs
 function packages::get_sdkman() {
   system::require_bash_version 4 0
   local packages_to_ignore=()
