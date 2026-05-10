@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
-# Return true if the given path exists and is a regular file.
-# $1 = file path
+# @description Return true if the given path exists and is a regular file.
+# @arg $1 file path
 function files::exists() {
   args::check_exactly_1_arg "$@"
   [[ -f "$1" ]]
 }
 
-# Die if the given file does not exist.
-# $1 = file path
+# @description Die if the given file does not exist.
+# @arg $1 file path
 function files::assert_exists() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
@@ -17,23 +17,23 @@ function files::assert_exists() {
   fi
 }
 
-# Return true if the given path exists as any filesystem entry (regular file, directory, symlink, device, etc.).
-# $1 = path to test
+# @description Return true if the given path exists as any filesystem entry (regular file, directory, symlink, device, etc.).
+# @arg $1 path to test
 function files::any_exists() {
   args::check_exactly_1_arg "$@"
   [[ -e "$1" ]]
 }
 
-# Return true if the given file exists and is readable.
-# $1 = file path
+# @description Return true if the given file exists and is readable.
+# @arg $1 file path
 function files::is_readable() {
   args::check_exactly_1_arg "$@"
   [[ -r "$1" ]]
 }
 
-# Print the size of a file in gigabytes (two decimal places).
-# $1 = file path
+# @description Print the size of a file in gigabytes (two decimal places).
 # Output: stdout — size in GB, e.g. "1.23"
+# @arg $1 file path
 function files::size_gb() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
@@ -41,9 +41,9 @@ function files::size_gb() {
   printf '%s\n' "scale=2; $(stat --format='%s' "${file}") / 1073741824" | bc
 }
 
-# Move a file, prompting if the destination already exists; skips if source and dest are byte-identical.
-# $1 = source file path
-# $2 = destination file path
+# @description Move a file, prompting if the destination already exists; skips if source and dest are byte-identical.
+# @arg $1 source file path
+# @arg $2 destination file path
 function files::move() {
   args::check_exactly_2_args "$@"
   local -r src="$1"
@@ -73,10 +73,10 @@ function files::move() {
   log::log "Moved: ${src} -> ${dest}"
 }
 
-# Move a file quietly, prompting if the destination already exists; skips if source and dest are byte-identical.
+# @description Move a file quietly, prompting if the destination already exists; skips if source and dest are byte-identical.
 # Like files::move but suppresses the "Moving/Moved" log messages.
-# $1 = source file path
-# $2 = destination file path
+# @arg $1 source file path
+# @arg $2 destination file path
 function files::move_quiet() {
   args::check_exactly_2_args "$@"
   local -r src="$1"
@@ -104,10 +104,10 @@ function files::move_quiet() {
   mv -- "${src}" "${dest}"
 }
 
-# Move a file without prompting, overwriting destination if it exists. For programmatic temp-file-to-dest moves
+# @description Move a file without prompting, overwriting destination if it exists. For programmatic temp-file-to-dest moves
 # where interactive confirmation would be inappropriate. Creates parent directory of destination if needed.
-# $1 = source file path
-# $2 = destination file path
+# @arg $1 source file path
+# @arg $2 destination file path
 function files::move_no_prompt() {
   args::check_exactly_2_args "$@"
   local -r src="$1"
@@ -122,10 +122,10 @@ function files::move_no_prompt() {
   log::log "Moved: ${src} -> ${dest}"
 }
 
-# Move a file quietly without prompting, overwriting destination if it exists. Creates parent directory of
+# @description Move a file quietly without prompting, overwriting destination if it exists. Creates parent directory of
 # destination if needed. Like files::move_no_prompt but suppresses the "Moving/Moved" log messages.
-# $1 = source file path
-# $2 = destination file path
+# @arg $1 source file path
+# @arg $2 destination file path
 function files::move_no_prompt_quiet() {
   args::check_exactly_2_args "$@"
   local -r src="$1"
@@ -138,9 +138,9 @@ function files::move_no_prompt_quiet() {
   mv --force -- "${src}" "${dest}"
 }
 
-# Move a file as root, prompting if the destination already exists; skips if byte-identical.
-# $1 = source file path
-# $2 = destination file path
+# @description Move a file as root, prompting if the destination already exists; skips if byte-identical.
+# @arg $1 source file path
+# @arg $2 destination file path
 function files::root_move() {
   args::check_exactly_2_args "$@"
   local -r src="$1"
@@ -170,10 +170,10 @@ function files::root_move() {
   log::log "Moved: ${src} -> ${dest}"
 }
 
-# Move a file as root quietly, prompting if the destination already exists; skips if byte-identical.
+# @description Move a file as root quietly, prompting if the destination already exists; skips if byte-identical.
 # Like files::root_move but suppresses the "Moving/Moved" log messages.
-# $1 = source file path
-# $2 = destination file path
+# @arg $1 source file path
+# @arg $2 destination file path
 function files::root_move_quiet() {
   args::check_exactly_2_args "$@"
   local -r src="$1"
@@ -201,9 +201,9 @@ function files::root_move_quiet() {
   sudo mv -- "${src}" "${dest}"
 }
 
-# Copy a file, prompting if the destination already exists; skips if byte-identical.
-# $1 = source file path
-# $2 = destination file path
+# @description Copy a file, prompting if the destination already exists; skips if byte-identical.
+# @arg $1 source file path
+# @arg $2 destination file path
 function files::copy() {
   args::check_exactly_2_args "$@"
   local -r src="$1"
@@ -232,10 +232,10 @@ function files::copy() {
   log::log "Copied: ${src} -> ${dest}"
 }
 
-# Copy a file quietly, prompting if the destination already exists; skips if byte-identical.
+# @description Copy a file quietly, prompting if the destination already exists; skips if byte-identical.
 # Like files::copy but suppresses the "Copying/Copied" log messages.
-# $1 = source file path
-# $2 = destination file path
+# @arg $1 source file path
+# @arg $2 destination file path
 function files::copy_quiet() {
   args::check_exactly_2_args "$@"
   local -r src="$1"
@@ -262,9 +262,9 @@ function files::copy_quiet() {
   cp "${src}" "${dest}"
 }
 
-# Copy a file as root, prompting if the destination already exists; skips if byte-identical.
-# $1 = source file path
-# $2 = destination file path
+# @description Copy a file as root, prompting if the destination already exists; skips if byte-identical.
+# @arg $1 source file path
+# @arg $2 destination file path
 function files::root_copy() {
   args::check_exactly_2_args "$@"
   local -r src="$1"
@@ -293,10 +293,10 @@ function files::root_copy() {
   log::log "Copied: ${src} -> ${dest}"
 }
 
-# Copy a file as root quietly, prompting if the destination already exists; skips if byte-identical.
+# @description Copy a file as root quietly, prompting if the destination already exists; skips if byte-identical.
 # Like files::root_copy but suppresses the "Copying/Copied" log messages.
-# $1 = source file path
-# $2 = destination file path
+# @arg $1 source file path
+# @arg $2 destination file path
 function files::root_copy_quiet() {
   args::check_exactly_2_args "$@"
   local -r src="$1"
@@ -323,9 +323,9 @@ function files::root_copy_quiet() {
   sudo cp "${src}" "${dest}"
 }
 
-# Write content to a file, prompting if the file already exists; skips if content is identical.
-# $1 = file path
-# $2 = content to write
+# @description Write content to a file, prompting if the file already exists; skips if content is identical.
+# @arg $1 file path
+# @arg $2 content to write
 function files::write() {
   args::check_exactly_2_args "$@"
   local -r file="$1"
@@ -346,10 +346,10 @@ function files::write() {
   log::log "Wrote ${file}"
 }
 
-# Write content to a file quietly, prompting if the file already exists; skips if content is identical.
+# @description Write content to a file quietly, prompting if the file already exists; skips if content is identical.
 # Like files::write but suppresses the "Writing/Wrote" log messages.
-# $1 = file path
-# $2 = content to write
+# @arg $1 file path
+# @arg $2 content to write
 function files::write_quiet() {
   args::check_exactly_2_args "$@"
   local -r file="$1"
@@ -368,9 +368,9 @@ function files::write_quiet() {
   printf '%s\n' "${content}" > "${file}"
 }
 
-# Write content to a root-owned file, prompting if the file already exists; skips if content is identical.
-# $1 = file path
-# $2 = content to write
+# @description Write content to a root-owned file, prompting if the file already exists; skips if content is identical.
+# @arg $1 file path
+# @arg $2 content to write
 function files::root_write() {
   args::check_exactly_2_args "$@"
   local -r file="$1"
@@ -391,10 +391,10 @@ function files::root_write() {
   log::log "Wrote ${file}"
 }
 
-# Write content to a root-owned file quietly, prompting if the file already exists; skips if content is identical.
+# @description Write content to a root-owned file quietly, prompting if the file already exists; skips if content is identical.
 # Like files::root_write but suppresses the "Writing/Wrote" log messages.
-# $1 = file path
-# $2 = content to write
+# @arg $1 file path
+# @arg $2 content to write
 function files::root_write_quiet() {
   args::check_exactly_2_args "$@"
   local -r file="$1"
@@ -413,9 +413,9 @@ function files::root_write_quiet() {
   printf '%s\n' "${content}" | sudo tee "${file}" > '/dev/null'
 }
 
-# Append content to a file, creating the file and any missing parent directories as needed.
-# $1 = file path
-# $2 = content to append
+# @description Append content to a file, creating the file and any missing parent directories as needed.
+# @arg $1 file path
+# @arg $2 content to append
 function files::append_to() {
   args::check_exactly_2_args "$@"
   local -r file="$1"
@@ -426,10 +426,10 @@ function files::append_to() {
   log::log "Appended to ${file}"
 }
 
-# Append content to a file quietly, creating the file and any missing parent directories as needed.
+# @description Append content to a file quietly, creating the file and any missing parent directories as needed.
 # Like files::append_to but suppresses the "Appending/Appended" log messages.
-# $1 = file path
-# $2 = content to append
+# @arg $1 file path
+# @arg $2 content to append
 function files::append_to_quiet() {
   args::check_exactly_2_args "$@"
   local -r file="$1"
@@ -438,9 +438,9 @@ function files::append_to_quiet() {
   printf '%s\n' "${content}" >> "${file}"
 }
 
-# Append content to a root-owned file, creating the file and any missing parent directories as needed.
-# $1 = file path
-# $2 = content to append
+# @description Append content to a root-owned file, creating the file and any missing parent directories as needed.
+# @arg $1 file path
+# @arg $2 content to append
 function files::root_append_to() {
   args::check_exactly_2_args "$@"
   local -r file="$1"
@@ -451,10 +451,10 @@ function files::root_append_to() {
   log::log "Appended to ${file}"
 }
 
-# Append content to a root-owned file quietly, creating the file and any missing parent directories as needed.
+# @description Append content to a root-owned file quietly, creating the file and any missing parent directories as needed.
 # Like files::root_append_to but suppresses the "Appending/Appended" log messages.
-# $1 = file path
-# $2 = content to append
+# @arg $1 file path
+# @arg $2 content to append
 function files::root_append_to_quiet() {
   args::check_exactly_2_args "$@"
   local -r file="$1"
@@ -463,9 +463,9 @@ function files::root_append_to_quiet() {
   printf '%s\n' "${content}" | sudo tee --append "${file}" > '/dev/null'
 }
 
-# Print the SHA-256 hash of a file, or '0' if the file does not exist.
-# $1 = file path
+# @description Print the SHA-256 hash of a file, or '0' if the file does not exist.
 # Output: stdout — hex SHA-256 digest, or '0' if file is absent
+# @arg $1 file path
 function files::hash() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
