@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Die if the given env var name is not a valid shell-style identifier.
+# @description Die if the given env var name is not a valid shell-style identifier.
 # Closes regex-injection in `^${var_name}=` patterns used throughout this file.
-# $1 = candidate variable name
+# @arg $1 candidate variable name
 function env_file::_assert_valid_var_name() {
   args::check_exactly_1_arg "$@"
   local -r var_name="$1"
@@ -11,9 +11,9 @@ function env_file::_assert_valid_var_name() {
   fi
 }
 
-# Die if the given variable does not exist as a key in the env file.
-# $1 = env file path
-# $2 = variable name
+# @description Die if the given variable does not exist as a key in the env file.
+# @arg $1 env file path
+# @arg $2 variable name
 function env_file::assert_var_exists() {
   args::check_exactly_2_args "$@"
   local -r env_file="$1"
@@ -25,10 +25,10 @@ function env_file::assert_var_exists() {
   fi
 }
 
-# Print the value of a variable from an env file.
-# $1 = env file path
-# $2 = variable name
+# @description Print the value of a variable from an env file.
 # Output: stdout — the variable's value (may be empty)
+# @arg $1 env file path
+# @arg $2 variable name
 function env_file::get_var_value() {
   args::check_exactly_2_args "$@"
   local -r env_file="$1"
@@ -39,9 +39,9 @@ function env_file::get_var_value() {
   grep --regexp="^${var_name}=" -- "${env_file}" | cut --delimiter='=' --fields='2-'
 }
 
-# Return true if the given variable exists in the env file but has an empty value.
-# $1 = env file path
-# $2 = variable name
+# @description Return true if the given variable exists in the env file but has an empty value.
+# @arg $1 env file path
+# @arg $2 variable name
 function env_file::is_var_value_empty() {
   args::check_exactly_2_args "$@"
   local -r env_file="$1"
@@ -52,10 +52,10 @@ function env_file::is_var_value_empty() {
   strings::is_empty "$(env_file::get_var_value "${env_file}" "${var_name}")"
 }
 
-# Set the value of a variable in an env file, overwriting any existing value.
-# $1 = env file path
-# $2 = variable name
-# $3 = new value
+# @description Set the value of a variable in an env file, overwriting any existing value.
+# @arg $1 env file path
+# @arg $2 variable name
+# @arg $3 new value
 function env_file::set_var_value() {
   args::check_exactly_3_args "$@"
   local -r env_file="$1"
@@ -73,10 +73,10 @@ function env_file::set_var_value() {
   sed --in-place "s|^${var_name}=.*$|${var_name}=${value_escaped}|" "${env_file}"
 }
 
-# Set the value of a variable in an env file only if its current value is empty.
-# $1 = env file path
-# $2 = variable name
-# $3 = new value
+# @description Set the value of a variable in an env file only if its current value is empty.
+# @arg $1 env file path
+# @arg $2 variable name
+# @arg $3 new value
 function env_file::set_var_value_if_empty() {
   args::check_exactly_3_args "$@"
   local -r env_file="$1"
@@ -90,11 +90,11 @@ function env_file::set_var_value_if_empty() {
   fi
 }
 
-# Interactively prompt the user for a value and write it to a variable in an env file.
-# $1 = env file path
-# $2 = variable name
-# $3 = variable info shown in prompt (optional)
-# $4 = default value pre-filled in prompt (optional)
+# @description Interactively prompt the user for a value and write it to a variable in an env file.
+# @arg $1 env file path
+# @arg $2 variable name
+# @arg $3 variable info shown in prompt (optional)
+# @arg $4 default value pre-filled in prompt (optional)
 function env_file::prompt_var_value() {
   args::check_at_least_2_args "$@"
   args::check_at_most_4_args "$@"
@@ -120,11 +120,11 @@ function env_file::prompt_var_value() {
   env_file::set_var_value "${env_file}" "${var_name}" "${var_value}"
 }
 
-# Interactively prompt for a value and write it to a variable in an env file, only if currently empty.
-# $1 = env file path
-# $2 = variable name
-# $3 = variable info shown in prompt (optional)
-# $4 = default value pre-filled in prompt (optional)
+# @description Interactively prompt for a value and write it to a variable in an env file, only if currently empty.
+# @arg $1 env file path
+# @arg $2 variable name
+# @arg $3 variable info shown in prompt (optional)
+# @arg $4 default value pre-filled in prompt (optional)
 function env_file::prompt_var_value_if_empty() {
   args::check_at_least_2_args "$@"
   args::check_at_most_4_args "$@"
@@ -138,10 +138,10 @@ function env_file::prompt_var_value_if_empty() {
   fi
 }
 
-# Prompt for a value with a required default and write it to a variable in an env file.
-# $1 = env file path
-# $2 = variable name
-# $3 = default value
+# @description Prompt for a value with a required default and write it to a variable in an env file.
+# @arg $1 env file path
+# @arg $2 variable name
+# @arg $3 default value
 function env_file::prompt_value_with_default() {
   args::check_exactly_3_args "$@"
   local -r env_file="$1"
@@ -153,10 +153,10 @@ function env_file::prompt_value_with_default() {
   env_file::prompt_var_value "${env_file}" "${var_name}" '' "${default_value}"
 }
 
-# Prompt for a value with a default and write it to a variable in an env file, only if currently empty.
-# $1 = env file path
-# $2 = variable name
-# $3 = default value
+# @description Prompt for a value with a default and write it to a variable in an env file, only if currently empty.
+# @arg $1 env file path
+# @arg $2 variable name
+# @arg $3 default value
 function env_file::prompt_value_with_default_if_empty() {
   args::check_exactly_3_args "$@"
   local -r env_file="$1"
@@ -170,10 +170,10 @@ function env_file::prompt_value_with_default_if_empty() {
   fi
 }
 
-# Prompt for a password value (pre-filled with a generated password) and write it to a variable in an env file.
-# $1 = env file path
-# $2 = variable name
-# $3 = variable info shown in prompt (optional)
+# @description Prompt for a password value (pre-filled with a generated password) and write it to a variable in an env file.
+# @arg $1 env file path
+# @arg $2 variable name
+# @arg $3 variable info shown in prompt (optional)
 function env_file::prompt_pw_value() {
   args::check_at_least_2_args "$@"
   args::check_at_most_3_args "$@"
@@ -185,10 +185,10 @@ function env_file::prompt_pw_value() {
   env_file::prompt_var_value "${env_file}" "${var_name}" "${3:-}" "$(passwords::generate)"
 }
 
-# Prompt for a password-with-symbols value (pre-filled with a generated password) and write it to a variable.
-# $1 = env file path
-# $2 = variable name
-# $3 = variable info shown in prompt (optional)
+# @description Prompt for a password-with-symbols value (pre-filled with a generated password) and write it to a variable.
+# @arg $1 env file path
+# @arg $2 variable name
+# @arg $3 variable info shown in prompt (optional)
 function env_file::prompt_pw_with_symbols_value() {
   args::check_at_least_2_args "$@"
   args::check_at_most_3_args "$@"
@@ -200,10 +200,10 @@ function env_file::prompt_pw_with_symbols_value() {
   env_file::prompt_var_value "${env_file}" "${var_name}" "${3:-}" "$(passwords::generate_with_symbols)"
 }
 
-# Prompt for a password value and write it to a variable in an env file, only if currently empty.
-# $1 = env file path
-# $2 = variable name
-# $3 = variable info shown in prompt (optional)
+# @description Prompt for a password value and write it to a variable in an env file, only if currently empty.
+# @arg $1 env file path
+# @arg $2 variable name
+# @arg $3 variable info shown in prompt (optional)
 function env_file::prompt_pw_value_if_empty() {
   args::check_at_least_2_args "$@"
   args::check_at_most_3_args "$@"
@@ -217,10 +217,10 @@ function env_file::prompt_pw_value_if_empty() {
   fi
 }
 
-# Prompt for a password-with-symbols value and write it to a variable in an env file, only if currently empty.
-# $1 = env file path
-# $2 = variable name
-# $3 = variable info shown in prompt (optional)
+# @description Prompt for a password-with-symbols value and write it to a variable in an env file, only if currently empty.
+# @arg $1 env file path
+# @arg $2 variable name
+# @arg $3 variable info shown in prompt (optional)
 function env_file::prompt_pw_with_symbols_value_if_empty() {
   args::check_at_least_2_args "$@"
   args::check_at_most_3_args "$@"
