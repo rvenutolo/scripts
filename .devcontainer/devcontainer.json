@@ -1,0 +1,22 @@
+{
+  "name": "scripts",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "onCreateCommand": "sudo apt-get update && sudo apt-get install --yes shellcheck shfmt pwgen jq",
+  "updateContentCommand": "git submodule update --init --recursive",
+  "remoteEnv": {
+    "SCRIPTS_DIR": "${containerWorkspaceFolder}"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "timonwong.shellcheck",
+        "foxundermoon.shell-format",
+        "jetmartin.bats"
+      ]
+    }
+  }
+}
