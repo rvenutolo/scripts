@@ -21,7 +21,7 @@ function eval_maven_expression() {
   mvn --file "${pom_file}" help:evaluate -Dexpression="${expression}" --quiet -DforceStdout
 }
 
-# @description TODO
+# @description Read artifactId and version from the project's pom.xml and write a populated .env file in the cwd.
 # @noargs
 function main() {
   if ! files::exists "${pom_file}"; then

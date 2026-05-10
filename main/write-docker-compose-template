@@ -60,7 +60,7 @@ function multiple_containers() {
   strings::is_not_empty "${multiple_containers:-}"
 }
 
-# @description TODO
+# @description Interactively prompt for service metadata and write a compose.yaml + init/run scripts skeleton in the cwd.
 # @noargs
 function main() {
   for file in "${compose_file}" "${init_file}" "${run_file}"; do

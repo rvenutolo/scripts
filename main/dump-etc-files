@@ -14,7 +14,7 @@ function usage() {
   printf '%s\n' "Usage: ${0##*/} [-d | --dir DIR] DISTRO..." >&2
 }
 
-# @description TODO
+# @description Run a throwaway container for each given distro (or a default set) and copy its /etc tree to ${dir}/<distro>.
 # @noargs
 function main() {
   dirs::create "${dir}"
