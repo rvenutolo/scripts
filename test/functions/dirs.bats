@@ -130,8 +130,45 @@ setup() {
   assert_output --partial 'Expected at least 1 argument'
 }
 
-# ---------- dirs::root_create ----------
+# ---------- root_create (Phase G) ----------
 
-@test "root_create: skipped (requires sudo, Phase G)" {
-  skip 'requires sudo (Phase G)'
+setup_dirs_root_helpers() {
+  load '../test_helper/path_shim'
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/test/test_helper/cli_shim.bash"
+  cli_shim::install_passthrough_sudo
+}
+
+@test "root_create: creates dir via sudo passthrough" {
+  setup_dirs_root_helpers
+  local target="${BATS_TEST_TMPDIR}/new/nested/dir"
+  run dirs::root_create "${target}"
+  assert_success
+  [[ -d "${target}" ]]
+  assert_output --partial "Creating ${target}"
+  assert_output --partial "Created ${target}"
+}
+
+@test "root_create: skips existing dir" {
+  setup_dirs_root_helpers
+  local target="${BATS_TEST_TMPDIR}/exists"
+  mkdir --parents "${target}"
+  run dirs::root_create "${target}"
+  assert_success
+  refute_output --partial 'Creating'
+}
+
+@test "root_create: creates multiple dirs" {
+  setup_dirs_root_helpers
+  local a="${BATS_TEST_TMPDIR}/a"
+  local b="${BATS_TEST_TMPDIR}/b"
+  run dirs::root_create "${a}" "${b}"
+  assert_success
+  [[ -d "${a}" && -d "${b}" ]]
+}
+
+@test "root_create: dies with no args" {
+  run dirs::root_create
+  assert_failure
+  assert_output --partial 'Expected at least 1 argument'
 }
