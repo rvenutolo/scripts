@@ -258,6 +258,8 @@ function sdkman_jdks::check_installed_tem_jdk_major_version() {
 
 # @description Return true if a Temurin JDK with the given artifact ID is currently installed.
 # @arg $1 artifact ID (e.g. "21.0.3-tem")
+# @exitcode 0 if true
+# @exitcode 1 if false
 function sdkman_jdks::is_tem_jdk_artifact_installed() {
   args::check_exactly_1_arg "$@"
   sdkman_jdks::get_formatted_installed_tem_jdks \
