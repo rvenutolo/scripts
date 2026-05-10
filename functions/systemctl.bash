@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 
-# Return true if a user systemd unit file with the given name exists.
-# $1 = service unit file name (e.g. "foo.service")
+# @description Return true if a user systemd unit file with the given name exists.
+# @arg $1 service unit file name (e.g. "foo.service")
 function systemctl::user_service_unit_file_exists() {
   args::check_exactly_1_arg "$@"
   systemctl --user list-unit-files --all --quiet "$1" > '/dev/null'
 }
 
-# Return true if a system systemd unit file with the given name exists.
-# $1 = service unit file name (e.g. "foo.service")
+# @description Return true if a system systemd unit file with the given name exists.
+# @arg $1 service unit file name (e.g. "foo.service")
 function systemctl::system_service_unit_file_exists() {
   args::check_exactly_1_arg "$@"
   systemctl --system list-unit-files --all --quiet "$1" > '/dev/null'
 }
 
-# Enable and start a user systemd service if its unit file exists and it is not already enabled.
-# $1 = service unit file name (e.g. "foo.service")
+# @description Enable and start a user systemd service if its unit file exists and it is not already enabled.
+# @arg $1 service unit file name (e.g. "foo.service")
 function systemctl::enable_user_service_unit() {
   args::check_exactly_1_arg "$@"
   local -r unit="$1"
@@ -30,8 +30,8 @@ function systemctl::enable_user_service_unit() {
   fi
 }
 
-# Enable and start a system systemd service if its unit file exists and it is not already enabled.
-# $1 = service unit file name (e.g. "foo.service")
+# @description Enable and start a system systemd service if its unit file exists and it is not already enabled.
+# @arg $1 service unit file name (e.g. "foo.service")
 function systemctl::enable_system_service_unit() {
   args::check_exactly_1_arg "$@"
   local -r unit="$1"
@@ -46,8 +46,8 @@ function systemctl::enable_system_service_unit() {
   fi
 }
 
-# Disable and stop a user systemd service if its unit file exists and it is currently enabled.
-# $1 = service unit file name (e.g. "foo.service")
+# @description Disable and stop a user systemd service if its unit file exists and it is currently enabled.
+# @arg $1 service unit file name (e.g. "foo.service")
 function systemctl::disable_user_service_unit() {
   args::check_exactly_1_arg "$@"
   local -r unit="$1"
@@ -62,8 +62,8 @@ function systemctl::disable_user_service_unit() {
   fi
 }
 
-# Disable and stop a system systemd service if its unit file exists and it is currently enabled.
-# $1 = service unit file name (e.g. "foo.service")
+# @description Disable and stop a system systemd service if its unit file exists and it is currently enabled.
+# @arg $1 service unit file name (e.g. "foo.service")
 function systemctl::disable_system_service_unit() {
   args::check_exactly_1_arg "$@"
   local -r unit="$1"
@@ -78,8 +78,8 @@ function systemctl::disable_system_service_unit() {
   fi
 }
 
-# Restart a user systemd service if its unit file exists and it is currently enabled.
-# $1 = service unit file name (e.g. "foo.service")
+# @description Restart a user systemd service if its unit file exists and it is currently enabled.
+# @arg $1 service unit file name (e.g. "foo.service")
 function systemctl::restart_user_service_if_enabled() {
   args::check_exactly_1_arg "$@"
   local -r unit="$1"
@@ -94,8 +94,8 @@ function systemctl::restart_user_service_if_enabled() {
   fi
 }
 
-# Restart a system systemd service if its unit file exists and it is currently enabled.
-# $1 = service unit file name (e.g. "foo.service")
+# @description Restart a system systemd service if its unit file exists and it is currently enabled.
+# @arg $1 service unit file name (e.g. "foo.service")
 function systemctl::restart_system_service_if_enabled() {
   args::check_exactly_1_arg "$@"
   local -r unit="$1"
