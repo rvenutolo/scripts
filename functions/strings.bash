@@ -1,29 +1,29 @@
 #!/usr/bin/env bash
 
-# Return true if the string is empty (zero length).
-# $1 = string to test
+# @description Return true if the string is empty (zero length).
+# @arg $1 string to test
 function strings::is_empty() {
   args::check_exactly_1_arg "$@"
   [[ -z "$1" ]]
 }
 
-# Return true if the string is non-empty (at least one character).
-# $1 = string to test
+# @description Return true if the string is non-empty (at least one character).
+# @arg $1 string to test
 function strings::is_not_empty() {
   args::check_exactly_1_arg "$@"
   [[ -n "$1" ]]
 }
 
-# Return true if the string is empty or contains only whitespace characters.
-# $1 = string to test
+# @description Return true if the string is empty or contains only whitespace characters.
+# @arg $1 string to test
 function strings::is_blank() {
   args::check_exactly_1_arg "$@"
   [[ -z "${1//[[:space:]]/}" ]]
 }
 
-# Print the string with leading and trailing whitespace removed.
-# $1 = string
+# @description Print the string with leading and trailing whitespace removed.
 # Output: stdout — trimmed string
+# @arg $1 string
 function strings::trim() {
   args::check_exactly_1_arg "$@"
   local trimmed="$1"
@@ -32,9 +32,9 @@ function strings::trim() {
   printf '%s\n' "${trimmed}"
 }
 
-# Print the string with a trailing slash appended if it does not already end with one.
-# $1 = string
+# @description Print the string with a trailing slash appended if it does not already end with one.
 # Output: stdout — string guaranteed to end with '/'
+# @arg $1 string
 function strings::ensure_trailing_slash() {
   args::check_exactly_1_arg "$@"
   local -r str="$1"
