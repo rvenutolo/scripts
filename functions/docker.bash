@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Return true if the named Docker container exists and its status is 'running'.
-# $1 = container name
+# @description Return true if the named Docker container exists and its status is 'running'.
+# @arg $1 container name
 function docker::container_is_running() {
   args::check_exactly_1_arg "$@"
   local -r container="$1"
@@ -9,10 +9,10 @@ function docker::container_is_running() {
     && [[ "$(docker container inspect --format '{{.State.Status}}' "${container}")" == 'running' ]]
 }
 
-# Block until the named Docker container reports a health status of 'healthy'.
+# @description Block until the named Docker container reports a health status of 'healthy'.
 # Optional second arg caps how long to wait; unset means wait forever.
-# $1 = container name
-# $2 = optional timeout in seconds (default: no timeout)
+# @arg $1 container name
+# @arg $2 optional timeout in seconds (default: no timeout)
 function docker::wait_for_healthy_container() {
   args::check_at_least_1_arg "$@"
   args::check_at_most_2_args "$@"
@@ -29,8 +29,8 @@ function docker::wait_for_healthy_container() {
   done
 }
 
-# Create a Docker network with the given name if one does not already exist.
-# $1 = docker network name
+# @description Create a Docker network with the given name if one does not already exist.
+# @arg $1 docker network name
 function docker::create_network() {
   args::check_exactly_1_arg "$@"
   local -r network="$1"
