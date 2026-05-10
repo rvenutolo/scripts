@@ -108,6 +108,19 @@ Tests are **specification-driven**: each test encodes what the function *should*
 - `functions/user.bash` — `check_not_root`, `check_is_root` (Phase F; root-state branches via `unshare --user --map-root-user`, skipped if unavailable)
 - `functions/system.bash` — `require_bash_version` (Phase F; `reload_sysctl_conf` deferred to Phase G)
 - `functions/os.bash` — `release_field`, `id`, `codename`, `arch`, `is_arch`, `is_cachyos`, `is_fedora`, `is_debian`, `is_ubuntu`, `is_leap`, `is_tumbleweed` (Phase F; uses new `os_release_fixture` helper to override `source` for `/etc/os-release` and `path_shim` to stub `dpkg`)
+- `functions/mvn.bash` — `list_pom_files` (Phase G)
+- `functions/network.bash` — `local_ip`, `local_network` (Phase G; uses `cli_shim::record_with_output ip`)
+- `functions/wrappers.bash` — `curl`, `wget` (Phase G; uses `cli_shim::record`)
+- `functions/downloads.bash` — `download_and_cat`, `download_to_temp_file`, `download_and_run_script`, `download_and_run_script_as_root` (Phase G; uses `cli_shim` + sudo passthrough)
+- `functions/packages.bash` — `dpkg_package_installed`, `get_universal`, `get_distro`, `get_sdkman` (Phase G; CSV fixtures + hostname/host-type stubs)
+- `functions/docker.bash` — `container_is_running`, `wait_for_healthy_container`, `create_network` (Phase G; stateful shim for poller)
+- `functions/systemctl.bash` — all 8 user/system unit-file existence + enable/disable/restart variants (Phase G; sudo passthrough for system variants)
+- `functions/sdkman.bash` — `clean_output`, `update_metadata`, `.sdkmanrc` get/overwrite/rewrite, `list_all_sdkmanrc_files`, `rewrite_sdkmanrc_file_java_versions` (Phase G; `sdk()` shell function override)
+- `functions/sdkman_packages.bash` — install/uninstall/prune/list (Phase G; `sdk()` override + `SDKMAN_CANDIDATES_DIR` tmp tree)
+- `functions/sdkman_jdks.bash` — pure transforms (Phase G-11a) + sdk wrappers via stubbed `get_formatted_all_tem_jdks` (Phase G-11b)
+- `functions/dirs.bash` — adds `root_create` (Phase G; sudo passthrough)
+- `functions/files.bash` — adds all `root_*` variants and `_quiet` siblings (Phase G; sudo passthrough)
+- `functions/system.bash` — adds `reload_sysctl_conf` (Phase G; sudo passthrough + `SCRIPTS_AUTO_ANSWER` + `cli_shim::record sysctl`)
 
 Side-effecting helpers (sudo, network, package managers) remain out of scope until a mocking strategy is settled.
 
@@ -120,6 +133,8 @@ For env-file tests (read+write tmpfile fixtures), source `test/test_helper/env_f
 For tests that need to stub external commands (e.g. `hostname`, fake binaries for `commands::*` tests), source `test/test_helper/path_shim` and use `path_shim::add <name> <body>` to drop an executable shim into a per-test `${BATS_TEST_TMPDIR}/bin` (auto-prepended to `PATH`).
 
 For `os.bats` tests that need to stub `/etc/os-release`, source `test/test_helper/os_release_fixture` and call `os_release_fixture::create KEY=VALUE ...` to write a fixture file under `${BATS_TEST_TMPDIR}`, then `os_release_fixture::install_source_override` to install a shell function override of the `source` builtin that redirects calls to `/etc/os-release` at the fixture. The override is a function (functions take precedence over builtins for unqualified names) and is exported, so it propagates into bash subshells inside `os::release_field`.
+
+For tests that need to record CLI invocations or shim sudo, source `test/test_helper/cli_shim` and use `cli_shim::record <name>` (bare logger), `cli_shim::record_with_output <name> <stdout> [<exit>]` (canned output), `cli_shim::record_stateful <name> <out1> <out2> ...` (Nth output on Nth call; repeats last once exhausted), or `cli_shim::install_passthrough_sudo` (sudo→exec rest with flag stripping). Read back via `cli_shim::calls <name>` / `cli_shim::call_count <name>`.
 
 ### Prompt-mocking pattern
 
