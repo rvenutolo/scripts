@@ -11,6 +11,6 @@ args::check_no_args "$@"
 
 for repo in 'crypt' 'packages' 'scripts'; do
   log::log "Executing git pull for: ${repo}"
-  repo_dir="${CODE_DIR}/Personal/${repo}"
+  repo_dir="${PERSONAL_PROJECTS_DIR}/${repo}"
   git -C "${repo_dir}" pull
 done
