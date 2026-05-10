@@ -4,6 +4,8 @@ Personal Linux setup, install, and utility shell scripts.
 
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL_3.0-blue.svg)](LICENSE)
 
+**Reference:** <https://rvenutolo.github.io/scripts/>
+
 ## Layout
 
 | Path | Purpose | On `PATH` |
