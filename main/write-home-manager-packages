@@ -77,8 +77,8 @@ function write_packages_into() {
   files::move_no_prompt_quiet "${temp_file}" "${packages_file}"
 }
 
-# @description TODO
-# @noargs
+# @description Insert each given package name into the stable.nix and unstable.nix home-manager package lists.
+# @arg $@ package names to insert
 function main() {
   write_packages_into "${HOME_MANAGER_PACKAGES_DIR}/stable.nix" 'nixpkgs' "$@"
   write_packages_into "${HOME_MANAGER_PACKAGES_DIR}/unstable.nix" 'nixpkgs-unstable' "$@"
