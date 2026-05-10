@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+
+# @description Generate markdown reference docs for the scripts repo by running
+#              shdoc against every functions/*.bash file and every shell script
+#              under main/. Output lands in docs/functions/ and docs/scripts/
+#              (gitignored, regenerated on every build). Companion config:
+#              mkdocs.yml. Companion deploy: .github/workflows/pages.yml.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+system::require_bash_version 4 3
+args::check_no_args "$@"
+
+readonly SHDOC="${SCRIPTS_DIR}/vendor/shdoc/shdoc"
+readonly DOCS_FUNCTIONS_DIR="${SCRIPTS_DIR}/docs/functions"
+readonly DOCS_SCRIPTS_DIR="${SCRIPTS_DIR}/docs/scripts"
+
+# @description Wipe and recreate output directories so each build is clean.
+function reset_output_dirs() {
+  rm --recursive --force -- "${DOCS_FUNCTIONS_DIR}" "${DOCS_SCRIPTS_DIR}"
+  dirs::create "${DOCS_FUNCTIONS_DIR}"
+  dirs::create "${DOCS_SCRIPTS_DIR}"
+}
+
+# @description Run shdoc on a file and write its markdown to the destination.
+# @arg $1 src source bash file
+# @arg $2 dest destination markdown file
+function shdoc_one() {
+  args::check_exactly_2_args "$@"
+  local -r src="$1"
+  local -r dest="$2"
+  gawk -f "${SHDOC}" < "${src}" > "${dest}"
+}
+
+# @description Generate one markdown index file listing the per-file pages.
+# @arg $1 dir docs subdirectory containing per-file .md pages (no index.md yet)
+# @arg $2 title H1 title for the index page
+function write_index() {
+  args::check_exactly_2_args "$@"
+  local -r dir="$1"
+  local -r title="$2"
+  local -r index="${dir}/index.md"
+  {
+    printf '# %s\n\n' "${title}"
+    local entry base
+    while IFS= read -r entry; do
+      base="$(basename -- "${entry}" .md)"
+      printf -- '- [%s](%s)\n' "${base}" "${entry##*/}"
+    done < <(find "${dir}" -maxdepth 1 -type f -name '*.md' ! -name 'index.md' | sort)
+  } > "${index}"
+}
+
+# @description Build the home page from README.md so the site has a familiar
+#              landing page. MkDocs adds the chrome around it.
+function write_home_index() {
+  cp -- "${SCRIPTS_DIR}/README.md" "${SCRIPTS_DIR}/docs/index.md"
+}
+
+function main() {
+  args::check_no_args "$@"
+  if ! files::exists "${SHDOC}"; then
+    log::die "shdoc not found at ${SHDOC} — run: git submodule update --init --recursive"
+  fi
+  if ! commands::executable_exists gawk; then
+    log::die "gawk not found on PATH"
+  fi
+
+  reset_output_dirs
+  dirs::create "${SCRIPTS_DIR}/docs"
+
+  log::log "Generating function reference"
+  local file base
+  for file in "${SCRIPTS_DIR}"/functions/*.bash; do
+    base="$(basename -- "${file}" .bash)"
+    shdoc_one "${file}" "${DOCS_FUNCTIONS_DIR}/${base}.md"
+  done
+  write_index "${DOCS_FUNCTIONS_DIR}" 'Functions'
+
+  log::log "Generating scripts reference"
+  local script
+  while IFS= read -r script; do
+    base="$(basename -- "${script}")"
+    shdoc_one "${script}" "${DOCS_SCRIPTS_DIR}/${base}.md"
+  done < <(BASH_ENV=/dev/null SCRIPTS_DIR="${SCRIPTS_DIR}" \
+    bash -c 'source "${SCRIPTS_DIR}/functions.bash"; shell_scripts::find "${SCRIPTS_DIR}/main"')
+  write_index "${DOCS_SCRIPTS_DIR}" 'Scripts'
+
+  log::log "Generating home page from README.md"
+  write_home_index
+
+  log::log "Doc generation complete: ${SCRIPTS_DIR}/docs/"
+}
+
+main "$@"
