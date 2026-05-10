@@ -12,15 +12,17 @@ args::check_no_args "$@"
 readonly pom_file='pom.xml'
 readonly env_file='.env'
 
-# Evaluate a Maven expression against the current project's POM and print the result.
-# $1 = Maven expression (e.g. "project.artifactId")
+# @description Evaluate a Maven expression against the current project's POM and print the result.
 # Output: stdout — evaluated expression value
+# @arg $1 Maven expression (e.g. "project.artifactId")
 function eval_maven_expression() {
   args::check_exactly_1_arg "$@"
   local -r expression="$1"
   mvn --file "${pom_file}" help:evaluate -Dexpression="${expression}" --quiet -DforceStdout
 }
 
+# @description TODO
+# @noargs
 function main() {
   if ! files::exists "${pom_file}"; then
     log::die "${pom_file} is missing"

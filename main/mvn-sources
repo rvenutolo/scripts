@@ -9,8 +9,8 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
-# Download sources and Javadoc jars for all dependencies declared in the given POM.
-# $1 = pom file path
+# @description Download sources and Javadoc jars for all dependencies declared in the given POM.
+# @arg $1 pom file path
 function get_sources() {
   mvn --file "$1" \
     org.apache.maven.plugins:maven-dependency-plugin:resolve-sources \
@@ -18,6 +18,8 @@ function get_sources() {
     -Dclassifier=javadoc
 }
 
+# @description TODO
+# @noargs
 function main() {
   local pom_files
   pom_files="$(mvn::list_pom_files)"

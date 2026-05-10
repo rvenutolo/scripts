@@ -8,9 +8,9 @@ source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
 
-# Create a minimal Nix packages file skeleton if the file does not already exist.
-# $1 = packages file path
-# $2 = package set ('nixpkgs' or 'nixpkgs-unstable')
+# @description Create a minimal Nix packages file skeleton if the file does not already exist.
+# @arg $1 packages file path
+# @arg $2 package set ('nixpkgs' or 'nixpkgs-unstable')
 function write_packages_file_skeleton() {
   args::check_exactly_2_args "$@"
   local -r packages_file="$1"
@@ -40,10 +40,10 @@ EOF
   fi
 }
 
-# Print the line number of the first line in a file matching the given regex.
-# $1 = packages file path
-# $2 = regex to match (e.g. '\[' or ']')
+# @description Print the line number of the first line in a file matching the given regex.
 # Output: stdout — line number as a plain integer
+# @arg $1 packages file path
+# @arg $2 regex to match (e.g. '\[' or ']')
 function get_line_number() {
   args::check_exactly_2_args "$@"
   local -r packages_file="$1"
@@ -51,11 +51,11 @@ function get_line_number() {
   grep --line-number --max-count=1 "${regex}" "${packages_file}" | cut --delimiter=':' --fields=1
 }
 
-# Write the current package list into the packages array inside a Nix packages file.
+# @description Write the current package list into the packages array inside a Nix packages file.
 # Creates the file skeleton if it does not exist. Extra args are forwarded to packages::get_universal.
-# $1 = packages file path
-# $2 = package set ('nixpkgs' or 'nixpkgs-unstable')
 # $3+ = extra arguments forwarded to packages::get_universal (e.g. --ignore, --quiet)
+# @arg $1 packages file path
+# @arg $2 package set ('nixpkgs' or 'nixpkgs-unstable')
 function write_packages_into() {
   args::check_at_least_2_args "$@"
   local -r packages_file="$1"
@@ -77,6 +77,8 @@ function write_packages_into() {
   files::move_no_prompt_quiet "${temp_file}" "${packages_file}"
 }
 
+# @description TODO
+# @noargs
 function main() {
   write_packages_into "${HOME_MANAGER_PACKAGES_DIR}/stable.nix" 'nixpkgs' "$@"
   write_packages_into "${HOME_MANAGER_PACKAGES_DIR}/unstable.nix" 'nixpkgs-unstable' "$@"

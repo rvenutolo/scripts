@@ -9,8 +9,8 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_at_least_1_arg "$@"
 
-# Sort all keys in the given JSON file in-place.
-# $1 = JSON file path
+# @description Sort all keys in the given JSON file in-place.
+# @arg $1 JSON file path
 function sort_json_file() {
   args::check_exactly_1_arg "$@"
   local -r json_file="$1"
@@ -21,6 +21,8 @@ function sort_json_file() {
   files::move_no_prompt_quiet "${temp_file}" "${json_file}"
 }
 
+# @description TODO
+# @noargs
 function main() {
   for file in "$@"; do
     sort_json_file "${file}"
