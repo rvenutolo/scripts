@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Die if the running bash version is older than the required major.minor version.
-# $1 = required major version (e.g. 4)
-# $2 = required minor version (e.g. 3)
+# @description Die if the running bash version is older than the required major.minor version.
+# @arg $1 required major version (e.g. 4)
+# @arg $2 required minor version (e.g. 3)
 function system::require_bash_version() {
   args::check_exactly_2_args "$@"
   local -r req_major="$1"
@@ -13,8 +13,9 @@ function system::require_bash_version() {
   fi
 }
 
-# Prompt and then reload sysctl configuration via 'sudo sysctl --system'.
+# @description Prompt and then reload sysctl configuration via 'sudo sysctl --system'.
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+# @noargs
 function system::reload_sysctl_conf() {
   args::check_no_args "$@"
   if prompt::yn 'Reload sysctl configuration?'; then
