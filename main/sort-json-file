@@ -21,8 +21,8 @@ function sort_json_file() {
   files::move_no_prompt_quiet "${temp_file}" "${json_file}"
 }
 
-# @description TODO
-# @noargs
+# @description Sort the keys of every given JSON file in place.
+# @arg $@ JSON file paths
 function main() {
   for file in "$@"; do
     sort_json_file "${file}"
