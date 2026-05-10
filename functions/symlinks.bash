@@ -43,7 +43,7 @@ function symlinks::link_file() {
   fi
   log::log "Linking: ${target} -> ${link}"
   dirs::create "$(dirname "${link}")"
-  ln --symbolic --force "${target}" "${link}"
+  ln --symbolic --force --no-target-directory "${target}" "${link}"
   log::log "Linked: ${target} -> ${link}"
 }
 
@@ -70,6 +70,6 @@ function symlinks::link_dir() {
   fi
   log::log "Linking: ${target} -> ${link}"
   dirs::create "$(dirname "${link}")"
-  ln --symbolic --force "${target}" "${link}"
+  ln --symbolic --force --no-target-directory "${target}" "${link}"
   log::log "Linked: ${target} -> ${link}"
 }
