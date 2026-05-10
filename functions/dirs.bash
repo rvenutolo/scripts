@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
-# Return true if the given path exists and is a directory.
-# $1 = dir path
+# @description Return true if the given path exists and is a directory.
+# @arg $1 dir path
 function dirs::exists() {
   args::check_exactly_1_arg "$@"
   [[ -d "$1" ]]
 }
 
-# Die if the given directory does not exist.
-# $1 = dir path
+# @description Die if the given directory does not exist.
+# @arg $1 dir path
 function dirs::assert_exists() {
   args::check_exactly_1_arg "$@"
   local -r dir="$1"
@@ -17,8 +17,8 @@ function dirs::assert_exists() {
   fi
 }
 
-# Create each given directory (and any missing parents) if it does not already exist.
-# $@ = target directory paths
+# @description Create each given directory (and any missing parents) if it does not already exist.
+# @arg $@ target directory paths
 function dirs::create() {
   args::check_at_least_1_arg "$@"
   for dir in "$@"; do
@@ -30,8 +30,8 @@ function dirs::create() {
   done
 }
 
-# Create each given directory (and any missing parents) as root if it does not already exist.
-# $@ = target directory paths
+# @description Create each given directory (and any missing parents) as root if it does not already exist.
+# @arg $@ target directory paths
 function dirs::root_create() {
   args::check_at_least_1_arg "$@"
   for dir in "$@"; do
