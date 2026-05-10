@@ -2,6 +2,8 @@
 
 # @description Return true if a user systemd unit file with the given name exists.
 # @arg $1 service unit file name (e.g. "foo.service")
+# @exitcode 0 if true
+# @exitcode 1 if false
 function systemctl::user_service_unit_file_exists() {
   args::check_exactly_1_arg "$@"
   systemctl --user list-unit-files --all --quiet "$1" > '/dev/null'
@@ -9,6 +11,8 @@ function systemctl::user_service_unit_file_exists() {
 
 # @description Return true if a system systemd unit file with the given name exists.
 # @arg $1 service unit file name (e.g. "foo.service")
+# @exitcode 0 if true
+# @exitcode 1 if false
 function systemctl::system_service_unit_file_exists() {
   args::check_exactly_1_arg "$@"
   systemctl --system list-unit-files --all --quiet "$1" > '/dev/null'
