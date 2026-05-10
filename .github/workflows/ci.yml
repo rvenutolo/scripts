@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-scripts:
+    name: check-scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install shellcheck (latest)
+        run: |
+          SC_VERSION=$(curl --disable --fail --silent --location \
+            https://api.github.com/repos/koalaman/shellcheck/releases/latest \
+            | jq --raw-output .tag_name)
+          curl --disable --fail --silent --location \
+            "https://github.com/koalaman/shellcheck/releases/download/${SC_VERSION}/shellcheck-${SC_VERSION}.linux.x86_64.tar.xz" \
+            | tar --extract --xz --strip-components=1 \
+              "shellcheck-${SC_VERSION}/shellcheck"
+          sudo mv shellcheck /usr/local/bin/
+
+      - name: Install shfmt (latest)
+        run: |
+          SHFMT_VERSION=$(curl --disable --fail --silent --location \
+            https://api.github.com/repos/mvdan/sh/releases/latest \
+            | jq --raw-output .tag_name)
+          sudo curl --disable --fail --silent --location --output /usr/local/bin/shfmt \
+            "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64"
+          sudo chmod +x /usr/local/bin/shfmt
+
+      - name: Run check-scripts
+        env:
+          SCRIPTS_DIR: ${{ github.workspace }}
+        run: ./check-scripts
+
+  bats:
+    name: bats
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install pwgen
+        run: sudo apt-get update && sudo apt-get install --yes pwgen
+
+      - name: Run BATS
+        env:
+          SCRIPTS_DIR: ${{ github.workspace }}
+        run: ./run-tests
