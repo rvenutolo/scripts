@@ -16,6 +16,9 @@ for file in "$@"; do
   cat > "${file}" << 'EOF'
 #!/usr/bin/env bash
 
+# @description TODO: describe what this script does.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
