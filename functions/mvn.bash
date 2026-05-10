@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Find and print all pom.xml file paths under a directory, excluding target/ trees.
-# $1 = root directory to search (optional; defaults to current directory)
+# @description Find and print all pom.xml file paths under a directory, excluding target/ trees.
 # Output: stdout — sorted list of pom.xml paths, one per line
+# @arg $1 root directory to search (optional; defaults to current directory)
 function mvn::list_pom_files() {
   args::check_at_most_1_arg "$@"
   if [[ "$#" -eq 0 ]]; then
