@@ -30,7 +30,7 @@ log::log 'Installed Flatpak packages'
 
 if flatpak list --user --app | grep::contains_exactly_ignore_case 'com.google.chrome'; then
   flatpak override --user \
-    --filesystem="${HOME}/.local/share/applications:create" \
-    --filesystem="${HOME}/.local/share/icons:create" \
+    --filesystem="${XDG_DATA_HOME}/applications:create" \
+    --filesystem="${XDG_DATA_HOME}/icons:create" \
     'com.google.Chrome'
 fi

@@ -13,6 +13,18 @@ Personal collection of bash scripts for system setup, package install, and day-t
 - When running `./check-scripts`, `./format-scripts`, `./shellcheck-scripts`, or any other script in the repo, do NOT prefix the command with `SCRIPTS_DIR=...`. The env var is set by `~/.profile` and is expected to already be present. If it is not set, the script will fail under `set -u` — that is the desired behavior so the user can fix their environment.
 - `main/` and `other/` are always on `PATH`. `install/`, `set_up/`, `misc/` are not.
 
+## Standard Env Vars
+
+User exports a fixed set of env vars in `~/.profile` and wants them reused everywhere in this repo instead of hardcoded paths or literals. Read `~/.profile` to enumerate the available env vars and their definitions. Ignore conditional exports — `EDITOR`, `VISUAL`, `PAGER`, `MANPAGER`, `FILE_MANAGER`, `TAILNET_IP`, `TAILNET_CIDR`, `TERM`, etc. — that are gated on `__executable_exists` / `case` / runtime probes; they're not meant for cross-file reuse.
+
+### Usage policy
+
+When a script references a path or hostname covered by one of these vars, use the env var literal directly: `"${XDG_CONFIG_HOME}/foo/bar"`, `"${PERSONAL_PROJECTS_DIR}/some-repo"`, etc. Shell scripts expand env vars natively — no templating needed.
+
+`~/.profile` is sourced before any of these scripts run (interactive shell + the `run-install-scripts` / `run-set-up-scripts` runners source it explicitly), so the env vars are always set by the time a script reads them. Do NOT add `${VAR:-fallback}` defensive defaults — failure under `set -u` is the desired behavior if the environment is broken (same rule as `SCRIPTS_DIR` above).
+
+Exemption: scripts under `misc/` are explicitly standalone — they must NOT depend on this repo's env or functions. Hardcoded paths are acceptable there.
+
 ## Layout
 
 - `main/` — primary utility scripts (on `PATH`).

@@ -11,7 +11,7 @@ args::check_no_args "$@"
 
 if ! commands::executable_exists 'appman' && prompt::yn 'Install AppMan?'; then
   log::log 'Installing AppMan'
-  readonly appman_location="${HOME}/.local/bin/appman"
+  readonly appman_location="${XDG_BIN_HOME}/appman"
   download 'https://raw.githubusercontent.com/ivan-hc/AM/main/APP-MANAGER' "${appman_location}"
   chmod +x "${appman_location}"
   log::log 'Installed AppMan'

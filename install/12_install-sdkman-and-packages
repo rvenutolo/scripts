@@ -37,6 +37,6 @@ if files::exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt::yn 'Install SDKMA
   sdkman-update
 fi
 
-if files::exists "${HOME}/.config/sdkman/config"; then
-  symlinks::link_file "${HOME}/.config/sdkman/config" "${SDKMAN_DIR}/etc/config"
+if files::exists "${XDG_CONFIG_HOME}/sdkman/config"; then
+  symlinks::link_file "${XDG_CONFIG_HOME}/sdkman/config" "${SDKMAN_DIR}/etc/config"
 fi

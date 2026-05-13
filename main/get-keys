@@ -9,30 +9,28 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
-readonly keys_dir="${HOME}/.keys"
 readonly keys_repo_url='https://raw.githubusercontent.com/rvenutolo/crypt/main/keys'
-dirs::create "${keys_dir}"
+dirs::create "${KEYS_DIR}"
 
-readonly age_key_file="${keys_dir}/age.key"
-if ! files::exists "${age_key_file}"; then
-  log::log "Downloading: ${age_key_file}"
+if ! files::exists "${AGE_PRIVATE_KEY_FILE}"; then
+  log::log "Downloading: ${AGE_PRIVATE_KEY_FILE}"
   temp_file="$(downloads::download_to_temp_file "${keys_repo_url}/age.key")"
   if [[ -s "${temp_file}" ]]; then
-    log::log "Decrypting: ${age_key_file}"
-    until age --decrypt --output "${age_key_file}" "${temp_file}"; do :; done
+    log::log "Decrypting: ${AGE_PRIVATE_KEY_FILE}"
+    until age --decrypt --output "${AGE_PRIVATE_KEY_FILE}" "${temp_file}"; do :; done
   else
     log::die "age key file content is empty"
   fi
 fi
 
 for filename in 'id_ed25519' 'id_ed25519.pub'; do
-  key_file="${keys_dir}/${filename}"
+  key_file="${KEYS_DIR}/${filename}"
   if ! files::exists "${key_file}"; then
     log::log "Downloading: ${key_file}"
     temp_file="$(downloads::download_to_temp_file "${keys_repo_url}/${filename}")"
     if [[ -s "${temp_file}" ]]; then
       log::log "Decrypting: ${key_file}"
-      age --decrypt --identity "${age_key_file}" --output "${key_file}" "${temp_file}"
+      age --decrypt --identity "${AGE_PRIVATE_KEY_FILE}" --output "${key_file}" "${temp_file}"
     else
       log::die "${filename} content is empty"
     fi
@@ -48,18 +46,18 @@ for url in "${urls[@]}"; do
   if [[ "${filename}" == 'age.key' || "${filename}" == 'id_ed25519' || "${filename}" == 'id_ed25519.pub' ]]; then
     continue
   fi
-  key_file="${keys_dir}/${filename}"
+  key_file="${KEYS_DIR}/${filename}"
   if ! files::exists "${key_file}" && prompt::ny "Download ${filename}?"; then
     log::log "Downloading: ${filename}"
     temp_file="$(downloads::download_to_temp_file "${keys_repo_url}/${filename}")"
     if [[ -s "${temp_file}" ]]; then
       log::log "Decrypting: ${key_file}"
-      age --decrypt --identity "${age_key_file}" --output "${key_file}" "${temp_file}"
+      age --decrypt --identity "${AGE_PRIVATE_KEY_FILE}" --output "${key_file}" "${temp_file}"
     else
       log::die "${filename} content is empty"
     fi
   fi
 done
 
-find "${keys_dir}" -type 'd' -exec chmod 700 {} \;
-find "${keys_dir}" -type 'f' -exec chmod 600 {} \;
+find "${KEYS_DIR}" -type 'd' -exec chmod 700 {} \;
+find "${KEYS_DIR}" -type 'f' -exec chmod 600 {} \;

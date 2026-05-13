@@ -13,10 +13,10 @@ if hosts::is_server; then
   exit 0
 fi
 
-readonly toolbox_install_dir="${HOME}/.local/share/JetBrains/Toolbox/bin"
+readonly toolbox_install_dir="${XDG_DATA_HOME}/JetBrains/Toolbox/bin"
 readonly toolbox_install_binary="${toolbox_install_dir}/jetbrains-toolbox"
 readonly toolbox_release_info_url='https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release'
-readonly local_bin_dir="${HOME}/.local/bin"
+readonly local_bin_dir="${XDG_BIN_HOME}"
 readonly local_bin_symlink="${local_bin_dir}/jetbrains-toolbox"
 
 if files::exists "${local_bin_symlink}"; then
