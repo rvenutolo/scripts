@@ -1,7 +1,3 @@
-# Override global ~/.config/git/ignore which excludes vendor/.
-# vendor/shdoc is a tracked git submodule used by main/build-docs.
-!vendor/
-
 # MkDocs build output
 site/
 

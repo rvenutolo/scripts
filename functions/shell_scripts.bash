@@ -36,7 +36,7 @@ function shell_scripts::assert_paths_exist() {
 function shell_scripts::find() {
   if [[ "$#" -eq 0 ]]; then
     shfmt --find "${SCRIPTS_DIR}" \
-      | grep --invert-match --extended-regexp '/(other|vendor|test/bats|test/test_helper/bats-(support|assert))/'
+      | grep --invert-match --extended-regexp '/(other|test/bats|test/test_helper/bats-(support|assert))/'
     return
   fi
   local arg
