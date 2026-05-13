@@ -118,7 +118,9 @@ setup() {
 }
 
 @test "diff: element in second but not first -> not in output" {
+  # shellcheck disable=SC2034  # used via nameref inside arrays::diff
   a=('apple' 'cherry')
+  # shellcheck disable=SC2034  # used via nameref inside arrays::diff
   b=('apple' 'banana' 'cherry')
   mapfile -t result < <(arrays::diff a b)
   assert_equal "${#result[@]}" 0
