@@ -23,7 +23,7 @@ fi
 if ! commands::executable_exists 'home-manager' && prompt::yn 'Install Nix home-manager and packages?'; then
   log::log 'Installing Nix home-manager and packages'
   # shellcheck disable=SC1091
-  source "${HOME}/.nix-profile/etc/profile.d/nix.sh"
+  source "${NIX_USER_PROFILE}/etc/profile.d/nix.sh"
   write-home-manager-packages
   home_manager_release="$(
     grep --only-matching --perl-regexp \

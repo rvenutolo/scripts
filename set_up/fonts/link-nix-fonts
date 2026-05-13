@@ -9,10 +9,10 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
-if ! dirs::exists "${HOME}/.nix-profile/share/fonts"; then
+if ! dirs::exists "${NIX_USER_PROFILE}/share/fonts"; then
   exit 0
 fi
-if symlinks::exists "${HOME}/.local/share/fonts/nix"; then
+if symlinks::exists "${XDG_DATA_HOME}/fonts/nix"; then
   exit 0
 fi
 if ! prompt::yn 'Link Nix fonts and update font cache?'; then
@@ -20,7 +20,7 @@ if ! prompt::yn 'Link Nix fonts and update font cache?'; then
 fi
 
 log::log 'Updating font cache to include nixpkgs fonts'
-dirs::create "${HOME}/.local/share/fonts"
-symlinks::link_dir "${HOME}/.nix-profile/share/fonts" "${HOME}/.local/share/fonts/nix"
+dirs::create "${XDG_DATA_HOME}/fonts"
+symlinks::link_dir "${NIX_USER_PROFILE}/share/fonts" "${XDG_DATA_HOME}/fonts/nix"
 fc-cache --force
 log::log 'Updated font cache to include nixpkgs fonts'
