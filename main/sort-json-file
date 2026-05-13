@@ -15,7 +15,7 @@ function sort_json_file() {
   args::check_exactly_1_arg "$@"
   local -r json_file="$1"
   local temp_file
-  temp_file="$(files::create_temp)"
+  files::create_temp temp_file
   json::sort "${json_file}" > "${temp_file}"
   files::move_no_prompt_quiet "${temp_file}" "${json_file}"
 }

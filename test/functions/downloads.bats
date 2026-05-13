@@ -10,6 +10,16 @@ setup() {
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/args.bash"
   # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/strings.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/misc.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/dirs.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/prompt.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/files.bash"
+  # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/downloads.bash"
 }
 

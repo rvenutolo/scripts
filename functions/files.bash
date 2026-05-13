@@ -469,19 +469,20 @@ function files::root_append_to_quiet() {
   printf '%s\n' "${content}" | sudo tee --append "${file}" > '/dev/null'
 }
 
-# @description Create a temporary file and install an EXIT trap to remove it. Prints the path to stdout.
-# Caller should capture the path immediately. NOTE: this installs an EXIT trap via `trap ... EXIT`, which
-# will overwrite any previously-installed EXIT trap by the caller; if the caller needs a multi-action
-# EXIT trap, they should install it themselves and not use this helper.
-# @noargs
-# @stdout temporary file path
+# @description Create a temporary file and install an EXIT trap to remove it. Sets the named variable
+# in the caller's scope to the temp file path. Must be called as a direct function (not via command
+# substitution) so the EXIT trap is installed in the calling process. NOTE: this installs an EXIT trap
+# via `trap ... EXIT`, which will overwrite any previously-installed EXIT trap by the caller; if the
+# caller needs a multi-action EXIT trap, they should install it themselves and not use this helper.
+# @arg $1 variable name to receive the temp file path (nameref)
 function files::create_temp() {
-  args::check_no_args "$@"
-  local temp_file
-  temp_file="$(mktemp)"
-  # shellcheck disable=SC2064  # expand temp_file at trap-set time; local goes out of scope before EXIT fires
-  trap "rm --force -- '${temp_file}'" EXIT
-  printf '%s\n' "${temp_file}"
+  args::check_exactly_1_arg "$@"
+  local -n _files_create_temp_var="$1"
+  local _files_create_temp_path
+  _files_create_temp_path="$(mktemp)"
+  _files_create_temp_var="${_files_create_temp_path}"
+  # shellcheck disable=SC2064  # expand at trap-set time; local goes out of scope before EXIT fires
+  trap "rm --force -- '${_files_create_temp_path}'" EXIT
 }
 
 # @description Print the SHA-256 hash of a file, or '0' if the file does not exist.

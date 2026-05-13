@@ -403,32 +403,22 @@ setup() {
 
 # ---------- files::create_temp ----------
 
-@test "create_temp: returns a path that exists immediately after call" {
+@test "create_temp: sets named variable to a path that exists" {
   local temp_path
-  temp_path="$(files::create_temp)"
+  files::create_temp temp_path
   [[ -f "${temp_path}" ]]
 }
 
 @test "create_temp: created file is empty" {
   local temp_path
-  temp_path="$(files::create_temp)"
+  files::create_temp temp_path
   [[ ! -s "${temp_path}" ]]
 }
 
-@test "create_temp: two sequential calls return distinct paths" {
+@test "create_temp: two sequential calls produce distinct paths" {
   local path_a path_b
-  path_a="$(bash -c "
-    source '${SCRIPTS_DIR}/functions/args.bash'
-    source '${SCRIPTS_DIR}/functions/log.bash'
-    source '${SCRIPTS_DIR}/functions/files.bash'
-    files::create_temp
-  ")"
-  path_b="$(bash -c "
-    source '${SCRIPTS_DIR}/functions/args.bash'
-    source '${SCRIPTS_DIR}/functions/log.bash'
-    source '${SCRIPTS_DIR}/functions/files.bash'
-    files::create_temp
-  ")"
+  files::create_temp path_a
+  files::create_temp path_b
   [[ "${path_a}" != "${path_b}" ]]
 }
 
@@ -438,16 +428,23 @@ setup() {
     source '${SCRIPTS_DIR}/functions/args.bash'
     source '${SCRIPTS_DIR}/functions/log.bash'
     source '${SCRIPTS_DIR}/functions/files.bash'
-    files::create_temp
+    files::create_temp p
+    printf '%s\n' \"\${p}\"
   ")"
   # After the subshell exits its EXIT trap fires and removes the file
   [[ ! -e "${temp_path}" ]]
 }
 
-@test "create_temp: dies with 1 arg" {
-  run files::create_temp 'unexpected'
+@test "create_temp: dies with no args" {
+  run files::create_temp
   assert_failure
-  assert_output --partial 'Expected no arguments'
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "create_temp: dies with 2 args" {
+  run files::create_temp 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- root_* family (Phase G) ----------
