@@ -200,10 +200,53 @@ EOF
   assert_output --partial 'restart --system --quiet foo.service'
 }
 
+# ---------- is_user_unit_enabled ----------
+
+@test "is_user_unit_enabled: returns 0 when unit is enabled" {
+  cli_shim::record_with_output systemctl '' 0
+  run systemctl::is_user_unit_enabled 'foo.service'
+  assert_success
+}
+
+@test "is_user_unit_enabled: returns 1 when unit is disabled" {
+  cli_shim::record_with_output systemctl '' 1
+  run systemctl::is_user_unit_enabled 'foo.service'
+  assert_failure
+}
+
+@test "is_user_unit_enabled: passes --user --quiet and unit name to systemctl" {
+  cli_shim::record_with_output systemctl '' 0
+  systemctl::is_user_unit_enabled 'foo.service'
+  run cli_shim::calls systemctl
+  assert_output --partial 'is-enabled --user --quiet foo.service'
+}
+
+# ---------- is_system_unit_enabled ----------
+
+@test "is_system_unit_enabled: returns 0 when unit is enabled" {
+  cli_shim::record_with_output systemctl '' 0
+  run systemctl::is_system_unit_enabled 'foo.service'
+  assert_success
+}
+
+@test "is_system_unit_enabled: returns 1 when unit is disabled" {
+  cli_shim::record_with_output systemctl '' 1
+  run systemctl::is_system_unit_enabled 'foo.service'
+  assert_failure
+}
+
+@test "is_system_unit_enabled: passes --system --quiet and unit name to systemctl" {
+  cli_shim::record_with_output systemctl '' 0
+  systemctl::is_system_unit_enabled 'foo.service'
+  run cli_shim::calls systemctl
+  assert_output --partial 'is-enabled --system --quiet foo.service'
+}
+
 # ---------- arg-count guards ----------
 
-@test "all 8 fns: die with no args" {
+@test "all 10 fns: die with no args" {
   for fn in user_service_unit_file_exists system_service_unit_file_exists \
+    is_user_unit_enabled is_system_unit_enabled \
     enable_user_service_unit enable_system_service_unit \
     disable_user_service_unit disable_system_service_unit \
     restart_user_service_if_enabled restart_system_service_if_enabled; do

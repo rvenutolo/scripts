@@ -122,17 +122,18 @@ Tests are **specification-driven**: each test encodes what the function *should*
 - `functions/os.bash` — `release_field`, `id`, `codename`, `arch`, `is_arch`, `is_cachyos`, `is_fedora`, `is_debian`, `is_ubuntu`, `is_leap`, `is_tumbleweed` (Phase F; uses new `os_release_fixture` helper to override `source` for `/etc/os-release` and `path_shim` to stub `dpkg`)
 - `functions/mvn.bash` — `list_pom_files` (Phase G)
 - `functions/network.bash` — `local_ip`, `local_network` (Phase G; uses `cli_shim::record_with_output ip`)
-- `functions/wrappers.bash` — `curl`, `wget` (Phase G; uses `cli_shim::record`)
+- `functions/http.bash` — `curl`, `wget`, `url_reachable` (Phase G; uses `cli_shim::record`; `url_reachable` Phase H)
 - `functions/downloads.bash` — `download_and_cat`, `download_to_temp_file`, `download_and_run_script`, `download_and_run_script_as_root` (Phase G; uses `cli_shim` + sudo passthrough)
 - `functions/packages.bash` — `dpkg_package_installed`, `get_universal`, `get_distro`, `get_sdkman` (Phase G; CSV fixtures + hostname/host-type stubs)
 - `functions/docker.bash` — `container_is_running`, `wait_for_healthy_container`, `create_network` (Phase G; stateful shim for poller)
-- `functions/systemctl.bash` — all 8 user/system unit-file existence + enable/disable/restart variants (Phase G; sudo passthrough for system variants)
+- `functions/systemctl.bash` — all 8 user/system unit-file existence + enable/disable/restart variants (Phase G; sudo passthrough for system variants); `is_user_unit_enabled`, `is_system_unit_enabled` (Phase H)
 - `functions/sdkman.bash` — `clean_output`, `update_metadata`, `.sdkmanrc` get/overwrite/rewrite, `list_all_sdkmanrc_files`, `rewrite_sdkmanrc_file_java_versions` (Phase G; `sdk()` shell function override)
 - `functions/sdkman_packages.bash` — install/uninstall/prune/list (Phase G; `sdk()` override + `SDKMAN_CANDIDATES_DIR` tmp tree)
 - `functions/sdkman_jdks.bash` — pure transforms (Phase G-11a) + sdk wrappers via stubbed `get_formatted_all_tem_jdks` (Phase G-11b)
 - `functions/dirs.bash` — adds `root_create` (Phase G; sudo passthrough)
 - `functions/files.bash` — adds all `root_*` variants and `_quiet` siblings (Phase G; sudo passthrough); `create_temp` (Phase H)
 - `functions/system.bash` — adds `reload_sysctl_conf` (Phase G; sudo passthrough + `SCRIPTS_AUTO_ANSWER` + `cli_shim::record sysctl`)
+- `functions/retry.bash` — `with_linear_backoff`, `with_exponential_backoff` (Phase H)
 
 Side-effecting helpers (sudo, network, package managers) remain out of scope until a mocking strategy is settled.
 
@@ -169,7 +170,7 @@ Note: `read -rp` writes the prompt text to `/dev/tty`, which BATS `run` does not
 
 ## Function Library
 
-`functions/` is organized by topic — `args`, `arrays`, `commands`, `docker`, `downloads`, `env`, `files`, `grep`, `json`, `log::log`, `mvn`, `network`, `os`, `packages`, `path`, `prompt`, `sdkman`, `strings`, `symlinks`, `system`, `systemctl`, `text`, `time`, `wrappers`, etc. When adding a helper, drop it in the topically-matching file; it's auto-sourced. If no existing topic fits, Claude may create a new `functions/<topic>.bash` file — but must ask first before adding the new topic.
+`functions/` is organized by topic — `args`, `arrays`, `commands`, `docker`, `downloads`, `env`, `files`, `grep`, `http`, `json`, `log::log`, `mvn`, `network`, `os`, `packages`, `path`, `prompt`, `retry`, `sdkman`, `strings`, `symlinks`, `system`, `systemctl`, `text`, `time`, etc. When adding a helper, drop it in the topically-matching file; it's auto-sourced. If no existing topic fits, Claude may create a new `functions/<topic>.bash` file — but must ask first before adding the new topic.
 
 ## Before Committing
 
