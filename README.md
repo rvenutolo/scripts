@@ -16,7 +16,6 @@ Personal Linux setup, install, and utility shell scripts.
 | `set_up/` | Idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script self-checks whether it should run. | no |
 | `misc/` | One-off setup scripts. Standalone — runnable on a fresh machine without this repo. | no |
 | `functions/` | Bash function library, auto-sourced via `functions.bash`. | n/a |
-| `lib/` | Vendored Groovy jars used by some scripts. | n/a |
 | `test/` | BATS test suite for the function library. | n/a |
 
 ## Common commands
