@@ -97,25 +97,29 @@ setup() {
 
 # ---------- time::shell_elapsed_time ----------
 
+# Note: these tests bypass `run` and capture output directly. Using `run` adds
+# subshell setup overhead between `SECONDS=N` and the function call, which can
+# tick SECONDS past N before the elapsed-time read — making `SECONDS=0 -> 0s`
+# flaky under suite load.
 @test "shell_elapsed_time: SECONDS=0 -> 0s" {
   SECONDS=0
-  run time::shell_elapsed_time
-  assert_success
-  assert_output '0s'
+  local actual
+  actual="$(time::shell_elapsed_time)"
+  assert_equal "${actual}" '0s'
 }
 
 @test "shell_elapsed_time: SECONDS=1 -> 1s" {
   SECONDS=1
-  run time::shell_elapsed_time
-  assert_success
-  assert_output '1s'
+  local actual
+  actual="$(time::shell_elapsed_time)"
+  assert_equal "${actual}" '1s'
 }
 
 @test "shell_elapsed_time: SECONDS=3661 -> 1h 1m 1s" {
   SECONDS=3661
-  run time::shell_elapsed_time
-  assert_success
-  assert_output '1h 1m 1s'
+  local actual
+  actual="$(time::shell_elapsed_time)"
+  assert_equal "${actual}" '1h 1m 1s'
 }
 
 @test "shell_elapsed_time: dies when called with arg" {
