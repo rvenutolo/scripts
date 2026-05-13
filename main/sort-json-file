@@ -16,7 +16,9 @@ function sort_json_file() {
   local -r json_file="$1"
   local temp_file
   temp_file="$(mktemp)"
-  trap 'rm --force -- "${temp_file}"' EXIT
+  # expand temp_file at trap-set time (double quotes) — the local goes out of scope before EXIT fires
+  # shellcheck disable=SC2064 # intentional immediate expansion
+  trap "rm --force -- '${temp_file}'" EXIT
   json::sort "${json_file}" > "${temp_file}"
   files::move_no_prompt_quiet "${temp_file}" "${json_file}"
 }

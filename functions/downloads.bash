@@ -8,7 +8,9 @@ function downloads::download_and_cat() {
   local temp_file
   temp_file="$(mktemp)"
   readonly temp_file
-  trap 'rm --force -- "${temp_file}"' EXIT
+  # expand temp_file at trap-set time (double quotes) — the local goes out of scope before EXIT fires
+  # shellcheck disable=SC2064 # intentional immediate expansion
+  trap "rm --force -- '${temp_file}'" EXIT
   download "$1" "${temp_file}"
   cat "${temp_file}"
 }
@@ -21,7 +23,9 @@ function downloads::download_to_temp_file() {
   local temp_file
   temp_file="$(mktemp)"
   readonly temp_file
-  trap 'rm --force -- "${temp_file}"' EXIT
+  # expand temp_file at trap-set time (double quotes) — the local goes out of scope before EXIT fires
+  # shellcheck disable=SC2064 # intentional immediate expansion
+  trap "rm --force -- '${temp_file}'" EXIT
   download "$1" "${temp_file}"
   printf '%s\n' "${temp_file}"
 }
@@ -35,7 +39,9 @@ function downloads::download_and_run_script() {
   local temp_file
   temp_file="$(mktemp)"
   readonly temp_file
-  trap 'rm --force -- "${temp_file}"' EXIT
+  # expand temp_file at trap-set time (double quotes) — the local goes out of scope before EXIT fires
+  # shellcheck disable=SC2064 # intentional immediate expansion
+  trap "rm --force -- '${temp_file}'" EXIT
   download "${url}" "${temp_file}"
   chmod +x "${temp_file}"
   shift
@@ -51,7 +57,9 @@ function downloads::download_and_run_script_as_root() {
   local temp_file
   temp_file="$(mktemp)"
   readonly temp_file
-  trap 'rm --force -- "${temp_file}"' EXIT
+  # expand temp_file at trap-set time (double quotes) — the local goes out of scope before EXIT fires
+  # shellcheck disable=SC2064 # intentional immediate expansion
+  trap "rm --force -- '${temp_file}'" EXIT
   download "${url}" "${temp_file}"
   chmod +x "${temp_file}"
   shift
