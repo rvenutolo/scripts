@@ -16,7 +16,7 @@ log::enable_err_trap
 system::require_bash_version 4 3
 args::check_no_args "$@"
 
-readonly SHDOC="${SCRIPTS_DIR}/vendor/shdoc/shdoc"
+readonly SHDOC="${SCRIPTS_DIR}/.shdoc/shdoc"
 readonly DOCS_FUNCTIONS_DIR="${SCRIPTS_DIR}/docs/functions"
 readonly DOCS_SCRIPTS_DIR="${SCRIPTS_DIR}/docs/scripts"
 
