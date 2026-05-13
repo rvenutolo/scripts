@@ -9,9 +9,7 @@ log::enable_err_trap
 system::require_bash_version 4 0
 # pass-through: any arg count valid ($@ forwarded as filter args to packages::get_universal)
 
-if ! commands::executable_exists 'flatpak'; then
-  log::die 'flatpak executable not found'
-fi
+commands::assert_executable_exists 'flatpak'
 
 mapfile -t flatpaks_from_package_list < <(packages::get_universal 'flatpak' "$@" | sort)
 readonly flatpaks_from_package_list
@@ -19,11 +17,7 @@ readonly flatpaks_from_package_list
 mapfile -t flatpaks_installed < <(flatpak list --user --app --columns application | sort)
 readonly flatpaks_installed
 
-mapfile -t flatpaks_to_install < <(
-  comm -23 \
-    <(arrays::to_lines "${flatpaks_from_package_list[@]}") \
-    <(arrays::to_lines "${flatpaks_installed[@]}")
-)
+mapfile -t flatpaks_to_install < <(arrays::diff flatpaks_from_package_list flatpaks_installed)
 readonly flatpaks_to_install
 
 mapfile -t flatpaks_to_remove < <(

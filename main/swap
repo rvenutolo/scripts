@@ -12,8 +12,7 @@ readonly PATH_A="$1"
 readonly PATH_B="$2"
 
 if files::exists "${PATH_A}" && files::exists "${PATH_B}" || dirs::exists "${PATH_A}" && dirs::exists "${PATH_B}"; then
-  temp_file="$(mktemp)"
-  trap 'rm --force -- "${temp_file}"' EXIT
+  temp_file="$(files::create_temp)"
   mv -- "${PATH_A}" "${temp_file}"
   mv -- "${PATH_B}" "${PATH_A}"
   mv -- "${temp_file}" "${PATH_B}"

@@ -401,6 +401,55 @@ setup() {
   assert_output --partial 'Expected exactly 2 arguments'
 }
 
+# ---------- files::create_temp ----------
+
+@test "create_temp: returns a path that exists immediately after call" {
+  local temp_path
+  temp_path="$(files::create_temp)"
+  [[ -f "${temp_path}" ]]
+}
+
+@test "create_temp: created file is empty" {
+  local temp_path
+  temp_path="$(files::create_temp)"
+  [[ ! -s "${temp_path}" ]]
+}
+
+@test "create_temp: two sequential calls return distinct paths" {
+  local path_a path_b
+  path_a="$(bash -c "
+    source '${SCRIPTS_DIR}/functions/args.bash'
+    source '${SCRIPTS_DIR}/functions/log.bash'
+    source '${SCRIPTS_DIR}/functions/files.bash'
+    files::create_temp
+  ")"
+  path_b="$(bash -c "
+    source '${SCRIPTS_DIR}/functions/args.bash'
+    source '${SCRIPTS_DIR}/functions/log.bash'
+    source '${SCRIPTS_DIR}/functions/files.bash'
+    files::create_temp
+  ")"
+  [[ "${path_a}" != "${path_b}" ]]
+}
+
+@test "create_temp: EXIT trap removes the file when subshell exits" {
+  local temp_path
+  temp_path="$(bash -c "
+    source '${SCRIPTS_DIR}/functions/args.bash'
+    source '${SCRIPTS_DIR}/functions/log.bash'
+    source '${SCRIPTS_DIR}/functions/files.bash'
+    files::create_temp
+  ")"
+  # After the subshell exits its EXIT trap fires and removes the file
+  [[ ! -e "${temp_path}" ]]
+}
+
+@test "create_temp: dies with 1 arg" {
+  run files::create_temp 'unexpected'
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
 # ---------- root_* family (Phase G) ----------
 
 setup_files_root_helpers() {
