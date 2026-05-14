@@ -106,7 +106,7 @@ Tests are **specification-driven**: each test encodes what the function *should*
 - `functions/env_file.bash` — pure half: `assert_var_exists`, `get_var_value`, `is_var_value_empty`, `set_var_value`, `set_var_value_if_empty` (Phase C); interactive `prompt_*` family: 8 functions covering value, value-with-default, password, and password-with-symbols variants plus their `_if_empty` siblings (Phase D)
 - `functions/ip.bash` — `ipv4_to_num`, `num_to_ipv4` (Phase E)
 - `functions/env.bash` — `assert_var_set` (Phase E)
-- `functions/misc.bash` — `auto_answer` (Phase E); `this_script_dir` (Phase F; tested via tmp caller scripts under `${BATS_TEST_TMPDIR}`)
+- `functions/misc.bash` — `auto_answer` (Phase E); `this_script_dir` (Phase F; tested via tmp caller scripts under `${BATS_TEST_TMPDIR}`); `exec_gui` (Phase H; tested via path-shimmed `setsid` inside `bash -c` subshell since `exec` replaces the calling process)
 - `functions/commands.bash` — `executable_exists`, `executable_path`, `function_exists` (Phase E), `assert_executable_exists` (Phase H)
 - `functions/passwords.bash` — `generate`, `generate_with_symbols` (Phase E; skipped if pwgen missing)
 - `functions/log.bash` — `log`, `with_date`, `warn`, `die`, `_err_trap_handler`, `enable_err_trap` (Phase E)
