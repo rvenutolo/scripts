@@ -19,13 +19,13 @@ if files::exists "${PATH_A}" && files::exists "${PATH_B}" || dirs::exists "${PAT
   mv -- "${temp_file}" "${PATH_B}"
   log::log "${PATH_A} <-> ${PATH_B}"
 else
-  if [[ -e "${PATH_A}" && -e "${PATH_B}" ]]; then
+  if files::any_exists "${PATH_A}" && files::any_exists "${PATH_B}"; then
     log::die "Cannot swap file and directory"
   fi
-  if [[ ! -e "${PATH_A}" ]]; then
+  if ! files::any_exists "${PATH_A}"; then
     log::die "${PATH_A} does not exist"
   fi
-  if [[ ! -e "${PATH_B}" ]]; then
+  if ! files::any_exists "${PATH_B}"; then
     log::die "${PATH_B} does not exist"
   fi
 fi

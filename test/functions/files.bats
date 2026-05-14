@@ -120,6 +120,250 @@ setup() {
   assert_failure
 }
 
+# ---------- files::is_executable ----------
+
+@test "is_executable: regular executable file -> true" {
+  : > "${BATS_TEST_TMPDIR}/f"
+  chmod +x "${BATS_TEST_TMPDIR}/f"
+  run files::is_executable "${BATS_TEST_TMPDIR}/f"
+  assert_success
+}
+
+@test "is_executable: regular non-executable file -> false" {
+  : > "${BATS_TEST_TMPDIR}/f"
+  chmod 644 "${BATS_TEST_TMPDIR}/f"
+  run files::is_executable "${BATS_TEST_TMPDIR}/f"
+  assert_failure
+}
+
+@test "is_executable: dir (executable) -> false" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/d"
+  run files::is_executable "${BATS_TEST_TMPDIR}/d"
+  assert_failure
+}
+
+@test "is_executable: symlink to executable file -> true" {
+  : > "${BATS_TEST_TMPDIR}/target"
+  chmod +x "${BATS_TEST_TMPDIR}/target"
+  ln --symbolic "${BATS_TEST_TMPDIR}/target" "${BATS_TEST_TMPDIR}/link"
+  run files::is_executable "${BATS_TEST_TMPDIR}/link"
+  assert_success
+}
+
+@test "is_executable: symlink to non-executable file -> false" {
+  : > "${BATS_TEST_TMPDIR}/target"
+  chmod 644 "${BATS_TEST_TMPDIR}/target"
+  ln --symbolic "${BATS_TEST_TMPDIR}/target" "${BATS_TEST_TMPDIR}/link"
+  run files::is_executable "${BATS_TEST_TMPDIR}/link"
+  assert_failure
+}
+
+@test "is_executable: symlink to dir -> false" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/d"
+  ln --symbolic "${BATS_TEST_TMPDIR}/d" "${BATS_TEST_TMPDIR}/link"
+  run files::is_executable "${BATS_TEST_TMPDIR}/link"
+  assert_failure
+}
+
+@test "is_executable: broken symlink -> false" {
+  ln --symbolic "${BATS_TEST_TMPDIR}/missing" "${BATS_TEST_TMPDIR}/broken"
+  run files::is_executable "${BATS_TEST_TMPDIR}/broken"
+  assert_failure
+}
+
+@test "is_executable: missing path -> false" {
+  run files::is_executable "${BATS_TEST_TMPDIR}/nope"
+  assert_failure
+}
+
+@test "is_executable: dies with 0 args" {
+  run files::is_executable
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "is_executable: dies with 2 args" {
+  run files::is_executable 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+# ---------- files::assert_executable ----------
+
+@test "assert_executable: executable file -> success" {
+  : > "${BATS_TEST_TMPDIR}/f"
+  chmod +x "${BATS_TEST_TMPDIR}/f"
+  run files::assert_executable "${BATS_TEST_TMPDIR}/f"
+  assert_success
+}
+
+@test "assert_executable: non-executable file -> dies" {
+  : > "${BATS_TEST_TMPDIR}/f"
+  chmod 644 "${BATS_TEST_TMPDIR}/f"
+  run files::assert_executable "${BATS_TEST_TMPDIR}/f"
+  assert_failure
+  assert_output --partial 'is not executable'
+}
+
+@test "assert_executable: dir -> dies" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/d"
+  run files::assert_executable "${BATS_TEST_TMPDIR}/d"
+  assert_failure
+  assert_output --partial 'is not executable'
+}
+
+@test "assert_executable: missing -> dies" {
+  run files::assert_executable "${BATS_TEST_TMPDIR}/nope"
+  assert_failure
+  assert_output --partial 'is not executable'
+}
+
+@test "assert_executable: symlink to executable file -> success" {
+  : > "${BATS_TEST_TMPDIR}/target"
+  chmod +x "${BATS_TEST_TMPDIR}/target"
+  ln --symbolic "${BATS_TEST_TMPDIR}/target" "${BATS_TEST_TMPDIR}/link"
+  run files::assert_executable "${BATS_TEST_TMPDIR}/link"
+  assert_success
+}
+
+@test "assert_executable: symlink to dir -> dies" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/d"
+  ln --symbolic "${BATS_TEST_TMPDIR}/d" "${BATS_TEST_TMPDIR}/link"
+  run files::assert_executable "${BATS_TEST_TMPDIR}/link"
+  assert_failure
+  assert_output --partial 'is not executable'
+}
+
+# ---------- files::is_empty ----------
+
+@test "is_empty: empty file -> true" {
+  : > "${BATS_TEST_TMPDIR}/f"
+  run files::is_empty "${BATS_TEST_TMPDIR}/f"
+  assert_success
+}
+
+@test "is_empty: non-empty file -> false" {
+  printf 'x' > "${BATS_TEST_TMPDIR}/f"
+  run files::is_empty "${BATS_TEST_TMPDIR}/f"
+  assert_failure
+}
+
+@test "is_empty: missing -> false" {
+  run files::is_empty "${BATS_TEST_TMPDIR}/nope"
+  assert_failure
+}
+
+@test "is_empty: dir -> false" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/d"
+  run files::is_empty "${BATS_TEST_TMPDIR}/d"
+  assert_failure
+}
+
+@test "is_empty: symlink to empty file -> true" {
+  : > "${BATS_TEST_TMPDIR}/target"
+  ln --symbolic "${BATS_TEST_TMPDIR}/target" "${BATS_TEST_TMPDIR}/link"
+  run files::is_empty "${BATS_TEST_TMPDIR}/link"
+  assert_success
+}
+
+@test "is_empty: dies with 0 args" {
+  run files::is_empty
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "is_empty: dies with 2 args" {
+  run files::is_empty 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+# ---------- files::is_non_empty ----------
+
+@test "is_non_empty: non-empty file -> true" {
+  printf 'x' > "${BATS_TEST_TMPDIR}/f"
+  run files::is_non_empty "${BATS_TEST_TMPDIR}/f"
+  assert_success
+}
+
+@test "is_non_empty: empty file -> false" {
+  : > "${BATS_TEST_TMPDIR}/f"
+  run files::is_non_empty "${BATS_TEST_TMPDIR}/f"
+  assert_failure
+}
+
+@test "is_non_empty: missing -> false" {
+  run files::is_non_empty "${BATS_TEST_TMPDIR}/nope"
+  assert_failure
+}
+
+@test "is_non_empty: dir -> false" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/d"
+  run files::is_non_empty "${BATS_TEST_TMPDIR}/d"
+  assert_failure
+}
+
+@test "is_non_empty: symlink to non-empty file -> true" {
+  printf 'x' > "${BATS_TEST_TMPDIR}/target"
+  ln --symbolic "${BATS_TEST_TMPDIR}/target" "${BATS_TEST_TMPDIR}/link"
+  run files::is_non_empty "${BATS_TEST_TMPDIR}/link"
+  assert_success
+}
+
+@test "is_non_empty: dies with 0 args" {
+  run files::is_non_empty
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "is_non_empty: dies with 2 args" {
+  run files::is_non_empty 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+# ---------- files::assert_empty ----------
+
+@test "assert_empty: empty file -> success" {
+  : > "${BATS_TEST_TMPDIR}/f"
+  run files::assert_empty "${BATS_TEST_TMPDIR}/f"
+  assert_success
+}
+
+@test "assert_empty: non-empty file -> dies" {
+  printf 'x' > "${BATS_TEST_TMPDIR}/f"
+  run files::assert_empty "${BATS_TEST_TMPDIR}/f"
+  assert_failure
+  assert_output --partial 'does not exist or is not empty'
+}
+
+@test "assert_empty: missing -> dies" {
+  run files::assert_empty "${BATS_TEST_TMPDIR}/nope"
+  assert_failure
+  assert_output --partial 'does not exist or is not empty'
+}
+
+# ---------- files::assert_non_empty ----------
+
+@test "assert_non_empty: non-empty file -> success" {
+  printf 'x' > "${BATS_TEST_TMPDIR}/f"
+  run files::assert_non_empty "${BATS_TEST_TMPDIR}/f"
+  assert_success
+}
+
+@test "assert_non_empty: empty file -> dies" {
+  : > "${BATS_TEST_TMPDIR}/f"
+  run files::assert_non_empty "${BATS_TEST_TMPDIR}/f"
+  assert_failure
+  assert_output --partial 'does not exist or is empty'
+}
+
+@test "assert_non_empty: missing -> dies" {
+  run files::assert_non_empty "${BATS_TEST_TMPDIR}/nope"
+  assert_failure
+  assert_output --partial 'does not exist or is empty'
+}
+
 # ---------- files::size_gb ----------
 
 @test "size_gb: tiny file -> 0 (bc with scale=2 omits trailing zeros for 0)" {
