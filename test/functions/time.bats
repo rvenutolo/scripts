@@ -111,6 +111,7 @@ setup() {
 
 @test "shell_elapsed_time: delegates to calc_elapsed with 0 and SECONDS" {
   # Override calc_elapsed for this test only; bats isolates each @test in its own subshell.
+  # shellcheck disable=SC2329 # invoked indirectly via time::shell_elapsed_time
   function time::calc_elapsed() {
     printf 'start=%s end=%s\n' "$1" "$2"
   }
@@ -120,7 +121,7 @@ setup() {
   [[ "${actual}" =~ ^start=0\ end=([0-9]+)$ ]]
   local seconds_seen="${BASH_REMATCH[1]}"
   # SECONDS may have ticked between assignment and read; accept anything >= 42.
-  (( seconds_seen >= 42 ))
+  ((seconds_seen >= 42))
 }
 
 @test "shell_elapsed_time: reads SECONDS dynamically, not a hardcoded value" {
@@ -135,7 +136,7 @@ setup() {
   actual="$(time::shell_elapsed_time)"
   [[ "${actual}" =~ ^start=0\ end=([0-9]+)$ ]]
   local seconds_seen="${BASH_REMATCH[1]}"
-  (( seconds_seen >= 9999 ))
+  ((seconds_seen >= 9999))
 }
 
 @test "shell_elapsed_time: dies when called with arg" {
