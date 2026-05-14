@@ -422,17 +422,19 @@ setup() {
   [[ "${path_a}" != "${path_b}" ]]
 }
 
-@test "create_temp: EXIT trap removes the file when subshell exits" {
+@test "create_temp: created file persists after the calling shell exits" {
+  # The helper deliberately does NOT install a cleanup trap — /tmp is managed by
+  # the OS, so the temp file is expected to outlive the process that created it
+  # and only get reclaimed by tmpfs wipe or systemd-tmpfiles age policy.
   local temp_path
   temp_path="$(bash -c "
     source '${SCRIPTS_DIR}/functions/args.bash'
-    source '${SCRIPTS_DIR}/functions/log.bash'
     source '${SCRIPTS_DIR}/functions/files.bash'
     files::create_temp p
     printf '%s\n' \"\${p}\"
   ")"
-  # After the subshell exits its EXIT trap fires and removes the file
-  [[ ! -e "${temp_path}" ]]
+  [[ -f "${temp_path}" ]]
+  rm --force -- "${temp_path}"
 }
 
 @test "create_temp: dies with no args" {

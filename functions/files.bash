@@ -469,42 +469,15 @@ function files::root_append_to_quiet() {
   printf '%s\n' "${content}" | sudo tee --append "${file}" > '/dev/null'
 }
 
-# Internal: accumulated temp file paths cleaned up by the shared EXIT trap installed
-# on first call to files::create_temp. Multiple files::create_temp calls all funnel into
-# this list so each call does NOT clobber the previous call's trap.
-_FILES_CREATE_TEMP_PATHS=()
-_FILES_CREATE_TEMP_TRAP_INSTALLED='n'
-
-# @description Internal cleanup function bound to EXIT by files::create_temp on first
-# call. Iterates the accumulated paths and removes each. Safe to invoke directly for testing.
-# @noargs
-function _files::create_temp_cleanup() {
-  if ((${#_FILES_CREATE_TEMP_PATHS[@]} > 0)); then
-    rm --force -- "${_FILES_CREATE_TEMP_PATHS[@]}"
-  fi
-}
-
-# @description Create a temporary file and ensure it is removed when the calling shell exits.
-# Sets the named variable in the caller's scope to the temp file path. Safe to call multiple
-# times in the same process — every created path is collected into a shared list and cleaned
-# up by a single EXIT trap installed on the first call. Must be called as a direct function
-# (not via command substitution) so the EXIT trap is installed in the calling process and the
-# accumulated paths array lives in the caller's shell. NOTE: the trap is installed via
-# `trap _files::create_temp_cleanup EXIT`, which will overwrite any previously-installed EXIT
-# trap by the caller; if the caller needs to combine this with their own EXIT trap, they must
-# capture this helper's trap via `trap -p EXIT` and chain it manually.
+# @description Create a temporary file under /tmp and set the named variable in the
+# caller's scope to its path. The file is NOT cleaned up on exit — /tmp is managed by
+# the OS (tmpfs reboot wipe, systemd-tmpfiles age-based cleanup), so process-level
+# cleanup is unnecessary and adds complexity (EXIT-trap clobbering, multi-file accounting).
 # @arg $1 variable name to receive the temp file path (nameref)
 function files::create_temp() {
   args::check_exactly_1_arg "$@"
   local -n _files_create_temp_var="$1"
-  local _files_create_temp_path
-  _files_create_temp_path="$(mktemp)"
-  _files_create_temp_var="${_files_create_temp_path}"
-  _FILES_CREATE_TEMP_PATHS+=("${_files_create_temp_path}")
-  if [[ "${_FILES_CREATE_TEMP_TRAP_INSTALLED}" == 'n' ]]; then
-    trap _files::create_temp_cleanup EXIT
-    _FILES_CREATE_TEMP_TRAP_INSTALLED='y'
-  fi
+  _files_create_temp_var="$(mktemp)"
 }
 
 # @description Print the SHA-256 hash of a file, or '0' if the file does not exist.

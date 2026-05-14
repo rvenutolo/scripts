@@ -139,7 +139,7 @@
 - Default safely under `set -u`: use `"${VAR:-default}"` for vars that may legitimately be unset; do NOT add defaults for well-known env vars expected to always be present (`HOME`, `USER`, `SDKMAN_DIR`, `PATH`, `SCRIPTS_DIR`, etc.) — let `set -u` catch them if missing
 - When parsing decimal strings that may have leading zeros (e.g. `date +%H` → `09`), use `10#` in arithmetic context (`$((10#${var}))`) or strip via `%-H`/`%-M` with GNU date — bash arithmetic treats `08`/`09` as invalid octal
 - Force-decimal numbers from external commands before arithmetic comparison
-- Tempfiles: `tmp="$(mktemp)"` and `trap 'rm --force -- "${tmp}"' EXIT` for cleanup
+- Tempfiles: use the `files::create_temp tmp_var_name` helper from `functions/files.bash`. Do NOT install an EXIT trap or otherwise manually `rm` the temp file at end of script. Temporary files created under `/tmp` are managed by the OS (tmpfs reboot wipe + systemd-tmpfiles age-based cleanup), so process-level cleanup adds complexity (EXIT-trap clobbering between multiple temp files, accounting for early exits) without buying anything. Standalone scripts under `misc/` that cannot source `functions.bash` should call `mktemp` directly and similarly omit any cleanup trap.
 - Heredocs: quote the terminator when no expansion wanted: `<<'EOF'`
 - Use `printf '%s\n' "$x"` over `echo "$x"` when `$x` could start with `-` or contain backslashes
 - Use `printf` (with explicit format string, including ANSI escapes like `'\033[0;32m%s\033[0m\n'` when colorizing) for any non-trivial output; never `echo -e`
