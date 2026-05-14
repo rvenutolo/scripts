@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+# pass-through: git passes ref/sha pairs on stdin we ignore
+
+log::log 'pre-push: running check-scripts'
+if ! "${SCRIPTS_DIR}/check-scripts"; then
+  log::die 'check-scripts failed — push aborted. Fix issues or rerun with --no-verify to bypass.'
+fi
+log::log 'pre-push: check-scripts passed'

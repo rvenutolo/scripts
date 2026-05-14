@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# @description Point this repo's git hook path at the tracked .githooks/ directory.
+# Idempotent: re-running is a no-op if core.hooksPath is already set correctly.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_no_args "$@"
+
+readonly HOOKS_PATH='.githooks'
+
+(cd "${SCRIPTS_DIR}" && {
+  current="$(git config --local --default '' core.hooksPath)"
+  if [[ "${current}" == "${HOOKS_PATH}" ]]; then
+    log::log "git core.hooksPath already set to ${HOOKS_PATH}"
+    exit 0
+  fi
+  log::log "Setting git core.hooksPath to ${HOOKS_PATH}"
+  git config --local core.hooksPath "${HOOKS_PATH}"
+  log::log 'Done — pre-push hook will now run ./check-scripts before each push'
+})
