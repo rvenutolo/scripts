@@ -8,22 +8,18 @@ Personal collection of bash scripts for system setup, package install, and day-t
 
 ## Required Environment
 
-- `SCRIPTS_DIR` env var points to repo root. Every script sources `"${SCRIPTS_DIR}/functions.bash"`.
-- Claude can assume `SCRIPTS_DIR` is always set in the environment — do not add `${SCRIPTS_DIR:-default}` fallbacks or `set -u` defenses for it.
-- When running `./check-scripts`, `./format-scripts`, `./shellcheck-scripts`, or any other script in the repo, do NOT prefix the command with `SCRIPTS_DIR=...`. The env var is set by `~/.profile` and is expected to already be present. If it is not set, the script will fail under `set -u` — that is the desired behavior so the user can fix their environment.
-- `main/` and `other/` are always on `PATH`. `install/`, `set_up/`, `misc/` are not.
+The user's `~/.profile` exports a fixed set of env vars (`SCRIPTS_DIR`, `XDG_*`, `PERSONAL_PROJECTS_DIR`, etc.) that this repo relies on. They are always set in the environment by the time any script runs — interactive shells source `~/.profile`, and the `run-install-scripts` / `run-set-up-scripts` runners source it explicitly. Treat the full set as guaranteed. Read `~/.profile` to enumerate the available vars and their definitions.
 
-## Standard Env Vars
+- **Reuse, don't hardcode.** When a script references a path or hostname covered by one of these vars, use the env var literal directly: `"${SCRIPTS_DIR}/functions.bash"`, `"${XDG_CONFIG_HOME}/foo/bar"`, `"${PERSONAL_PROJECTS_DIR}/some-repo"`, etc. Shell expands env vars natively — no templating needed.
+- **No fallbacks.** Do NOT add `${VAR:-default}` defensive defaults or `set -u` defenses for any of these vars (including `SCRIPTS_DIR`). Failure under `set -u` is the desired behavior if the environment is broken — the user wants to fix the environment, not paper over it.
+- **No env-var prefix when invoking repo scripts.** When running `./check-scripts`, `./format-scripts`, `./shellcheck-scripts`, or any other script in the repo, do NOT prefix the command with `SCRIPTS_DIR=...` — the env var is already set.
+- **Ignore conditional exports.** `EDITOR`, `VISUAL`, `PAGER`, `MANPAGER`, `FILE_MANAGER`, `TAILNET_IP`, `TAILNET_CIDR`, `TERM`, etc. are gated on `__executable_exists` / `case` / runtime probes in `~/.profile`; they're not meant for cross-file reuse and are not guaranteed to be set.
+- **`PATH` membership.** `main/` and `other/` are always on `PATH`. `install/`, `set_up/`, `misc/` are not.
+- **`misc/` exemption.** Scripts under `misc/` are explicitly standalone — they must NOT depend on this repo's env or functions. Hardcoded paths are acceptable there.
 
-User exports a fixed set of env vars in `~/.profile` and wants them reused everywhere in this repo instead of hardcoded paths or literals. Read `~/.profile` to enumerate the available env vars and their definitions. Ignore conditional exports — `EDITOR`, `VISUAL`, `PAGER`, `MANPAGER`, `FILE_MANAGER`, `TAILNET_IP`, `TAILNET_CIDR`, `TERM`, etc. — that are gated on `__executable_exists` / `case` / runtime probes; they're not meant for cross-file reuse.
+### Sourcing `functions.bash`
 
-### Usage policy
-
-When a script references a path or hostname covered by one of these vars, use the env var literal directly: `"${XDG_CONFIG_HOME}/foo/bar"`, `"${PERSONAL_PROJECTS_DIR}/some-repo"`, etc. Shell scripts expand env vars natively — no templating needed.
-
-`~/.profile` is sourced before any of these scripts run (interactive shell + the `run-install-scripts` / `run-set-up-scripts` runners source it explicitly), so the env vars are always set by the time a script reads them. Do NOT add `${VAR:-fallback}` defensive defaults — failure under `set -u` is the desired behavior if the environment is broken (same rule as `SCRIPTS_DIR` above).
-
-Exemption: scripts under `misc/` are explicitly standalone — they must NOT depend on this repo's env or functions. Hardcoded paths are acceptable there.
+Every non-`misc/` script sources `"${SCRIPTS_DIR}/functions.bash"`. Exception: a small number of Docker-related scripts (e.g. `main/docker-grype-scan`, `main/docker-trivy-scan`) source `${DOCKER_COMPOSE_DIR}/functions.bash` from a separate Docker repo instead. That file transitively sources `${SCRIPTS_DIR}/functions.bash`, so all helpers from this repo (`log::enable_err_trap`, `log::log`, `log::die`, etc.) ARE available — no need to inline equivalents in those scripts.
 
 ## Layout
 
@@ -32,7 +28,6 @@ Exemption: scripts under `misc/` are explicitly standalone — they must NOT dep
 - `install/` — numbered scripts run in order by `run-install-scripts` to provision a new machine. Files starting with all-caps names (e.g. `00_DISTRO_PACKAGES`, `70_WORK_ONLY`) are markers/data with executable bit off — the runner skips non-executable files. `90_REMOVE` etc. follow same pattern.
 - `set_up/` — idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script must self-check whether it should run.
 - `misc/` — one-off setup scripts (not on `PATH`, not auto-run). Scripts here are expected to be **standalone** — runnable on a fresh machine by someone without access to this repo's function library. Do NOT source `functions.bash` from `misc/` scripts; inline anything they need (including the `ERR` trap — see Script Conventions).
-- A small number of Docker-related scripts (e.g. `main/docker-grype-scan`, `main/docker-trivy-scan`) source `${DOCKER_COMPOSE_DIR}/functions.bash` from a separate Docker repo instead of this repo's `functions.bash` directly. That file in turn sources `${SCRIPTS_DIR}/functions.bash`, so all helpers from this repo (`log::enable_err_trap`, `log::log`, `log::die`, etc.) ARE available — no need to inline equivalents in those scripts.
 - `functions/` — bash function library, all sourced via `functions.bash` (loops `functions/*.bash`).
 - `lib/` — vendored Groovy jars (used by some scripts).
 
@@ -93,50 +88,6 @@ Tests are **specification-driven**: each test encodes what the function *should*
 3. In `setup()`, `load '../test_helper/common'` and `source` the file under test plus any of its dependencies (e.g. `args.bash` for any helper that uses `args::check_*`).
 4. Per function: one assertion per intended behavior, plus the standard edge-case sweep — empty input, whitespace-only, single char, multi-line, leading/trailing separators, arg-count boundaries.
 5. Run `./run-tests test/functions/<name>.bats` and triage failures: genuine bug → fix the function; ambiguity → escalate; test bug → fix the test.
-
-### What is tested
-
-- `functions/strings.bash` — `is_empty`, `is_not_empty`, `is_blank`, `trim`, `ensure_trailing_slash` (Phase A); `is_not_blank`, `assert_empty`, `assert_not_empty`, `assert_blank`, `assert_not_blank` (Phase I)
-- `functions/args.bash` — all 13 `check_*` arity helpers, `stdin_exists`, `check_for_stdin` (Phase A)
-- `functions/path.bash` — `remove`, `append`, `prepend` (Phase A)
-- `functions/arrays.bash` — `to_lines` (Phase B); `diff` (Phase H)
-- `functions/time.bash` — `calc_elapsed`, `shell_elapsed_time` (Phase B)
-- `functions/text.bash` — `remove_ansi`, `remove_empty_lines`, `first_line`, `last_line`, `skip_first_lines` (Phase B)
-- `functions/grep.bash` — all 20 `contains_*` and `file_contains_*` variants (Phase B)
-- `functions/json.bash` — `sort` (Phase B)
-- `functions/env_file.bash` — pure half: `assert_var_exists`, `get_var_value`, `is_var_value_empty`, `set_var_value`, `set_var_value_if_empty` (Phase C); interactive `prompt_*` family: 8 functions covering value, value-with-default, password, and password-with-symbols variants plus their `_if_empty` siblings (Phase D)
-- `functions/ip.bash` — `ipv4_to_num`, `num_to_ipv4` (Phase E)
-- `functions/env.bash` — `assert_var_set` (Phase E)
-- `functions/misc.bash` — `auto_answer` (Phase E); `this_script_dir` (Phase F; tested via tmp caller scripts under `${BATS_TEST_TMPDIR}`); `exec_gui` (Phase H; tested via path-shimmed `setsid` inside `bash -c` subshell since `exec` replaces the calling process)
-- `functions/commands.bash` — `executable_exists`, `executable_path`, `function_exists` (Phase E), `assert_executable_exists` (Phase H)
-- `functions/passwords.bash` — `generate`, `generate_with_symbols` (Phase E; skipped if pwgen missing)
-- `functions/log.bash` — `log`, `with_date`, `warn`, `die`, `_err_trap_handler`, `enable_err_trap` (Phase E)
-- `functions/dirs.bash` — `exists`, `assert_exists`, `create` (Phase E; `root_create` deferred to Phase G)
-- `functions/symlinks.bash` — `exists`, `get_target`, `link_file`, `link_dir` (Phase E); `points_at` (Phase H)
-- `functions/hosts.bash` — `is_personal`, `is_work`, `is_desktop`, `is_laptop`, `is_server` (Phase E)
-- `functions/prompt.bash` — `yn`, `ny`, `for_value` (Phase E)
-- `functions/shell_scripts.bash` — `has_shell_shebang`, `assert_paths_exist`, `find`, `filter` (Phase E)
-- `functions/files.bash` — `exists`, `assert_exists`, `any_exists`, `is_readable`, `size_gb`, `hash`, `write`/`write_quiet`, `move`/`move_quiet`/`move_no_prompt`/`move_no_prompt_quiet`, `copy`/`copy_quiet`, `append_to`/`append_to_quiet` (Phase E; all `root_*` variants deferred to Phase G)
-- `functions/de.bash` — `is_kde`, `is_gnome`, `is_pop_shell`, `is_desktop_env` (Phase F)
-- `functions/user.bash` — `check_not_root`, `check_is_root` (Phase F; root-state branches via `unshare --user --map-root-user`, skipped if unavailable)
-- `functions/system.bash` — `require_bash_version` (Phase F; `reload_sysctl_conf` deferred to Phase G)
-- `functions/os.bash` — `release_field`, `id`, `codename`, `arch`, `is_arch`, `is_cachyos`, `is_fedora`, `is_debian`, `is_ubuntu`, `is_leap`, `is_tumbleweed` (Phase F; uses new `os_release_fixture` helper to override `source` for `/etc/os-release` and `path_shim` to stub `dpkg`)
-- `functions/mvn.bash` — `list_pom_files` (Phase G)
-- `functions/network.bash` — `local_ip`, `local_network` (Phase G; uses `cli_shim::record_with_output ip`)
-- `functions/http.bash` — `curl`, `wget`, `url_reachable` (Phase G; uses `cli_shim::record`; `url_reachable` Phase H)
-- `functions/downloads.bash` — `download_and_cat`, `download_to_temp_file`, `download_and_run_script`, `download_and_run_script_as_root` (Phase G; uses `cli_shim` + sudo passthrough)
-- `functions/packages.bash` — `dpkg_package_installed`, `get_universal`, `get_distro`, `get_sdkman` (Phase G; CSV fixtures + hostname/host-type stubs)
-- `functions/docker.bash` — `container_is_running`, `wait_for_healthy_container`, `create_network` (Phase G; stateful shim for poller)
-- `functions/systemctl.bash` — all 8 user/system unit-file existence + enable/disable/restart variants (Phase G; sudo passthrough for system variants); `is_user_unit_enabled`, `is_system_unit_enabled` (Phase H)
-- `functions/sdkman.bash` — `clean_output`, `update_metadata`, `.sdkmanrc` get/overwrite/rewrite, `list_all_sdkmanrc_files`, `rewrite_sdkmanrc_file_java_versions` (Phase G; `sdk()` shell function override)
-- `functions/sdkman_packages.bash` — install/uninstall/prune/list (Phase G; `sdk()` override + `SDKMAN_CANDIDATES_DIR` tmp tree)
-- `functions/sdkman_jdks.bash` — pure transforms (Phase G-11a) + sdk wrappers via stubbed `get_formatted_all_tem_jdks` (Phase G-11b)
-- `functions/dirs.bash` — adds `root_create` (Phase G; sudo passthrough)
-- `functions/files.bash` — adds all `root_*` variants and `_quiet` siblings (Phase G; sudo passthrough); `create_temp` (Phase H); `is_executable`, `assert_executable`, `is_empty`, `is_non_empty`, `assert_empty`, `assert_non_empty` (Phase I)
-- `functions/system.bash` — adds `reload_sysctl_conf` (Phase G; sudo passthrough + `SCRIPTS_AUTO_ANSWER` + `cli_shim::record sysctl`)
-- `functions/retry.bash` — `with_linear_backoff`, `with_exponential_backoff` (Phase H)
-
-Side-effecting helpers (sudo, network, package managers) remain out of scope until a mocking strategy is settled.
 
 ### Dual-mode helper
 
