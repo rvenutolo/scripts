@@ -29,6 +29,7 @@ Personal Linux setup, install, and utility shell scripts.
 | `./run-install-scripts` | Provision a new machine — runs every executable file under `install/` in order. |
 | `./run-set-up-scripts` | Run idempotent setup scripts under `set_up/`. |
 | `main/new-script <path>` | Scaffold a new top-level script with the standard header and exec bit. |
+| `main/setup-githooks` | Point `core.hooksPath` at the tracked `.githooks/` dir so the `pre-push` hook (runs `./check-scripts`) activates per clone. |
 
 ## Required environment
 

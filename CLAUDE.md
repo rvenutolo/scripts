@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-Personal collection of bash scripts for system setup, package install, and day-to-day utilities on the user's Linux machines. No build system, no tests — pure shell.
+Personal collection of bash scripts for system setup, package install, and day-to-day utilities on the user's Linux machines. Pure shell, no build system; helper functions in `functions/*.bash` are covered by a BATS test suite under `test/`.
 
 ## Required Environment
 
@@ -44,7 +44,8 @@ Exemption: scripts under `misc/` are explicitly standalone — they must NOT dep
 - `./run-install-scripts` — provision new machine. Sources `~/.profile`, validates sudo, runs every executable file under `install/` in `LC_COLLATE=C` order.
 - `./run-set-up-scripts` — same pattern, recursive over `set_up/**/*`.
 - `main/new-script <path>` — scaffolds a new script with the standard header + exec bit.
-- `./run-tests [<bats-args>...]` — runs BATS tests under `test/functions/` recursively when called with no args, or forwards args to the vendored bats binary.
+- `main/setup-githooks` — one-shot script that points `core.hooksPath` at the tracked `.githooks/` dir, activating the `pre-push` hook (runs `./check-scripts` and aborts the push on failure). Bypass with `git push --no-verify`.
+- `./run-tests [<bats-args>...]` — runs BATS tests under `test/functions/` recursively when called with no args, or forwards args to the vendored bats binary. Default invocation uses `bats --jobs $(nproc)` for parallel execution.
 
 To gate a script from the `install`/`set_up runners`, remove its executable bit (`chmod -x`).
 
@@ -95,7 +96,7 @@ Tests are **specification-driven**: each test encodes what the function *should*
 
 ### What is tested
 
-- `functions/strings.bash` — `is_empty`, `is_not_empty`, `is_blank`, `trim`, `ensure_trailing_slash` (Phase A)
+- `functions/strings.bash` — `is_empty`, `is_not_empty`, `is_blank`, `trim`, `ensure_trailing_slash` (Phase A); `is_not_blank`, `assert_empty`, `assert_not_empty`, `assert_blank`, `assert_not_blank` (Phase I)
 - `functions/args.bash` — all 13 `check_*` arity helpers, `stdin_exists`, `check_for_stdin` (Phase A)
 - `functions/path.bash` — `remove`, `append`, `prepend` (Phase A)
 - `functions/arrays.bash` — `to_lines` (Phase B); `diff` (Phase H)
@@ -131,7 +132,7 @@ Tests are **specification-driven**: each test encodes what the function *should*
 - `functions/sdkman_packages.bash` — install/uninstall/prune/list (Phase G; `sdk()` override + `SDKMAN_CANDIDATES_DIR` tmp tree)
 - `functions/sdkman_jdks.bash` — pure transforms (Phase G-11a) + sdk wrappers via stubbed `get_formatted_all_tem_jdks` (Phase G-11b)
 - `functions/dirs.bash` — adds `root_create` (Phase G; sudo passthrough)
-- `functions/files.bash` — adds all `root_*` variants and `_quiet` siblings (Phase G; sudo passthrough); `create_temp` (Phase H)
+- `functions/files.bash` — adds all `root_*` variants and `_quiet` siblings (Phase G; sudo passthrough); `create_temp` (Phase H); `is_executable`, `assert_executable`, `is_empty`, `is_non_empty`, `assert_empty`, `assert_non_empty` (Phase I)
 - `functions/system.bash` — adds `reload_sysctl_conf` (Phase G; sudo passthrough + `SCRIPTS_AUTO_ANSWER` + `cli_shim::record sysctl`)
 - `functions/retry.bash` — `with_linear_backoff`, `with_exponential_backoff` (Phase H)
 
@@ -175,3 +176,5 @@ Note: `read -rp` writes the prompt text to `/dev/tty`, which BATS `run` does not
 ## Before Committing
 
 Run `./format-scripts` then `./shellcheck-scripts`. Both must be clean. Both accept optional file/dir arguments — pass only the changed files for a faster check, or run with no args to cover the whole repo. To verify without writing, use `./check-scripts` (or `./format-scripts --check`) which runs `shfmt --diff` and `shellcheck` together and aggregates their exit codes.
+
+The tracked `.githooks/pre-push` hook runs `./check-scripts` automatically on push (activated per-clone via `main/setup-githooks`), so the same gate also fires at push time as a safety net.
