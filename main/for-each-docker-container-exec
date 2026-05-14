@@ -9,9 +9,16 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_at_least_1_arg "$@"
 
-mapfile -t containers < <(docker ps --format '{{.Names}}' | sort)
+files::create_temp containers_tmp
+# shellcheck disable=SC2154 # containers_tmp assigned by files::create_temp nameref
+docker ps --format '{{.Names}}' | sort > "${containers_tmp}"
+mapfile -t containers < "${containers_tmp}"
+
+files::create_temp exec_output_tmp
+# shellcheck disable=SC2154 # exec_output_tmp assigned by files::create_temp nameref
 for container in "${containers[@]}"; do
+  docker exec "${container}" "$@" > "${exec_output_tmp}"
   while read -r line; do
     printf '%s\n' "${container} ${line}"
-  done < <(docker exec "${container}" "$@")
+  done < "${exec_output_tmp}"
 done | column --table --table-columns 'CONTAINER,RESULT' --table-columns-limit 2

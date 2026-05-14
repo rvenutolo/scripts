@@ -18,10 +18,12 @@ function arrays::diff() {
   args::check_exactly_2_args "$@"
   local -n first_array="$1"
   local -n second_array="$2"
-  # Guard against empty arrays: printf '%s\n' with zero args emits one newline in process
-  # substitutions (command substitution strips it, but <(...) does not), causing comm to see a
-  # spurious empty line. Explicitly skip to_lines when the array is empty.
-  comm -23 \
-    <([[ ${#first_array[@]} -gt 0 ]] && arrays::to_lines "${first_array[@]}" || true) \
-    <([[ ${#second_array[@]} -gt 0 ]] && arrays::to_lines "${second_array[@]}" || true)
+  # Guard against empty arrays: printf '%s\n' with zero args emits one spurious newline, causing
+  # comm to see an empty line. Explicitly skip to_lines when the array is empty.
+  local first_tmp second_tmp
+  files::create_temp first_tmp
+  files::create_temp second_tmp
+  [[ ${#first_array[@]} -gt 0 ]] && arrays::to_lines "${first_array[@]}" > "${first_tmp}" || true
+  [[ ${#second_array[@]} -gt 0 ]] && arrays::to_lines "${second_array[@]}" > "${second_tmp}" || true
+  comm -23 "${first_tmp}" "${second_tmp}"
 }

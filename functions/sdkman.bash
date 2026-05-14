@@ -77,7 +77,12 @@ function sdkman::list_all_sdkmanrc_files() {
 # @noargs
 function sdkman::rewrite_sdkmanrc_file_java_versions() {
   args::check_no_args "$@"
-  while read -r file; do
+  local -a sdkmanrc_files
+  local sdkmanrc_files_tmp
+  files::create_temp sdkmanrc_files_tmp
+  sdkman::list_all_sdkmanrc_files > "${sdkmanrc_files_tmp}"
+  mapfile -t sdkmanrc_files < "${sdkmanrc_files_tmp}"
+  for file in "${sdkmanrc_files[@]}"; do
     sdkman::rewrite_sdkmanrc_file_java_version "${file}"
-  done < <(sdkman::list_all_sdkmanrc_files)
+  done
 }

@@ -11,20 +11,34 @@ system::require_bash_version 4 0
 
 commands::assert_executable_exists 'flatpak'
 
-mapfile -t flatpaks_from_package_list < <(packages::get_universal 'flatpak' "$@" | sort)
+files::create_temp pkg_list_file
+# shellcheck disable=SC2154 # pkg_list_file assigned by files::create_temp via nameref
+packages::get_universal 'flatpak' "$@" | sort > "${pkg_list_file}"
+mapfile -t flatpaks_from_package_list < "${pkg_list_file}"
 readonly flatpaks_from_package_list
 
-mapfile -t flatpaks_installed < <(flatpak list --user --app --columns application | sort)
+files::create_temp installed_file
+# shellcheck disable=SC2154 # installed_file assigned by files::create_temp via nameref
+flatpak list --user --app --columns application | sort > "${installed_file}"
+mapfile -t flatpaks_installed < "${installed_file}"
 readonly flatpaks_installed
 
-mapfile -t flatpaks_to_install < <(arrays::diff flatpaks_from_package_list flatpaks_installed)
+files::create_temp diff_file
+# shellcheck disable=SC2154 # diff_file assigned by files::create_temp via nameref
+arrays::diff flatpaks_from_package_list flatpaks_installed > "${diff_file}"
+mapfile -t flatpaks_to_install < "${diff_file}"
 readonly flatpaks_to_install
 
-mapfile -t flatpaks_to_remove < <(
-  comm -13 \
-    <(arrays::to_lines "${flatpaks_from_package_list[@]}") \
-    <(arrays::to_lines "${flatpaks_installed[@]}")
-)
+files::create_temp pkg_list_sorted_file
+files::create_temp installed_sorted_file
+files::create_temp remove_file
+# shellcheck disable=SC2154 # pkg_list_sorted_file assigned by files::create_temp via nameref
+arrays::to_lines "${flatpaks_from_package_list[@]}" > "${pkg_list_sorted_file}"
+# shellcheck disable=SC2154 # installed_sorted_file assigned by files::create_temp via nameref
+arrays::to_lines "${flatpaks_installed[@]}" > "${installed_sorted_file}"
+# shellcheck disable=SC2154 # remove_file assigned by files::create_temp via nameref
+comm -13 "${pkg_list_sorted_file}" "${installed_sorted_file}" > "${remove_file}"
+mapfile -t flatpaks_to_remove < "${remove_file}"
 readonly flatpaks_to_remove
 
 if (("${#flatpaks_to_install[@]}")) && prompt::yn 'Install missing Flatpak packages?'; then

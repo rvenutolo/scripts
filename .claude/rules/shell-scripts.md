@@ -153,6 +153,33 @@
 - For non-interactive `curl`, use: `curl --disable --fail --silent --location --show-error`. `--disable` skips `~/.curlrc` so behavior doesn't depend on the invoking user's config
 - For non-interactive `wget`, use: `wget --no-config` (skips `~/.wgetrc` for the same reason)
 - Retries for transient failures: use `retry::with_linear_backoff <max_tries> <base_sleep> <cmd...>` from `functions/retry.bash`. Prefer linear backoff unless there is a specific reason to grow the wait exponentially (in which case use `retry::with_exponential_backoff`). Do NOT hand-roll `until cmd; do ...; sleep N; done` loops.
+- **Process substitution `<(...)` is banned.** Process substitution runs the producer in a child process whose exit status is not visible to the parent — `set -e`, `pipefail`, and the `ERR` trap all operate inside that severed child. A failing producer (e.g. one that calls `log::die`) silently leaves the consumer with empty input, and the parent script keeps running with partial state. Real bug example: `mapfile -t list < <(packages::get_universal | sort)` — if `get_universal` dies, `list` becomes empty and a downstream "what to remove" computation flips into "remove everything." Use one of these alternatives instead:
+  - When the consumer is `mapfile`/`readarray`: capture into a temp file (via `files::create_temp`) and read from the file. The pipeline runs at the parent's top level so `pipefail` + `set -e` abort on failure.
+
+    ```bash
+    # wrong
+    mapfile -t flatpaks < <(packages::get_universal 'flatpak' "$@" | sort)
+
+    # right
+    files::create_temp pkg_list_file
+    packages::get_universal 'flatpak' "$@" | sort > "${pkg_list_file}"
+    mapfile -t flatpaks < "${pkg_list_file}"
+    ```
+
+  - When the consumer is a stream combinator like `comm`, `diff`, `paste`, `join`: write both streams to temp files first and pass the files. Same propagation property.
+  - For the specific `comm -23 <(arrays::to_lines a) <(arrays::to_lines b)` shape used by `arrays::diff` and friends: keep the helper API but rewrite the implementation to use temp files internally. The helper's callers still get a single command invocation.
+- **Backgrounded commands `cmd &` are banned.** Background jobs sever exit-status propagation in the same way process substitution does (the parent never observes failure unless it `wait`s, and `set -e` cannot help). For the common case of detaching a GUI launcher from the terminal so the shell prompt returns immediately, use the `misc::exec_gui` helper:
+
+  ```bash
+  # wrong
+  kate "$@" > '/dev/null' 2>&1 &
+  disown
+
+  # right
+  misc::exec_gui kate "$@"
+  ```
+
+  `misc::exec_gui` wraps `exec setsid --fork`: the child runs in a new session detached from the controlling terminal, stdout/stderr go to `/dev/null`, and `exec` replaces the launcher shell so no orphaned process lingers in the tree. It must be the last statement in the calling script (`exec` does not return). `setsid` is part of `util-linux` and is always present on the Linux systems this repo targets. The bitwise-AND operator inside `(( ))` (e.g. `(( x & 0xff ))`) is unaffected by this rule — only standalone `cmd &` (and `cmd & disown`) is banned.
 - Never parse `ls` output; use globs, `find`, or `fd`
 - Avoid `eval`; if needed, justify with comment
 - Use `source` instead of `.` when sourcing a file. The `source` keyword is more readable and unambiguous (a leading `.` is easy to overlook).

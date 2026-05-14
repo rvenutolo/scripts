@@ -17,7 +17,10 @@ readonly CHECK
 
 shell_scripts::assert_paths_exist "$@"
 
-mapfile -t candidates < <(shell_scripts::find "$@")
+files::create_temp candidates_tmp
+# shellcheck disable=SC2154 # candidates_tmp set via nameref inside files::create_temp
+shell_scripts::find "$@" > "${candidates_tmp}"
+mapfile -t candidates < "${candidates_tmp}"
 if [[ "${#candidates[@]}" -eq 0 ]]; then
   exit 0
 fi

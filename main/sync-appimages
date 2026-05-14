@@ -11,24 +11,36 @@ system::require_bash_version 4 0
 
 commands::assert_executable_exists 'appman'
 
-mapfile -t appimages_from_package_list < <(packages::get_universal 'appimage' "$@" | sort)
+files::create_temp pkg_list_file
+# shellcheck disable=SC2154 # pkg_list_file assigned by files::create_temp via nameref
+packages::get_universal 'appimage' "$@" | sort > "${pkg_list_file}"
+mapfile -t appimages_from_package_list < "${pkg_list_file}"
 readonly appimages_from_package_list
 
-mapfile -t appimages_installed < <(
-  find "${XDG_DATA_HOME}/appman/" \
-    -mindepth 1 -maxdepth 1 -type 'd' ! -name 'appman' -printf '%f\n' \
-    | sort
-)
+files::create_temp installed_file
+# shellcheck disable=SC2154 # installed_file assigned by files::create_temp via nameref
+find "${XDG_DATA_HOME}/appman/" \
+  -mindepth 1 -maxdepth 1 -type 'd' ! -name 'appman' -printf '%f\n' \
+  | sort > "${installed_file}"
+mapfile -t appimages_installed < "${installed_file}"
 readonly appimages_installed
 
-mapfile -t appimages_to_install < <(arrays::diff appimages_from_package_list appimages_installed)
+files::create_temp diff_file
+# shellcheck disable=SC2154 # diff_file assigned by files::create_temp via nameref
+arrays::diff appimages_from_package_list appimages_installed > "${diff_file}"
+mapfile -t appimages_to_install < "${diff_file}"
 readonly appimages_to_install
 
-mapfile -t appimages_to_remove < <(
-  comm -13 \
-    <(arrays::to_lines "${appimages_from_package_list[@]}") \
-    <(arrays::to_lines "${appimages_installed[@]}")
-)
+files::create_temp pkg_list_sorted_file
+files::create_temp installed_sorted_file
+files::create_temp remove_file
+# shellcheck disable=SC2154 # pkg_list_sorted_file assigned by files::create_temp via nameref
+arrays::to_lines "${appimages_from_package_list[@]}" > "${pkg_list_sorted_file}"
+# shellcheck disable=SC2154 # installed_sorted_file assigned by files::create_temp via nameref
+arrays::to_lines "${appimages_installed[@]}" > "${installed_sorted_file}"
+# shellcheck disable=SC2154 # remove_file assigned by files::create_temp via nameref
+comm -13 "${pkg_list_sorted_file}" "${installed_sorted_file}" > "${remove_file}"
+mapfile -t appimages_to_remove < "${remove_file}"
 readonly appimages_to_remove
 
 if (("${#appimages_to_install[@]}")) && prompt::yn 'Install missing AppImage packages?'; then

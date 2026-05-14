@@ -9,28 +9,31 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_at_most_1_arg "$@"
 
-disown_proc='n'
 if commands::executable_exists 'xdg-open'; then
   fm='xdg-open'
-  disown_proc='y'
+  gui='y'
 elif commands::executable_exists 'lf'; then
   fm='lf'
+  gui='n'
 elif commands::executable_exists 'ranger'; then
   fm='ranger'
+  gui='n'
 elif commands::executable_exists 'fff'; then
   fm='fff'
+  gui='n'
 else
   log::die "Could not find a file manager"
 fi
-readonly fm disown_proc
+readonly fm gui
 
 if [[ "$#" -eq 0 ]]; then
   readonly dir='.'
 else
   readonly dir="$1"
 fi
-"${fm}" "${dir}" > '/dev/null' 2>&1 &
 
-if [[ "${disown_proc}" == 'y' ]]; then
-  disown
+if [[ "${gui}" == 'y' ]]; then
+  misc::exec_gui "${fm}" "${dir}"
+else
+  "${fm}" "${dir}"
 fi
