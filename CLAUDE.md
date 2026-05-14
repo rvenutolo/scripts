@@ -46,7 +46,9 @@ To gate a script from the `install`/`set_up runners`, remove its executable bit 
 
 ## Testing
 
-A subset of `functions/*.bash` is exercised under [BATS](https://github.com/bats-core/bats-core). BATS itself, plus `bats-support` and `bats-assert`, are vendored as git submodules under `test/`.
+Every helper in `functions/*.bash` is exercised under [BATS](https://github.com/bats-core/bats-core); each `functions/<topic>.bash` has a matching `test/functions/<topic>.bats` (or a topic-prefixed group of `.bats` files). BATS itself, plus `bats-support` and `bats-assert`, are vendored as git submodules under `test/`.
+
+**Every new public helper function in `functions/*.bash` MUST ship with thorough BATS unit tests in the same PR.** No exceptions. A PR that adds an untested helper is not complete. See the test-coverage rule in `.claude/rules/shell-scripts.md` for the required coverage shape (positive assertions per behavior, edge-case sweep, every arity guard branch, every `@exitcode`, success + failure paths for stateful helpers). Private `_`-prefixed internal helpers may be covered indirectly through the public callers that exercise them.
 
 ### Layout
 
