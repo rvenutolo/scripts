@@ -123,6 +123,21 @@ setup() {
   (( seconds_seen >= 42 ))
 }
 
+@test "shell_elapsed_time: reads SECONDS dynamically, not a hardcoded value" {
+  # Second invocation with a different SECONDS value distinguishes "reads
+  # SECONDS at call time" from "always passes 42" — the previous test could
+  # pass if the wrapper hardcoded 42.
+  function time::calc_elapsed() {
+    printf 'start=%s end=%s\n' "$1" "$2"
+  }
+  SECONDS=9999
+  local actual
+  actual="$(time::shell_elapsed_time)"
+  [[ "${actual}" =~ ^start=0\ end=([0-9]+)$ ]]
+  local seconds_seen="${BASH_REMATCH[1]}"
+  (( seconds_seen >= 9999 ))
+}
+
 @test "shell_elapsed_time: dies when called with arg" {
   run time::shell_elapsed_time 'unexpected'
   assert_failure
