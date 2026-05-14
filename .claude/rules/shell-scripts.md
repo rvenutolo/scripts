@@ -1,25 +1,27 @@
-- Claude MUST use the helper functions in `functions/*.bash` whenever an applicable helper exists. Do not write inline equivalents for operations that already have a helper (file mutation, prompts, OS detection, downloads, path manipulation, logging, arg-count guards, executable existence, symlinks, etc.). Before writing inline shell, scan `functions/*.bash` for a matching helper.
-- Claude may propose new helper functions when a piece of logic looks reusable across scripts, even if it is currently only needed in one place. Suggest the new helper (with proposed file and signature) rather than silently inlining.
-- `set -Eeuo pipefail` is mandatory at the top of every top-level script (not in library files under `functions/`). The `-E` is required so the `ERR` trap inherits into shell functions and command substitutions.
-- `IFS=$'\n\t'` is mandatory immediately after the strict-mode pragma. Library files in `functions/` do NOT set it (strict mode and IFS are owned by the parent script).
-- `[[ ]]` over `[ ]`, long CLI options, quoted `"${var}"` everywhere — enforced by shellcheck.
-- Scripts under `set_up/` must be idempotent and self-gate — check current state before mutating, and exit cleanly when there is nothing to do.
-- Standard top-level skeleton — source the function library, enable the `ERR` trap, then guard arg count:
+# Shell Script Rules
+
+Generic, project-agnostic rules for writing bash scripts. Portable to any shell project.
+
+> Project-specific rules may override anything in this file — see `CLAUDE.md` in the project root for overrides.
+
+## File basics
+
+- Use `#!/usr/bin/env bash`
+- New scripts must be created executable (`chmod +x`)
+- Indent with 2 spaces; never tabs
+- Maximum line length is 120 characters. Wrap long lines via continuation, here-docs, or shorter expressions. Exempt: lines whose excess length comes from a single unbreakable string literal — URLs, file paths, embedded regex/awk/sed programs, multi-arg single-string command invocations. Multi-token or pipeline lines must still wrap.
+
+## Strict mode and error handling
+
+- Use `set -Eeuo pipefail` (the `-E` is required so the `ERR` trap inherits into shell functions and command substitutions)
+- Set strict IFS alongside the strict-mode pragma: `IFS=$'\n\t'` immediately after `set -Eeuo pipefail`
+- Use `set -E` and an `ERR` trap for stack-trace-style error reporting in non-trivial scripts:
 
   ```bash
-  #!/usr/bin/env bash
-
   set -Eeuo pipefail
-  IFS=$'\n\t'
-
-  #shellcheck disable=SC1091
-  source "${SCRIPTS_DIR}/functions.bash"
-  log::enable_err_trap
-  args::check_no_args "$@"   # or check_exactly_N_args / check_at_least_N_args / check_at_most_N_args
+  trap 'echo "error: line ${LINENO} (exit $?): ${BASH_COMMAND}" >&2' ERR
   ```
 
-- **Pass-through scripts and variadic library functions are exempt from the arg-count guard requirement.** A pass-through script forwards `"$@"` to an underlying tool (e.g. `main/claude` wraps the real `claude` binary, `main/sync-flatpaks` accepts optional filter args) and has no fixed arity. A variadic library function takes 0+ items of the same kind. In both cases, omit the `args::check_*_args "$@"` guard and add a same-line comment explaining why: `# pass-through: any arg count valid` (or similar). The comment is mandatory — silent omission is not allowed.
-- `log::enable_err_trap` (from `functions/log.bash`) installs an `ERR` trap that prints a red, prefixed `ERROR: line N (exit C): cmd` line to stderr when any unhandled command fails under `set -e`. Call it once, immediately after sourcing `functions.bash`. It complements `log::die` (explicit user-visible failures) — the trap catches everything else.
 - When sourcing or calling code from an external tool (e.g. SDKMAN, NVM, RVM), that code may use non-zero exit status for non-error conditions (e.g. `grep` returning 1 for "no match"), which fires false ERR trap hits, and may also reference unbound variables. Wrap the external block in a subshell with `set +u` and `trap - ERR` inside. The subshell is preferred over bracketing with restore lines because the parent's strict mode is never touched — both `set -u` and the ERR trap (inherited via `-E`) are reset automatically when the subshell exits:
 
   ```bash
@@ -32,167 +34,7 @@
     # shellcheck disable=SC1091
     source "/path/to/external-init.sh"
     external_tool_command
-    # ... more external calls ...
   )
-  ```
-- Standalone scripts that do NOT source this repo's `functions.bash` (everything in `misc/`) cannot call `log::enable_err_trap`. Inline the trap directly after the `IFS=` line. (Note: scripts that source `${DOCKER_COMPOSE_DIR}/functions.bash` DO have access to this repo's helpers — that file transitively sources `${SCRIPTS_DIR}/functions.bash` — so use `log::enable_err_trap` there, not the inline form.)
-
-  ```bash
-  trap 'printf "\033[0;31m[%s %s] ERROR: line %s (exit %s): %s\033[0m\n" "$(date +%T)" "${0##*/}" "${LINENO}" "$?" "${BASH_COMMAND}" >&2' ERR
-  ```
-
-- Library files under `functions/` get only the shebang — do NOT add `set -euo pipefail` or source `functions.bash`. Strict mode is owned by the parent script that sources them.
-- **`functions/*.bash` exemption list** — library files are exempt from the following rules that apply to top-level scripts:
-  - `set -Eeuo pipefail` strict-mode pragma (parent owns strict mode)
-  - `IFS=$'\n\t'` (parent owns IFS)
-  - `source "${SCRIPTS_DIR}/functions.bash"` (would be circular)
-  - `log::enable_err_trap` call (parent installs the trap)
-  - The inline `ERR` trap form (only used by standalone `misc/` scripts)
-  - Top-level `args::check_*_args "$@"` guard (library files have no top-level args; functions inside them still use `check_*_args` guards)
-  - `main "$@"` final-line / `function main()` requirement (library files have no entry point)
-  - File-layout rule that constants must precede functions (library files contain only function definitions; no constants section)
-  - File extension: library files use `.bash` (top-level executables have no extension)
-  - Filename casing: library files use `snake_case` (top-level executables use `kebab-case`)
-  - Executable bit: library files must NOT be executable (top-level scripts must be executable)
-  - Creation via `main/new-script`: library files are hand-created (the helper is for top-level executables)
-  All other rules (helper-function usage, quoting, `[[ ]]` over `[ ]`, `(( ))` arithmetic, comment block above non-trivial functions, `local`/`local -r` inside every function, predicate-function return-via-exit-status, namespaced `::` function names, etc.) apply equally to library files.
-- Create new scripts via `main/new-script <path>` (handles header + exec bit).
-- Document positional parameters above each function with shdoc-style `# @arg $1 description` comments (use `# @arg $@ description` for varargs). Add `# @description ...` above the function for the prose summary; add `# @noargs` for argument-less functions; use `# @stdout`, `# @stderr`, and `# @exitcode N meaning` where useful. The MkDocs site generated by `main/build-docs` parses these tags via shdoc.
-- Predicate functions (`is_*`, `*_exists`, etc.) end with a `[[ ... ]]` test or command whose exit status is the result — do not write explicit `return 0` / `return 1`.
-- Library functions in `functions/*.bash` use the same `check_*_args "$@"` guards as top-level scripts (not only top-level scripts get them).
-- **Every helper function in `functions/*.bash` must have thorough BATS unit tests in `test/functions/<topic>.bats`.** Applies to both new and existing helpers — if you touch or notice an untested helper, the expectation is to add coverage in the same PR (or a follow-up PR explicitly tracked in the description). Tests are spec-driven (encode what the helper *should* do, not what the current implementation happens to do — see the "Testing philosophy" sections of project `CLAUDE.md` and global `CLAUDE.md`). Required coverage per helper: (a) one positive assertion per intended behavior; (b) the standard edge-case sweep — empty input, whitespace-only, single element, multi-element, leading/trailing separators, boundary arg counts; (c) every arity guard branch (e.g. "dies with 0 args", "dies with 2 args" for a 1-arg helper); (d) every documented `@exitcode`; (e) for stateful or side-effecting helpers, both the success path and any failure paths (`log::die`, missing dependency, etc.). When adding a helper to an existing topic file that already has a `.bats` file, extend that file. When adding a new topic file, create the matching `.bats` file in the same PR. The PR is not complete until `./run-tests` is green and coverage matches the bullets above. If a helper genuinely cannot be tested without mocking a side effect that has no existing test-helper for it (sudo, network, package manager), add the helper and the new test-helper together — do not ship the helper untested.
-- Logging/erroring helpers from `functions/log.bash` (all color-coded, written to stderr, prefixed with `${0##*/}`): `log::log` (green, info-level), `log::with_date` (green, info-level with full date), `log::warn` (yellow, warn-level — use for non-fatal problems), `log::die` (red, error-level + `exit 1` with caller context). There is no separate `log_info` (use `log::log`) or `log_err` (use `log::die` if fatal, or `log::warn` if not).
-- `log::die` includes caller context via `${BASH_SOURCE[1]}:${FUNCNAME[1]}:${BASH_LINENO[0]}` — preserve this when modifying the helper.
-- Stdin presence: helpers `args::check_for_stdin` / `args::stdin_exists` from `functions/args.bash`. No inline `[[ -t 0 ]]`.
-- Existence checks: helpers `files::exists` / `files::assert_exists` (`functions/files.bash`), `dirs::exists` / `dirs::assert_exists` (`functions/dirs.bash`), `symlinks::exists` (`functions/symlinks.bash`). Use the `assert_*` variants for entry-point validation (they call `log::die` with a consistent message); use the bare predicates for branching. No inline `[[ -f X ]]` + manual `log::die` rolls.
-- Interactive prompts: helpers `prompt::yn` / `prompt::ny` / `prompt::for_value` from `functions/prompt.bash`. Fall back to inline `read -rp $'\e[0;33mPrompt: \e[0m'` (colored `$'...'` form) only when no helper fits, and document why with a comment.
-- Empty-string tests: helpers `strings::is_empty` / `strings::is_not_empty` / `strings::is_blank` from `functions/strings.bash`. Use these instead of inline `[[ -z "$x" ]]` / `[[ -n "$x" ]]`. `strings::is_blank` is true for empty OR all-whitespace strings. Overrides the global `-z`/`-n` rule for this repo.
-- Executable-on-`PATH` check: helper `commands::executable_exists` from `functions/commands.bash` (uses `type -aPf`, excludes builtins/aliases/functions, and strips `main/` and `other/` from `PATH` so wrappers in those dirs don't mask the real binary). Overrides the global rule's `command -v` recommendation for this repo — `command -v` would return scripts in `main/` that mask command names (e.g. `mvn`, `gradle`).
-- Executable-path resolution (when you need the absolute path, not just a yes/no): helper `commands::executable_path` from `functions/commands.bash`. Same PATH-stripping as `commands::executable_exists`. No inline `command -v BIN` or `which BIN` — those would return wrappers in `main/`/`other/` instead of the real binary.
-- Idempotent file mutation (write/move/copy/link/append): helpers in `functions/files.bash` and `functions/symlinks.bash` — `files::write`, `files::append_to`, `files::move`, `files::move_no_prompt`, `files::copy`, `symlinks::link_file`, `symlinks::link_dir`. They implement the standard pattern: `cmp --silent` short-circuit on byte equality, `diff --color --unified ... || true` preview, `prompt::yn` confirmation, and parent-dir auto-creation via `dirs::create "$(dirname "$dest")"`. Variant suffixes:
-  - `_no_prompt`: skips the diff/confirm step — use for programmatic temp-file-to-destination moves where interactive confirmation would be inappropriate (`files::move_no_prompt`, `files::move_no_prompt_quiet`). Always combine with `_quiet` for temp-to-dest moves: use `files::move_no_prompt_quiet` so the internal move produces no log noise.
-  - `_quiet`: omits the `log::log` "Moving/Moved", "Copying/Copied", "Writing/Wrote", "Appending/Appended" status messages — use when that output is unwanted noise (`files::move_quiet`, `files::move_no_prompt_quiet`, `files::copy_quiet`, `files::write_quiet`, `files::append_to_quiet`)
-- Parent-dir auto-creation before writing/moving/copying: helpers `dirs::create "$(dirname "${dest}")"` (or `dirs::root_create` for sudo writes). No inline `mkdir --parents` / `mkdir -p`.
-- Root-owned destinations: `root_*` variants (`files::root_write`, `files::root_write_quiet`, `files::root_append_to`, `files::root_append_to_quiet`, `files::root_move`, `files::root_move_quiet`, `files::root_copy`, `files::root_copy_quiet`, `dirs::root_create`). When no helper fits, use `sudo test -f`, `sudo cmp`, `sudo cat` for state checks, and `echo "${content}" | sudo tee [--append] "${file}" > '/dev/null'` for the write — no `sudo bash -c 'echo ... > ...'`.
-- Symlinks: helpers `symlinks::link_file` / `symlinks::link_dir` from `functions/symlinks.bash`. No inline `ln --symbolic` / `ln -s` — the helpers handle the canonical-target short-circuit, diff/prompt confirmation, and parent-dir creation.
-- Read values from `/etc/os-release` by sourcing it in a subshell, not by `grep`/`sed`/`awk`. The file is spec-defined as shell-sourceable, handles quoted values correctly, and exposes every field at once:
-
-  ```bash
-  # shellcheck disable=SC1091
-  ( source '/etc/os-release' && printf '%s\n' "${ID}" )
-  ```
-
-  Use a subshell so the sourced variables don't leak.
-- Use `find -printf '<fmt>'` for structured output (e.g. `find . -printf '%u:%g\n'`) instead of parsing default `find` output.
-- Use `stat --format='<fmt>'` for file metadata. For non-integer arithmetic, pipe through `bc` (bash `(( ))` is integer-only): `echo "scale=2; $(stat --format='%s' "${f}") / 1073741824" | bc`.
-- New scripts must be created executable (`chmod +x`). `main/new-script` already does this — prefer it over hand-creating files.
-- Use `#!/usr/bin/env bash`
-- Use `(( ))` for arithmetic; never `let` or `expr`
-- Use `${var}` brace syntax for all variables EXCEPT single-character shell specials and positional parameters (`$?`, `$#`, `$$`, `$!`, `$@`, `$*`, `$1`–`$9`) — leave those unbraced. Positionals `${10}` and above still require braces.
-- Quote command substitutions: `"$(cmd)"`
-- Single-quote string literals when no expansion is needed: `'/dev/null'`, `'/etc/os-release'`, `'y'`. Reserve double quotes for expansion.
-- Do not quote numeric option arguments: `--fields=1`, `--max-args=1` (not `--fields='1'`)
-- Use `$(...)` not backticks
-- Indent with 2 spaces; never tabs
-- Constants and config: `readonly` and `UPPER_SNAKE_CASE` at top of script
-- Top-level scripts with named positional args must bind each `$1`/`$2`/etc. to a `readonly` `UPPER_SNAKE_CASE` constant immediately after the `args::check_*_args "$@"` guard, then reference the named constant thereafter — never use `$1`/`$2`/etc. inline in the script body. Improves readability and self-documents intent. Exemptions: pass-through scripts forwarding `"$@"` verbatim; variadic scripts that only iterate `"$@"` (loop variable provides the name); single-use of `$1` on the first executable line where binding adds noise without readability gain (author's call).
-
-  ```bash
-  # wrong — bare positionals scattered through script body
-  args::check_exactly_2_args "$@"
-  cp --archive -- "$1" "$2"
-  log::log "$1 -> $2"
-
-  # right — bind once, name everywhere
-  args::check_exactly_2_args "$@"
-  readonly SRC="$1"
-  readonly DEST="$2"
-  cp --archive -- "${SRC}" "${DEST}"
-  log::log "${SRC} -> ${DEST}"
-  ```
-
-- Functions with named positional parameters must bind each `$1`/`$2`/etc. to a `local` (or `local -r`) variable on the first lines of the function body (after any `args::check_*_args "$@"` guard), then reference the named variable thereafter — never use `$1`/`$2`/etc. inline in the function body. The `local` name should match the `# $1 = description` doc comment above the function. Exemptions: variadic functions iterating `"$@"`; pass-through functions forwarding `"$@"` verbatim; single-use of `$1` on the first executable line where binding adds noise without readability gain (author's call).
-
-  ```bash
-  # wrong — bare positionals scattered through body
-  function files::copy() {
-    args::check_exactly_2_args "$@"
-    cp --archive -- "$1" "$2"
-    log::log "$1 -> $2"
-  }
-
-  # right — bind once, name everywhere; doc comments use shdoc tags
-  # @description Copy a file from src to dest.
-  # @arg $1 src source path
-  # @arg $2 dest destination path
-  function files::copy() {
-    args::check_exactly_2_args "$@"
-    local -r src="$1"
-    local -r dest="$2"
-    cp --archive -- "${src}" "${dest}"
-    log::log "${src} -> ${dest}"
-  }
-  ```
-- Use `case ... in PATTERN) ;; *) ;; esac` instead of chained `[[ ]]` / `elif` when matching one variable against multiple string patterns
-- Apply `${VAR:-}` defaults only to optional positional args (`"${2:-}"`) — required positionals are already validated by arg-count guards, so let `set -u` catch programming mistakes there. The existing rule about not defaulting well-known env vars still applies.
-- Locals: `local` (or `local -r` for read-only) inside every function. Use `snake_case` (lowercase) for local and other non-constant variables; reserve `UPPER_SNAKE_CASE` for constants, exported vars, and environment vars.
-- Functions: `snake_case`, defined with `function name() { ... }` (always use `function` keyword)
-- Default safely under `set -u`: use `"${VAR:-default}"` for vars that may legitimately be unset; do NOT add defaults for well-known env vars expected to always be present (`HOME`, `USER`, `SDKMAN_DIR`, `PATH`, `SCRIPTS_DIR`, etc.) — let `set -u` catch them if missing
-- When parsing decimal strings that may have leading zeros (e.g. `date +%H` → `09`), use `10#` in arithmetic context (`$((10#${var}))`) or strip via `%-H`/`%-M` with GNU date — bash arithmetic treats `08`/`09` as invalid octal
-- Force-decimal numbers from external commands before arithmetic comparison
-- Tempfiles: use the `files::create_temp tmp_var_name` helper from `functions/files.bash`. Do NOT install an EXIT trap or otherwise manually `rm` the temp file at end of script. Temporary files created under `/tmp` are managed by the OS (tmpfs reboot wipe + systemd-tmpfiles age-based cleanup), so process-level cleanup adds complexity (EXIT-trap clobbering between multiple temp files, accounting for early exits) without buying anything. Standalone scripts under `misc/` that cannot source `functions.bash` should call `mktemp` directly and similarly omit any cleanup trap.
-- Heredocs: quote the terminator when no expansion wanted: `<<'EOF'`
-- Use `printf '%s\n' "$x"` over `echo "$x"` when `$x` could start with `-` or contain backslashes
-- Use `printf` (with explicit format string, including ANSI escapes like `'\033[0;32m%s\033[0m\n'` when colorizing) for any non-trivial output; never `echo -e`
-- Use `--` before user-supplied paths in destructive commands (`rm --force --`, `mv --`)
-- Iterate command output with `mapfile -t arr < <(cmd)`; never `for x in $(cmd)`
-- Iterate positional parameters explicitly: `for x in "$@"; do ...; done`, not the implicit `for x; do ...; done` (clearer at a glance what is being iterated)
-- Always pass `--no-run-if-empty` and an explicit `--max-args=N` to `xargs`
-- Always use `read -r` (or `read -rp PROMPT`); never bare `read` (matches ShellCheck SC2162 — `-r` prevents backslash mangling)
-- Scope `PATH` mutations inside a `( ... )` subshell so changes don't leak to the caller's environment
-- Any script that modifies `PATH` must include a comment explaining why. Applies to direct assignments and `export PATH=...` — not to invocations of the repo's PATH-related helper functions (those are self-documenting).
-- For non-interactive `curl`, use: `curl --disable --fail --silent --location --show-error`. `--disable` skips `~/.curlrc` so behavior doesn't depend on the invoking user's config
-- For non-interactive `wget`, use: `wget --no-config` (skips `~/.wgetrc` for the same reason)
-- Retries for transient failures: use `retry::with_linear_backoff <max_tries> <base_sleep> <cmd...>` from `functions/retry.bash`. Prefer linear backoff unless there is a specific reason to grow the wait exponentially (in which case use `retry::with_exponential_backoff`). Do NOT hand-roll `until cmd; do ...; sleep N; done` loops.
-- **Process substitution `<(...)` is banned.** Process substitution runs the producer in a child process whose exit status is not visible to the parent — `set -e`, `pipefail`, and the `ERR` trap all operate inside that severed child. A failing producer (e.g. one that calls `log::die`) silently leaves the consumer with empty input, and the parent script keeps running with partial state. Real bug example: `mapfile -t list < <(packages::get_universal | sort)` — if `get_universal` dies, `list` becomes empty and a downstream "what to remove" computation flips into "remove everything." Use one of these alternatives instead:
-  - When the consumer is `mapfile`/`readarray`: capture into a temp file (via `files::create_temp`) and read from the file. The pipeline runs at the parent's top level so `pipefail` + `set -e` abort on failure.
-
-    ```bash
-    # wrong
-    mapfile -t flatpaks < <(packages::get_universal 'flatpak' "$@" | sort)
-
-    # right
-    files::create_temp pkg_list_file
-    packages::get_universal 'flatpak' "$@" | sort > "${pkg_list_file}"
-    mapfile -t flatpaks < "${pkg_list_file}"
-    ```
-
-  - When the consumer is a stream combinator like `comm`, `diff`, `paste`, `join`: write both streams to temp files first and pass the files. Same propagation property.
-  - For the specific `comm -23 <(arrays::to_lines a) <(arrays::to_lines b)` shape used by `arrays::diff` and friends: keep the helper API but rewrite the implementation to use temp files internally. The helper's callers still get a single command invocation.
-- **Backgrounded commands `cmd &` are banned.** Background jobs sever exit-status propagation in the same way process substitution does (the parent never observes failure unless it `wait`s, and `set -e` cannot help). For the common case of detaching a GUI launcher from the terminal so the shell prompt returns immediately, use the `misc::exec_gui` helper:
-
-  ```bash
-  # wrong
-  kate "$@" > '/dev/null' 2>&1 &
-  disown
-
-  # right
-  misc::exec_gui kate "$@"
-  ```
-
-  `misc::exec_gui` wraps `exec setsid --fork`: the child runs in a new session detached from the controlling terminal, stdout/stderr go to `/dev/null`, and `exec` replaces the launcher shell so no orphaned process lingers in the tree. It must be the last statement in the calling script (`exec` does not return). `setsid` is part of `util-linux` and is always present on the Linux systems this repo targets. The bitwise-AND operator inside `(( ))` (e.g. `(( x & 0xff ))`) is unaffected by this rule — only standalone `cmd &` (and `cmd & disown`) is banned.
-- Never parse `ls` output; use globs, `find`, or `fd`
-- Avoid `eval`; if needed, justify with comment
-- Use `source` instead of `.` when sourcing a file. The `source` keyword is more readable and unambiguous (a leading `.` is easy to overlook).
-- When suppressing pipefail in one spot: explicit `|| true` with comment, not blanket disable
-- All shell scripts must pass `shellcheck` before being considered complete (use the `./shellcheck-scripts` and `./check-scripts` wrappers documented in `CLAUDE.md`)
-- Use `# shellcheck disable=SCxxxx` only with a same-line comment justifying why
-- Set strict IFS alongside the strict-mode pragma: `IFS=$'\n\t'` immediately after `set -euo pipefail`
-- Use `set -E` and an `ERR` trap for stack-trace-style error reporting in non-trivial scripts:
-
-  ```bash
-  set -Eeuo pipefail
-  trap 'echo "error: line ${LINENO} (exit $?): ${BASH_COMMAND}" >&2' ERR
   ```
 
 - Pin minimum bash version when using bash 4+ features (associative arrays, `mapfile`, `${var^^}`, etc.):
@@ -204,28 +46,54 @@
   fi
   ```
 
-- Always check `cd` results: `cd "${dir}" || exit 1`. Prefer scoped subshells over `pushd`/`popd`: `(cd "${dir}" && do_thing)`
-- SUID and SGID are forbidden on shell scripts. Use `sudo` to grant elevated access instead.
-- All error messages must be written to stderr. The repo's logging helpers already follow this — `log::log`, `log::with_date`, `log::warn`, and `log::die` all write to stderr.
-- Document non-trivial functions with a comment block above the definition: description, globals used or modified, arguments (using the `# $1 = description` style for each positional; `# $@ = ...` for varargs), outputs (stdout/stderr), and return value semantics. Library functions in `functions/*.bash` always require this; small internal helpers may be lighter.
-- Comment tricky, non-obvious, or important code sections; explain *why*, not *what*.
-- Use `TODO:` (all caps, no author identifier) to mark deferred work.
-- Maximum line length is 120 characters. Wrap long lines via continuation, here-docs, or shorter expressions. Exempt: lines whose excess length comes from a single unbreakable string literal — URLs, file paths, embedded regex/awk/sed programs, multi-arg single-string command invocations (e.g. ffprobe `-show_entries '...'`). Multi-token or pipeline lines must still wrap.
-- Pipeline formatting: a pipeline that fits on one line stays on one line. When wrapping, put one segment per line with the `|` at the start of the continuation line, indented 2 spaces from the opening command.
-- Control flow opener: `; then` and `; do` on the same line as `if`/`while`/`for`. `else` on its own line. `fi`/`done` on their own line, aligned with the opener.
-- `case` statement formatting: indent each alternative 2 spaces; multi-line alternatives put the pattern, the actions, and the closing `;;` on separate lines. Never use `;&` or `;;&` (fall-through) — write explicit cases instead.
-- Single-character integer specials (`$?`, `$#`, `$$`, `$!`) are exempt from the "quote everything" rule — quoting is optional since they cannot contain whitespace or globs.
-- Use `"$@"` to forward positional parameters; reach for `$*` only when you specifically need a single concatenated string.
-- Use bash arrays for lists of elements or command-line flags to avoid quoting complications. Always expand with `"${array[@]}"` (quoted, `@` not `*`). Do not use arrays for complex data structures — bash arrays are not the right tool.
+- All error messages must be written to stderr.
+
+## Syntax
+
+- Use `[[ ]]` over `[ ]`
+- Use `(( ))` for arithmetic; never `let` or `expr`
+- Use `$(...)` not backticks
+- Use `source` instead of `.` when sourcing a file. The `source` keyword is more readable and unambiguous (a leading `.` is easy to overlook).
+- Use long options in commands (e.g., `cut --delimiter` not `cut -d`)
+- Never define aliases in scripts. Use shell functions instead (aliases are inert in non-interactive shells anyway).
+- Avoid `eval`; if needed, justify with comment.
 - In `[[ ]]`, prefer `==` over `=` for equality.
 - Never use `<` or `>` inside `[[ ]]` for numeric comparison (those are lexicographic). Use `(( a < b ))` or `[[ a -lt b ]]` instead.
-- Use `./*` rather than `*` when feeding glob results to commands so filenames beginning with `-` aren't treated as options.
-- Never pipe into `while`: the loop runs in a subshell, so any variable assignments inside are lost. Use process substitution (`while read -r ...; do ...; done < <(cmd)`) or read into an array first with `mapfile -t arr < <(cmd)`.
-- Avoid bare `(( expr ))` as a standalone statement when the expression can evaluate to zero — under `set -e`, an exit status of 1 from the arithmetic kills the script. Use `(( expr )) || true` (with a same-line comment), `: $(( expr ))` for side effects only, or capture the value with `result=$(( expr ))`.
 - Inside `$(( … ))`, omit the `${}` braces — the shell auto-resolves bare variable names: `$(( count + 1 ))` not `$(( ${count} + 1 ))`.
-- Never define aliases in scripts. Use shell functions instead (aliases are inert in non-interactive shells anyway).
-- Library functions are namespaced with `::`: a helper in `functions/files.bash` is `files::exists`, in `functions/log.bash` is `log::info`, etc. Internal/private helpers (not used across files) may keep plain `snake_case`.
-- Name loop variables after the items being iterated: `for file in "${files[@]}"` not `for x in "${files[@]}"`.
+- Avoid bare `(( expr ))` as a standalone statement when the expression can evaluate to zero — under `set -e`, an exit status of 1 from the arithmetic kills the script. Use `(( expr )) || true` (with a same-line comment), `: $(( expr ))` for side effects only, or capture the value with `result=$(( expr ))`.
+
+## Quoting and variable expansion
+
+- Quote all variable expansions: `"${var}"` not `$var`
+- Use `${var}` brace syntax for all variables EXCEPT single-character shell specials and positional parameters (`$?`, `$#`, `$$`, `$!`, `$@`, `$*`, `$1`–`$9`) — leave those unbraced. Positionals `${10}` and above still require braces.
+- Single-character integer specials (`$?`, `$#`, `$$`, `$!`) are exempt from the "quote everything" rule — quoting is optional since they cannot contain whitespace or globs.
+- Quote command substitutions: `"$(cmd)"`
+- Single-quote string literals when no expansion is needed: `'/dev/null'`, `'/etc/os-release'`, `'y'`. Reserve double quotes for expansion.
+- Do not quote numeric option arguments: `--fields=1`, `--max-args=1` (not `--fields='1'`)
+- Test for empty/non-empty strings with `[[ -z "$x" ]]` / `[[ -n "$x" ]]` rather than `[[ "$x" == "" ]]` / `[[ "$x" != "" ]]`.
+
+## Variables and constants
+
+- Constants and config: `readonly` and `UPPER_SNAKE_CASE` at top of script
+- Top-level scripts with named positional args must bind each `$1`/`$2`/etc. to a `readonly` `UPPER_SNAKE_CASE` constant immediately after arg-count validation, then reference the named constant thereafter — never use `$1`/`$2`/etc. inline in the script body. Improves readability and self-documents intent. Exemptions: pass-through scripts forwarding `"$@"` verbatim; variadic scripts that only iterate `"$@"` (loop variable provides the name); single-use of `$1` on the first executable line where binding adds noise without readability gain (author's call).
+
+  ```bash
+  # wrong — bare positionals scattered through script body
+  cp --archive -- "$1" "$2"
+  log_info "$1 -> $2"
+
+  # right — bind once, name everywhere
+  readonly SRC="$1"
+  readonly DEST="$2"
+  cp --archive -- "${SRC}" "${DEST}"
+  log_info "${SRC} -> ${DEST}"
+  ```
+
+- Locals: `local` (or `local -r` for read-only) inside every function. Use `snake_case` (lowercase) for local and other non-constant variables; reserve `UPPER_SNAKE_CASE` for constants, exported vars, and environment vars.
+- Apply `${VAR:-}` defaults only to optional positional args (`"${2:-}"`) — required positionals are already validated by arg-count guards, so let `set -u` catch programming mistakes there.
+- Default safely under `set -u`: use `"${VAR:-default}"` for vars that may legitimately be unset; do NOT add defaults for well-known env vars expected to always be present (`HOME`, `USER`, `SDKMAN_DIR`, `PATH`, etc.) — let `set -u` catch them if missing.
+- When parsing decimal strings that may have leading zeros (e.g. `date +%H` → `09`), use `10#` in arithmetic context (`$((10#${var}))`) or strip via `%-H`/`%-M` with GNU date — bash arithmetic treats `08`/`09` as invalid octal.
+- Force-decimal numbers from external commands before arithmetic comparison.
 - When using command substitution to assign a `local`, declare and assign on separate lines so the command's exit status is observable (`local` always returns 0 and masks the substitution's exit status):
 
   ```bash
@@ -237,7 +105,7 @@
   result="$(cmd)"
   ```
 
-- Never append `|| exit 1` (or `|| exit N`) to a plain command-substitution assignment: `var="$(cmd)" || exit 1` is redundant under the mandatory `set -Eeuo pipefail` and short-circuits the `ERR` trap installed by `log::enable_err_trap`, which would otherwise print the failing line and command. Write `var="$(cmd)"` and let strict mode + the trap handle failure. For an explicit user-visible failure with a custom message, use `log::die` instead:
+- Never append `|| exit 1` (or `|| exit N`) to a plain command-substitution assignment: `var="$(cmd)" || exit 1` is redundant under the mandatory `set -Eeuo pipefail` and short-circuits the `ERR` trap, which would otherwise print the failing line and command. Write `var="$(cmd)"` and let strict mode + the trap handle failure. For an explicit user-visible failure with a custom message, use `|| { echo "msg" >&2; exit 1; }` (or the project's `die`/`log_err` helper if one exists):
 
   ```bash
   # wrong — redundant, suppresses ERR trap context
@@ -245,14 +113,106 @@
 
   # right — let strict mode + ERR trap handle it
   var="$(cmd)"
-
-  # right — when a custom message is needed
-  var="$(cmd)" || log::die "cmd failed"
   ```
 
   For `local`/`readonly`/`declare`/`export`, the split-declaration rule above applies — `local var="$(cmd)" || exit 1` never triggers because the builtin masks the substitution's exit status.
-- File layout: only the shebang, strict-mode pragma, IFS, sourced libraries / `set` options, and constants appear before function definitions. All functions are grouped together below constants. No executable code is interleaved between function definitions.
-- `main` function: top-level scripts containing one or more helper functions must wrap entry logic in `function main() { ... }`, defined as the last function. The final non-comment line of the script must be `main "$@"`. Scripts with zero helper functions may use straight-line code with no `main`. Library files in `functions/` are exempt. Keep `args::check_*_args "$@"` and any `getopt` option parsing whose results modify `$@` at top-level above the `main` call — `main` should receive already-validated, already-parsed args.
+
+## Functions
+
+- Functions: `snake_case`, defined with `function name() { ... }` (always use `function` keyword)
+- Library functions should be namespaced with `::` (e.g. `files::exists`, `log::info`); internal/private helpers may keep plain `snake_case`.
+- Functions with named positional parameters must bind each `$1`/`$2`/etc. to a `local` (or `local -r`) variable on the first lines of the function body, then reference the named variable thereafter — never use `$1`/`$2`/etc. inline in the function body. The `local` name should match the `# @arg $1 description` doc comment above the function. Exemptions: variadic functions iterating `"$@"`; pass-through functions forwarding `"$@"` verbatim; single-use of `$1` on the first executable line where binding adds noise without readability gain (author's call).
+
+  ```bash
+  # wrong — bare positionals scattered through body
+  function copy_file() {
+    cp --archive -- "$1" "$2"
+    log_info "$1 -> $2"
+  }
+
+  # right — bind once, name everywhere
+  # @description Copy a file from src to dest, preserving attributes.
+  # @arg $1 src path to source file
+  # @arg $2 dest path to destination
+  function copy_file() {
+    local -r src="$1"
+    local -r dest="$2"
+    cp --archive -- "${src}" "${dest}"
+    log_info "${src} -> ${dest}"
+  }
+  ```
+
+- Document positional parameters above each function with shdoc-style `# @arg $1 description` comments (use `# @arg $@ description` for varargs). Add `# @description ...` above the function for the prose summary; add `# @noargs` for argument-less functions; use `# @stdout`, `# @stderr`, and `# @exitcode N meaning` where useful.
+- Document non-trivial functions with a comment block above the definition: description, globals used or modified, arguments, outputs (stdout/stderr), and return value semantics. Library functions always require this; small internal helpers may be lighter.
+- Predicate functions (`is_*`, `*_exists`, etc.) end with a `[[ ... ]]` test or command whose exit status is the result — do not write explicit `return 0` / `return 1`.
+
+## Control flow
+
+- Control flow opener: `; then` and `; do` on the same line as `if`/`while`/`for`. `else` on its own line. `fi`/`done` on their own line, aligned with the opener.
+- Use `case ... in PATTERN) ;; *) ;; esac` instead of chained `[[ ]]` / `elif` when matching one variable against multiple string patterns
+- `case` statement formatting: indent each alternative 2 spaces; multi-line alternatives put the pattern, the actions, and the closing `;;` on separate lines. Never use `;&` or `;;&` (fall-through) — write explicit cases instead.
+- Iterate command output with `mapfile -t arr < <(cmd)`; never `for x in $(cmd)`
+- Iterate positional parameters explicitly: `for x in "$@"; do ...; done`, not the implicit `for x; do ...; done` (clearer at a glance what is being iterated)
+- Name loop variables after the items being iterated: `for file in "${files[@]}"` not `for x in "${files[@]}"`.
+- Never pipe into `while`: the loop runs in a subshell, so any variable assignments inside are lost. Use process substitution (`while read -r ...; do ...; done < <(cmd)`) or read into an array first with `mapfile -t arr < <(cmd)`.
+- Use `"$@"` to forward positional parameters; reach for `$*` only when you specifically need a single concatenated string.
+
+## Arrays
+
+- Use bash arrays for lists of elements or command-line flags to avoid quoting complications. Always expand with `"${array[@]}"` (quoted, `@` not `*`). Do not use arrays for complex data structures — bash arrays are not the right tool.
+
+## I/O
+
+- Use `printf '%s\n' "$x"` over `echo "$x"` when `$x` could start with `-` or contain backslashes
+- Use `printf` (with explicit format string, including ANSI escapes like `'\033[0;32m%s\033[0m\n'` when colorizing) for any non-trivial output; never `echo -e`
+- Heredocs: quote the terminator when no expansion wanted: `<<'EOF'`
+- Always use `read -r` (or `read -rp PROMPT`); never bare `read` (matches ShellCheck SC2162 — `-r` prevents backslash mangling)
+
+## Logging
+
+- Standardize logging via helpers, all writing to stderr with timestamp + level prefix:
+
+  ```bash
+  log()      { printf '[%s] %-5s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$1" "$2" >&2; }
+  log_info() { log INFO  "$*"; }
+  log_warn() { log WARN  "$*"; }
+  log_err()  { log ERROR "$*"; }
+  ```
+
+## Files, paths, and globs
+
+- Use `--` before user-supplied paths in destructive commands (`rm --force --`, `mv --`)
+- Use `./*` rather than `*` when feeding glob results to commands so filenames beginning with `-` aren't treated as options.
+- Never parse `ls` output; use globs, `find`, or `fd`
+- Use `find -printf '<fmt>'` for structured output (e.g. `find . -printf '%u:%g\n'`) instead of parsing default `find` output
+- Use `stat --format='<fmt>'` for file metadata. For non-integer arithmetic, pipe through `bc` (bash `(( ))` is integer-only): `echo "scale=2; $(stat --format='%s' "${f}") / 1073741824" | bc`
+- Read values from `/etc/os-release` by sourcing it in a subshell, not by `grep`/`sed`/`awk`. The file is spec-defined as shell-sourceable, handles quoted values correctly, and exposes every field at once. Use a subshell so the sourced variables don't leak:
+
+  ```bash
+  # shellcheck disable=SC1091
+  ( source '/etc/os-release' && printf '%s\n' "${ID}" )
+  ```
+
+- Always check `cd` results: `cd "${dir}" || exit 1`. Prefer scoped subshells over `pushd`/`popd`: `(cd "${dir}" && do_thing)`
+- Tempfiles: `tmp="$(mktemp)"`
+
+## PATH
+
+- Scope `PATH` mutations inside a `( ... )` subshell so changes don't leak to the caller's environment.
+- Any script that modifies `PATH` must include a comment explaining why. Applies to direct assignments and `export PATH=...`. Helper functions whose explicit purpose is PATH manipulation are exempt — calling them is self-documenting.
+
+## External tools
+
+- Tool availability: check with `command -v tool >/dev/null 2>&1`, never `which`
+- For non-interactive `curl`, use: `curl --disable --fail --silent --location --show-error`. `--disable` skips `~/.curlrc` so behavior doesn't depend on the invoking user's config
+- For non-interactive `wget`, use: `wget --no-config` (skips `~/.wgetrc` for the same reason)
+- Always pass `--no-run-if-empty` and an explicit `--max-args=N` to `xargs`
+- Prefer shell builtins, parameter expansion, and `=~` over external tools when they can do the job (`${var//pat/rep}` over `sed`, `${var%suffix}` over `cut`, `[[ "$s" =~ ^[0-9]+$ ]]` over `grep`). External commands are fine when the builtin form is unreadable.
+
+## Pipelines
+
+- Pipeline formatting: a pipeline that fits on one line stays on one line. When wrapping, put one segment per line with the `|` at the start of the continuation line, indented 2 spaces from the opening command.
+- When suppressing pipefail in one spot: explicit `|| true` with comment, not blanket disable
 - For pipelines whose per-stage exit codes matter, capture `PIPESTATUS` into a variable on the very next line — any subsequent command overwrites it:
 
   ```bash
@@ -260,7 +220,57 @@
   status=( "${PIPESTATUS[@]}" )
   ```
 
-- Prefer shell builtins, parameter expansion, and `=~` over external tools when they can do the job (`${var//pat/rep}` over `sed`, `${var%suffix}` over `cut`, `[[ "$s" =~ ^[0-9]+$ ]]` over `grep`). External commands are fine when the builtin form is unreadable.
+## Concurrency
+
+- **Process substitution `<(...)` is banned** for use as a producer to consumers like `mapfile`, `comm`, `diff`, `paste`, `join`. Process substitution runs the producer in a child process whose exit status is not visible to the parent — `set -e`, `pipefail`, and the `ERR` trap all operate inside that severed child. A failing producer silently leaves the consumer with empty input, and the parent script keeps running with partial state. Use a temp file instead:
+
+  ```bash
+  # wrong
+  mapfile -t lines < <(producer | sort)
+
+  # right
+  tmp="$(mktemp)"
+  producer | sort > "${tmp}"
+  mapfile -t lines < "${tmp}"
+  ```
+
+  The one tolerated exception is `while read -r ...; do ...; done < <(cmd)` when avoiding the subshell-loses-state pitfall of `cmd | while read ...`. Prefer the temp-file or `mapfile` form even there when failure propagation matters.
+
+- **Backgrounded commands `cmd &` are banned.** Background jobs sever exit-status propagation in the same way process substitution does (the parent never observes failure unless it `wait`s, and `set -e` cannot help). For the common case of detaching a GUI launcher from the terminal so the shell prompt returns immediately, use `exec setsid --fork`:
+
+  ```bash
+  # wrong
+  kate "$@" > '/dev/null' 2>&1 &
+  disown
+
+  # right (must be the last statement in the calling script — exec does not return)
+  exec setsid --fork kate "$@" > '/dev/null' 2>&1
+  ```
+
+  The bitwise-AND operator inside `(( ))` (e.g. `(( x & 0xff ))`) is unaffected by this rule — only standalone `cmd &` (and `cmd & disown`) is banned.
+
+## Security
+
+- SUID and SGID are forbidden on shell scripts. Use `sudo` to grant elevated access instead.
+
+## File layout
+
+- File layout: only the shebang, strict-mode pragma, IFS, sourced libraries / `set` options, and constants appear before function definitions. All functions are grouped together below constants. No executable code is interleaved between function definitions.
+- `main` function: top-level scripts containing one or more helper functions must wrap entry logic in `function main() { ... }`, defined as the last function. The final non-comment line of the script must be `main "$@"`. Scripts with zero helper functions may use straight-line code with no `main`. Library files (sourced helpers) are exempt. Keep arg-count guards and any `getopt` option parsing whose results modify `$@` at top-level above the `main` call — `main` should receive already-validated, already-parsed args.
+
+## Comments
+
+- Comment tricky, non-obvious, or important code sections; explain *why*, not *what*.
+- Use `TODO:` (all caps, no author identifier) to mark deferred work.
+
+## Quality gates
+
+- All shell scripts must pass `shellcheck` before being considered complete
+- Format shell scripts with: `shfmt --list --indent 2 --case-indent --binary-next-line --space-redirects --write <files>`
+- Verify formatting (no in-place changes) with: `shfmt --list --indent 2 --case-indent --binary-next-line --space-redirects --diff <files>`
+- All shell scripts must pass the verify command above before being considered complete
+- Use `# shellcheck disable=SCxxxx` only with a same-line comment justifying why
+
+## Consistency
+
 - Consistency tiebreaker: when picking between equivalent options, match the existing patterns in surrounding code rather than introducing a third variant. But "we've always done it this way" is not a reason to keep an outdated style when the rule book has changed — apply current rules to new code.
-- File extensions: top-level executables (everything under `main/`, `install/`, `set_up/`, `misc/`) have no extension; library files under `functions/` use the `.bash` extension and are NOT executable.
-- Filename conventions: executables use kebab-case (`new-script`, `format-scripts`, `run-install-scripts`); library files use snake_case with the `.bash` extension (`functions/files.bash`, `functions/log.bash`).
