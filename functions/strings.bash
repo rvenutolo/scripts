@@ -27,6 +27,51 @@ function strings::is_blank() {
   [[ -z "${1//[[:space:]]/}" ]]
 }
 
+# @description Return true if the string contains at least one non-whitespace character.
+# @arg $1 string to test
+# @exitcode 0 if true
+# @exitcode 1 if false
+function strings::is_not_blank() {
+  args::check_exactly_1_arg "$@"
+  [[ -n "${1//[[:space:]]/}" ]]
+}
+
+# @description Die if the string is not empty (zero length).
+# @arg $1 string to test
+function strings::assert_empty() {
+  args::check_exactly_1_arg "$@"
+  if ! strings::is_empty "$1"; then
+    log::die "Expected empty string, got: $1"
+  fi
+}
+
+# @description Die if the string is empty (zero length).
+# @arg $1 string to test
+function strings::assert_not_empty() {
+  args::check_exactly_1_arg "$@"
+  if ! strings::is_not_empty "$1"; then
+    log::die "Expected non-empty string"
+  fi
+}
+
+# @description Die if the string contains any non-whitespace characters.
+# @arg $1 string to test
+function strings::assert_blank() {
+  args::check_exactly_1_arg "$@"
+  if ! strings::is_blank "$1"; then
+    log::die "Expected blank string, got: $1"
+  fi
+}
+
+# @description Die if the string is empty or contains only whitespace characters.
+# @arg $1 string to test
+function strings::assert_not_blank() {
+  args::check_exactly_1_arg "$@"
+  if ! strings::is_not_blank "$1"; then
+    log::die "Expected non-blank string"
+  fi
+}
+
 # @description Print the string with leading and trailing whitespace removed.
 # Output: stdout — trimmed string
 # @arg $1 string
