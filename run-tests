@@ -15,8 +15,11 @@ function main() {
   if ! files::exists "${BATS_BIN}"; then
     log::die "bats not found at ${BATS_BIN} — run: git submodule update --init --recursive"
   fi
+  if ! commands::executable_exists 'parallel'; then
+    log::die "GNU parallel not found — required for bats --jobs. Install via your package manager."
+  fi
   if (($# == 0)); then
-    "${BATS_BIN}" --recursive "${DEFAULT_TARGET}"
+    "${BATS_BIN}" --jobs "$(nproc)" --recursive "${DEFAULT_TARGET}"
   else
     "${BATS_BIN}" "$@"
   fi
