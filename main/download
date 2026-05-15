@@ -13,21 +13,7 @@ readonly URL="$1"
 readonly OUTPUT_FILE="${2:-}"
 
 if strings::is_not_empty "${OUTPUT_FILE}"; then
-  tries=0
-  until http::curl "${URL}" --output "${OUTPUT_FILE}"; do
-    ((tries += 1)) || true # increment; || true guards against set -e if value is 0
-    if ((tries > 10)); then
-      log::die "Failed to get in 10 tries: ${URL}"
-    fi
-    sleep 15
-  done
+  retry::with_linear_backoff 11 15 http::curl "${URL}" --output "${OUTPUT_FILE}"
 else
-  tries=0
-  until http::curl "${URL}"; do
-    ((tries += 1)) || true # increment; || true guards against set -e if value is 0
-    if ((tries > 10)); then
-      log::die "Failed to get in 10 tries: ${URL}"
-    fi
-    sleep 15
-  done
+  retry::with_linear_backoff 11 15 http::curl "${URL}"
 fi
