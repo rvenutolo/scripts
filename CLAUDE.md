@@ -9,11 +9,17 @@ Personal collection of bash scripts for system setup, package install, and day-t
 ## Layout
 
 - `main/` — primary utility scripts (on `PATH`).
+
 - `other/` — third-party scripts copied verbatim from elsewhere. **Never modify anything under `other/` unless explicitly told to touch a specific file in there.** This applies to formatting, shellcheck fixes, refactors, renames, or any other automated cleanup. On `PATH`; excluded from `format-scripts` / `shellcheck-scripts`.
+
 - `install/` — numbered scripts run in order by `run-install-scripts` to provision a new machine. Files starting with all-caps names (e.g. `00_DISTRO_PACKAGES`, `70_WORK_ONLY`) are markers/data with executable bit off — the runner skips non-executable files. `90_REMOVE` etc. follow same pattern.
+
 - `set_up/` — idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script must self-check whether it should run.
+
 - `misc/` — one-off setup scripts (not on `PATH`, not auto-run). Scripts here are expected to be **standalone** — runnable on a fresh machine by someone without access to this repo's function library. Do NOT source `functions.bash` from `misc/` scripts; inline anything they need (including the `ERR` trap — see Script Conventions).
+
 - `functions/` — bash function library, all sourced via `functions.bash` (loops `functions/*.bash`).
+
 - `lib/` — vendored Groovy jars (used by some scripts).
 
 ## Required Environment
@@ -21,10 +27,15 @@ Personal collection of bash scripts for system setup, package install, and day-t
 The user's `~/.profile` exports a fixed set of env vars (`SCRIPTS_DIR`, `XDG_*`, `PERSONAL_PROJECTS_DIR`, etc.) that this repo relies on. They are always set in the environment by the time any script runs — interactive shells source `~/.profile`, and the `run-install-scripts` / `run-set-up-scripts` runners source it explicitly. Treat the full set as guaranteed. Read `~/.profile` to enumerate the available vars and their definitions.
 
 - **Reuse, don't hardcode.** When a script references a path or hostname covered by one of these vars, use the env var literal directly: `"${SCRIPTS_DIR}/functions.bash"`, `"${XDG_CONFIG_HOME}/foo/bar"`, `"${PERSONAL_PROJECTS_DIR}/some-repo"`, etc. Shell expands env vars natively — no templating needed.
+
 - **No fallbacks.** Do NOT add `${VAR:-default}` defensive defaults or `set -u` defenses for any of these vars (including `SCRIPTS_DIR`). Failure under `set -u` is the desired behavior if the environment is broken — the user wants to fix the environment, not paper over it.
+
 - **No env-var prefix when invoking repo scripts.** When running `./check-scripts`, `./format-scripts`, `./shellcheck-scripts`, or any other script in the repo, do NOT prefix the command with `SCRIPTS_DIR=...` — the env var is already set.
+
 - **Ignore conditional exports.** `EDITOR`, `VISUAL`, `PAGER`, `MANPAGER`, `FILE_MANAGER`, `TAILNET_IP`, `TAILNET_CIDR`, `TERM`, etc. are gated on `__executable_exists` / `case` / runtime probes in `~/.profile`; they're not meant for cross-file reuse and are not guaranteed to be set.
+
 - **`PATH` membership.** `main/` and `other/` are always on `PATH`. `install/`, `set_up/`, `misc/` are not.
+
 - **`misc/` exemption.** Scripts under `misc/` are explicitly standalone — they must NOT depend on this repo's env or functions. Hardcoded paths are acceptable there.
 
 ### Sourcing `functions.bash`
@@ -34,12 +45,19 @@ Every non-`misc/` script sources `"${SCRIPTS_DIR}/functions.bash"`. Exception: a
 ## Common Commands
 
 - `./format-scripts [--check] [<file-or-dir>...]` — runs `shfmt --list --indent 2 --case-indent --binary-next-line --space-redirects --write` over the given files/dirs, or over all shell files except `other/` when no args. `--check` swaps `--write` for `--diff` (preview mode, no in-place changes).
+
 - `./shellcheck-scripts [<file-or-dir>...]` — runs `shellcheck` over the given files/dirs, or over the same default set when no args. All scripts must pass.
+
 - `./check-scripts [<file-or-dir>...]` — combined check: runs `shfmt --diff` and `shellcheck` over the same set, aggregates exit codes (exits non-zero if either fails). Use this for CI/pre-commit-style verification.
+
 - `./run-install-scripts` — provision new machine. Sources `~/.profile`, validates sudo, runs every executable file under `install/` in `LC_COLLATE=C` order.
+
 - `./run-set-up-scripts` — same pattern, recursive over `set_up/**/*`.
+
 - `main/new-script <path>` — scaffolds a new script with the standard header + exec bit.
+
 - `main/setup-githooks` — one-shot script that points `core.hooksPath` at the tracked `.githooks/` dir, activating the `pre-push` hook (runs `./check-scripts` and aborts the push on failure). Bypass with `git push --no-verify`.
+
 - `./run-tests [<bats-args>...]` — runs BATS tests under `test/functions/` recursively when called with no args, or forwards args to the vendored bats binary. Default invocation uses `bats --jobs $(nproc)` for parallel execution.
 
 To gate a script from the `install`/`set_up runners`, remove its executable bit (`chmod -x`).
@@ -57,6 +75,7 @@ The generic shell-script rules in `.claude/rules/shell-scripts.md` apply to this
 ### Helper function mandate
 
 - Claude MUST use the helper functions in `functions/*.bash` whenever an applicable helper exists. Do not write inline equivalents for operations that already have a helper (file mutation, prompts, OS detection, downloads, path manipulation, logging, arg-count guards, executable existence, symlinks, etc.). Before writing inline shell, scan `functions/*.bash` for a matching helper.
+
 - Claude may propose new helper functions when a piece of logic looks reusable across scripts, even if it is currently only needed in one place. Suggest the new helper (with proposed file and signature) rather than silently inlining.
 
 ### Standard top-level skeleton
@@ -76,12 +95,15 @@ args::check_no_args "$@"   # or check_exactly_N_args / check_at_least_N_args / c
 ```
 
 - `log::enable_err_trap` (from `functions/log.bash`) installs an `ERR` trap that prints a red, prefixed `ERROR: line N (exit C): cmd` line to stderr when any unhandled command fails under `set -e`. Call it once, immediately after sourcing `functions.bash`. It complements `log::die` (explicit user-visible failures) — the trap catches everything else.
+
 - Create new scripts via `main/new-script <path>` (handles header + exec bit).
 
 ### Arg-count guards
 
 - Use `args::check_no_args "$@"` / `check_exactly_N_args` / `check_at_least_N_args` / `check_at_most_N_args` from `functions/args.bash` at the top of every top-level script and library function with a fixed arity.
+
 - **Pass-through scripts and variadic library functions are exempt.** A pass-through script forwards `"$@"` to an underlying tool (e.g. `main/claude` wraps the real `claude` binary, `main/sync-flatpaks` accepts optional filter args) and has no fixed arity. A variadic library function takes 0+ items of the same kind. In both cases, omit the `args::check_*_args "$@"` guard and add a same-line comment explaining why: `# pass-through: any arg count valid` (or similar). The comment is mandatory — silent omission is not allowed.
+
 - Library functions in `functions/*.bash` use the same `check_*_args "$@"` guards as top-level scripts.
 
 ### Library file conventions
@@ -91,16 +113,27 @@ Library files under `functions/` get only the shebang — do NOT add `set -euo p
 **`functions/*.bash` exemption list** — library files are exempt from the following rules that apply to top-level scripts:
 
 - `set -Eeuo pipefail` strict-mode pragma (parent owns strict mode)
+
 - `IFS=$'\n\t'` (parent owns IFS)
+
 - `source "${SCRIPTS_DIR}/functions.bash"` (would be circular)
+
 - `log::enable_err_trap` call (parent installs the trap)
+
 - The inline `ERR` trap form (only used by standalone `misc/` scripts)
+
 - Top-level `args::check_*_args "$@"` guard (library files have no top-level args; functions inside them still use `check_*_args` guards)
+
 - `main "$@"` final-line / `function main()` requirement (library files have no entry point)
+
 - File-layout rule that constants must precede functions (library files contain only function definitions; no constants section)
+
 - File extension: library files use `.bash` (top-level executables have no extension)
+
 - Filename casing: library files use `snake_case` (top-level executables use `kebab-case`)
+
 - Executable bit: library files must NOT be executable (top-level scripts must be executable)
+
 - Creation via `main/new-script`: library files are hand-created (the helper is for top-level executables)
 
 All other rules (helper-function usage, quoting, `[[ ]]` over `[ ]`, `(( ))` arithmetic, comment block above non-trivial functions, `local`/`local -r` inside every function, predicate-function return-via-exit-status, namespaced `::` function names, etc.) apply equally to library files.
@@ -108,7 +141,9 @@ All other rules (helper-function usage, quoting, `[[ ]]` over `[ ]`, `(( ))` ari
 ### File extensions and filename conventions
 
 - Top-level executables (everything under `main/`, `install/`, `set_up/`, `misc/`) have no extension; library files under `functions/` use the `.bash` extension and are NOT executable.
+
 - Executables use kebab-case (`new-script`, `format-scripts`, `run-install-scripts`); library files use snake_case with the `.bash` extension (`functions/files.bash`, `functions/log.bash`).
+
 - Library functions are namespaced with `::`: a helper in `functions/files.bash` is `files::exists`, in `functions/log.bash` is `log::log`, etc. Internal/private helpers (not used across files) may keep plain `snake_case`.
 
 ### `set_up/` idempotency
@@ -128,8 +163,11 @@ trap 'printf "\033[0;31m[%s %s] ERROR: line %s (exit %s): %s\033[0m\n" "$(date +
 **Overrides** the generic `log` / `log_info` / `log_warn` / `log_err` template in `.claude/rules/shell-scripts.md`. Use the repo's helpers from `functions/log.bash` (all color-coded, written to stderr, prefixed with `${0##*/}`):
 
 - `log::log` — green, info-level
+
 - `log::with_date` — green, info-level with full date
+
 - `log::warn` — yellow, warn-level (use for non-fatal problems)
+
 - `log::die` — red, error-level + `exit 1` with caller context
 
 There is no separate `log_info` (use `log::log`) or `log_err` (use `log::die` if fatal, or `log::warn` if not). `log::die` includes caller context via `${BASH_SOURCE[1]}:${FUNCNAME[1]}:${BASH_LINENO[0]}` — preserve this when modifying the helper.
@@ -169,6 +207,7 @@ Use `retry::with_linear_backoff <max_tries> <base_sleep> <cmd...>` from `functio
 Helpers in `functions/files.bash` and `functions/symlinks.bash` — `files::write`, `files::append_to`, `files::move`, `files::move_no_prompt`, `files::copy`, `symlinks::link_file`, `symlinks::link_dir`. They implement the standard pattern: `cmp --silent` short-circuit on byte equality, `diff --color --unified ... || true` preview, `prompt::yn` confirmation, and parent-dir auto-creation via `dirs::create "$(dirname "$dest")"`. Variant suffixes:
 
 - `_no_prompt`: skips the diff/confirm step — use for programmatic temp-file-to-destination moves where interactive confirmation would be inappropriate (`files::move_no_prompt`, `files::move_no_prompt_quiet`). Always combine with `_quiet` for temp-to-dest moves: use `files::move_no_prompt_quiet` so the internal move produces no log noise.
+
 - `_quiet`: omits the `log::log` "Moving/Moved", "Copying/Copied", "Writing/Wrote", "Appending/Appended" status messages — use when that output is unwanted noise (`files::move_quiet`, `files::move_no_prompt_quiet`, `files::copy_quiet`, `files::write_quiet`, `files::append_to_quiet`).
 
 Parent-dir auto-creation before writing/moving/copying: helpers `dirs::create "$(dirname "${dest}")"` (or `dirs::root_create` for sudo writes). No inline `mkdir --parents` / `mkdir -p`.
@@ -209,6 +248,7 @@ When adding a helper to an existing topic file that already has a `.bats` file, 
 The generic ban on `<(...)` and `cmd &` from `.claude/rules/shell-scripts.md` applies here. Project-specific replacements:
 
 - `<(...)` → use `files::create_temp tmp_var` and route the producer to that file (the parent's `pipefail` + `set -e` then catch failures). For the `comm -23 <(arrays::to_lines a) <(arrays::to_lines b)` shape used by `arrays::diff` and friends, keep the helper API but rewrite the implementation to use temp files internally.
+
 - `cmd &` (for GUI launcher detachment) → `misc::exec_gui kate "$@"` (wraps `exec setsid --fork`). Must be the last statement in the calling script (`exec` does not return).
 
 ## Testing
@@ -235,7 +275,9 @@ test/
 ### Running
 
 - `./run-tests` — runs everything under `test/functions/`.
+
 - `./run-tests test/functions/strings.bats` — single file.
+
 - `./run-tests --filter-regex 'is_blank' test/functions/strings.bats` — subset by name.
 
 ### Bootstrap on a fresh clone
@@ -275,6 +317,7 @@ For tests that need to record CLI invocations or shim sudo, source `test/test_he
 Interactive `env_file::prompt_*` tests use a hybrid strategy:
 
 - **Default-accepted path** — set `SCRIPTS_AUTO_ANSWER=y` and supply a default. `misc::auto_answer` short-circuits the `read -rp` and the default is written to the file.
+
 - **Typed-value path** — wrap the call in `bash -c "..."` with stdin fed via `<<<` (use the `prompt_via_stdin` helper in `env_file.bats`). The `read -rp` fires and reads the typed value from stdin.
 
 `passwords::generate` and `passwords::generate_with_symbols` are mocked in `setup()` (and re-declared inside `prompt_via_stdin` since function definitions don't survive `bash -c` boundaries) so password-fn tests are deterministic. Mocks return `MOCK_PASSWORD_64` and `MOCK_PASSWORD_SYMBOLS` respectively.
