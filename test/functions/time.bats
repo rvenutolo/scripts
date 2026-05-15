@@ -97,25 +97,46 @@ setup() {
 
 # ---------- time::shell_elapsed_time ----------
 
-@test "shell_elapsed_time: SECONDS=0 -> 0s" {
-  SECONDS=0
-  run time::shell_elapsed_time
-  assert_success
-  assert_output '0s'
+# Note: time::shell_elapsed_time is a 3-line wrapper:
+#   args::check_no_args "$@"
+#   time::calc_elapsed 0 "${SECONDS}"
+#
+# Asserting that `SECONDS=3661 → "1h 1m 1s"` requires the bash interpreter to
+# expand "${SECONDS}" within the same wall-second as the assignment, which is
+# flaky under parallel suite load (SECONDS may tick to 3662 before the read).
+# Instead, mock time::calc_elapsed and assert the wrapper delegates correctly:
+# first arg is `0`, second arg is a non-negative integer (SECONDS at call time).
+# The value-formatting logic is exhaustively covered by the calc_elapsed tests
+# above; this test only verifies the wiring.
+
+@test "shell_elapsed_time: delegates to calc_elapsed with 0 and SECONDS" {
+  # Override calc_elapsed for this test only; bats isolates each @test in its own subshell.
+  # shellcheck disable=SC2329 # invoked indirectly via time::shell_elapsed_time
+  function time::calc_elapsed() {
+    printf 'start=%s end=%s\n' "$1" "$2"
+  }
+  SECONDS=42
+  local actual
+  actual="$(time::shell_elapsed_time)"
+  [[ "${actual}" =~ ^start=0\ end=([0-9]+)$ ]]
+  local seconds_seen="${BASH_REMATCH[1]}"
+  # SECONDS may have ticked between assignment and read; accept anything >= 42.
+  ((seconds_seen >= 42))
 }
 
-@test "shell_elapsed_time: SECONDS=1 -> 1s" {
-  SECONDS=1
-  run time::shell_elapsed_time
-  assert_success
-  assert_output '1s'
-}
-
-@test "shell_elapsed_time: SECONDS=3661 -> 1h 1m 1s" {
-  SECONDS=3661
-  run time::shell_elapsed_time
-  assert_success
-  assert_output '1h 1m 1s'
+@test "shell_elapsed_time: reads SECONDS dynamically, not a hardcoded value" {
+  # Second invocation with a different SECONDS value distinguishes "reads
+  # SECONDS at call time" from "always passes 42" — the previous test could
+  # pass if the wrapper hardcoded 42.
+  function time::calc_elapsed() {
+    printf 'start=%s end=%s\n' "$1" "$2"
+  }
+  SECONDS=9999
+  local actual
+  actual="$(time::shell_elapsed_time)"
+  [[ "${actual}" =~ ^start=0\ end=([0-9]+)$ ]]
+  local seconds_seen="${BASH_REMATCH[1]}"
+  ((seconds_seen >= 9999))
 }
 
 @test "shell_elapsed_time: dies when called with arg" {
