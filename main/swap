@@ -12,20 +12,20 @@ readonly PATH_A="$1"
 readonly PATH_B="$2"
 
 if files::exists "${PATH_A}" && files::exists "${PATH_B}" || dirs::exists "${PATH_A}" && dirs::exists "${PATH_B}"; then
-  temp_file="$(mktemp)"
-  trap 'rm --force -- "${temp_file}"' EXIT
+  temp_file=''
+  files::create_temp temp_file
   mv -- "${PATH_A}" "${temp_file}"
   mv -- "${PATH_B}" "${PATH_A}"
   mv -- "${temp_file}" "${PATH_B}"
   log::log "${PATH_A} <-> ${PATH_B}"
 else
-  if [[ -e "${PATH_A}" && -e "${PATH_B}" ]]; then
+  if files::any_exists "${PATH_A}" && files::any_exists "${PATH_B}"; then
     log::die "Cannot swap file and directory"
   fi
-  if [[ ! -e "${PATH_A}" ]]; then
+  if ! files::any_exists "${PATH_A}"; then
     log::die "${PATH_A} does not exist"
   fi
-  if [[ ! -e "${PATH_B}" ]]; then
+  if ! files::any_exists "${PATH_B}"; then
     log::die "${PATH_B} does not exist"
   fi
 fi

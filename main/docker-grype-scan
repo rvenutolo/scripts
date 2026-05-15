@@ -9,7 +9,10 @@ log::enable_err_trap
 system::require_bash_version 4 0
 
 if [[ "$#" -eq 0 ]]; then
-  mapfile -t images_to_scan < <(docker ps --format '{{.Image}}' | sort | uniq)
+  files::create_temp images_tmp
+  # shellcheck disable=SC2154 # images_tmp assigned by files::create_temp nameref
+  docker ps --format '{{.Image}}' | sort | uniq > "${images_tmp}"
+  mapfile -t images_to_scan < "${images_tmp}"
 else
   images_to_scan=("$@")
 fi
