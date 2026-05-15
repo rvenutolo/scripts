@@ -236,7 +236,7 @@ if commands::executable_exists 'libvirtd'; then
 fi
 readonly expected_enabled_system_services
 for service in "${expected_enabled_system_services[@]}"; do
-  if ! systemctl is-enabled --quiet "${service}"; then
+  if ! systemctl::is_system_unit_enabled "${service}"; then
     log::log "System service not enabled: ${service}"
   fi
 done
@@ -259,7 +259,7 @@ done
 
 readonly expected_enabled_user_services=()
 for service in "${expected_enabled_user_services[@]}"; do
-  if ! systemctl is-enabled --user --quiet "${service}"; then
+  if ! systemctl::is_user_unit_enabled "${service}"; then
     log::log "User service not enabled: ${service}"
   fi
 done
