@@ -19,17 +19,13 @@ if ! files::exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt::yn 'Install SDK
     # re-created later in this script.
     rm --recursive "${SDKMAN_DIR}"
   fi
-  # Retry due to random timeouts
-  readonly base_sleep_time=30
-  tries=0
-  until downloads::download_and_run_script 'https://get.sdkman.io?rcupdate=false'; do
-    ((tries += 1))
-    if ((tries > 10)); then
-      log::die "Failed to install SDKMAN in 10 tries"
-    fi
+  # Retry due to random timeouts. Remove any partial SDKMAN dir before each
+  # attempt so the installer does not skip installation thinking it is already done.
+  function try_install_sdkman() {
     rm --recursive --force -- "${SDKMAN_DIR}"
-    sleep "$((base_sleep_time * tries))"
-  done
+    downloads::download_and_run_script 'https://get.sdkman.io?rcupdate=false'
+  }
+  retry::with_linear_backoff 11 30 try_install_sdkman
   log::log 'Installed SDKMAN'
 fi
 
