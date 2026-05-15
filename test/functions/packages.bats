@@ -20,7 +20,7 @@ setup() {
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/hosts.bash"
   # shellcheck disable=SC1091
-  source "${SCRIPTS_DIR}/functions/wrappers.bash"
+  source "${SCRIPTS_DIR}/functions/http.bash"
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/downloads.bash"
   # shellcheck disable=SC1091
