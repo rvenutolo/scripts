@@ -13,7 +13,10 @@ if ! prompt::yn 'Install distro packages?'; then
   exit 0
 fi
 
-mapfile -t packages < <(packages::get_distro "$(os::id)" "$(os::codename)")
+files::create_temp packages_tmp
+# shellcheck disable=SC2154 # packages_tmp assigned by files::create_temp nameref
+packages::get_distro "$(os::id)" "$(os::codename)" > "${packages_tmp}"
+mapfile -t packages < "${packages_tmp}"
 readonly packages
 
 if commands::executable_exists 'apt'; then

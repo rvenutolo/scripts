@@ -45,13 +45,16 @@ function write_index() {
   local -r dir="$1"
   local -r title="$2"
   local -r index="${dir}/index.md"
+  local _entries_file
+  files::create_temp _entries_file
+  find "${dir}" -maxdepth 1 -type f -name '*.md' ! -name 'index.md' | sort > "${_entries_file}"
   {
     printf '# %s\n\n' "${title}"
     local entry base
     while IFS= read -r entry; do
       base="$(basename -- "${entry}" .md)"
       printf -- '- [%s](%s)\n' "${base}" "${entry##*/}"
-    done < <(find "${dir}" -maxdepth 1 -type f -name '*.md' ! -name 'index.md' | sort)
+    done < "${_entries_file}"
   } > "${index}"
 }
 
@@ -82,12 +85,16 @@ function main() {
   write_index "${DOCS_FUNCTIONS_DIR}" 'Functions'
 
   log::log "Generating scripts reference"
+  local scripts_list_file
+  files::create_temp scripts_list_file
+  BASH_ENV=/dev/null SCRIPTS_DIR="${SCRIPTS_DIR}" \
+    bash -c 'source "${SCRIPTS_DIR}/functions.bash"; shell_scripts::find "${SCRIPTS_DIR}/main"' \
+    > "${scripts_list_file}"
   local script
   while IFS= read -r script; do
     base="$(basename -- "${script}")"
     shdoc_one "${script}" "${DOCS_SCRIPTS_DIR}/${base}.md"
-  done < <(BASH_ENV=/dev/null SCRIPTS_DIR="${SCRIPTS_DIR}" \
-    bash -c 'source "${SCRIPTS_DIR}/functions.bash"; shell_scripts::find "${SCRIPTS_DIR}/main"')
+  done < "${scripts_list_file}"
   write_index "${DOCS_SCRIPTS_DIR}" 'Scripts'
 
   log::log "Generating home page from README.md"

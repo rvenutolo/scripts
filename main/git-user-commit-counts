@@ -9,8 +9,11 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
+files::create_temp user_emails_file
+# shellcheck disable=SC2154 # user_emails_file assigned by files::create_temp via nameref
+git log --format='%ae' | sort --unique > "${user_emails_file}"
 (
   while read -r user_email; do
     printf '%s\n' "$(git log --author="${user_email}" --oneline | wc --lines) ${user_email}"
-  done < <(git log --format='%ae' | sort --unique)
+  done < "${user_emails_file}"
 ) | column --table --table-columns-limit '2' --output-separator ' | ' --table-right '1'

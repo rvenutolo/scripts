@@ -14,9 +14,8 @@ if args::stdin_exists; then
 else
   args::check_exactly_1_arg "$@"
   readonly FILE="$1"
-  temp_file="$(mktemp)"
+  files::create_temp temp_file
   readonly temp_file
-  trap 'rm --force -- "${temp_file}"' EXIT
   cp "${FILE}" "${temp_file}"
   tail --lines '+2' "${temp_file}" > "${FILE}"
 fi

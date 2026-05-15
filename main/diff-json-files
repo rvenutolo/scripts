@@ -14,7 +14,13 @@ readonly FILE_B="$2"
 files::assert_exists "${FILE_A}"
 files::assert_exists "${FILE_B}"
 
+files::create_temp sorted_a_file
+files::create_temp sorted_b_file
+# shellcheck disable=SC2154 # sorted_a_file assigned by files::create_temp via nameref
+jq --sort-keys . "${FILE_A}" > "${sorted_a_file}"
+# shellcheck disable=SC2154 # sorted_b_file assigned by files::create_temp via nameref
+jq --sort-keys . "${FILE_B}" > "${sorted_b_file}"
 diff --color=always --report-identical-files --unified --text \
-  <(jq --sort-keys . "${FILE_A}") \
-  <(jq --sort-keys . "${FILE_B}") \
+  "${sorted_a_file}" \
+  "${sorted_b_file}" \
   | text::skip_first_lines 3

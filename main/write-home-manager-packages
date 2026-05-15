@@ -62,8 +62,8 @@ function write_packages_into() {
   local -r package_type="$2"
   shift 2
   local temp_file
-  temp_file="$(mktemp)"
-  readonly temp_file
+  # shellcheck disable=SC2034 # temp_file set via nameref inside files::create_temp
+  files::create_temp temp_file
   write_packages_file_skeleton "${packages_file}" "${package_type}"
   {
     awk \
