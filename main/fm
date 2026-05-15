@@ -26,7 +26,7 @@ else
 fi
 readonly fm gui
 
-if [[ "$#" -eq 0 ]]; then
+if args::no_args "$@"; then
   readonly dir='.'
 else
   readonly dir="$1"

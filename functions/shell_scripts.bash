@@ -35,7 +35,7 @@ function shell_scripts::assert_paths_exist() {
 # Output: stdout — shell script file paths, one per line
 # @arg $@ files or directories to search (optional; defaults to all scripts under SCRIPTS_DIR)
 function shell_scripts::find() {
-  if [[ "$#" -eq 0 ]]; then
+  if args::no_args "$@"; then
     shfmt --find "${SCRIPTS_DIR}" \
       | grep --invert-match --extended-regexp '/(\.shdoc|other|test/bats|test/test_helper/bats-(support|assert))/'
     return

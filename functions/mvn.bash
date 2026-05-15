@@ -5,7 +5,7 @@
 # @arg $1 root directory to search (optional; defaults to current directory)
 function mvn::list_pom_files() {
   args::check_at_most_1_arg "$@"
-  if [[ "$#" -eq 0 ]]; then
+  if args::no_args "$@"; then
     local -r dir="."
   else
     local -r dir="$1"
