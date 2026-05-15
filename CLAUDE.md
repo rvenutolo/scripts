@@ -56,8 +56,6 @@ Every non-`misc/` script sources `"${SCRIPTS_DIR}/functions.bash"`. Exception: a
 
 - `main/new-script <path>` — scaffolds a new script with the standard header + exec bit.
 
-- `main/setup-githooks` — one-shot script that points `core.hooksPath` at the tracked `.githooks/` dir, activating the `pre-push` hook (runs `./check-scripts` and aborts the push on failure). Bypass with `git push --no-verify`.
-
 - `./run-tests [<bats-args>...]` — runs BATS tests under `test/functions/` recursively when called with no args, or forwards args to the vendored bats binary. Default invocation uses `bats --jobs $(nproc)` for parallel execution.
 
 To gate a script from the `install`/`set_up runners`, remove its executable bit (`chmod -x`).
@@ -332,4 +330,4 @@ Note: `read -rp` writes the prompt text to `/dev/tty`, which BATS `run` does not
 
 Run `./format-scripts` then `./shellcheck-scripts`. Both must be clean. Both accept optional file/dir arguments — pass only the changed files for a faster check, or run with no args to cover the whole repo. To verify without writing, use `./check-scripts` (or `./format-scripts --check`) which runs `shfmt --diff` and `shellcheck` together and aggregates their exit codes.
 
-The tracked `.githooks/pre-push` hook runs `./check-scripts` automatically on push (activated per-clone via `main/setup-githooks`), so the same gate also fires at push time as a safety net.
+The tracked `.githooks/pre-push` hook runs `./check-scripts` automatically on push (activated per-clone via `git config --local core.hooksPath .githooks`), so the same gate also fires at push time as a safety net.

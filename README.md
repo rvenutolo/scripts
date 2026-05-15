@@ -29,11 +29,20 @@ Personal Linux setup, install, and utility shell scripts.
 | `./run-install-scripts` | Provision a new machine — runs every executable file under `install/` in order. |
 | `./run-set-up-scripts` | Run idempotent setup scripts under `set_up/`. |
 | `main/new-script <path>` | Scaffold a new top-level script with the standard header and exec bit. |
-| `main/setup-githooks` | Point `core.hooksPath` at the tracked `.githooks/` dir so the `pre-push` hook (runs `./check-scripts`) activates per clone. |
 
 ## Required environment
 
 Set `SCRIPTS_DIR` to the repo root. Every script sources `${SCRIPTS_DIR}/functions.bash`. The user's `~/.profile` is expected to export it.
+
+## Pre-push hook
+
+The tracked `.githooks/pre-push` hook runs `./check-scripts` before each push and aborts on failure. Activate it once per clone:
+
+```bash
+git config --local core.hooksPath .githooks
+```
+
+Bypass with `git push --no-verify`.
 
 ## Testing
 
