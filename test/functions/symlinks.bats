@@ -176,3 +176,82 @@ setup() {
   assert_failure
   assert_output --partial 'Expected exactly 2 arguments'
 }
+
+# ---------- symlinks::points_at ----------
+
+@test "points_at: link does not exist -> false" {
+  : > "${BATS_TEST_TMPDIR}/target"
+  run symlinks::points_at "${BATS_TEST_TMPDIR}/nonexistent_link" "${BATS_TEST_TMPDIR}/target"
+  assert_failure
+}
+
+@test "points_at: path is a regular file, not a symlink -> false" {
+  : > "${BATS_TEST_TMPDIR}/file"
+  : > "${BATS_TEST_TMPDIR}/target"
+  run symlinks::points_at "${BATS_TEST_TMPDIR}/file" "${BATS_TEST_TMPDIR}/target"
+  assert_failure
+}
+
+@test "points_at: link points at the named target -> true" {
+  : > "${BATS_TEST_TMPDIR}/target"
+  ln --symbolic "${BATS_TEST_TMPDIR}/target" "${BATS_TEST_TMPDIR}/link"
+  run symlinks::points_at "${BATS_TEST_TMPDIR}/link" "${BATS_TEST_TMPDIR}/target"
+  assert_success
+}
+
+@test "points_at: link points at a different target -> false" {
+  : > "${BATS_TEST_TMPDIR}/target"
+  : > "${BATS_TEST_TMPDIR}/other"
+  ln --symbolic "${BATS_TEST_TMPDIR}/other" "${BATS_TEST_TMPDIR}/link"
+  run symlinks::points_at "${BATS_TEST_TMPDIR}/link" "${BATS_TEST_TMPDIR}/target"
+  assert_failure
+}
+
+@test "points_at: link points at a directory target -> true" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/targetdir"
+  ln --symbolic "${BATS_TEST_TMPDIR}/targetdir" "${BATS_TEST_TMPDIR}/link"
+  run symlinks::points_at "${BATS_TEST_TMPDIR}/link" "${BATS_TEST_TMPDIR}/targetdir"
+  assert_success
+}
+
+@test "points_at: broken link (target missing) -> readlink --canonicalize returns best-effort path; link does not match nonexistent target" {
+  # readlink --canonicalize resolves as much as possible even for missing paths.
+  # A broken link pointing at /nonexistent/path should NOT match a different nonexistent path.
+  ln --symbolic "${BATS_TEST_TMPDIR}/missing_a" "${BATS_TEST_TMPDIR}/broken_link"
+  run symlinks::points_at "${BATS_TEST_TMPDIR}/broken_link" "${BATS_TEST_TMPDIR}/missing_b"
+  assert_failure
+}
+
+@test "points_at: broken link pointing at its own missing target -> true (canonical paths agree)" {
+  # readlink --canonicalize on a broken link returns the absolute target path even if it doesn't exist.
+  # So a broken link pointing at /tmp/x is considered to point_at /tmp/x.
+  ln --symbolic "${BATS_TEST_TMPDIR}/missing_target" "${BATS_TEST_TMPDIR}/broken_link"
+  run symlinks::points_at "${BATS_TEST_TMPDIR}/broken_link" "${BATS_TEST_TMPDIR}/missing_target"
+  assert_success
+}
+
+@test "points_at: target given with trailing slash vs link without -> canonical comparison handles it" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/targetdir"
+  ln --symbolic "${BATS_TEST_TMPDIR}/targetdir" "${BATS_TEST_TMPDIR}/link"
+  # readlink --canonicalize strips trailing slashes; both should resolve the same
+  run symlinks::points_at "${BATS_TEST_TMPDIR}/link" "${BATS_TEST_TMPDIR}/targetdir/"
+  assert_success
+}
+
+@test "points_at: dies with 0 args" {
+  run symlinks::points_at
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
+@test "points_at: dies with 1 arg" {
+  run symlinks::points_at 'a'
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
+@test "points_at: dies with 3 args" {
+  run symlinks::points_at 'a' 'b' 'c'
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
