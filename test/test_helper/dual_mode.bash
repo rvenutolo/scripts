@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Test helpers for functions that accept input from EITHER stdin OR a file path.
-# Used by tests for text::* and json::sort. NOT used by grep::*:
+# Used by tests for text::*, json::sort, and files::hash. NOT used by grep::*:
 # those helpers are also dual-mode but take an extra pattern arg (1 arg = stdin
 # + pattern; 2 args = file + pattern), so they need their own run wrappers in
 # test/functions/grep.bats rather than these single-input helpers.

@@ -528,15 +528,22 @@ function files::root_append_to_quiet() {
   printf '%s\n' "${content}" | sudo tee --append "${file}" > '/dev/null'
 }
 
-# @description Print the SHA-256 hash of a file, or '0' if the file does not exist.
-# Output: stdout — hex SHA-256 digest, or '0' if file is absent
-# @arg $1 file path
+# @description Print the SHA-256 hash of a file or stdin.
+# With a file arg: prints the hash, or '0' if the file does not exist.
+# With no args: hashes stdin.
+# Output: stdout — hex SHA-256 digest, or '0' if the file arg is absent
+# @arg $1 file path (optional; reads stdin if omitted)
 function files::hash() {
-  args::check_exactly_1_arg "$@"
-  local -r file="$1"
-  if files::exists "${file}"; then
-    sha256sum "${file}" | cut --delimiter=' ' --fields=1
+  if [[ $# -gt 0 ]]; then
+    args::check_exactly_1_arg "$@"
+    local -r file="$1"
+    if files::exists "${file}"; then
+      sha256sum "${file}" | cut --delimiter=' ' --fields=1
+    else
+      printf '%s\n' '0'
+    fi
   else
-    printf '%s\n' '0'
+    args::check_for_stdin
+    sha256sum | cut --delimiter=' ' --fields=1
   fi
 }
