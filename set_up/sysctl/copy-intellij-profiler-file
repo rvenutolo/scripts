@@ -13,10 +13,10 @@ readonly src_file="${HOME}/.etc/sysctl-intellij-profiler.conf"
 readonly dest_file='/etc/sysctl.d/intellij-profiler.conf'
 
 # Copy instead of symlink - see 'protected_symlinks' in https://www.kernel.org/doc/Documentation/sysctl/fs.txt
-orig_hash="$(files::hash "${dest_file}")"
+orig_hash="$(files::hash_if_exists "${dest_file}")"
 readonly orig_hash
 files::root_copy "${src_file}" "${dest_file}"
-cur_hash="$(files::hash "${dest_file}")"
+cur_hash="$(files::hash_if_exists "${dest_file}")"
 readonly cur_hash
 
 if [[ "${orig_hash}" != "${cur_hash}" ]]; then

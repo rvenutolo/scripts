@@ -16,10 +16,10 @@ fi
 readonly src_file="${HOME}/.etc/docker-daemon.json"
 readonly dest_file='/etc/docker/daemon.json'
 
-orig_hash="$(files::hash "${dest_file}")"
+orig_hash="$(files::hash_if_exists "${dest_file}")"
 readonly orig_hash
 files::root_copy "${src_file}" "${dest_file}"
-cur_hash="$(files::hash "${dest_file}")"
+cur_hash="$(files::hash_if_exists "${dest_file}")"
 readonly cur_hash
 
 if [[ "${orig_hash}" != "${cur_hash}" ]]; then

@@ -415,14 +415,58 @@ setup() {
     "$(printf '%s' $'line1\nline2\n' | sha256sum | cut --delimiter=' ' --fields=1)"
 }
 
-@test "hash file: missing file -> '0'" {
+@test "hash file: missing file -> dies" {
   run files::hash "${BATS_TEST_TMPDIR}/nope"
-  assert_success
-  assert_output '0'
+  assert_failure
+  assert_output --partial 'does not exist'
 }
 
 @test "hash: dies with 2 args" {
   run bash -c "source '${SCRIPTS_DIR}/functions.bash'; files::hash a b"
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+# ---------- files::hash_if_exists ----------
+
+@test "hash_if_exists: known content -> known sha256" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s' 'hello' > "${file}"
+  run files::hash_if_exists "${file}"
+  assert_success
+  assert_output '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
+}
+
+@test "hash_if_exists: empty file -> sha256 of empty string" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  : > "${file}"
+  run files::hash_if_exists "${file}"
+  assert_success
+  assert_output 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+}
+
+@test "hash_if_exists: multi-line content" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s' $'line1\nline2\n' > "${file}"
+  run files::hash_if_exists "${file}"
+  assert_success
+  assert_output "$(printf '%s' $'line1\nline2\n' | sha256sum | cut --delimiter=' ' --fields=1)"
+}
+
+@test "hash_if_exists: missing file -> empty output, success" {
+  run files::hash_if_exists "${BATS_TEST_TMPDIR}/nope"
+  assert_success
+  assert_output ''
+}
+
+@test "hash_if_exists: dies with 0 args" {
+  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; files::hash_if_exists"
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "hash_if_exists: dies with 2 args" {
+  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; files::hash_if_exists a b"
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
