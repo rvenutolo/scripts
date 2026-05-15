@@ -16,6 +16,8 @@ setup() {
   source "${SCRIPTS_DIR}/functions/prompt.bash"
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/files.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/test/test_helper/dual_mode.bash"
 }
 
 # ---------- files::exists ----------
@@ -382,17 +384,47 @@ setup() {
 
 # ---------- files::hash ----------
 
-@test "hash: known content -> known sha256" {
-  printf '%s' 'hello' > "${BATS_TEST_TMPDIR}/f"
-  run files::hash "${BATS_TEST_TMPDIR}/f"
-  assert_success
-  assert_output '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
+@test "hash file: known content -> known sha256" {
+  dual_mode::assert_file 'files::hash' 'hello' \
+    '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
 }
 
-@test "hash: missing file -> '0'" {
+@test "hash stdin: known content -> known sha256" {
+  dual_mode::assert_stdin 'files::hash' 'hello' \
+    '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
+}
+
+@test "hash file: empty file -> sha256 of empty string" {
+  dual_mode::assert_file 'files::hash' '' \
+    'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+}
+
+@test "hash stdin: empty stdin -> sha256 of empty string" {
+  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; : | files::hash"
+  assert_success
+  assert_output 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+}
+
+@test "hash file: multi-line content" {
+  dual_mode::assert_file 'files::hash' $'line1\nline2\n' \
+    "$(printf '%s' $'line1\nline2\n' | sha256sum | cut --delimiter=' ' --fields=1)"
+}
+
+@test "hash stdin: multi-line content" {
+  dual_mode::assert_stdin 'files::hash' $'line1\nline2\n' \
+    "$(printf '%s' $'line1\nline2\n' | sha256sum | cut --delimiter=' ' --fields=1)"
+}
+
+@test "hash file: missing file -> '0'" {
   run files::hash "${BATS_TEST_TMPDIR}/nope"
   assert_success
   assert_output '0'
+}
+
+@test "hash: dies with 2 args" {
+  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; files::hash a b"
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- files::write (canonical) ----------
