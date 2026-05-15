@@ -539,22 +539,29 @@ function files::create_temp() {
   _files_create_temp_var="$(mktemp)"
 }
 
-# @description Print the SHA-256 hash of a file or stdin.
-# With a file arg: prints the hash, or '0' if the file does not exist.
-# With no args: hashes stdin.
-# Output: stdout — hex SHA-256 digest, or '0' if the file arg is absent
+# @description Print the SHA-256 hash of a file or stdin. Dies if the file argument does not exist.
+# Output: stdout — hex SHA-256 digest
 # @arg $1 file path (optional; reads stdin if omitted)
 function files::hash() {
   if [[ $# -gt 0 ]]; then
     args::check_exactly_1_arg "$@"
     local -r file="$1"
-    if files::exists "${file}"; then
-      sha256sum "${file}" | cut --delimiter=' ' --fields=1
-    else
-      printf '%s\n' '0'
-    fi
+    files::assert_exists "${file}"
+    sha256sum "${file}" | cut --delimiter=' ' --fields=1
   else
     args::check_for_stdin
     sha256sum | cut --delimiter=' ' --fields=1
+  fi
+}
+
+# @description Print the SHA-256 hash of a file, or the empty string if the file does not exist.
+# Intended for the "hash before / hash after" idiom where the destination file may not yet exist on first run.
+# Output: stdout — hex SHA-256 digest, or empty string if the file is absent
+# @arg $1 file path
+function files::hash_if_exists() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  if files::exists "${file}"; then
+    sha256sum "${file}" | cut --delimiter=' ' --fields=1
   fi
 }
