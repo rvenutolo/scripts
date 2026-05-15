@@ -22,7 +22,7 @@ function env_file::assert_var_exists() {
   local -r var_name="$2"
   env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
-  if ! grep::file_contains_regex "${env_file}" "^${var_name}="; then
+  if ! grep::contains_regex "${env_file}" "^${var_name}="; then
     log::die "${var_name} does not exist in ${env_file}"
   fi
 }
