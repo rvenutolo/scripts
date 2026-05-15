@@ -11,5 +11,4 @@ system::require_bash_version 4 0
 # remove this dir from the path so executing `mpv` doesn't execute this script
 path::remove "$(misc::this_script_dir)"
 
-mpv "$@" > '/dev/null' 2>&1 &
-disown
+misc::exec_gui mpv "$@"

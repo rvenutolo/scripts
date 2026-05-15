@@ -11,5 +11,4 @@ args::check_at_least_1_arg "$@"
 
 log::log "Googling: $*"
 readonly search="${*// /%20}"
-xdg-open "https://www.google.com/search?q=${search}" > '/dev/null' 2>&1 &
-disown
+misc::exec_gui xdg-open "https://www.google.com/search?q=${search}"
