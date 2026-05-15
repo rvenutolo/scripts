@@ -98,6 +98,188 @@ setup() {
   assert_failure
 }
 
+# ---------- strings::is_not_blank ----------
+
+@test "is_not_blank: false for empty string" {
+  run strings::is_not_blank ''
+  assert_failure
+}
+
+@test "is_not_blank: false for single space" {
+  run strings::is_not_blank ' '
+  assert_failure
+}
+
+@test "is_not_blank: false for tab" {
+  run strings::is_not_blank $'\t'
+  assert_failure
+}
+
+@test "is_not_blank: false for newline" {
+  run strings::is_not_blank $'\n'
+  assert_failure
+}
+
+@test "is_not_blank: false for mixed whitespace" {
+  run strings::is_not_blank $' \t\n '
+  assert_failure
+}
+
+@test "is_not_blank: true for single non-space char" {
+  run strings::is_not_blank 'x'
+  assert_success
+}
+
+@test "is_not_blank: true for whitespace surrounding non-space" {
+  run strings::is_not_blank '  x  '
+  assert_success
+}
+
+@test "is_not_blank: dies with no args" {
+  run strings::is_not_blank
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "is_not_blank: dies with two args" {
+  run strings::is_not_blank 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+# ---------- strings::assert_empty ----------
+
+@test "assert_empty: empty string -> success" {
+  run strings::assert_empty ''
+  assert_success
+}
+
+@test "assert_empty: single space -> dies" {
+  run strings::assert_empty ' '
+  assert_failure
+  assert_output --partial 'Expected empty string'
+}
+
+@test "assert_empty: non-empty string -> dies" {
+  run strings::assert_empty 'hello'
+  assert_failure
+  assert_output --partial 'Expected empty string'
+}
+
+@test "assert_empty: dies with no args" {
+  run strings::assert_empty
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "assert_empty: dies with two args" {
+  run strings::assert_empty 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+# ---------- strings::assert_not_empty ----------
+
+@test "assert_not_empty: non-empty string -> success" {
+  run strings::assert_not_empty 'hello'
+  assert_success
+}
+
+@test "assert_not_empty: single space -> success" {
+  run strings::assert_not_empty ' '
+  assert_success
+}
+
+@test "assert_not_empty: empty string -> dies" {
+  run strings::assert_not_empty ''
+  assert_failure
+  assert_output --partial 'Expected non-empty string'
+}
+
+@test "assert_not_empty: dies with no args" {
+  run strings::assert_not_empty
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "assert_not_empty: dies with two args" {
+  run strings::assert_not_empty 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+# ---------- strings::assert_blank ----------
+
+@test "assert_blank: empty string -> success" {
+  run strings::assert_blank ''
+  assert_success
+}
+
+@test "assert_blank: whitespace-only -> success" {
+  run strings::assert_blank $' \t\n'
+  assert_success
+}
+
+@test "assert_blank: non-blank string -> dies" {
+  run strings::assert_blank 'hello'
+  assert_failure
+  assert_output --partial 'Expected blank string'
+}
+
+@test "assert_blank: whitespace with non-space char -> dies" {
+  run strings::assert_blank '  x  '
+  assert_failure
+  assert_output --partial 'Expected blank string'
+}
+
+@test "assert_blank: dies with no args" {
+  run strings::assert_blank
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "assert_blank: dies with two args" {
+  run strings::assert_blank 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+# ---------- strings::assert_not_blank ----------
+
+@test "assert_not_blank: non-blank string -> success" {
+  run strings::assert_not_blank 'hello'
+  assert_success
+}
+
+@test "assert_not_blank: whitespace surrounding non-space -> success" {
+  run strings::assert_not_blank '  x  '
+  assert_success
+}
+
+@test "assert_not_blank: empty string -> dies" {
+  run strings::assert_not_blank ''
+  assert_failure
+  assert_output --partial 'Expected non-blank string'
+}
+
+@test "assert_not_blank: whitespace-only -> dies" {
+  run strings::assert_not_blank $' \t\n'
+  assert_failure
+  assert_output --partial 'Expected non-blank string'
+}
+
+@test "assert_not_blank: dies with no args" {
+  run strings::assert_not_blank
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "assert_not_blank: dies with two args" {
+  run strings::assert_not_blank 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- strings::trim ----------
 
 @test "trim: empty string -> empty string" {
