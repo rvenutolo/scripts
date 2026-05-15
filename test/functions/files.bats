@@ -676,6 +676,54 @@ setup() {
   assert_output --partial 'Expected exactly 2 arguments'
 }
 
+# ---------- files::create_temp ----------
+
+@test "create_temp: sets named variable to a path that exists" {
+  local temp_path
+  files::create_temp temp_path
+  [[ -f "${temp_path}" ]]
+}
+
+@test "create_temp: created file is empty" {
+  local temp_path
+  files::create_temp temp_path
+  [[ ! -s "${temp_path}" ]]
+}
+
+@test "create_temp: two sequential calls produce distinct paths" {
+  local path_a path_b
+  files::create_temp path_a
+  files::create_temp path_b
+  [[ "${path_a}" != "${path_b}" ]]
+}
+
+@test "create_temp: created file persists after the calling shell exits" {
+  # The helper deliberately does NOT install a cleanup trap — /tmp is managed by
+  # the OS, so the temp file is expected to outlive the process that created it
+  # and only get reclaimed by tmpfs wipe or systemd-tmpfiles age policy.
+  local temp_path
+  temp_path="$(bash -c "
+    source '${SCRIPTS_DIR}/functions/args.bash'
+    source '${SCRIPTS_DIR}/functions/files.bash'
+    files::create_temp p
+    printf '%s\n' \"\${p}\"
+  ")"
+  [[ -f "${temp_path}" ]]
+  rm --force -- "${temp_path}"
+}
+
+@test "create_temp: dies with no args" {
+  run files::create_temp
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "create_temp: dies with 2 args" {
+  run files::create_temp 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- root_* family (Phase G) ----------
 
 setup_files_root_helpers() {
