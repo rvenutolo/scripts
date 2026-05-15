@@ -528,6 +528,17 @@ function files::root_append_to_quiet() {
   printf '%s\n' "${content}" | sudo tee --append "${file}" > '/dev/null'
 }
 
+# @description Create a temporary file under /tmp and set the named variable in the
+# caller's scope to its path. The file is NOT cleaned up on exit — /tmp is managed by
+# the OS (tmpfs reboot wipe, systemd-tmpfiles age-based cleanup), so process-level
+# cleanup is unnecessary and adds complexity (EXIT-trap clobbering, multi-file accounting).
+# @arg $1 variable name to receive the temp file path (nameref)
+function files::create_temp() {
+  args::check_exactly_1_arg "$@"
+  local -n _files_create_temp_var="$1"
+  _files_create_temp_var="$(mktemp)"
+}
+
 # @description Print the SHA-256 hash of a file or stdin.
 # With a file arg: prints the hash, or '0' if the file does not exist.
 # With no args: hashes stdin.
