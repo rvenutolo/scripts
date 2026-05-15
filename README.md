@@ -34,6 +34,16 @@ Personal Linux setup, install, and utility shell scripts.
 
 Set `SCRIPTS_DIR` to the repo root. Every script sources `${SCRIPTS_DIR}/functions.bash`. The user's `~/.profile` is expected to export it.
 
+## Pre-push hook
+
+The tracked `.githooks/pre-push` hook runs `./check-scripts` before each push and aborts on failure. Activate it once per clone:
+
+```bash
+git config --local core.hooksPath .githooks
+```
+
+Bypass with `git push --no-verify`.
+
 ## Testing
 
 ```bash
