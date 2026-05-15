@@ -20,9 +20,14 @@ function sdkman_packages::uninstall_package_version() {
 # @noargs
 function sdkman_packages::install_sdkman_packages() {
   args::check_no_args "$@"
-  while read -r pkg; do
+  local -a pkgs
+  local pkgs_tmp
+  files::create_temp pkgs_tmp
+  packages::get_sdkman > "${pkgs_tmp}"
+  mapfile -t pkgs < "${pkgs_tmp}"
+  for pkg in "${pkgs[@]}"; do
     sdkman_packages::install_sdkman_package "${pkg}"
-  done < <(packages::get_sdkman)
+  done
 }
 
 # @description Print the names of all installed SDKMAN packages (excluding java).
@@ -60,11 +65,16 @@ function sdkman_packages::prune_sdkman_package() {
   local current_version
   current_version="$(sdkman_packages::get_current_package_version "${package}")"
   readonly current_version
-  while read -r version; do
+  local -a versions
+  local versions_tmp
+  files::create_temp versions_tmp
+  sdkman_packages::get_installed_packages_versions "${package}" > "${versions_tmp}"
+  mapfile -t versions < "${versions_tmp}"
+  for version in "${versions[@]}"; do
     if [[ "${version}" != "${current_version}" ]]; then
       sdkman_packages::uninstall_package_version "${package}" "${version}"
     fi
-  done < <(sdkman_packages::get_installed_packages_versions "${package}")
+  done
 }
 
 # @description Uninstall all outdated versions of every installed SDKMAN package (excluding java).
@@ -72,7 +82,12 @@ function sdkman_packages::prune_sdkman_package() {
 # @noargs
 function sdkman_packages::prune_sdkman_packages() {
   args::check_no_args "$@"
-  while read -r package; do
+  local -a packages
+  local packages_tmp
+  files::create_temp packages_tmp
+  sdkman_packages::get_installed_packages > "${packages_tmp}"
+  mapfile -t packages < "${packages_tmp}"
+  for package in "${packages[@]}"; do
     sdkman_packages::prune_sdkman_package "${package}"
-  done < <(sdkman_packages::get_installed_packages)
+  done
 }

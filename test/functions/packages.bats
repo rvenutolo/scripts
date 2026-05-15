@@ -22,6 +22,14 @@ setup() {
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/http.bash"
   # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/log.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/prompt.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/dirs.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/files.bash"
+  # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/downloads.bash"
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/packages.bash"
