@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 
+# @description Predicate: does the given symlink already point at the canonicalized target?
+# True if the link exists AND its canonical resolution equals the canonical resolution of the target.
+# @arg $1 link path
+# @arg $2 target path
+# @exitcode 0 if link points at target
+# @exitcode 1 otherwise
+function symlinks::points_at() {
+  args::check_exactly_2_args "$@"
+  local -r link="$1"
+  local -r target="$2"
+  [[ -L "${link}" && "$(readlink --canonicalize "${link}")" == "$(readlink --canonicalize "${target}")" ]]
+}
+
 # @description Return true if the given path exists and is a symbolic link.
 # @arg $1 symlink path
 function symlinks::exists() {
@@ -28,7 +41,7 @@ function symlinks::link_file() {
   local -r target="$1"
   local -r link="$2"
   files::assert_exists "${target}"
-  if [[ -L "${link}" && "$(readlink --canonicalize "${link}")" == "$(readlink --canonicalize "${target}")" ]]; then
+  if symlinks::points_at "${link}" "${target}"; then
     return 0
   fi
   if files::exists "${link}"; then
@@ -56,7 +69,7 @@ function symlinks::link_dir() {
   local -r target="$1"
   local -r link="$2"
   dirs::assert_exists "${target}"
-  if [[ -L "${link}" && "$(readlink --canonicalize "${link}")" == "$(readlink --canonicalize "${target}")" ]]; then
+  if symlinks::points_at "${link}" "${target}"; then
     return 0
   fi
   if dirs::exists "${link}"; then
