@@ -300,9 +300,14 @@ function sdkman_jdks::install_latest_tem_jdk() {
 # @noargs
 function sdkman_jdks::install_latest_tem_jdks() {
   args::check_no_args "$@"
-  while read -r major_version; do
+  local -a major_versions
+  local major_versions_tmp
+  files::create_temp major_versions_tmp
+  sdkman_jdks::get_available_tem_jdk_major_versions > "${major_versions_tmp}"
+  mapfile -t major_versions < "${major_versions_tmp}"
+  for major_version in "${major_versions[@]}"; do
     sdkman_jdks::install_latest_tem_jdk "${major_version}"
-  done < <(sdkman_jdks::get_available_tem_jdk_major_versions)
+  done
 }
 
 ### SETTING DEFAULT JDK
@@ -344,14 +349,18 @@ function sdkman_jdks::prune_tem_jdks_for_major_version() {
       | sdkman_jdks::get_formatted_tem_jdk_artifact_id_field
   )"
   readonly latest_artifact_id
-  while read -r artifact_id; do
+  local -a artifact_ids
+  local artifact_ids_tmp
+  files::create_temp artifact_ids_tmp
+  sdkman_jdks::get_formatted_installed_tem_jdks_for_major_version "${major_version}" \
+    | sdkman_jdks::get_formatted_tem_jdk_artifact_id_field \
+      > "${artifact_ids_tmp}"
+  mapfile -t artifact_ids < "${artifact_ids_tmp}"
+  for artifact_id in "${artifact_ids[@]}"; do
     if [[ "${artifact_id}" != "${latest_artifact_id}" ]]; then
       sdkman_jdks::uninstall_jdk "${artifact_id}"
     fi
-  done < <(
-    sdkman_jdks::get_formatted_installed_tem_jdks_for_major_version "${major_version}" \
-      | sdkman_jdks::get_formatted_tem_jdk_artifact_id_field
-  )
+  done
 }
 
 # @description Uninstall all outdated installed Temurin JDKs across every installed major version.
@@ -359,7 +368,12 @@ function sdkman_jdks::prune_tem_jdks_for_major_version() {
 # @noargs
 function sdkman_jdks::prune_tem_jdks() {
   args::check_no_args "$@"
-  while read -r major_version; do
+  local -a major_versions
+  local major_versions_tmp
+  files::create_temp major_versions_tmp
+  sdkman_jdks::get_installed_tem_jdk_major_versions > "${major_versions_tmp}"
+  mapfile -t major_versions < "${major_versions_tmp}"
+  for major_version in "${major_versions[@]}"; do
     sdkman_jdks::prune_tem_jdks_for_major_version "${major_version}"
-  done < <(sdkman_jdks::get_installed_tem_jdk_major_versions)
+  done
 }
