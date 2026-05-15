@@ -365,6 +365,7 @@ setup() {
   assert_failure
   assert_output --partial 'does not exist or is empty'
 }
+
 # ---------- files::size_gb ----------
 
 @test "size_gb: tiny file -> 0 (bc with scale=2 omits trailing zeros for 0)" {
