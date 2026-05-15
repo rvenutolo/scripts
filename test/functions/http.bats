@@ -10,14 +10,14 @@ setup() {
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/args.bash"
   # shellcheck disable=SC1091
-  source "${SCRIPTS_DIR}/functions/wrappers.bash"
+  source "${SCRIPTS_DIR}/functions/http.bash"
 }
 
 # ---------- curl ----------
 
 @test "curl: passes wrapper flag set + url" {
   cli_shim::record curl
-  run wrappers::curl 'https://example.com'
+  run http::curl 'https://example.com'
   assert_success
   run cli_shim::calls curl
   assert_output '--disable --fail --silent --location --show-error https://example.com'
@@ -25,7 +25,7 @@ setup() {
 
 @test "curl: forwards extra user args after wrapper flags" {
   cli_shim::record curl
-  run wrappers::curl --output '/tmp/out' 'https://example.com'
+  run http::curl --output '/tmp/out' 'https://example.com'
   assert_success
   run cli_shim::calls curl
   assert_output '--disable --fail --silent --location --show-error --output /tmp/out https://example.com'
@@ -33,7 +33,7 @@ setup() {
 
 @test "curl: accepts zero args (pass-through)" {
   cli_shim::record curl
-  run wrappers::curl
+  run http::curl
   assert_success
   run cli_shim::calls curl
   assert_output '--disable --fail --silent --location --show-error'
@@ -43,7 +43,7 @@ setup() {
 
 @test "wget: passes --no-config + url" {
   cli_shim::record wget
-  run wrappers::wget 'https://example.com'
+  run http::wget 'https://example.com'
   assert_success
   run cli_shim::calls wget
   assert_output '--no-config https://example.com'
@@ -51,7 +51,7 @@ setup() {
 
 @test "wget: forwards extra user args" {
   cli_shim::record wget
-  run wrappers::wget --output-document '/tmp/out' 'https://example.com'
+  run http::wget --output-document '/tmp/out' 'https://example.com'
   assert_success
   run cli_shim::calls wget
   assert_output '--no-config --output-document /tmp/out https://example.com'
@@ -59,7 +59,7 @@ setup() {
 
 @test "wget: accepts zero args" {
   cli_shim::record wget
-  run wrappers::wget
+  run http::wget
   assert_success
   run cli_shim::calls wget
   assert_output '--no-config'
