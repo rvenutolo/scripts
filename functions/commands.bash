@@ -28,6 +28,18 @@ function commands::executable_path() {
   )
 }
 
+# @description Die if the named executable is not found on PATH (excluding wrappers in main/ and other/).
+# @arg $1 executable name
+# @exitcode 0 if the executable exists
+# @exitcode 1 via log::die if not (process exits)
+function commands::assert_executable_exists() {
+  args::check_exactly_1_arg "$@"
+  local -r executable="$1"
+  if ! commands::executable_exists "${executable}"; then
+    log::die "${executable} executable not found"
+  fi
+}
+
 # @description Return true if the named shell function is defined in the current shell.
 # @arg $1 function name
 # @exitcode 0 if true
