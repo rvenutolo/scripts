@@ -221,6 +221,80 @@ assert_died_expecting() {
   assert_success
 }
 
+# ---------- no_args ----------
+
+@test "no_args: true with 0 args" {
+  run args::no_args
+  assert_success
+}
+
+@test "no_args: false with 1 arg" {
+  run args::no_args 'a'
+  assert_failure
+}
+
+@test "no_args: false with empty-string arg" {
+  run args::no_args ''
+  assert_failure
+}
+
+@test "no_args: false with 3 args" {
+  run args::no_args 'a' 'b' 'c'
+  assert_failure
+}
+
+# ---------- has_num_args ----------
+
+@test "has_num_args: dies with 0 args (missing expected count)" {
+  run args::has_num_args
+  assert_died_expecting 'at least 1 argument'
+}
+
+@test "has_num_args 0: true with 0 remaining" {
+  run args::has_num_args 0
+  assert_success
+}
+
+@test "has_num_args 0: false with 1 remaining" {
+  run args::has_num_args 0 'a'
+  assert_failure
+}
+
+@test "has_num_args 1: true with 1 remaining" {
+  run args::has_num_args 1 'a'
+  assert_success
+}
+
+@test "has_num_args 1: true with empty-string remaining" {
+  run args::has_num_args 1 ''
+  assert_success
+}
+
+@test "has_num_args 1: false with 0 remaining" {
+  run args::has_num_args 1
+  assert_failure
+}
+
+@test "has_num_args 1: false with 2 remaining" {
+  run args::has_num_args 1 'a' 'b'
+  assert_failure
+}
+
+@test "has_num_args 3: true with 3 remaining" {
+  run args::has_num_args 3 'a' 'b' 'c'
+  assert_success
+}
+
+@test "has_num_args 3: false with 2 remaining" {
+  run args::has_num_args 3 'a' 'b'
+  assert_failure
+}
+
+@test "has_num_args 3: false with 4 remaining" {
+  run args::has_num_args 3 'a' 'b' 'c' 'd'
+  assert_failure
+}
+
 # ---------- stdin_exists / check_for_stdin ----------
 
 @test "stdin_exists: true when stdin is a heredoc" {

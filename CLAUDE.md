@@ -104,6 +104,8 @@ args::check_no_args "$@"   # or check_exactly_N_args / check_at_least_N_args / c
 
 - Library functions in `functions/*.bash` use the same `check_*_args "$@"` guards as top-level scripts.
 
+- For predicate branching on caller arg count (e.g. choosing a default vs. consuming `$1`), use `args::no_args "$@"` or `args::has_num_args N "$@"` from `functions/args.bash` — never inline `[[ "$#" -eq N ]]`. Use `args::no_args` for the zero-arg case (not `args::has_num_args 0`).
+
 ### Library file conventions
 
 Library files under `functions/` get only the shebang — do NOT add `set -euo pipefail` or source `functions.bash`. Strict mode is owned by the parent script that sources them.
