@@ -119,6 +119,51 @@ echo real'
   assert_output --partial 'Expected exactly 1 argument'
 }
 
+# ---------- commands::assert_executable_exists ----------
+
+@test "assert_executable_exists: existing executable -> returns 0 silently" {
+  path_shim::add 'fake_assert_bin_xyz' '#!/usr/bin/env bash
+echo real'
+  run commands::assert_executable_exists 'fake_assert_bin_xyz'
+  assert_success
+  assert_output ''
+}
+
+@test "assert_executable_exists: missing executable -> exits non-zero" {
+  run commands::assert_executable_exists 'definitely-not-a-real-cmd-xyz123'
+  assert_failure
+}
+
+@test "assert_executable_exists: missing executable -> stderr contains executable name" {
+  run commands::assert_executable_exists 'definitely-not-a-real-cmd-xyz123'
+  assert_failure
+  assert_output --partial 'definitely-not-a-real-cmd-xyz123'
+}
+
+@test "assert_executable_exists: missing executable -> stderr contains 'not found'" {
+  run commands::assert_executable_exists 'definitely-not-a-real-cmd-xyz123'
+  assert_failure
+  assert_output --partial 'not found'
+}
+
+@test "assert_executable_exists: missing executable -> stderr contains caller context from log::die" {
+  run commands::assert_executable_exists 'definitely-not-a-real-cmd-xyz123'
+  assert_failure
+  assert_output --partial 'commands::assert_executable_exists'
+}
+
+@test "assert_executable_exists: dies with 0 args" {
+  run commands::assert_executable_exists
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "assert_executable_exists: dies with 2 args" {
+  run commands::assert_executable_exists 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- commands::function_exists ----------
 
 @test "function_exists: defined function -> true" {
