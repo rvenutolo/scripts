@@ -19,8 +19,8 @@ readonly scripts_dir="${SCRIPTS_DIR}/set_up"
 export LC_COLLATE='C'
 shopt -s globstar
 for script in "${scripts_dir}"/**/*; do
-  # don't attempt to execute any READMEs or scripts that intentionally have their executability turned off
-  if [[ -x "${script}" ]]; then
+  # don't attempt to execute directories, READMEs, or scripts that intentionally have their executability turned off
+  if files::is_executable "${script}"; then
     log::log "Running: ${script#"${scripts_dir}"/}"
     "${script}"
     log::log "Ran: ${script#"${scripts_dir}"/}"

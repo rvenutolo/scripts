@@ -24,7 +24,7 @@ while [[ "${dir}" != / ]]; do
 done
 readonly project_root
 
-if [[ -x "${project_root}/gradlew" ]]; then
+if files::is_executable "${project_root}/gradlew"; then
   log::log 'Executing gradlew instead of gradle'
   "${project_root}/gradlew" "$@"
 else

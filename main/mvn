@@ -22,7 +22,7 @@ while [[ "${dir}" != / ]]; do
 done
 readonly project_root
 
-if [[ -x "${project_root}/mvnw" ]]; then
+if files::is_executable "${project_root}/mvnw"; then
   log::log 'Executing mvnw instead of mvn'
   exec "${project_root}/mvnw" "$@"
 else
