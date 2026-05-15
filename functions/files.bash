@@ -28,6 +28,65 @@ function files::any_exists() {
   [[ -e "$1" ]]
 }
 
+# @description Return true if the given path is executable and is not a directory.
+# Works for regular files and symlinks to regular files; returns false for directories,
+# symlinks to directories, broken symlinks, and missing paths.
+# @arg $1 file path
+# @exitcode 0 if true
+# @exitcode 1 if false
+function files::is_executable() {
+  args::check_exactly_1_arg "$@"
+  [[ ! -d "$1" && -x "$1" ]]
+}
+
+# @description Die if the given path is not executable or is a directory.
+# @arg $1 file path
+function files::assert_executable() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  if ! files::is_executable "${file}"; then
+    log::die "${file} is not executable"
+  fi
+}
+
+# @description Return true if the given path exists, is a regular file, and has size zero.
+# @arg $1 file path
+# @exitcode 0 if true
+# @exitcode 1 if false
+function files::is_empty() {
+  args::check_exactly_1_arg "$@"
+  [[ -f "$1" && ! -s "$1" ]]
+}
+
+# @description Return true if the given path exists, is a regular file, and has size greater than zero.
+# @arg $1 file path
+# @exitcode 0 if true
+# @exitcode 1 if false
+function files::is_non_empty() {
+  args::check_exactly_1_arg "$@"
+  [[ -f "$1" && -s "$1" ]]
+}
+
+# @description Die if the given file does not exist or is not empty.
+# @arg $1 file path
+function files::assert_empty() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  if ! files::is_empty "${file}"; then
+    log::die "${file} does not exist or is not empty"
+  fi
+}
+
+# @description Die if the given file does not exist or has zero size.
+# @arg $1 file path
+function files::assert_non_empty() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  if ! files::is_non_empty "${file}"; then
+    log::die "${file} does not exist or is empty"
+  fi
+}
+
 # @description Return true if the given file exists and is readable.
 # @arg $1 file path
 # @exitcode 0 if true

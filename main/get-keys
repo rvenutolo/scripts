@@ -15,7 +15,7 @@ dirs::create "${KEYS_DIR}"
 if ! files::exists "${AGE_PRIVATE_KEY_FILE}"; then
   log::log "Downloading: ${AGE_PRIVATE_KEY_FILE}"
   temp_file="$(downloads::download_to_temp_file "${keys_repo_url}/age.key")"
-  if [[ -s "${temp_file}" ]]; then
+  if files::is_non_empty "${temp_file}"; then
     log::log "Decrypting: ${AGE_PRIVATE_KEY_FILE}"
     until age --decrypt --output "${AGE_PRIVATE_KEY_FILE}" "${temp_file}"; do :; done
   else
@@ -28,7 +28,7 @@ for filename in 'id_ed25519' 'id_ed25519.pub'; do
   if ! files::exists "${key_file}"; then
     log::log "Downloading: ${key_file}"
     temp_file="$(downloads::download_to_temp_file "${keys_repo_url}/${filename}")"
-    if [[ -s "${temp_file}" ]]; then
+    if files::is_non_empty "${temp_file}"; then
       log::log "Decrypting: ${key_file}"
       age --decrypt --identity "${AGE_PRIVATE_KEY_FILE}" --output "${key_file}" "${temp_file}"
     else
@@ -50,7 +50,7 @@ for url in "${urls[@]}"; do
   if ! files::exists "${key_file}" && prompt::ny "Download ${filename}?"; then
     log::log "Downloading: ${filename}"
     temp_file="$(downloads::download_to_temp_file "${keys_repo_url}/${filename}")"
-    if [[ -s "${temp_file}" ]]; then
+    if files::is_non_empty "${temp_file}"; then
       log::log "Decrypting: ${key_file}"
       age --decrypt --identity "${AGE_PRIVATE_KEY_FILE}" --output "${key_file}" "${temp_file}"
     else
