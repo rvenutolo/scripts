@@ -9,7 +9,7 @@ log::enable_err_trap
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
-wrappers::curl --ipv4 ipinfo.io \
+http::curl --ipv4 ipinfo.io \
   | jq 'del(.readme)' \
   | jq --raw-output 'to_entries[]|"\(.key)|\(.value)"' \
   | column --table --separator '|'

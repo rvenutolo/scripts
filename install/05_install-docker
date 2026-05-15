@@ -13,8 +13,8 @@ readonly name='Docker'
 readonly executable='dockerd'
 readonly url='https://get.docker.com'
 
-# Local function overrides (not wrappers::curl/wrappers::wget) because the downloaded install script
-# calls bare `curl`/`wget` and inherits these via `export -f` below. The full wrappers::* helpers add
+# Local function overrides (not http::curl/http::wget) because the downloaded install script
+# calls bare `curl`/`wget` and inherits these via `export -f` below. The full http::* helpers add
 # `--silent --fail` etc. which would suppress install progress output.
 # wrapper around curl to disable reading the config that is intended for interactive use
 function curl() {

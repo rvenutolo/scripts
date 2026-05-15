@@ -18,7 +18,7 @@ etag_file="${etags_dir}/$(printf '%s\n' "${URL}" | tr --complement '[:alnum:]._-
 readonly etag_file
 
 if ! files::exists "${OUTPUT_FILE}"; then
-  wrappers::curl --etag-save "${etag_file}" "${URL}" --output "${OUTPUT_FILE}"
+  http::curl --etag-save "${etag_file}" "${URL}" --output "${OUTPUT_FILE}"
 else
-  wrappers::curl --etag-compare "${etag_file}" --etag-save "${etag_file}" "${URL}" --output "${OUTPUT_FILE}"
+  http::curl --etag-compare "${etag_file}" --etag-save "${etag_file}" "${URL}" --output "${OUTPUT_FILE}"
 fi
