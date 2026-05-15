@@ -104,6 +104,26 @@ function args::check_at_least_4_args() {
   fi
 }
 
+# @description Return true if called with exactly the given number of arguments.
+# @arg $1 expected count
+# @arg $@ remaining args (count-checked against $1)
+# @exitcode 0 if remaining arg count equals $1
+# @exitcode 1 otherwise
+function args::has_num_args() {
+  args::check_at_least_1_arg "$@"
+  local -r expected="$1"
+  shift
+  [[ "$#" -eq "${expected}" ]]
+}
+
+# @description Return true if called with no arguments.
+# @arg $@ caller's arguments
+# @exitcode 0 if no args
+# @exitcode 1 otherwise
+function args::no_args() {
+  args::has_num_args 0 "$@"
+}
+
 # @description Die if stdin has no data available (i.e., a terminal is attached).
 # shellcheck disable=SC2120 # called with no args by callers, but shellcheck can't see all call sites
 # @noargs

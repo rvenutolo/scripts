@@ -19,7 +19,7 @@ function usage() {
 function main() {
   dirs::create "${dir}"
   local distros
-  if [[ "$#" -eq 0 ]]; then
+  if args::no_args "$@"; then
     distros=('alpine' 'archlinux' 'debian' 'fedora' 'ubuntu')
   else
     distros=("$@")
