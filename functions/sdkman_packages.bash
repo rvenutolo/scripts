@@ -62,6 +62,9 @@ function sdkman_packages::get_current_package_version() {
 function sdkman_packages::prune_sdkman_package() {
   args::check_exactly_1_arg "$@"
   local -r package="$1"
+  if ! symlinks::exists "${SDKMAN_CANDIDATES_DIR}/${package}/current"; then
+    return 0
+  fi
   local current_version
   current_version="$(sdkman_packages::get_current_package_version "${package}")"
   readonly current_version

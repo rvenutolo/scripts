@@ -137,6 +137,25 @@ setup() {
   refute_output --partial 'uninstall gradle current'
 }
 
+@test "prune_sdkman_package: skips package with no 'current' symlink" {
+  mkdir --parents "${SDKMAN_CANDIDATES_DIR}/skeletal"
+  run sdkman_packages::prune_sdkman_package skeletal
+  assert_success
+  refute [ -f "${BATS_TEST_TMPDIR}/sdk.calls" ]
+}
+
+@test "prune_sdkman_packages: skips packages with no 'current' symlink (stale empty dirs)" {
+  mkdir --parents "${SDKMAN_CANDIDATES_DIR}/skeletal"
+  mkdir --parents "${SDKMAN_CANDIDATES_DIR}/gradle/8.4" \
+    "${SDKMAN_CANDIDATES_DIR}/gradle/8.5"
+  ln --symbolic '8.5' "${SDKMAN_CANDIDATES_DIR}/gradle/current"
+  run sdkman_packages::prune_sdkman_packages
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  assert_output --partial 'uninstall gradle 8.4'
+  refute_output --partial 'skeletal'
+}
+
 # ---------- install_sdkman_packages ----------
 
 @test "install_sdkman_packages: iterates packages::get_sdkman output" {
