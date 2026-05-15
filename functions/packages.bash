@@ -145,7 +145,7 @@ function packages::get_distro() {
   readonly quiet
   local package_list_url="https://raw.githubusercontent.com/rvenutolo/packages/main/${id}-${codename}.csv"
   readonly package_list_url
-  if ! http::curl --output '/dev/null' --head "${package_list_url}"; then
+  if ! http::url_reachable "${package_list_url}"; then
     log::die "No packages list for ${id} ${codename}"
   fi
   local package_list_column

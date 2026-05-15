@@ -64,3 +64,35 @@ setup() {
   run cli_shim::calls wget
   assert_output '--no-config'
 }
+
+# ---------- url_reachable ----------
+
+@test "url_reachable: returns success when curl succeeds" {
+  cli_shim::record_with_output curl '' 0
+  run http::url_reachable 'https://example.com'
+  assert_success
+}
+
+@test "url_reachable: returns failure when curl fails" {
+  cli_shim::record_with_output curl '' 1
+  run http::url_reachable 'https://example.com'
+  assert_failure
+}
+
+@test "url_reachable: passes --output /dev/null and --head to curl" {
+  cli_shim::record curl
+  run http::url_reachable 'https://example.com'
+  assert_success
+  run cli_shim::calls curl
+  assert_output '--disable --fail --silent --location --show-error --output /dev/null --head https://example.com'
+}
+
+@test "url_reachable: fails with zero args" {
+  run http::url_reachable
+  assert_failure
+}
+
+@test "url_reachable: fails with two args" {
+  run http::url_reachable 'https://example.com' 'https://other.com'
+  assert_failure
+}
