@@ -73,29 +73,33 @@ function packages::get_universal() {
   readonly package_list_column
   if strings::is_empty "${quiet}"; then
     local -a pkg_infos
-    mapfile -t pkg_infos < <(
-      downloads::download_and_cat "${package_list_url}" \
-        | awk \
-          --field-separator ',' \
-          --assign "type=${package_type}" \
-          --assign "col=${package_list_column}" \
-          '$2 == type && $col == "y" && $8 != "" { print "Disabled package: " $3 " (" $8 ")" }'
-    )
+    local pkg_infos_tmp
+    files::create_temp pkg_infos_tmp
+    downloads::download_and_cat "${package_list_url}" \
+      | awk \
+        --field-separator ',' \
+        --assign "type=${package_type}" \
+        --assign "col=${package_list_column}" \
+        '$2 == type && $col == "y" && $8 != "" { print "Disabled package: " $3 " (" $8 ")" }' \
+        > "${pkg_infos_tmp}"
+    mapfile -t pkg_infos < "${pkg_infos_tmp}"
     for pkg_info in "${pkg_infos[@]}"; do
       log::log "${pkg_info}"
     done
   fi
-  comm -23 \
-    <(
-      downloads::download_and_cat "${package_list_url}" \
-        | awk \
-          --field-separator ',' \
-          --assign "type=${package_type}" \
-          --assign "col=${package_list_column}" \
-          '$2 == type && $col == "y" && $8 == "" { print $3 }' \
-        | sort
-    ) \
-    <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
+  local packages_tmp ignore_tmp
+  files::create_temp packages_tmp
+  files::create_temp ignore_tmp
+  downloads::download_and_cat "${package_list_url}" \
+    | awk \
+      --field-separator ',' \
+      --assign "type=${package_type}" \
+      --assign "col=${package_list_column}" \
+      '$2 == type && $col == "y" && $8 == "" { print $3 }' \
+    | sort \
+      > "${packages_tmp}"
+  printf '%s\n' "${packages_to_ignore[@]}" | sort > "${ignore_tmp}"
+  comm -23 "${packages_tmp}" "${ignore_tmp}"
 }
 
 # @description Print the list of distro packages that should be installed on this machine for the given OS release.
@@ -163,27 +167,31 @@ function packages::get_distro() {
   readonly package_list_column
   if strings::is_empty "${quiet}"; then
     local -a pkg_infos
-    mapfile -t pkg_infos < <(
-      downloads::download_and_cat "${package_list_url}" \
-        | awk \
-          --field-separator ',' \
-          --assign "col=${package_list_column}" \
-          '$col == "y" && $6 != "" { print "Disabled package: " $1 " (" $6 ")" }'
-    )
+    local pkg_infos_tmp
+    files::create_temp pkg_infos_tmp
+    downloads::download_and_cat "${package_list_url}" \
+      | awk \
+        --field-separator ',' \
+        --assign "col=${package_list_column}" \
+        '$col == "y" && $6 != "" { print "Disabled package: " $1 " (" $6 ")" }' \
+        > "${pkg_infos_tmp}"
+    mapfile -t pkg_infos < "${pkg_infos_tmp}"
     for pkg_info in "${pkg_infos[@]}"; do
       log::log "${pkg_info}"
     done
   fi
-  comm -23 \
-    <(
-      downloads::download_and_cat "${package_list_url}" \
-        | awk \
-          --field-separator ',' \
-          --assign "col=${package_list_column}" \
-          '$col == "y" && $6 == "" { print $1 }' \
-        | sort
-    ) \
-    <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
+  local packages_tmp ignore_tmp
+  files::create_temp packages_tmp
+  files::create_temp ignore_tmp
+  downloads::download_and_cat "${package_list_url}" \
+    | awk \
+      --field-separator ',' \
+      --assign "col=${package_list_column}" \
+      '$col == "y" && $6 == "" { print $1 }' \
+    | sort \
+      > "${packages_tmp}"
+  printf '%s\n' "${packages_to_ignore[@]}" | sort > "${ignore_tmp}"
+  comm -23 "${packages_tmp}" "${ignore_tmp}"
 }
 
 # @description Print the list of SDKMAN packages that should be installed on this machine.
@@ -240,25 +248,29 @@ function packages::get_sdkman() {
   readonly package_list_column
   if strings::is_empty "${quiet}"; then
     local -a pkg_infos
-    mapfile -t pkg_infos < <(
-      downloads::download_and_cat "${package_list_url}" \
-        | awk \
-          --field-separator ',' \
-          --assign "col=${package_list_column}" \
-          '$col == "y" && $7 != "" { print "Disabled package: " $2 " (" $7 ")" }'
-    )
+    local pkg_infos_tmp
+    files::create_temp pkg_infos_tmp
+    downloads::download_and_cat "${package_list_url}" \
+      | awk \
+        --field-separator ',' \
+        --assign "col=${package_list_column}" \
+        '$col == "y" && $7 != "" { print "Disabled package: " $2 " (" $7 ")" }' \
+        > "${pkg_infos_tmp}"
+    mapfile -t pkg_infos < "${pkg_infos_tmp}"
     for pkg_info in "${pkg_infos[@]}"; do
       log::log "${pkg_info}"
     done
   fi
-  comm -23 \
-    <(
-      downloads::download_and_cat "${package_list_url}" \
-        | awk \
-          --field-separator ',' \
-          --assign "col=${package_list_column}" \
-          '$col == "y" && $7 == "" { print $2 }' \
-        | sort
-    ) \
-    <(printf '%s\n' "${packages_to_ignore[@]}" | sort)
+  local packages_tmp ignore_tmp
+  files::create_temp packages_tmp
+  files::create_temp ignore_tmp
+  downloads::download_and_cat "${package_list_url}" \
+    | awk \
+      --field-separator ',' \
+      --assign "col=${package_list_column}" \
+      '$col == "y" && $7 == "" { print $2 }' \
+    | sort \
+      > "${packages_tmp}"
+  printf '%s\n' "${packages_to_ignore[@]}" | sort > "${ignore_tmp}"
+  comm -23 "${packages_tmp}" "${ignore_tmp}"
 }
