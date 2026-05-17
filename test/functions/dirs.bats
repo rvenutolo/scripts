@@ -293,6 +293,7 @@ setup_personal_project() {
   mkdir --parents "${BATS_TEST_TMPDIR}/work"
   run dirs::assert_personal_project "${BATS_TEST_TMPDIR}/work"
   assert_failure
+  # shellcheck disable=SC2016 # intentional literal — asserting helper emits this exact substring
   assert_output --partial 'is not under ${PERSONAL_PROJECTS_DIR}'
 }
 
