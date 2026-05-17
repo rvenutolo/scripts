@@ -17,12 +17,12 @@ Personal Linux setup, install, and utility shell scripts.
 
 | Path | Purpose | On `PATH` |
 |---|---|---|
-| `main/` | Primary utility scripts. | yes |
-| `other/` | Third-party scripts copied verbatim; never modified locally. | yes |
-| `install/` | Numbered scripts run in order by `run-install-scripts` to provision a new machine. | no |
-| `set_up/` | Idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script self-checks whether it should run. | no |
-| `misc/` | One-off setup scripts. Standalone — runnable on a fresh machine without this repo. | no |
 | `functions/` | Bash function library, auto-sourced via `functions.bash`. | n/a |
+| `install/` | Numbered scripts run in order by `run-install-scripts` to provision a new machine. | no |
+| `main/` | Primary utility scripts. | yes |
+| `misc/` | One-off setup scripts. Standalone — runnable on a fresh machine without this repo. | no |
+| `other/` | Third-party scripts copied verbatim; never modified locally. | yes |
+| `set_up/` | Idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script self-checks whether it should run. | no |
 | `test/` | BATS test suite for the function library. | n/a |
 
 ## Common commands
@@ -31,15 +31,15 @@ Most repo-level operations have both a shell script and a `just` recipe (see [`j
 
 | Shell script | `just` recipe | Purpose |
 |---|---|---|
+| `./.ci/build-docs && mkdocs build --strict` | `just docs` | Build the docs site locally (requires `mkdocs`). |
+| `./.ci/check-shdoc-headers` | `just shdoc-check` | Audit shdoc header coverage on scripts and library helpers. |
 | `./check-scripts [<paths>...]` | `just check` (default) | Combined `shfmt --diff` and `shellcheck` check; non-zero exit on failure. |
 | `./format-scripts [<paths>...]` | `just format` | Apply `shfmt` formatting in place. |
 | `./format-scripts --check [<paths>...]` | `just format-check` | Preview `shfmt` diffs without writing. |
-| `./shellcheck-scripts [<paths>...]` | `just shellcheck` | Run `shellcheck` over shell scripts. |
-| `./run-tests [<bats-args>...]` | `just test` | Run BATS tests under `test/functions/`. |
-| `./.ci/check-shdoc-headers` | `just shdoc-check` | Audit shdoc header coverage on scripts and library helpers. |
-| `./.ci/build-docs && mkdocs build --strict` | `just docs` | Build the docs site locally (requires `mkdocs`). |
 | `./run-install-scripts` | `just install` | Provision a new machine — runs every executable file under `install/` in order. |
 | `./run-set-up-scripts` | `just setup` | Run idempotent setup scripts under `set_up/`. |
+| `./run-tests [<bats-args>...]` | `just test` | Run BATS tests under `test/functions/`. |
+| `./shellcheck-scripts [<paths>...]` | `just shellcheck` | Run `shellcheck` over shell scripts. |
 | `main/new-script <path>` | `just new-script <path>` | Scaffold a new top-level script with the standard header and exec bit. |
 
 ## Required environment
@@ -56,8 +56,8 @@ git config --local core.hooksPath .githooks
 
 | Hook | When | What it does |
 |---|---|---|
-| `pre-push` | `git push` | Runs `./check-scripts`; aborts the push on failure. |
 | `commit-msg` | `git commit` | Runs `commitlint` against the staged commit message (Conventional Commits). Fails the commit if `commitlint` is not on `PATH`. |
+| `pre-push` | `git push` | Runs `./check-scripts`; aborts the push on failure. |
 
 Bypass any hook with `--no-verify` on the corresponding git command.
 
@@ -83,13 +83,13 @@ Workflows under `.github/workflows/`.
 | Workflow | Trigger | Purpose |
 |---|---|---|
 | `ci.yml` | push, PR, manual | Aggregate gate: `check-scripts`, BATS, coverage (kcov + bashcov → Codecov), `reviewdog` (shellcheck/shfmt on PRs), `actionlint`, `yamllint`, JSON lint, `markdownlint`, `typos`, `editorconfig`, `commitlint`. |
-| `pages.yml` | push to `main` | Build and deploy MkDocs site to GitHub Pages; regenerates the BATS test-count badge. |
 | `dependency-review.yml` | PR | Block PRs that introduce vulnerable or disallowed dependencies. |
+| `gitleaks.yml` | push, PR, weekly cron (Mon 13:00 UTC), manual | Scan history for leaked secrets. |
 | `labeler.yml` | PR | Auto-apply labels via `.github/labeler.yml` rules. |
 | `labels.yml` | push touching `.github/labels.yml`, manual | Sync the repository's label set from `.github/labels.yml`. |
-| `gitleaks.yml` | push, PR, weekly cron (Mon 13:00 UTC), manual | Scan history for leaked secrets. |
-| `zizmor.yml` | push/PR touching `.github/workflows/**`, weekly cron (Mon 14:00 UTC), manual | Static analysis of workflow files for supply-chain risks. |
 | `links.yml` | weekly cron (Mon 12:00 UTC), manual | `lychee` link check across Markdown files; opens issues on failure. |
+| `pages.yml` | push to `main` | Build and deploy MkDocs site to GitHub Pages; regenerates the BATS test-count badge. |
+| `zizmor.yml` | push/PR touching `.github/workflows/**`, weekly cron (Mon 14:00 UTC), manual | Static analysis of workflow files for supply-chain risks. |
 
 ### Renovate
 
