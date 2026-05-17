@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# @description Run the combined shfmt --diff and shellcheck gate over shell scripts in the repo. When invoked with no paths, checks every in-scope script. Aggregates exit codes so a failure in either tool fails the whole run.
+# @description Run the combined shfmt --diff, shellcheck, and check-shdoc-headers gate over shell scripts in the repo. When invoked with no paths, checks every in-scope script. The shdoc-header audit always runs over the full in-scope set regardless of per-file args, since header presence is a whole-repo property. Aggregates exit codes so a failure in any of the three tools fails the whole run.
 # @arg $@ paths Optional file or directory paths to check; omit to check the full in-scope set.
-# @exitcode 0 All files pass both shfmt --diff and shellcheck.
-# @exitcode 1 One or more files failed shfmt or shellcheck.
+# @exitcode 0 All files pass shfmt --diff and shellcheck, and the shdoc header audit is clean.
+# @exitcode 1 One or more files failed shfmt, shellcheck, or check-shdoc-headers.
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -32,4 +32,6 @@ fi
 rc=0
 shfmt --list --indent=2 --case-indent --binary-next-line --space-redirects --diff "${files[@]}" || rc=1
 shellcheck "${files[@]}" || rc=1
+# Always audit the full in-scope set — partial runs would let regressions slip in.
+"${SCRIPTS_DIR}/main/check-shdoc-headers" || rc=1
 exit "${rc}"
