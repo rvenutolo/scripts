@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Remove ~/.bash_logout if it exists, prompting the user for confirmation before deletion.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

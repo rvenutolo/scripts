@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Run the BATS test suite under test/functions/ in parallel, or forward arguments directly to bats.
+# @arg $@ args Optional bats arguments or test file paths; omit to run all tests under test/functions/.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
@@ -11,6 +14,8 @@ log::enable_err_trap
 readonly BATS_BIN="${SCRIPTS_DIR}/test/bats/bin/bats"
 readonly DEFAULT_TARGET="${SCRIPTS_DIR}/test/functions"
 
+# @description Run bats with default parallel settings or forward all args to bats verbatim.
+# @arg $@ args Optional bats arguments forwarded verbatim, or empty to run all tests in parallel.
 function main() {
   if ! files::exists "${BATS_BIN}"; then
     log::die "bats not found at ${BATS_BIN} — run: git submodule update --init --recursive"
