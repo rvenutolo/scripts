@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Audit the current machine against expected setup: locale, timezone, group memberships, env vars, files, fonts, systemd units, kernel params, and package repos.
+# @noargs
+# @stdout One log line per detected deviation; no output when everything is as expected.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
