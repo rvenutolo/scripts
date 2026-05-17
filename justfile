@@ -28,3 +28,15 @@ shdoc-check:
 docs:
     ./main/build-docs
     mkdocs build --strict
+
+# Provision a new machine — run every executable under install/
+install:
+    ./run-install-scripts
+
+# Run idempotent setup scripts under set_up/
+setup:
+    ./run-set-up-scripts
+
+# Scaffold a new top-level script with the standard header + exec bit
+new-script PATH:
+    ./main/new-script {{PATH}}
