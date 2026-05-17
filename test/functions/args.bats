@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+# shellcheck disable=SC2016 # $-tokens are literal text inside fixture shdoc headers
+
 bats_require_minimum_version 1.5.0
 
 setup() {
@@ -305,4 +307,224 @@ assert_died_expecting() {
 @test "check_for_stdin: succeeds when stdin is a heredoc" {
   run bash -c 'source "${SCRIPTS_DIR}/functions/args.bash"; args::check_for_stdin' <<< 'data'
   assert_success
+}
+
+# ---------- print_help ----------
+
+write_fixture() {
+  local -r path="$1"
+  shift
+  printf '%s\n' "$@" > "${path}"
+}
+
+@test "print_help: dies with 2 args" {
+  run args::print_help 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected at most 1 argument'
+}
+
+@test "print_help: prints script name from path" {
+  local fixture="${BATS_TEST_TMPDIR}/myscript"
+  write_fixture "${fixture}" \
+    '#!/usr/bin/env bash' \
+    '' \
+    '# @description Sample description.' \
+    '' \
+    'set -Eeuo pipefail'
+  run args::print_help "${fixture}"
+  assert_success
+  assert_line --index 0 'myscript'
+}
+
+@test "print_help: renders @description" {
+  local fixture="${BATS_TEST_TMPDIR}/myscript"
+  write_fixture "${fixture}" \
+    '#!/usr/bin/env bash' \
+    '' \
+    '# @description Does the thing.' \
+    '' \
+    'set -Eeuo pipefail'
+  run args::print_help "${fixture}"
+  assert_success
+  assert_output --partial 'Does the thing.'
+}
+
+@test "print_help: renders @arg lines under Arguments" {
+  local fixture="${BATS_TEST_TMPDIR}/myscript"
+  write_fixture "${fixture}" \
+    '#!/usr/bin/env bash' \
+    '' \
+    '# @description Test.' \
+    '# @arg $1 input path to input' \
+    '# @arg $2 mode operation mode' \
+    '' \
+    'set -Eeuo pipefail'
+  run args::print_help "${fixture}"
+  assert_success
+  assert_output --partial 'Arguments:'
+  assert_output --partial '$1 input path to input'
+  assert_output --partial '$2 mode operation mode'
+}
+
+@test "print_help: @noargs renders without Arguments section" {
+  local fixture="${BATS_TEST_TMPDIR}/myscript"
+  write_fixture "${fixture}" \
+    '#!/usr/bin/env bash' \
+    '' \
+    '# @description Test.' \
+    '# @noargs' \
+    '' \
+    'set -Eeuo pipefail'
+  run args::print_help "${fixture}"
+  assert_success
+  refute_output --partial 'Arguments:'
+}
+
+@test "print_help: renders @exitcode lines" {
+  local fixture="${BATS_TEST_TMPDIR}/myscript"
+  write_fixture "${fixture}" \
+    '#!/usr/bin/env bash' \
+    '' \
+    '# @description Test.' \
+    '# @exitcode 0 success' \
+    '# @exitcode 1 failure' \
+    '' \
+    'set -Eeuo pipefail'
+  run args::print_help "${fixture}"
+  assert_success
+  assert_output --partial 'Exit codes:'
+  assert_output --partial '0 success'
+  assert_output --partial '1 failure'
+}
+
+@test "print_help: renders @stdout and @stderr" {
+  local fixture="${BATS_TEST_TMPDIR}/myscript"
+  write_fixture "${fixture}" \
+    '#!/usr/bin/env bash' \
+    '' \
+    '# @description Test.' \
+    '# @stdout some output' \
+    '# @stderr diagnostics' \
+    '' \
+    'set -Eeuo pipefail'
+  run args::print_help "${fixture}"
+  assert_success
+  assert_output --partial 'Stdout:'
+  assert_output --partial 'some output'
+  assert_output --partial 'Stderr:'
+  assert_output --partial 'diagnostics'
+}
+
+@test "print_help: renders @example block with continuation" {
+  local fixture="${BATS_TEST_TMPDIR}/myscript"
+  write_fixture "${fixture}" \
+    '#!/usr/bin/env bash' \
+    '' \
+    '# @description Test.' \
+    '# @example' \
+    '#   myscript foo' \
+    '#   myscript bar' \
+    '' \
+    'set -Eeuo pipefail'
+  run args::print_help "${fixture}"
+  assert_success
+  assert_output --partial 'Example:'
+  assert_output --partial 'myscript foo'
+  assert_output --partial 'myscript bar'
+}
+
+@test "print_help: preserves description continuation lines" {
+  local fixture="${BATS_TEST_TMPDIR}/myscript"
+  write_fixture "${fixture}" \
+    '#!/usr/bin/env bash' \
+    '' \
+    '# @description First line.' \
+    '#   Continuation.' \
+    '' \
+    'set -Eeuo pipefail'
+  run args::print_help "${fixture}"
+  assert_success
+  assert_output --partial 'First line.'
+  assert_output --partial 'Continuation.'
+}
+
+@test "print_help: stops parsing at first non-comment line" {
+  local fixture="${BATS_TEST_TMPDIR}/myscript"
+  write_fixture "${fixture}" \
+    '#!/usr/bin/env bash' \
+    '' \
+    '# @description Real.' \
+    '' \
+    'set -Eeuo pipefail' \
+    '# @description Should not be parsed.'
+  run args::print_help "${fixture}"
+  assert_success
+  assert_output --partial 'Real.'
+  refute_output --partial 'Should not be parsed.'
+}
+
+# ---------- handle_help_flag ----------
+
+@test "handle_help_flag: no-op when no help arg present" {
+  run bash -c 'source "${SCRIPTS_DIR}/functions/args.bash"; args::handle_help_flag "foo" "bar"; echo "continued"'
+  assert_success
+  assert_output 'continued'
+}
+
+@test "handle_help_flag: exits 0 and prints help on --help" {
+  local fixture="${BATS_TEST_TMPDIR}/myscript"
+  write_fixture "${fixture}" \
+    '#!/usr/bin/env bash' \
+    '' \
+    '# @description Sample.' \
+    '' \
+    'set -Eeuo pipefail' \
+    '# shellcheck disable=SC1091' \
+    'source "${SCRIPTS_DIR}/functions.bash"' \
+    'args::handle_help_flag "$@"' \
+    'echo "did-not-exit"'
+  chmod +x "${fixture}"
+  run "${fixture}" --help
+  assert_success
+  assert_output --partial 'myscript'
+  assert_output --partial 'Sample.'
+  refute_output --partial 'did-not-exit'
+}
+
+@test "handle_help_flag: exits 0 and prints help on -h" {
+  local fixture="${BATS_TEST_TMPDIR}/myscript"
+  write_fixture "${fixture}" \
+    '#!/usr/bin/env bash' \
+    '' \
+    '# @description Sample.' \
+    '' \
+    'set -Eeuo pipefail' \
+    '# shellcheck disable=SC1091' \
+    'source "${SCRIPTS_DIR}/functions.bash"' \
+    'args::handle_help_flag "$@"' \
+    'echo "did-not-exit"'
+  chmod +x "${fixture}"
+  run "${fixture}" -h
+  assert_success
+  assert_output --partial 'myscript'
+  refute_output --partial 'did-not-exit'
+}
+
+@test "handle_help_flag: --help recognized anywhere in arg list" {
+  local fixture="${BATS_TEST_TMPDIR}/myscript"
+  write_fixture "${fixture}" \
+    '#!/usr/bin/env bash' \
+    '' \
+    '# @description Sample.' \
+    '' \
+    'set -Eeuo pipefail' \
+    '# shellcheck disable=SC1091' \
+    'source "${SCRIPTS_DIR}/functions.bash"' \
+    'args::handle_help_flag "$@"' \
+    'echo "did-not-exit"'
+  chmod +x "${fixture}"
+  run "${fixture}" foo bar --help baz
+  assert_success
+  assert_output --partial 'Sample.'
+  refute_output --partial 'did-not-exit'
 }
