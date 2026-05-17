@@ -58,8 +58,59 @@ function write_index() {
   } > "${index}"
 }
 
+# @description Generate per-script markdown for every script returned by the
+#              given enumerator command, into ${DOCS_SCRIPTS_DIR}/${out_subdir}/,
+#              and write a per-subdir index.md with the given title.
+# @arg $1 enumerator name of the function to invoke for script paths on stdout
+#         (e.g. shell_scripts::find or shell_scripts::find_root_only)
+# @arg $2 enumerator_arg argument passed to the enumerator function (use '' when
+#         the enumerator takes no arg, e.g. find_root_only)
+# @arg $3 out_subdir subdirectory under DOCS_SCRIPTS_DIR (e.g. main, install)
+# @arg $4 title H1 title for the subdir's index page
+function generate_scripts_for_dir() {
+  args::check_exactly_4_args "$@"
+  local -r enumerator="$1"
+  local -r enumerator_arg="$2"
+  local -r out_subdir="$3"
+  local -r title="$4"
+  local -r out_dir="${DOCS_SCRIPTS_DIR}/${out_subdir}"
+  dirs::create "${out_dir}"
+  local list_file
+  files::create_temp list_file
+  if strings::is_empty "${enumerator_arg}"; then
+    "${enumerator}" > "${list_file}"
+  else
+    "${enumerator}" "${enumerator_arg}" > "${list_file}"
+  fi
+  local script base
+  while IFS= read -r script; do
+    base="$(basename -- "${script}")"
+    shdoc_one "${script}" "${out_dir}/${base}.md"
+  done < "${list_file}"
+  write_index "${out_dir}" "${title}"
+}
+
+# @description Write the top-level scripts index that links to each
+#              per-directory index.
+# @noargs
+# shellcheck disable=SC2120 # args::check_no_args "$@" is the repo's no-args guard; SC2120 is a false positive
+function write_scripts_top_index() {
+  args::check_no_args "$@"
+  local -r index="${DOCS_SCRIPTS_DIR}/index.md"
+  {
+    printf '# Scripts\n\n'
+    local subdir
+    for subdir in main install set_up misc root; do
+      if files::exists "${DOCS_SCRIPTS_DIR}/${subdir}/index.md"; then
+        printf -- '- [%s](%s/index.md)\n' "${subdir}" "${subdir}"
+      fi
+    done
+  } > "${index}"
+}
+
 # @description Build the home page from README.md so the site has a familiar
 #              landing page. MkDocs adds the chrome around it.
+# @noargs
 function write_home_index() {
   cp -- "${SCRIPTS_DIR}/README.md" "${SCRIPTS_DIR}/docs/index.md"
 }
@@ -85,17 +136,13 @@ function main() {
   write_index "${DOCS_FUNCTIONS_DIR}" 'Functions'
 
   log::log "Generating scripts reference"
-  local scripts_list_file
-  files::create_temp scripts_list_file
-  BASH_ENV=/dev/null SCRIPTS_DIR="${SCRIPTS_DIR}" \
-    bash -c 'source "${SCRIPTS_DIR}/functions.bash"; shell_scripts::find "${SCRIPTS_DIR}/main"' \
-    > "${scripts_list_file}"
-  local script
-  while IFS= read -r script; do
-    base="$(basename -- "${script}")"
-    shdoc_one "${script}" "${DOCS_SCRIPTS_DIR}/${base}.md"
-  done < "${scripts_list_file}"
-  write_index "${DOCS_SCRIPTS_DIR}" 'Scripts'
+  generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/main" main 'main'
+  generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/install" install 'install'
+  generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/set_up" set_up 'set_up'
+  generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/misc" misc 'misc'
+  generate_scripts_for_dir shell_scripts::find_root_only '' root 'root'
+  # shellcheck disable=SC2119 # no args passed; args::check_no_args "$@" is the repo's no-args guard
+  write_scripts_top_index
 
   log::log "Generating home page from README.md"
   write_home_index
