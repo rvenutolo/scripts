@@ -383,14 +383,16 @@ function _seed_repo_multi_idents() {
 function _run_select() {
   local -r distinct="$1"
   local -r selected="$2"
-  local -r answers="$3"
+  local -r canonical="$3"
+  local -r answers="$4"
   bash -c "
     source '${SCRIPTS_DIR}/functions/args.bash'
     source '${SCRIPTS_DIR}/functions/log.bash'
+    source '${SCRIPTS_DIR}/functions/strings.bash'
     source '${SCRIPTS_DIR}/functions/misc.bash'
     source '${SCRIPTS_DIR}/functions/prompt.bash'
     source '${SCRIPTS_DIR}/functions/git.bash'
-    git::prompt_select_identities '${distinct}' '${selected}'
+    git::prompt_select_identities '${distinct}' '${selected}' '${canonical}'
   " <<< "${answers}"
 }
 
@@ -398,8 +400,8 @@ function _run_select() {
   local distinct="${BATS_TEST_TMPDIR}/distinct"
   local selected="${BATS_TEST_TMPDIR}/selected"
   printf 'Alice\talice@x\nBob\tbob@y\nGitHub\tgh@z\n' > "${distinct}"
-  # answers: Alice=y, Bob=n, GitHub=y
-  _run_select "${distinct}" "${selected}" $'y\nn\ny\n'
+  # canonical empty -> all default-no; answers: Alice=y, Bob=n, GitHub=y
+  _run_select "${distinct}" "${selected}" '' $'y\nn\ny\n'
   run cat "${selected}"
   assert_success
   assert_output $'Alice\talice@x\nGitHub\tgh@z'
@@ -409,7 +411,7 @@ function _run_select() {
   local distinct="${BATS_TEST_TMPDIR}/distinct"
   local selected="${BATS_TEST_TMPDIR}/selected"
   printf 'Alice\talice@x\nBob\tbob@y\n' > "${distinct}"
-  _run_select "${distinct}" "${selected}" $'n\nn\n'
+  _run_select "${distinct}" "${selected}" '' $'n\nn\n'
   [[ -f "${selected}" ]]
   [[ ! -s "${selected}" ]]
 }
@@ -418,17 +420,17 @@ function _run_select() {
   local distinct="${BATS_TEST_TMPDIR}/distinct"
   local selected="${BATS_TEST_TMPDIR}/selected"
   printf 'Alice\talice@x\nBob\tbob@y\n' > "${distinct}"
-  _run_select "${distinct}" "${selected}" $'y\ny\n'
+  _run_select "${distinct}" "${selected}" '' $'y\ny\n'
   run cat "${selected}"
   assert_success
   assert_output $'Alice\talice@x\nBob\tbob@y'
 }
 
-@test "prompt_select_identities: empty default answer -> treated as n" {
+@test "prompt_select_identities: empty default answer with empty canonical -> treated as n" {
   local distinct="${BATS_TEST_TMPDIR}/distinct"
   local selected="${BATS_TEST_TMPDIR}/selected"
   printf 'Alice\talice@x\n' > "${distinct}"
-  _run_select "${distinct}" "${selected}" $'\n'
+  _run_select "${distinct}" "${selected}" '' $'\n'
   [[ -f "${selected}" ]]
   [[ ! -s "${selected}" ]]
 }
@@ -438,7 +440,7 @@ function _run_select() {
   local selected="${BATS_TEST_TMPDIR}/selected"
   printf 'pre-existing junk\n' > "${selected}"
   printf 'Alice\talice@x\n' > "${distinct}"
-  _run_select "${distinct}" "${selected}" $'n\n'
+  _run_select "${distinct}" "${selected}" '' $'n\n'
   run cat "${selected}"
   assert_success
   assert_output ''
@@ -448,27 +450,96 @@ function _run_select() {
   local distinct="${BATS_TEST_TMPDIR}/distinct"
   local selected="${BATS_TEST_TMPDIR}/selected"
   : > "${distinct}"
-  _run_select "${distinct}" "${selected}" ''
+  _run_select "${distinct}" "${selected}" '' ''
   [[ -f "${selected}" ]]
   [[ ! -s "${selected}" ]]
+}
+
+@test "prompt_select_identities: canonical name match -> default-yes accepts on empty input" {
+  local distinct="${BATS_TEST_TMPDIR}/distinct"
+  local selected="${BATS_TEST_TMPDIR}/selected"
+  # Alice name matches canonical 'Alice Smith'; GitHub does not.
+  # Empty input -> Alice accepted (default-y), GitHub rejected (default-n).
+  printf 'Alice Smith\talice@x\nGitHub\tgh@z\n' > "${distinct}"
+  _run_select "${distinct}" "${selected}" 'Alice Smith' $'\n\n'
+  run cat "${selected}"
+  assert_success
+  assert_output $'Alice Smith\talice@x'
+}
+
+@test "prompt_select_identities: canonical last-name token matches reversed name" {
+  local distinct="${BATS_TEST_TMPDIR}/distinct"
+  local selected="${BATS_TEST_TMPDIR}/selected"
+  # 'Smith, Alice' contains 'alice' as a token -> matches canonical 'Alice Smith'.
+  printf 'Smith, Alice\ta@x\n' > "${distinct}"
+  _run_select "${distinct}" "${selected}" 'Alice Smith' $'\n'
+  run cat "${selected}"
+  assert_success
+  assert_output $'Smith, Alice\ta@x'
+}
+
+@test "prompt_select_identities: canonical match -> n still rejects" {
+  local distinct="${BATS_TEST_TMPDIR}/distinct"
+  local selected="${BATS_TEST_TMPDIR}/selected"
+  printf 'Alice Smith\ta@x\n' > "${distinct}"
+  _run_select "${distinct}" "${selected}" 'Alice Smith' $'n\n'
+  [[ -f "${selected}" ]]
+  [[ ! -s "${selected}" ]]
+}
+
+@test "prompt_select_identities: case-insensitive token match" {
+  local distinct="${BATS_TEST_TMPDIR}/distinct"
+  local selected="${BATS_TEST_TMPDIR}/selected"
+  printf 'ALICE SMITH\ta@x\n' > "${distinct}"
+  _run_select "${distinct}" "${selected}" 'alice smith' $'\n'
+  run cat "${selected}"
+  assert_success
+  assert_output $'ALICE SMITH\ta@x'
+}
+
+@test "prompt_select_identities: token boundary - no substring bleed" {
+  local distinct="${BATS_TEST_TMPDIR}/distinct"
+  local selected="${BATS_TEST_TMPDIR}/selected"
+  # canonical 'Bob' must NOT default-y for 'Bobby' (substring but not whole token).
+  printf 'Bobby\tb@x\n' > "${distinct}"
+  _run_select "${distinct}" "${selected}" 'Bob' $'\n'
+  [[ -f "${selected}" ]]
+  [[ ! -s "${selected}" ]]
+}
+
+@test "prompt_select_identities: punctuation in name treated as separator" {
+  local distinct="${BATS_TEST_TMPDIR}/distinct"
+  local selected="${BATS_TEST_TMPDIR}/selected"
+  # 'alice.smith' -> tokens 'alice' 'smith' -> canonical 'Alice' matches.
+  printf 'alice.smith\ta@x\n' > "${distinct}"
+  _run_select "${distinct}" "${selected}" 'Alice' $'\n'
+  run cat "${selected}"
+  assert_success
+  assert_output $'alice.smith\ta@x'
 }
 
 @test "prompt_select_identities: dies with 0 args" {
   run git::prompt_select_identities
   assert_failure
-  assert_output --partial 'Expected exactly 2 arguments'
+  assert_output --partial 'Expected exactly 3 arguments'
 }
 
 @test "prompt_select_identities: dies with 1 arg" {
   run git::prompt_select_identities 'a'
   assert_failure
-  assert_output --partial 'Expected exactly 2 arguments'
+  assert_output --partial 'Expected exactly 3 arguments'
 }
 
-@test "prompt_select_identities: dies with 3 args" {
-  run git::prompt_select_identities 'a' 'b' 'c'
+@test "prompt_select_identities: dies with 2 args" {
+  run git::prompt_select_identities 'a' 'b'
   assert_failure
-  assert_output --partial 'Expected exactly 2 arguments'
+  assert_output --partial 'Expected exactly 3 arguments'
+}
+
+@test "prompt_select_identities: dies with 4 args" {
+  run git::prompt_select_identities 'a' 'b' 'c' 'd'
+  assert_failure
+  assert_output --partial 'Expected exactly 3 arguments'
 }
 
 # ---------- git::count_author_matches ----------

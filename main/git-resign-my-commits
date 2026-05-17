@@ -36,6 +36,10 @@ strings::is_not_empty "${SIGNING_KEY}" || log::die "user.signingkey not configur
 GPG_FORMAT="$(git -C "${REPO_ROOT}" config --get gpg.format || true)"
 readonly GPG_FORMAT
 
+# Used to default-yes the identity prompt for rows whose name matches the canonical user.name.
+CANONICAL_NAME="$(git::canonical_name "${REPO_ROOT}")"
+readonly CANONICAL_NAME
+
 files::create_temp distinct_idents_file
 files::create_temp selected_idents_file
 
@@ -45,7 +49,7 @@ git::print_identities "Distinct identities (author ∪ committer) in ${REPO_ROOT
 
 log::log 'For each identity, answer y if it is YOU (commits whose author OR committer matches will be re-signed) or n otherwise.'
 # shellcheck disable=SC2154 # selected_idents_file assigned by files::create_temp via nameref
-git::prompt_select_identities "${distinct_idents_file}" "${selected_idents_file}"
+git::prompt_select_identities "${distinct_idents_file}" "${selected_idents_file}" "${CANONICAL_NAME}"
 
 if [[ ! -s "${selected_idents_file}" ]]; then
   log::log 'No identities selected. Nothing to do.'

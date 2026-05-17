@@ -50,7 +50,7 @@ git::print_identities "Distinct identities (author ∪ committer) in ${REPO_ROOT
 
 log::log "For each identity, answer y if it is YOU (matching author/committer fields will be rewritten to canonical) or n otherwise."
 # shellcheck disable=SC2154 # selected_idents_file assigned by files::create_temp via nameref
-git::prompt_select_identities "${distinct_idents_file}" "${selected_idents_file}"
+git::prompt_select_identities "${distinct_idents_file}" "${selected_idents_file}" "${CANONICAL_NAME}"
 
 if [[ ! -s "${selected_idents_file}" ]]; then
   log::log 'No identities selected. Nothing to do.'

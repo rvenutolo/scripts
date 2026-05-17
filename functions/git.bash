@@ -92,19 +92,39 @@ function git::print_identities() {
   done < "${file}"
 }
 
-# @description Interactively prompt the user (via prompt::ny, default-no) for each identity in
-# distinct_file. Each accepted identity is appended (verbatim) to selected_file. selected_file is
-# truncated on entry. distinct_file is read via FD 3 so the prompt's stdin is preserved.
+# @description Interactively prompt the user for each identity in distinct_file. Each accepted
+# identity is appended (verbatim) to selected_file. selected_file is truncated on entry.
+# distinct_file is read via FD 3 so the prompt's stdin is preserved. The prompt defaults to YES
+# (prompt::yn) for identities whose name shares a whitespace-separated token with canonical_name
+# (case-insensitive, alphanumeric-word match — so canonical 'Rick Venutolo' matches identities
+# like 'Rick Venutolo' or 'Venutolo, Rick'); otherwise it defaults to NO (prompt::ny). An empty
+# canonical_name disables smart defaulting (always default-no).
 # @arg $1 distinct_file source file (tab-separated name<TAB>email rows)
 # @arg $2 selected_file destination file for picked rows (overwritten then appended)
+# @arg $3 canonical_name name used to derive default-yes tokens (may be empty)
 function git::prompt_select_identities() {
-  args::check_exactly_2_args "$@"
+  args::check_exactly_3_args "$@"
   local -r distinct_file="$1"
   local -r selected_file="$2"
-  local name email
+  local -r canonical_name="$3"
+  local -a canon_tokens
+  read -r -a canon_tokens <<< "${canonical_name,,}"
+  local name email name_words tok prompt_fn
   : > "${selected_file}"
   while IFS=$'\t' read -r -u 3 name email; do
-    if prompt::ny "Is '${name} <${email}>' your identity?"; then
+    # Normalize identity name to space-delimited lowercase alphanumeric tokens, padded with
+    # spaces so per-token substring matches don't bleed across word boundaries.
+    name_words=" ${name,,} "
+    name_words="${name_words//[^a-z0-9 ]/ }"
+    prompt_fn='prompt::ny'
+    for tok in "${canon_tokens[@]}"; do
+      strings::is_empty "${tok}" && continue
+      if [[ "${name_words}" == *" ${tok} "* ]]; then
+        prompt_fn='prompt::yn'
+        break
+      fi
+    done
+    if "${prompt_fn}" "Is '${name} <${email}>' your identity?"; then
       printf '%s\t%s\n' "${name}" "${email}" >> "${selected_file}"
     fi
   done 3< "${distinct_file}"
