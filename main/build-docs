@@ -37,27 +37,140 @@ function shdoc_one() {
   gawk -f "${SHDOC}" < "${src}" > "${dest}"
 }
 
-# @description Run shdoc on a top-level script, injecting a synthetic `# @file <basename>` so the
-#              file-level `@description` block renders as the page's H1 + Overview section. shdoc
-#              only emits `file_description` when `file_title` is set, and we do not require
-#              authors to write a redundant `@file` tag — top-level scripts already self-identify
-#              by filename. Library files under functions/ are documented function-by-function and
-#              must NOT use this path (injecting @file there would promote the first function's
-#              @description to the file Overview, which is misleading).
+# @description Render the file-level shdoc header of a top-level script to markdown: title (basename),
+#              Overview (@description), Arguments (@arg / @noargs), Stdout (@stdout), Stderr (@stderr),
+#              Exit codes (@exitcode), Example (@example). shdoc itself only emits @description at the
+#              file level, dropping every other file-level tag — this awk pass fills that gap. Reads
+#              header tags between the shebang and the first `set -E...` line (the standard top-level
+#              skeleton enforced by CLAUDE.md).
+# @arg $1 src source bash file
+# @arg $2 title page title (script basename)
+function render_script_header() {
+  args::check_exactly_2_args "$@"
+  local -r src="$1"
+  local -r title="$2"
+  gawk -v title="${title}" '
+    /^[[:space:]]*set[[:space:]]+-/ { exit }
+    /^[[:space:]]*# @description/ {
+      sub(/^[[:space:]]*# @description[[:space:]]*/, "")
+      desc = $0
+      in_desc = 1
+      in_example = 0
+      next
+    }
+    in_desc {
+      if (/^[[:space:]]*#[[:space:]]+[^@]/) {
+        line = $0
+        sub(/^[[:space:]]*#[[:space:]]+/, "", line)
+        desc = desc " " line
+        next
+      }
+      in_desc = 0
+    }
+    /^[[:space:]]*# @arg[[:space:]]/ {
+      sub(/^[[:space:]]*# @arg[[:space:]]+/, "")
+      args_a[++narg] = $0
+      in_example = 0
+      next
+    }
+    /^[[:space:]]*# @noargs[[:space:]]*$/ {
+      noargs = 1
+      in_example = 0
+      next
+    }
+    /^[[:space:]]*# @exitcode[[:space:]]/ {
+      sub(/^[[:space:]]*# @exitcode[[:space:]]+/, "")
+      ecs[++nec] = $0
+      in_example = 0
+      next
+    }
+    /^[[:space:]]*# @stdout[[:space:]]/ {
+      sub(/^[[:space:]]*# @stdout[[:space:]]+/, "")
+      sos[++nso] = $0
+      in_example = 0
+      next
+    }
+    /^[[:space:]]*# @stderr[[:space:]]/ {
+      sub(/^[[:space:]]*# @stderr[[:space:]]+/, "")
+      ses[++nse] = $0
+      in_example = 0
+      next
+    }
+    /^[[:space:]]*# @example[[:space:]]*$/ {
+      in_example = 1
+      next
+    }
+    in_example {
+      if (/^[[:space:]]*#[[:space:]]/) {
+        line = $0
+        sub(/^[[:space:]]*#[[:space:]]?/, "", line)
+        ex = (ex == "" ? line : ex "\n" line)
+        next
+      }
+      in_example = 0
+    }
+    END {
+      printf("# %s\n\n", title)
+      if (desc != "") {
+        printf("## Overview\n\n%s\n\n", desc)
+      }
+      if (noargs) {
+        printf("## Arguments\n\nNone.\n\n")
+      } else if (narg > 0) {
+        printf("## Arguments\n\n")
+        for (i = 1; i <= narg; i++) {
+          if (match(args_a[i], /^(\$[0-9@]+)[[:space:]]+([^[:space:]]+)[[:space:]]+(.*)$/, m)) {
+            printf("- **%s** (`%s`): %s\n", m[1], m[2], m[3])
+          } else if (match(args_a[i], /^(\$[0-9@]+)[[:space:]]+(.*)$/, m)) {
+            printf("- **%s**: %s\n", m[1], m[2])
+          } else {
+            printf("- %s\n", args_a[i])
+          }
+        }
+        printf("\n")
+      }
+      if (nso > 0) {
+        printf("## Stdout\n\n")
+        for (i = 1; i <= nso; i++) printf("- %s\n", sos[i])
+        printf("\n")
+      }
+      if (nse > 0) {
+        printf("## Stderr\n\n")
+        for (i = 1; i <= nse; i++) printf("- %s\n", ses[i])
+        printf("\n")
+      }
+      if (nec > 0) {
+        printf("## Exit codes\n\n")
+        for (i = 1; i <= nec; i++) {
+          if (match(ecs[i], /^([0-9]+)[[:space:]]+(.*)$/, m)) {
+            printf("- **%s**: %s\n", m[1], m[2])
+          } else {
+            printf("- %s\n", ecs[i])
+          }
+        }
+        printf("\n")
+      }
+      if (ex != "") {
+        printf("## Example\n\n```bash\n%s\n```\n\n", ex)
+      }
+    }
+  ' "${src}"
+}
+
+# @description Render markdown for a top-level script: a hand-rolled file-level header (covering every
+#              shdoc tag, not just @description) followed by shdoc output of the raw source so any
+#              inner helper-function docblocks still render.
 # @arg $1 src source bash file
 # @arg $2 dest destination markdown file
 function shdoc_script_one() {
   args::check_exactly_2_args "$@"
   local -r src="$1"
   local -r dest="$2"
-  local _src_with_file
-  files::create_temp _src_with_file
-  # shellcheck disable=SC2154 # _src_with_file set via nameref inside files::create_temp
+  local -r title="$(basename -- "${src}")"
   {
-    printf '# @file %s\n' "$(basename -- "${src}")"
-    cat -- "${src}"
-  } > "${_src_with_file}"
-  gawk -f "${SHDOC}" < "${_src_with_file}" > "${dest}"
+    render_script_header "${src}" "${title}"
+    gawk -f "${SHDOC}" < "${src}"
+  } > "${dest}"
 }
 
 # @description Generate one markdown index file listing the per-file pages.
