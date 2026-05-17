@@ -9,6 +9,7 @@ IFS=$'\n\t'
 # shellcheck disable=SC1091 # functions.bash is sourced via SCRIPTS_DIR, not a relative path
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
+args::handle_help_flag "$@"
 system::require_bash_version 4 0
 args::check_no_args "$@"
 

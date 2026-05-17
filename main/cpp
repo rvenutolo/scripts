@@ -11,6 +11,7 @@ IFS=$'\n\t'
 # shellcheck disable=SC1091 # functions.bash is not statically followable
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
+args::handle_help_flag "$@"
 system::require_bash_version 4 0
 args::check_exactly_2_args "$@"
 readonly SRC="$1"
