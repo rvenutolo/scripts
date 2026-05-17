@@ -78,3 +78,21 @@ function shell_scripts::filter() {
     _out_ref+=("${file}")
   done
 }
+
+# @description Emit shell-script paths that live directly in SCRIPTS_DIR (no
+# subdirectories). Used by build-docs and check-shdoc-headers to enumerate
+# project-root executables such as format-scripts, shellcheck-scripts,
+# check-scripts, run-install-scripts, run-set-up-scripts, run-tests.
+# Filters to files whose first line contains a bash/sh/bats shebang
+# (via shell_scripts::has_shell_shebang).
+# @stdout file paths, one per line
+# @noargs
+function shell_scripts::find_root_only() {
+  args::check_no_args "$@"
+  local file
+  for file in "${SCRIPTS_DIR}"/*; do
+    if [[ -f "${file}" ]] && shell_scripts::has_shell_shebang "${file}"; then
+      printf '%s\n' "${file}"
+    fi
+  done
+}
