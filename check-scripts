@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Run the combined shfmt --diff and shellcheck gate over shell scripts in the repo. When invoked with no paths, checks every in-scope script. Aggregates exit codes so a failure in either tool fails the whole run.
+# @arg $@ paths Optional file or directory paths to check; omit to check the full in-scope set.
+# @exitcode 0 All files pass both shfmt --diff and shellcheck.
+# @exitcode 1 One or more files failed shfmt or shellcheck.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
