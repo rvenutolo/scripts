@@ -84,14 +84,22 @@ function shell_scripts::filter() {
 # project-root executables such as format-scripts, shellcheck-scripts,
 # check-scripts, run-install-scripts, run-set-up-scripts, run-tests.
 # Filters to files whose first line contains a bash/sh/bats shebang
-# (via shell_scripts::has_shell_shebang).
+# (via shell_scripts::has_shell_shebang). Excludes the root-level
+# functions.bash loader, which is a sourced library file rather than a
+# top-level executable.
 # @stdout file paths, one per line
 # @noargs
 function shell_scripts::find_root_only() {
   args::check_no_args "$@"
   local file
   for file in "${SCRIPTS_DIR}"/*; do
-    if [[ -f "${file}" ]] && shell_scripts::has_shell_shebang "${file}"; then
+    if [[ ! -f "${file}" ]]; then
+      continue
+    fi
+    if [[ "$(basename -- "${file}")" == 'functions.bash' ]]; then
+      continue
+    fi
+    if shell_scripts::has_shell_shebang "${file}"; then
       printf '%s\n' "${file}"
     fi
   done
