@@ -19,65 +19,40 @@ args::check_at_most_1_arg "$@"
 
 readonly TARGET_DIR="${1:-$(pwd)}"
 dirs::assert_exists "${TARGET_DIR}"
-git::assert_git_repo "${TARGET_DIR}"
 
-REPO_ROOT="$(git -C "${TARGET_DIR}" rev-parse --show-toplevel)"
+REPO_ROOT="$(git::repo_root "${TARGET_DIR}")"
 readonly REPO_ROOT
 
 # Safety: refuse to operate outside ${PERSONAL_PROJECTS_DIR} to avoid clobbering work repos.
 dirs::assert_personal_project "${REPO_ROOT}"
 
-CANONICAL_NAME="$(git -C "${REPO_ROOT}" config --get user.name)" \
-  || log::die "user.name not set in git config for ${REPO_ROOT}"
-CANONICAL_EMAIL="$(git -C "${REPO_ROOT}" config --get user.email)" \
-  || log::die "user.email not set in git config for ${REPO_ROOT}"
+CANONICAL_NAME="$(git::canonical_name "${REPO_ROOT}")"
+CANONICAL_EMAIL="$(git::canonical_email "${REPO_ROOT}")"
 readonly CANONICAL_NAME CANONICAL_EMAIL
-strings::is_not_empty "${CANONICAL_NAME}" || log::die "user.name is empty in git config for ${REPO_ROOT}"
-strings::is_not_empty "${CANONICAL_EMAIL}" || log::die "user.email is empty in git config for ${REPO_ROOT}"
 
-files::create_temp all_idents_file
 files::create_temp distinct_idents_file
 files::create_temp selected_idents_file
 
-# shellcheck disable=SC2154 # all_idents_file assigned by files::create_temp via nameref
-git -C "${REPO_ROOT}" log --all --format='%aN%x09%aE%x0A%cN%x09%cE' > "${all_idents_file}"
 # shellcheck disable=SC2154 # distinct_idents_file assigned by files::create_temp via nameref
-sort --unique "${all_idents_file}" > "${distinct_idents_file}"
-
-if [[ ! -s "${distinct_idents_file}" ]]; then
-  log::die "No commits found in ${REPO_ROOT}"
-fi
-
-log::log "Distinct identities (author ∪ committer) in ${REPO_ROOT}:"
-while IFS=$'\t' read -r name email; do
-  printf '  %s <%s>\n' "${name}" "${email}" >&2
-done < "${distinct_idents_file}"
+git::write_distinct_identities "${REPO_ROOT}" "${distinct_idents_file}"
+git::print_identities "Distinct identities (author ∪ committer) in ${REPO_ROOT}:" "${distinct_idents_file}"
 
 log::log "For each identity, answer y if it is YOU (matching author/committer fields will be rewritten to canonical) or n otherwise."
-while IFS=$'\t' read -r -u 3 name email; do
-  if prompt::ny "Is '${name} <${email}>' your identity?"; then
-    # shellcheck disable=SC2154 # selected_idents_file assigned by files::create_temp via nameref
-    printf '%s\t%s\n' "${name}" "${email}" >> "${selected_idents_file}"
-  fi
-done 3< "${distinct_idents_file}"
+# shellcheck disable=SC2154 # selected_idents_file assigned by files::create_temp via nameref
+git::prompt_select_identities "${distinct_idents_file}" "${selected_idents_file}"
 
 if [[ ! -s "${selected_idents_file}" ]]; then
   log::log 'No identities selected. Nothing to do.'
   exit 0
 fi
 
-author_match_count="$(git -C "${REPO_ROOT}" log --all --format='%aN%x09%aE' \
-  | grep --fixed-strings --line-regexp --count --file="${selected_idents_file}" || true)"
-committer_match_count="$(git -C "${REPO_ROOT}" log --all --format='%cN%x09%cE' \
-  | grep --fixed-strings --line-regexp --count --file="${selected_idents_file}" || true)"
+author_match_count="$(git::count_author_matches "${REPO_ROOT}" "${selected_idents_file}")"
+committer_match_count="$(git::count_committer_matches "${REPO_ROOT}" "${selected_idents_file}")"
 readonly author_match_count committer_match_count
 
 log::log "Repo: ${REPO_ROOT}"
 log::log "Canonical identity: ${CANONICAL_NAME} <${CANONICAL_EMAIL}>"
-log::log 'Selected identities to rewrite (applies to both author and committer fields):'
-while IFS=$'\t' read -r name email; do
-  printf '  %s <%s>\n' "${name}" "${email}" >&2
-done < "${selected_idents_file}"
+git::print_identities 'Selected identities to rewrite (applies to both author and committer fields):' "${selected_idents_file}"
 log::log "Author fields to be rewritten: ${author_match_count}"
 log::log "Committer fields to be rewritten: ${committer_match_count}"
 
@@ -87,13 +62,7 @@ if ! prompt::ny 'Proceed with rewrite?'; then
 fi
 
 filter_repo_cmd=()
-if commands::executable_exists git-filter-repo; then
-  filter_repo_cmd=(git-filter-repo)
-else
-  log::log 'git-filter-repo not on PATH; falling back to: nix run github:NixOS/nixpkgs/nixpkgs-unstable#git-filter-repo'
-  commands::executable_exists nix || log::die 'Neither git-filter-repo nor nix is available'
-  filter_repo_cmd=(nix run 'github:NixOS/nixpkgs/nixpkgs-unstable#git-filter-repo' --)
-fi
+git::resolve_filter_repo_cmd filter_repo_cmd
 
 canonical_name_b64="$(printf '%s' "${CANONICAL_NAME}" | base64 --wrap=0)"
 canonical_email_b64="$(printf '%s' "${CANONICAL_EMAIL}" | base64 --wrap=0)"
