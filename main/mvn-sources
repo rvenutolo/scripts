@@ -15,7 +15,9 @@ args::check_no_args "$@"
 # @description Download sources and Javadoc jars for all dependencies declared in the given POM.
 # @arg $1 pom file path
 function get_sources() {
-  mvn --file "$1" \
+  args::check_exactly_1_arg "$@"
+  local -r pom="$1"
+  mvn --file "${pom}" \
     org.apache.maven.plugins:maven-dependency-plugin:resolve-sources \
     org.apache.maven.plugins:maven-dependency-plugin:resolve \
     -Dclassifier=javadoc
