@@ -1,0 +1,21 @@
+changelog:
+  categories:
+    - title: Features
+      labels:
+        - enhancement
+        - idea
+    - title: Fixes
+      labels:
+        - bug
+    - title: CI
+      labels:
+        - ci
+    - title: Docs
+      labels:
+        - docs
+    - title: Tests
+      labels:
+        - test
+    - title: Other Changes
+      labels:
+        - "*"

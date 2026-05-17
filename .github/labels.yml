@@ -1,0 +1,43 @@
+- name: bug
+  color: d73a4a
+  description: Something isn't working
+
+- name: ci
+  color: 006b75
+  description: GitHub Actions, hooks, automation
+
+- name: docs
+  color: 0075ca
+  description: Documentation, README, comments
+
+- name: functions
+  color: 5319e7
+  description: Touches functions/
+
+- name: idea
+  color: a2eeef
+  description: Proposal captured via the idea issue template
+
+- name: install
+  color: 0e8a16
+  description: Touches install/
+
+- name: main
+  color: 1d76db
+  description: Touches main/
+
+- name: misc
+  color: c5def5
+  description: Touches misc/
+
+- name: other
+  color: d4c5f9
+  description: Touches other/ (third-party scripts)
+
+- name: set_up
+  color: 0e8a16
+  description: Touches set_up/
+
+- name: test
+  color: fbca04
+  description: Touches test/
