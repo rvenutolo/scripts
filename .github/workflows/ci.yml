@@ -238,14 +238,33 @@ jobs:
           cd /tmp/kcov && mkdir build && cd build
           cmake .. && make && sudo make install
 
-      - name: Install shfmt (latest)
+      - name: Resolve shfmt version
+        id: tools
         run: |
-          SHFMT_VERSION=$(curl --disable --fail --silent --location \
+          shfmt=$(curl --disable --fail --silent --location \
             https://api.github.com/repos/mvdan/sh/releases/latest \
             | jq --raw-output .tag_name)
-          sudo curl --disable --fail --silent --location --output /usr/local/bin/shfmt \
+          printf 'shfmt=%s\n' "${shfmt}" >> "${GITHUB_OUTPUT}"
+
+      - name: Cache shfmt
+        id: cache-shfmt
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/.local/bin/shfmt
+          key: shfmt-${{ runner.os }}-${{ steps.tools.outputs.shfmt }}
+
+      - name: Install shfmt
+        if: steps.cache-shfmt.outputs.cache-hit != 'true'
+        env:
+          SHFMT_VERSION: ${{ steps.tools.outputs.shfmt }}
+        run: |
+          mkdir -p "${HOME}/.local/bin"
+          curl --disable --fail --silent --location --output "${HOME}/.local/bin/shfmt" \
             "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64"
-          sudo chmod +x /usr/local/bin/shfmt
+          chmod +x "${HOME}/.local/bin/shfmt"
+
+      - name: Add tools to PATH
+        run: echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
       - uses: ruby/setup-ruby@97ecb7b512899eb71ab1bf2310a624c6f1589ac6 # v1.308.0
         with:
           ruby-version: '3.3'
