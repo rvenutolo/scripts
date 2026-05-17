@@ -34,5 +34,5 @@ rc=0
 shfmt --list --indent=2 --case-indent --binary-next-line --space-redirects --diff "${files[@]}" || rc=1
 shellcheck "${files[@]}" || rc=1
 # Always audit the full in-scope set — partial runs would let regressions slip in.
-"${SCRIPTS_DIR}/main/check-shdoc-headers" || rc=1
+"${SCRIPTS_DIR}/.ci/check-shdoc-headers" || rc=1
 exit "${rc}"

@@ -36,7 +36,7 @@ jobs:
         env:
           SCRIPTS_DIR: ${{ github.workspace }}
         run: |
-          ./main/build-docs
+          ./.ci/build-docs
           mkdocs build --strict
       - name: Generate BATS test count badge
         run: |

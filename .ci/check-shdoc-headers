@@ -27,8 +27,8 @@ args::check_no_args "$@"
 
 # @description Print every in-scope top-level script path, one per line.
 #              In-scope means any shebang-bearing file under main/, install/,
-#              set_up/, misc/, or directly under SCRIPTS_DIR (project root).
-#              Library files under functions/ are listed by
+#              set_up/, misc/, .ci/, or directly under SCRIPTS_DIR (project
+#              root). Library files under functions/ are listed by
 #              collect_library_files instead, since they follow a different
 #              annotation rule.
 # @noargs
@@ -37,7 +37,7 @@ args::check_no_args "$@"
 function collect_in_scope_scripts() {
   args::check_no_args "$@"
   local subdir
-  for subdir in main install set_up misc; do
+  for subdir in main install set_up misc .ci; do
     if dirs::exists "${SCRIPTS_DIR}/${subdir}"; then
       shell_scripts::find "${SCRIPTS_DIR}/${subdir}"
     fi

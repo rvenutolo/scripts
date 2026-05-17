@@ -36,8 +36,8 @@ Most repo-level operations have both a shell script and a `just` recipe (see [`j
 | `./format-scripts --check [<paths>...]` | `just format-check` | Preview `shfmt` diffs without writing. |
 | `./shellcheck-scripts [<paths>...]` | `just shellcheck` | Run `shellcheck` over shell scripts. |
 | `./run-tests [<bats-args>...]` | `just test` | Run BATS tests under `test/functions/`. |
-| `./main/check-shdoc-headers` | `just shdoc-check` | Audit shdoc header coverage on scripts and library helpers. |
-| `./main/build-docs && mkdocs build --strict` | `just docs` | Build the docs site locally (requires `mkdocs`). |
+| `./.ci/check-shdoc-headers` | `just shdoc-check` | Audit shdoc header coverage on scripts and library helpers. |
+| `./.ci/build-docs && mkdocs build --strict` | `just docs` | Build the docs site locally (requires `mkdocs`). |
 | `./run-install-scripts` | `just install` | Provision a new machine — runs every executable file under `install/` in order. |
 | `./run-set-up-scripts` | `just setup` | Run idempotent setup scripts under `set_up/`. |
 | `main/new-script <path>` | `just new-script <path>` | Scaffold a new top-level script with the standard header and exec bit. |

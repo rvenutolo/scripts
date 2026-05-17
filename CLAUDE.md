@@ -22,6 +22,8 @@ Personal collection of bash scripts for system setup, package install, and day-t
 
 - `lib/` — vendored Groovy jars (used by some scripts).
 
+- `.ci/` — repo-tooling scripts invoked by CI and `just` (e.g. `build-docs`, `check-shdoc-headers`). Not on `PATH`.
+
 ## Required Environment
 
 The user's `~/.profile` exports a fixed set of env vars (`SCRIPTS_DIR`, `XDG_*`, `PERSONAL_PROJECTS_DIR`, etc.) that this repo relies on. They are always set in the environment by the time any script runs — interactive shells source `~/.profile`, and the `run-install-scripts` / `run-set-up-scripts` runners source it explicitly. Treat the full set as guaranteed. Read `~/.profile` to enumerate the available vars and their definitions.
@@ -34,7 +36,7 @@ The user's `~/.profile` exports a fixed set of env vars (`SCRIPTS_DIR`, `XDG_*`,
 
 - **Ignore conditional exports.** `EDITOR`, `VISUAL`, `PAGER`, `MANPAGER`, `FILE_MANAGER`, `TAILNET_IP`, `TAILNET_CIDR`, `TERM`, etc. are gated on `__executable_exists` / `case` / runtime probes in `~/.profile`; they're not meant for cross-file reuse and are not guaranteed to be set.
 
-- **`PATH` membership.** `main/` and `other/` are always on `PATH`. `install/`, `set_up/`, `misc/` are not.
+- **`PATH` membership.** `main/` and `other/` are always on `PATH`. `install/`, `set_up/`, `misc/`, `.ci/` are not.
 
 - **`misc/` exemption.** Scripts under `misc/` are explicitly standalone — they must NOT depend on this repo's env or functions. Hardcoded paths are acceptable there.
 
@@ -78,7 +80,7 @@ The generic shell-script rules in `.claude/rules/shell-scripts.md` apply to this
 
 ### Shdoc annotations for top-level scripts
 
-Every top-level executable shell script (any file with a bash/sh shebang under `main/`, `install/`, `set_up/`, `misc/`, or the project root) must carry a file-level shdoc header block immediately after the shebang line and before the `set -Eeuo pipefail` pragma.
+Every top-level executable shell script (any file with a bash/sh shebang under `main/`, `install/`, `set_up/`, `misc/`, `.ci/`, or the project root) must carry a file-level shdoc header block immediately after the shebang line and before the `set -Eeuo pipefail` pragma.
 
 Required tags (each used where applicable):
 
@@ -114,7 +116,7 @@ Helper functions defined inside top-level scripts get the same full shdoc annota
 
 Files excluded from `shell_scripts::find` (`.shdoc/`, `other/`, vendored bats submodules under `test/`) are excluded from this rule.
 
-Library files under `functions/*.bash` follow a related but distinct rule: every function must have a preceding shdoc annotation block, but the file-level `@description` is intentionally not required because library files are documented function-by-function. `main/check-shdoc-headers` enforces both rules in a single audit pass (top-level scripts get the file-level + per-helper check; library files get the per-function check only). Both contribute to the audit's exit code, and the audit is wired into `check-scripts` so any regression fails the aggregate gate.
+Library files under `functions/*.bash` follow a related but distinct rule: every function must have a preceding shdoc annotation block, but the file-level `@description` is intentionally not required because library files are documented function-by-function. `.ci/check-shdoc-headers` enforces both rules in a single audit pass (top-level scripts get the file-level + per-helper check; library files get the per-function check only). Both contribute to the audit's exit code, and the audit is wired into `check-scripts` so any regression fails the aggregate gate.
 
 ### Standard top-level skeleton
 
@@ -186,7 +188,7 @@ All other rules (helper-function usage, quoting, `[[ ]]` over `[ ]`, `(( ))` ari
 
 ### File extensions and filename conventions
 
-- Top-level executables (everything under `main/`, `install/`, `set_up/`, `misc/`) have no extension; library files under `functions/` use the `.bash` extension and are NOT executable.
+- Top-level executables (everything under `main/`, `install/`, `set_up/`, `misc/`, `.ci/`) have no extension; library files under `functions/` use the `.bash` extension and are NOT executable.
 
 - Executables use kebab-case (`new-script`, `format-scripts`, `run-install-scripts`); library files use snake_case with the `.bash` extension (`functions/files.bash`, `functions/log.bash`).
 

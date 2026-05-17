@@ -80,7 +80,7 @@ function shell_scripts::filter() {
 }
 
 # @description Emit shell-script paths that live directly in SCRIPTS_DIR (no
-# subdirectories). Used by build-docs and check-shdoc-headers to enumerate
+# subdirectories). Used by .ci/build-docs and .ci/check-shdoc-headers to enumerate
 # project-root executables such as format-scripts, shellcheck-scripts,
 # check-scripts, run-install-scripts, run-set-up-scripts, run-tests.
 # Filters to files whose first line contains a bash/sh/bats shebang

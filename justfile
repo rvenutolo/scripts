@@ -22,11 +22,11 @@ shellcheck:
 
 # Audit shdoc headers
 shdoc-check:
-    ./main/check-shdoc-headers
+    ./.ci/check-shdoc-headers
 
 # Build the docs site locally (requires mkdocs)
 docs:
-    ./main/build-docs
+    ./.ci/build-docs
     mkdocs build --strict
 
 # Provision a new machine — run every executable under install/
