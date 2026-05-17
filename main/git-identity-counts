@@ -3,7 +3,7 @@
 # @description For every non-bare git repository under a directory (root and recursive,
 #   skipping nested repos), aggregate commits by (author name, author email, committer name,
 #   committer email) and print a table sorted by those four fields.
-# @arg $1 dir optional directory to scan (default: ${PERSONAL_PROJECTS_DIR})
+# @arg $1 dir optional directory to scan (default: current working directory)
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -15,7 +15,7 @@ args::handle_help_flag "$@"
 system::require_bash_version 4 0
 args::check_at_most_1_arg "$@"
 
-readonly SCAN_DIR="${1:-${PERSONAL_PROJECTS_DIR}}"
+readonly SCAN_DIR="${1:-$(pwd)}"
 dirs::assert_exists "${SCAN_DIR}"
 
 files::create_temp repos_file
