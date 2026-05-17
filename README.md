@@ -2,6 +2,12 @@
 
 Personal Linux setup, install, and utility shell scripts.
 
+[![CI](https://github.com/rvenutolo/scripts/actions/workflows/ci.yml/badge.svg)](https://github.com/rvenutolo/scripts/actions/workflows/ci.yml)
+[![Last commit](https://img.shields.io/github/last-commit/rvenutolo/scripts)](https://github.com/rvenutolo/scripts/commits/main)
+[![Open issues](https://img.shields.io/github/issues/rvenutolo/scripts)](https://github.com/rvenutolo/scripts/issues)
+[![Open PRs](https://img.shields.io/github/issues-pr/rvenutolo/scripts)](https://github.com/rvenutolo/scripts/pulls)
+[![Tests](https://img.shields.io/endpoint?url=https://rvenutolo.github.io/scripts/badge.json)](https://github.com/rvenutolo/scripts/tree/main/test/functions)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://www.conventionalcommits.org/en/v1.0.0/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL_3.0-blue.svg)](LICENSE)
 
 **Reference:** <https://rvenutolo.github.io/scripts/>

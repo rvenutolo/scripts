@@ -39,6 +39,12 @@ jobs:
         run: |
           ./main/build-docs
           mkdocs build --strict
+      - name: Generate BATS test count badge
+        run: |
+          count=$(./test/bats/bin/bats --count --recursive test/functions)
+          jq --null-input --arg count "${count}" \
+            '{schemaVersion: 1, label: "tests", message: $count, color: "blue"}' \
+            > site/badge.json
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site
