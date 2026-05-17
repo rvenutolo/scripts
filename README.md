@@ -8,7 +8,6 @@ Personal Linux setup, install, and utility shell scripts.
 [![Open PRs](https://img.shields.io/github/issues-pr/rvenutolo/scripts)](https://github.com/rvenutolo/scripts/pulls)
 [![Tests](https://img.shields.io/endpoint?url=https://rvenutolo.github.io/scripts/badge.json)](https://github.com/rvenutolo/scripts/tree/main/test/functions)
 [![Coverage](https://codecov.io/gh/rvenutolo/scripts/branch/main/graph/badge.svg)](https://codecov.io/gh/rvenutolo/scripts)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/rvenutolo/scripts/badge)](https://securityscorecards.dev/viewer/?uri=github.com/rvenutolo/scripts)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://www.conventionalcommits.org/en/v1.0.0/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL_3.0-blue.svg)](LICENSE)
 
@@ -26,52 +25,41 @@ Personal Linux setup, install, and utility shell scripts.
 | `functions/` | Bash function library, auto-sourced via `functions.bash`. | n/a |
 | `test/` | BATS test suite for the function library. | n/a |
 
-## Architecture
-
-Provisioning a fresh machine runs in two phases. `run-install-scripts` is invoked once to install software; `run-set-up-scripts` runs idempotently to configure it.
-
-```mermaid
-flowchart LR
-  start([Fresh machine])
-  start --> rip[run-install-scripts]
-  rip --> p1[Source ~/.profile]
-  p1 --> p2[Validate sudo]
-  p2 --> p3[Execute install/* in LC_COLLATE=C order]
-  p3 --> rsu[run-set-up-scripts]
-  rsu --> s1[Source ~/.profile]
-  s1 --> s2[Validate sudo]
-  s2 --> s3[Recursively execute set_up/**]
-  s3 --> s4[Each script self-gates]
-  s4 --> done([Provisioned])
-```
-
-Top-level scripts under `main/` are user-facing utilities reachable on `PATH`. `misc/` holds standalone one-off scripts independent of this repo. `functions/*.bash` provides the shared helper library, auto-sourced by every non-`misc/` script.
-
 ## Common commands
 
-| Command | Purpose |
-|---|---|
-| `./check-scripts [<paths>...]` | Combined `shfmt --diff` and `shellcheck` check; non-zero exit on failure. |
-| `./format-scripts [--check] [<paths>...]` | Apply `shfmt` formatting in place. `--check` previews via `--diff`. |
-| `./shellcheck-scripts [<paths>...]` | Run `shellcheck` over shell scripts. |
-| `./run-tests [<bats-args>...]` | Run BATS tests under `test/functions/`. |
-| `./run-install-scripts` | Provision a new machine — runs every executable file under `install/` in order. |
-| `./run-set-up-scripts` | Run idempotent setup scripts under `set_up/`. |
-| `main/new-script <path>` | Scaffold a new top-level script with the standard header and exec bit. |
+Most repo-level operations have both a shell script and a `just` recipe (see [`justfile`](justfile)). Either form works; `just` is shorter for the common ones.
+
+| Shell script | `just` recipe | Purpose |
+|---|---|---|
+| `./check-scripts [<paths>...]` | `just check` (default) | Combined `shfmt --diff` and `shellcheck` check; non-zero exit on failure. |
+| `./format-scripts [<paths>...]` | `just format` | Apply `shfmt` formatting in place. |
+| `./format-scripts --check [<paths>...]` | `just format-check` | Preview `shfmt` diffs without writing. |
+| `./shellcheck-scripts [<paths>...]` | `just shellcheck` | Run `shellcheck` over shell scripts. |
+| `./run-tests [<bats-args>...]` | `just test` | Run BATS tests under `test/functions/`. |
+| `./main/check-shdoc-headers` | `just shdoc-check` | Audit shdoc header coverage on scripts and library helpers. |
+| `./main/build-docs && mkdocs build --strict` | `just docs` | Build the docs site locally (requires `mkdocs`). |
+| `./run-install-scripts` | — | Provision a new machine — runs every executable file under `install/` in order. |
+| `./run-set-up-scripts` | — | Run idempotent setup scripts under `set_up/`. |
+| `main/new-script <path>` | — | Scaffold a new top-level script with the standard header and exec bit. |
 
 ## Required environment
 
 Set `SCRIPTS_DIR` to the repo root. Every script sources `${SCRIPTS_DIR}/functions.bash`. The user's `~/.profile` is expected to export it.
 
-## Pre-push hook
+## Git hooks
 
-The tracked `.githooks/pre-push` hook runs `./check-scripts` before each push and aborts on failure. Activate it once per clone:
+Tracked hooks live under `.githooks/`. Activate them once per clone:
 
 ```bash
 git config --local core.hooksPath .githooks
 ```
 
-Bypass with `git push --no-verify`.
+| Hook | When | What it does |
+|---|---|---|
+| `pre-push` | `git push` | Runs `./check-scripts`; aborts the push on failure. |
+| `commit-msg` | `git commit` | Runs `commitlint` against the staged commit message (Conventional Commits). Skips with a warning if `commitlint` is not on `PATH`. |
+
+Bypass any hook with `--no-verify` on the corresponding git command.
 
 ## Testing
 
@@ -79,9 +67,33 @@ Bypass with `git push --no-verify`.
 git submodule update --init --recursive   # one-time, on fresh clones
 ./run-tests                                # everything under test/functions/
 ./run-tests test/functions/strings.bats    # single file
+./run-tests --filter-regex 'is_blank' test/functions/strings.bats   # subset by name
 ```
 
-BATS plus `bats-support` and `bats-assert` are vendored as git submodules under `test/`.
+BATS plus `bats-support` and `bats-assert` are vendored as git submodules under `test/`. Every helper in `functions/*.bash` has a matching `test/functions/<topic>.bats` (or topic-prefixed group) — coverage is mandatory for new helpers. Shared fixtures live under `test/test_helper/` (CLI shims, env-file fixtures, `os-release` overrides, prompt mocks, etc.).
+
+Tests are spec-driven: each test encodes what the function *should* do based on its name, doc comment, and reasonable invariants — not what the current implementation happens to do.
+
+## Automations
+
+### GitHub Actions
+
+Workflows under `.github/workflows/`.
+
+| Workflow | Trigger | Purpose |
+|---|---|---|
+| `ci.yml` | push, PR, manual | Aggregate gate: `check-scripts`, BATS, coverage (kcov + bashcov → Codecov), `reviewdog` (shellcheck/shfmt on PRs), `actionlint`, `yamllint`, JSON lint, `markdownlint`, `typos`, `editorconfig`, `commitlint`. |
+| `pages.yml` | push to `main` | Build and deploy MkDocs site to GitHub Pages; regenerates the BATS test-count badge. |
+| `dependency-review.yml` | PR | Block PRs that introduce vulnerable or disallowed dependencies. |
+| `labeler.yml` | PR | Auto-apply labels via `.github/labeler.yml` rules. |
+| `labels.yml` | push touching `.github/labels.yml`, manual | Sync the repository's label set from `.github/labels.yml`. |
+| `gitleaks.yml` | push, PR, weekly cron (Mon 13:00 UTC), manual | Scan history for leaked secrets. |
+| `zizmor.yml` | push/PR touching `.github/workflows/**`, weekly cron (Mon 14:00 UTC), manual | Static analysis of workflow files for supply-chain risks. |
+| `links.yml` | weekly cron (Mon 12:00 UTC), manual | `lychee` link check across Markdown files; opens issues on failure. |
+
+### Renovate
+
+`.github/renovate.json` runs the Renovate App on a weekly schedule (Saturday before 6am, `America/New_York`). Pins GitHub Actions to SHAs, groups `github-actions` and `bats-submodules` updates, and auto-merges everything.
 
 ## License
 
