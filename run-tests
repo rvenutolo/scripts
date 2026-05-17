@@ -24,7 +24,7 @@ function main() {
     log::die "GNU parallel not found — required for bats --jobs. Install via your package manager."
   fi
   if (($# == 0)); then
-    "${BATS_BIN}" --jobs "$(nproc)" --recursive "${DEFAULT_TARGET}"
+    "${BATS_BIN}" --jobs "$(nproc)" --recursive --print-output-on-failure "${DEFAULT_TARGET}"
   else
     "${BATS_BIN}" "$@"
   fi

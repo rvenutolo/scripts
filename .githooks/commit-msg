@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+#shellcheck disable=SC1091
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+args::check_exactly_1_arg "$@"
+
+readonly COMMIT_MSG_FILE="$1"
+
+if ! commands::executable_exists 'npx'; then
+  log::warn 'commit-msg: npx not found — skipping commitlint check'
+  exit 0
+fi
+
+log::log 'commit-msg: running commitlint'
+npx --yes \
+  --package=@commitlint/cli \
+  --package=@commitlint/config-conventional \
+  -- commitlint --edit "${COMMIT_MSG_FILE}"
