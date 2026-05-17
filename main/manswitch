@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Open the man page for a command and jump to the description of a specific option/switch.
+# @arg $1 command Command whose man page should be opened.
+# @arg $2 switch Option/switch name to search for in the man page.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

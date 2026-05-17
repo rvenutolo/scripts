@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# @description Print one or more random integers drawn (without replacement) from the inclusive range `[min, max]`.
+# @arg $1 min Inclusive lower bound of the range.
+# @arg $2 max Inclusive upper bound of the range.
+# @arg $3 count Optional number of integers to emit (default 1).
+# @stdout Random integers, one per line.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

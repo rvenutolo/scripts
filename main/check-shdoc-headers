@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+# @description Audit every shebang-bearing executable under main/, install/,
+#              set_up/, misc/, and the project root for the project's shdoc
+#              header convention: every script must carry a file-level
+#              `# @description` tag in its header, and every top-level helper
+#              function (other than `main`) must have a preceding shdoc tag.
+#              Reports violations grouped by file. Library files under
+#              functions/ are not in scope (covered by the existing library
+#              convention and exercised by BATS).
+# @noargs
+# @stdout Empty on success. On failure: one block per failing file with the
+#         missing-header reason and any unannotated helper function names.
+# @exitcode 0 every in-scope script has both a file-level @description and
+#             annotations on every non-main helper function.
+# @exitcode 1 one or more scripts are missing required shdoc annotations.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+system::require_bash_version 4 3
+args::check_no_args "$@"
+
+# @description Print every in-scope script path, one per line. In-scope means
+#              any shebang-bearing file under main/, install/, set_up/, misc/,
+#              or directly under SCRIPTS_DIR (project root). Library files
+#              under functions/ are intentionally excluded.
+# @noargs
+# @stdout File paths, one per line.
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+function collect_in_scope_scripts() {
+  args::check_no_args "$@"
+  local subdir
+  for subdir in main install set_up misc; do
+    if dirs::exists "${SCRIPTS_DIR}/${subdir}"; then
+      shell_scripts::find "${SCRIPTS_DIR}/${subdir}"
+    fi
+  done
+  shell_scripts::find_root_only
+}
+
+# @description Audit a single script. Print a block on stderr if it lacks a
+#              file-level @description or has any unannotated helper functions.
+# @arg $1 file path to script
+# @exitcode 0 clean
+# @exitcode 1 reported violations
+function audit_one() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local violations=()
+  if ! shdoc::file_has_description "${file}"; then
+    violations+=('missing file-level @description')
+  fi
+  local unannotated_file
+  files::create_temp unannotated_file
+  shdoc::find_unannotated_functions "${file}" > "${unannotated_file}"
+  if [[ -s "${unannotated_file}" ]]; then
+    local fn
+    while IFS= read -r fn; do
+      violations+=("helper function missing shdoc annotation: ${fn}")
+    done < "${unannotated_file}"
+  fi
+  if [[ "${#violations[@]}" -eq 0 ]]; then
+    return 0
+  fi
+  printf '%s\n' "${file}" >&2
+  local v
+  for v in "${violations[@]}"; do
+    printf '  - %s\n' "${v}" >&2
+  done
+  return 1
+}
+
+function main() {
+  args::check_no_args "$@"
+  local scripts_file
+  files::create_temp scripts_file
+  # shellcheck disable=SC2119 # no args intended; SC2120 disable on function def suppresses the pair
+  collect_in_scope_scripts > "${scripts_file}"
+  local rc=0
+  local script
+  while IFS= read -r script; do
+    if ! audit_one "${script}"; then
+      rc=1
+    fi
+  done < "${scripts_file}"
+  if ((rc != 0)); then
+    log::warn 'shdoc header audit failed — see above for details.'
+  fi
+  exit "${rc}"
+}
+
+main "$@"

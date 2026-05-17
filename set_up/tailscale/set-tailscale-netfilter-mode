@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Set the Tailscale netfilter mode to nodivert when the tailscale binary is installed.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

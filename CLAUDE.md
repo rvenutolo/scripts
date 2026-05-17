@@ -76,6 +76,46 @@ The generic shell-script rules in `.claude/rules/shell-scripts.md` apply to this
 
 - Claude may propose new helper functions when a piece of logic looks reusable across scripts, even if it is currently only needed in one place. Suggest the new helper (with proposed file and signature) rather than silently inlining.
 
+### Shdoc annotations for top-level scripts
+
+Every top-level executable shell script (any file with a bash/sh shebang under `main/`, `install/`, `set_up/`, `misc/`, or the project root) must carry a file-level shdoc header block immediately after the shebang line and before the `set -Eeuo pipefail` pragma.
+
+Required tags (each used where applicable):
+
+- `@description` — one-line prose summary; continuation lines allowed with aligned comment text.
+
+- `@arg $N <name> <description>` for every positional parameter, OR `@noargs` if the script takes none.
+
+- `@stdout <description>` if the script emits meaningful output to stdout (beyond logging).
+
+- `@stderr <description>` if the script emits non-trivial diagnostic output to stderr (beyond standard `log::log`/`log::warn`/`log::die`).
+
+- `@exitcode N <meaning>` for every non-zero exit code the script can produce.
+
+- `@example` — optional but encouraged for any script with non-obvious CLI shape.
+
+Header position — between the shebang and `set -Eeuo pipefail`:
+
+```bash
+#!/usr/bin/env bash
+
+# @description One-line summary of what the script does.
+# @arg $1 input path to input file
+# @exitcode 0 success
+# @exitcode 1 input file missing
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+```
+
+Helper functions defined inside top-level scripts get the same full shdoc annotation block as library functions. **Exception:** the `main` function is exempt — the file-level header covers it.
+
+`misc/` standalone scripts (those that do not source `functions.bash`) follow the same rule. Shdoc tags are plain comments and do not depend on the function library.
+
+Files excluded from `shell_scripts::find` (`.shdoc/`, `other/`, vendored bats submodules under `test/`) are excluded from this rule.
+
+Backfill of existing scripts is tracked separately — see `.claude/plans/` for the active backfill plan.
+
 ### Standard top-level skeleton
 
 Source the function library, enable the `ERR` trap, then guard arg count:

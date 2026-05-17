@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Extract members-in-good-standing with phone numbers from a Periscope CSV into a Spoke-ready import file.
+# @arg $1 input_file Path to the Periscope-exported members CSV.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

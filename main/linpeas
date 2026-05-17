@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Download (via etag cache) and run the latest linpeas linux-amd64 binary, writing its output to a timestamped file under $HOME.
+# @arg $@ args Optional arguments forwarded to the linpeas binary.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Count file extensions among regular files under the given directory, sorted by count descending.
+# @arg $1 dir Optional directory to scan; defaults to the current directory.
+# @stdout `uniq -c`-style lines of count and `.ext`.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

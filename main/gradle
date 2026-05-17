@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Pass-through wrapper that runs `./gradlew` from the nearest enclosing Gradle project root if available, otherwise the system `gradle`.
+# @arg $@ args Arguments forwarded to gradlew/gradle. # pass-through: any arg count valid
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Reconcile installed AppImages (`appman`) with the universal package list — install missing ones, prompt to remove extras, and update all installed packages.
+# @arg $@ filters Optional filter args forwarded to `packages::get_universal` to scope the package list.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

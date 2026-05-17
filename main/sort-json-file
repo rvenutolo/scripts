@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Sort the keys of each given JSON file in place.
+# @arg $@ files One or more JSON file paths to sort.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

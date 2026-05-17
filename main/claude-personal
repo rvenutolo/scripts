@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Run the `claude` CLI with CLAUDE_CONFIG_DIR pointed at the personal profile.
+# @arg $@ args Optional arguments forwarded verbatim to claude.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

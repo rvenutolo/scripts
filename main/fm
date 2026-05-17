@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Open the first available file manager (xdg-open, lf, ranger, or fff) on the given directory or the current directory.
+# @arg $1 dir Optional directory to open; defaults to `.`.
+# @exitcode 1 No supported file manager is installed.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

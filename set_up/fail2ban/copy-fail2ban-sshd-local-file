@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Copy the user's fail2ban-sshd.local into /etc/fail2ban/jail.d/sshd.local and restart fail2ban.service if changed.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

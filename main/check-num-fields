@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Report lines whose field count differs from the first line, for a given delimiter.
+# @arg $1 input_file_or_delimiter When reading from stdin, the delimiter; otherwise the input file path.
+# @arg $2 delimiter When reading from a file, the field delimiter (omit when reading from stdin).
+# @stdout One line per mismatched row, with row number, actual field count, expected count, and the row.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

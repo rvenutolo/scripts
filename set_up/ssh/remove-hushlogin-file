@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Remove the ~/.hushlogin file if present so the login banner is shown again.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

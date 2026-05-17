@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Download an age-encrypted file from a URL and decrypt it using AGE_PRIVATE_KEY_FILE.
+# @arg $1 url URL of the age-encrypted file to download.
+# @arg $2 output_file Optional decrypted output file path; when omitted, plaintext goes to stdout.
+# @stdout Decrypted content when no output file is given.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

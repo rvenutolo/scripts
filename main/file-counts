@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Count regular files under each top-level subdirectory of the given path, sorted by count descending.
+# @arg $1 dir Optional directory to scan; defaults to the current directory.
+# @stdout `uniq -c`-style lines of count and top-level subdirectory name.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

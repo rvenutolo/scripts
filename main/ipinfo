@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Fetch this host's public IPv4 info from ipinfo.io and print it as a two-column key/value table.
+# @noargs
+# @stdout Tab-aligned key/value table of ipinfo.io fields.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

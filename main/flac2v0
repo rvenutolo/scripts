@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Transcode every .flac file under the current directory in-place to V0 MP3 via flac2mp3.pl, using all CPU cores.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

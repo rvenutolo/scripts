@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Symlink selected system autostart .desktop files into the user's XDG autostart directory.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

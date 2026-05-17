@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Print audio-track info for every .mkv/.mp4 file under the current directory that lacks an English audio track.
+# @arg $1 mode Optional literal `debug` to log each video filename as it is probed.
+# @stdout For each matching video: the relative path, one line per audio stream, and a `---------` separator.
+# @exitcode 1 The optional argument is present but not the literal string `debug`.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

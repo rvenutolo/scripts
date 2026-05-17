@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Download and age-decrypt the age key, the SSH keypair, and any other keys from the rvenutolo/crypt repo into ${KEYS_DIR}, prompting before downloading extras.
+# @noargs
+# @exitcode 1 A downloaded key file is empty.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

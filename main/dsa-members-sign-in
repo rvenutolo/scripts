@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Reformat a Periscope members CSV into a sorted sign-in CSV (email, last_name, first_name, membership_status).
+# @arg $1 input_file Path to the Periscope-exported members CSV with a header row.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

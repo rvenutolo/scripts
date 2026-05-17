@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Copy the enforce-ip-forward systemd service unit into /etc/systemd/system.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

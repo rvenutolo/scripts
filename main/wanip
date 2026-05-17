@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print the host's public IPv4 and IPv6 addresses by querying ifconfig.me.
+# @noargs
+# @stdout One line each for the IPv4 and IPv6 public addresses.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

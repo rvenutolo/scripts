@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Take a region screenshot via `hacksaw` + `shotgun` and save it as a PNG.
+# @arg $1 file Optional output PNG path. Defaults to `${HOME}/screenshot_<timestamp>.png` when omitted.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

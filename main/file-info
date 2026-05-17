@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Print a formatted info dump (long ls listing and file(1) type) for the given file.
+# @arg $1 input_file Path to the file to inspect.
+# @stdout Header banner, then `ls --format=long` output, then `file` type output.
+# @exitcode 1 Input file does not exist or is not readable.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

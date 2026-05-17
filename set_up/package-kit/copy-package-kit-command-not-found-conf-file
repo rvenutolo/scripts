@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Install the PackageKit command-not-found config file on Fedora when the package is installed.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

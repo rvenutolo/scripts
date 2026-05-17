@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Run `docker compose logs --follow` in the current directory.
+# @noargs
+# @stdout Streamed compose service logs.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

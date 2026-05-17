@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Mark the given tracked files with `git update-index --skip-worktree` so local changes are ignored.
+# @arg $@ files One or more tracked file paths to mark skip-worktree.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

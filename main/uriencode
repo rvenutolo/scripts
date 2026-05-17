@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print the URI-encoded form of the given string (via `jq`'s `@uri` filter).
+# @arg $1 value String to URI-encode.
+# @stdout The URI-encoded value.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

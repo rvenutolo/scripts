@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Copy a file while displaying a textual progress bar driven by strace write counts.
+# @arg $1 src Source file path.
+# @arg $2 dest Destination file path.
+# @stdout Animated progress bar that updates in place.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

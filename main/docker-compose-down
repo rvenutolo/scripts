@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Run `docker compose down --remove-orphans` in the current directory.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

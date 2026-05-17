@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Run `docker compose ps` in the current directory.
+# @noargs
+# @stdout Compose service status table.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

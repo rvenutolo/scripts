@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print the unique `user:group` ownership pairs found under the given directory (or the current directory).
+# @arg $1 dir Optional directory to scan. Defaults to the current directory when omitted.
+# @stdout Sorted list of unique `user:group` pairs, one per line.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

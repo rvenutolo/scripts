@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# @description Format shell scripts in-place via shfmt with the repo's standard style flags. When invoked with no paths, formats every in-scope script.
+# @arg $1 --check Optional flag to preview diffs instead of writing changes.
+# @arg $@ paths Optional file or directory paths to format; omit to format the full in-scope set.
+# @exitcode 0 All files formatted (or already formatted, in --check mode).
+# @exitcode 1 One or more files would change (--check mode) or shfmt reported an error.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

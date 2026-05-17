@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Restart the current directory's docker compose project by bringing it down (removing orphans) and back up detached.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

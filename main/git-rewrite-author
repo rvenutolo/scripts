@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Interactively rewrite every commit (author + committer) whose email matches a prompted old address, replacing it with a new name + email via `git filter-branch`.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

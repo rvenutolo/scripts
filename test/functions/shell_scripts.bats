@@ -147,3 +147,72 @@ setup() {
   assert_failure
   assert_output --partial 'Expected at least 1 argument'
 }
+
+# ---------- find_root_only ----------
+
+@test "shell_scripts::find_root_only emits root-level shebang files only" {
+  local fake_root="${BATS_TEST_TMPDIR}/repo"
+  mkdir -p "${fake_root}/main" "${fake_root}/install"
+  printf '#!/usr/bin/env bash\n' > "${fake_root}/root-a"
+  chmod +x "${fake_root}/root-a"
+  printf '#!/usr/bin/env bash\n' > "${fake_root}/root-b"
+  chmod +x "${fake_root}/root-b"
+  printf 'not a script\n' > "${fake_root}/README"
+  printf '#!/usr/bin/env bash\n' > "${fake_root}/main/m1"
+  chmod +x "${fake_root}/main/m1"
+  printf '#!/usr/bin/env bash\n' > "${fake_root}/install/i1"
+  chmod +x "${fake_root}/install/i1"
+
+  SCRIPTS_DIR="${fake_root}" run shell_scripts::find_root_only
+  assert_success
+  assert_line "${fake_root}/root-a"
+  assert_line "${fake_root}/root-b"
+  refute_line "${fake_root}/README"
+  refute_line "${fake_root}/main/m1"
+  refute_line "${fake_root}/install/i1"
+}
+
+@test "shell_scripts::find_root_only skips files without shebang" {
+  local fake_root="${BATS_TEST_TMPDIR}/repo"
+  mkdir -p "${fake_root}"
+  printf '#!/usr/bin/env bash\n' > "${fake_root}/with-shebang"
+  chmod +x "${fake_root}/with-shebang"
+  printf 'plain text\n' > "${fake_root}/no-shebang"
+  chmod +x "${fake_root}/no-shebang"
+
+  SCRIPTS_DIR="${fake_root}" run shell_scripts::find_root_only
+  assert_success
+  assert_line "${fake_root}/with-shebang"
+  refute_line "${fake_root}/no-shebang"
+}
+
+@test "shell_scripts::find_root_only emits nothing when SCRIPTS_DIR has no shell scripts at top level" {
+  local fake_root="${BATS_TEST_TMPDIR}/empty_repo"
+  mkdir -p "${fake_root}/main"
+  printf 'plain text\n' > "${fake_root}/README"
+  printf '#!/usr/bin/env bash\n' > "${fake_root}/main/m1"
+  chmod +x "${fake_root}/main/m1"
+
+  SCRIPTS_DIR="${fake_root}" run shell_scripts::find_root_only
+  assert_success
+  assert_output ''
+}
+
+@test "shell_scripts::find_root_only excludes functions.bash loader" {
+  local fake_root="${BATS_TEST_TMPDIR}/repo_with_loader"
+  mkdir -p "${fake_root}"
+  printf '#!/usr/bin/env bash\n' > "${fake_root}/functions.bash"
+  printf '#!/usr/bin/env bash\n' > "${fake_root}/legit-script"
+  chmod +x "${fake_root}/legit-script"
+
+  SCRIPTS_DIR="${fake_root}" run shell_scripts::find_root_only
+  assert_success
+  assert_line "${fake_root}/legit-script"
+  refute_line "${fake_root}/functions.bash"
+}
+
+@test "shell_scripts::find_root_only dies when called with any args" {
+  run shell_scripts::find_root_only foo
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}

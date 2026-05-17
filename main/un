@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Extract one or more archive files, dispatching to the appropriate decompressor by file extension.
+# @arg $@ archives One or more archive file paths to extract.
+# @exitcode 1 An argument is not a regular file or has an unsupported extension.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

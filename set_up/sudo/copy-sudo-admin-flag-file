@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Install the sudoers.d drop-in that disables the sudo admin flag file.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

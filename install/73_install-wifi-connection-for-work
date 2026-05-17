@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Install the encrypted NetworkManager WIFI connection profile for the work office (work hosts only).
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

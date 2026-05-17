@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print width, height, codec, size, and path for every .mkv/.mp4 file under the current directory.
+# @noargs
+# @stdout One pipe-delimited line per video file: width | height | codec | size_gb | dirname | basename.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

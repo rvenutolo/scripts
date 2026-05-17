@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Run throwaway containers for each given (or default) distro and copy their /etc trees to a host directory.
+# @arg $@ distros Optional list of distro image names to dump; defaults to alpine, archlinux, debian, fedora, ubuntu.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

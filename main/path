@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print each entry of `$PATH` on its own line.
+# @noargs
+# @stdout One `$PATH` entry per line, in order.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

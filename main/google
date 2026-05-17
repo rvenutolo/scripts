@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Open a Google search for the given query in the default browser via xdg-open.
+# @arg $@ query One or more search terms; joined with `%20` separators.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

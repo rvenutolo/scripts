@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Force-rebuild the fontconfig font cache via `fc-cache --force --verbose`.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

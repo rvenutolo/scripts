@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Create a timestamped backup copy of each given file or directory.
+# @arg $@ paths One or more file or directory paths to back up.
+# @exitcode 0 All files/directories backed up successfully.
+# @exitcode 1 A path does not exist as a file or directory.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

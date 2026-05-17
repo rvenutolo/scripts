@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Run the given command inside every running Docker container and print a CONTAINER/RESULT table of the output.
+# @arg $@ command Command (and any args) to `docker exec` inside each running container.
+# @stdout Two-column table with columns CONTAINER and RESULT.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

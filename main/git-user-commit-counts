@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print a table of commit counts per author email across the entire git history of the current repository.
+# @noargs
+# @stdout Two-column table of commit count and author email, right-aligned count.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

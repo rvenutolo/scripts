@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Show error-priority (and worse) journal entries from the current boot.
+# @noargs
+# @stdout `journalctl` output filtered to priority<=err for the current boot.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

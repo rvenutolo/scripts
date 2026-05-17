@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print the CIDR of the primary local network attached to this host.
+# @noargs
+# @stdout The local network in CIDR notation (e.g. `192.168.1.0/24`).
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

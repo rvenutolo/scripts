@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Open an SSH tunnel from local port 8888 to the Plex server's web UI on port 32400.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

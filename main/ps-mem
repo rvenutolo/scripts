@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description List running processes sorted by descending memory usage.
+# @noargs
+# @stdout `ps auxf` output sorted by memory usage column.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

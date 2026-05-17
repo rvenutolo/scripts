@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Remove duplicate lines from stdin or a file via awk, preserving original order (unlike `sort --unique`).
+# @arg $1 file Optional path to read from; reads stdin when omitted.
+# @stdout Input lines with duplicates removed, in original order.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

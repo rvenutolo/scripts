@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Remove all installed snaps, disable and mask the snapd service, uninstall the snapd package, and clean up snap directories. Must be run as root.
+# @noargs
+
 # $ sudo bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/ubuntu-remove-snap.sh')"
 # $ sudo bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/ubuntu-remove-snap.sh')"
 
@@ -12,16 +15,24 @@ if ((BASH_VERSINFO[0] < 4)); then
   exit 1
 fi
 
+# @description Print a timestamped info message to stderr.
+# @arg $@ message Message text to log.
 function log() {
   printf 'log [%s]: %s\n' "$(date +%T)" "$*" >&2
 }
 
+# @description Print a fatal error message with caller context and exit with status 1.
+# @arg $@ message Error message text.
+# @exitcode 1 Always exits with status 1.
 function die() {
   printf 'DIE: %s (at %s:%s line %s.)\n' "$*" "${BASH_SOURCE[1]}" "${FUNCNAME[1]}" "${BASH_LINENO[0]}" >&2
   exit 1
 }
 
-# $1 = question
+# @description Prompt the user with a yes/no question and return 0 for yes, 1 for no.
+# @arg $1 question The yes/no question to display.
+# @exitcode 0 User answered yes.
+# @exitcode 1 User answered no.
 function prompt_yn() {
   REPLY=''
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
@@ -35,7 +46,10 @@ function prompt_yn() {
   [[ "${REPLY}" == 'y' ]]
 }
 
-# $1 = executable
+# @description Return true if the named executable exists on PATH (excluding builtins, aliases, and functions).
+# @arg $1 executable Name of the executable to check.
+# @exitcode 0 Executable found.
+# @exitcode 1 Executable not found.
 function executable_exists() {
   # executables / no builtins, aliases, or functions
   type -aPf "$1" > '/dev/null' 2>&1

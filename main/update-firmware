@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Refresh the fwupd metadata cache and apply pending firmware updates via `fwupdmgr`.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

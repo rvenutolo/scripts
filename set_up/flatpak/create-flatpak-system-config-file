@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Create the /var/lib/flatpak/repo/config file with bare-user-only mode when flatpak is installed and no config exists.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

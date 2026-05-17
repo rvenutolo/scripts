@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Download and install the latest JetBrains Toolbox tarball, symlinking the binary into the user bin dir.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

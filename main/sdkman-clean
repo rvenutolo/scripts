@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Prune unused SDKMAN packages and Temurin JDKs, then rewrite `.sdkmanrc` files to current Java versions.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

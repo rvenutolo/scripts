@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Migrate the legacy ~/.fonts.conf file to the XDG fontconfig location.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

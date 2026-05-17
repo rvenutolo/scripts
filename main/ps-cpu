@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description List running processes sorted by descending CPU usage.
+# @noargs
+# @stdout `ps auxf` output sorted by CPU usage column.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

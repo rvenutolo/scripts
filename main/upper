@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Uppercase text from stdin, or rename one or more files to their uppercase basenames.
+# @arg $@ files Optional file paths to rename to uppercase; when omitted reads from stdin and writes uppercase to stdout.
+# @stdout When stdin is provided, the uppercased text.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

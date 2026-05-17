@@ -23,7 +23,13 @@ theme:
 nav:
   - Home: index.md
   - Functions: functions/index.md
-  - Scripts: scripts/index.md
+  - Scripts:
+      - Overview: scripts/index.md
+      - main: scripts/main/index.md
+      - install: scripts/install/index.md
+      - set_up: scripts/set_up/index.md
+      - misc: scripts/misc/index.md
+      - root: scripts/root/index.md
 markdown_extensions:
   - admonition
   - pymdownx.superfences

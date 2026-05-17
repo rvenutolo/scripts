@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Insert one or more package names into the home-manager `stable.nix` and `unstable.nix` package lists.
+# @arg $@ packages One or more package names to add (forwarded to `packages::get_universal`).
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

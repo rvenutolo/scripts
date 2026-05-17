@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Download source and Javadoc jars for every `pom.xml` found under the current directory.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

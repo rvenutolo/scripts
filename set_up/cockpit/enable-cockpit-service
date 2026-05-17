@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Enable the cockpit.socket system unit when cockpit-bridge is installed.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

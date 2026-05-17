@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print the Build-Jdk-Spec line from a JAR file's META-INF/MANIFEST.MF.
+# @arg $1 jar_file Path to the JAR file to inspect.
+# @stdout The matching `Build-Jdk-Spec:` manifest line.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

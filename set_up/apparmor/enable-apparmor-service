@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Enable the apparmor system service when the aa-enabled tool is present.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

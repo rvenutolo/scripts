@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Run aquasec/trivy against the given Docker images (or all running container images when no args).
+# @arg $@ images Optional list of image references to scan; defaults to images of currently running containers.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

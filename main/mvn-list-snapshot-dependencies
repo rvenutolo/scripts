@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description List all SNAPSHOT dependencies in the current Maven project via `mvn dependency:tree`.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

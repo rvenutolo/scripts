@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description `touch` each path and mark it executable. Paths that already exist as non-regular-files are skipped with a warning.
+# @arg $@ files One or more file paths to create (if needed) and chmod +x.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

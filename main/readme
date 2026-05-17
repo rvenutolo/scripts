@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print every readable `readme*` file in the current directory (case-insensitive), rendering via `glow` when available.
+# @noargs
+# @stdout Contents of each matched readme file, separated by header lines.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
