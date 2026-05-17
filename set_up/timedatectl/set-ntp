@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Interactively enable NTP time synchronization via timedatectl when not already on.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

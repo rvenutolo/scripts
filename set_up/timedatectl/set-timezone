@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Interactively set the system timezone via timedatectl, defaulting to America/New_York.
+# @arg $1 tz optional timezone name (default: America/New_York)
+# @exitcode 0 timezone already matches, prompt declined, or set successfully
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

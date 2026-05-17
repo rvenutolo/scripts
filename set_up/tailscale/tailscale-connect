@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Interactively bring Tailscale up if not connected, and advertise this host as an exit node on servers/desktops.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

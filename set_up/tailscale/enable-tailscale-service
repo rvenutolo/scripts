@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Enable the tailscaled systemd system service unit when the tailscaled binary is installed.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

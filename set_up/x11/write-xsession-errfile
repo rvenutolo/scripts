@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Redirect /etc/X11/Xsession ERRFILE to $XDG_CACHE_HOME/X11/xsession-errors via sed-in-place.
+# @noargs
+# @exitcode 1 /etc/X11/Xsession exists but contains no ERRFILE= line
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

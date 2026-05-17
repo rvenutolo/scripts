@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Strip the sudo_as_admin_successful hint block from /etc/bash.bashrc, backing the file up first.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
