@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Reconcile installed user Flatpaks with the universal package list — install missing apps, prompt to remove extras, prune unused runtimes, update everything, and apply XDG overrides for Chrome.
+# @arg $@ filters Optional filter args forwarded to `packages::get_universal` to scope the package list.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

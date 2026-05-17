@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Set the active Tailscale exit node to the given node.
+# @arg $1 node Tailscale node name or IP to route exit traffic through.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

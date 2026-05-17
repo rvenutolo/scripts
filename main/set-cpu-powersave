@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Set every CPU's cpufreq scaling governor to `powersave`.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Swap the contents at two paths (both files or both directories) via a temporary intermediate.
+# @arg $1 path_a First path to swap.
+# @arg $2 path_b Second path to swap.
+# @exitcode 1 One path is a file and the other a directory, or either path does not exist.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

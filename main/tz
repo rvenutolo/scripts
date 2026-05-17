@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print every zoneinfo path whose contents match `/etc/localtime` (i.e., the current system timezone and its aliases).
+# @noargs
+# @stdout Matching zoneinfo names (e.g., `America/New_York`), one per line.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
