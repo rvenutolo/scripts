@@ -37,6 +37,29 @@ function shdoc_one() {
   gawk -f "${SHDOC}" < "${src}" > "${dest}"
 }
 
+# @description Run shdoc on a top-level script, injecting a synthetic `# @file <basename>` so the
+#              file-level `@description` block renders as the page's H1 + Overview section. shdoc
+#              only emits `file_description` when `file_title` is set, and we do not require
+#              authors to write a redundant `@file` tag — top-level scripts already self-identify
+#              by filename. Library files under functions/ are documented function-by-function and
+#              must NOT use this path (injecting @file there would promote the first function's
+#              @description to the file Overview, which is misleading).
+# @arg $1 src source bash file
+# @arg $2 dest destination markdown file
+function shdoc_script_one() {
+  args::check_exactly_2_args "$@"
+  local -r src="$1"
+  local -r dest="$2"
+  local _src_with_file
+  files::create_temp _src_with_file
+  # shellcheck disable=SC2154 # _src_with_file set via nameref inside files::create_temp
+  {
+    printf '# @file %s\n' "$(basename -- "${src}")"
+    cat -- "${src}"
+  } > "${_src_with_file}"
+  gawk -f "${SHDOC}" < "${_src_with_file}" > "${dest}"
+}
+
 # @description Generate one markdown index file listing the per-file pages.
 # @arg $1 dir docs subdirectory containing per-file .md pages (no index.md yet)
 # @arg $2 title H1 title for the index page
@@ -85,7 +108,7 @@ function generate_scripts_for_dir() {
   local script base
   while IFS= read -r script; do
     base="$(basename -- "${script}")"
-    shdoc_one "${script}" "${out_dir}/${base}.md"
+    shdoc_script_one "${script}" "${out_dir}/${base}.md"
   done < "${list_file}"
   write_index "${out_dir}" "${title}"
 }
