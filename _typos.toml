@@ -7,6 +7,6 @@ extend-exclude = [
   ".shdoc/**",
 ]
 
-[default.extend-identifiers]
+[default.extend-words]
 gir = "gir"
 ba = "ba"
