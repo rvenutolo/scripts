@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Interactively scaffold a docker compose stack (compose.yaml + init/run scripts) in the cwd.
+# @noargs
+# @exitcode 1 compose.yaml, init, or run already exists in the cwd.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

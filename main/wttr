@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Fetch and print the wttr.in weather report for the given city (defaults to $WTTR_CITY).
+# @arg $1 city Optional city name; defaults to $WTTR_CITY when omitted.
+# @stdout The wttr.in ANSI-formatted weather report.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

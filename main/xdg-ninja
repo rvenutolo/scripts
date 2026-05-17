@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Run xdg-ninja from its upstream flake via `nix run`, forwarding any arguments through.
+# @arg $@ args Arguments forwarded to the upstream xdg-ninja binary.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

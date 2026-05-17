@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Generate a `.env` file in the cwd from the current Maven project's artifactId and version (DE app conventions).
+# @noargs
+# @exitcode 1 The pom.xml is missing or a `.env` already exists.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

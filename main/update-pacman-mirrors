@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Regenerate the Manjaro pacman mirror list (US/Canada, fasttrack) and refresh+upgrade the system.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
