@@ -166,6 +166,59 @@ EOF
   assert_output ''
 }
 
+@test "shdoc::file_has_description fallback path works under strict mode" {
+  local f="${BATS_TEST_TMPDIR}/misc_style"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Misc-style standalone script with no set -Eeuo pipefail line.
+# @noargs
+
+trap 'echo err' ERR
+echo hello
+EOF
+  run bash -c "
+    set -Eeuo pipefail
+    trap 'echo CAUGHT_ERR_TRAP >&2; exit 99' ERR
+    source '${SCRIPTS_DIR}/functions/args.bash'
+    source '${SCRIPTS_DIR}/functions/log.bash'
+    source '${SCRIPTS_DIR}/functions/strings.bash'
+    source '${SCRIPTS_DIR}/functions/shdoc.bash'
+    shdoc::file_has_description '${f}'
+  "
+  assert_success
+  refute_output --partial 'CAUGHT_ERR_TRAP'
+}
+
+@test "shdoc::file_has_description fallback reports absent header under strict mode" {
+  local f="${BATS_TEST_TMPDIR}/misc_style_no_desc"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+trap 'echo err' ERR
+echo hello
+EOF
+  run bash -c "
+    set -Eeuo pipefail
+    trap 'echo CAUGHT_ERR_TRAP >&2; exit 99' ERR
+    source '${SCRIPTS_DIR}/functions/args.bash'
+    source '${SCRIPTS_DIR}/functions/log.bash'
+    source '${SCRIPTS_DIR}/functions/strings.bash'
+    source '${SCRIPTS_DIR}/functions/shdoc.bash'
+    if shdoc::file_has_description '${f}'; then
+      exit 0
+    else
+      exit 1
+    fi
+  "
+  assert_failure
+  [[ "${status}" -eq 1 ]] || {
+    echo \"unexpected status: ${status}\"
+    return 1
+  }
+  refute_output --partial 'CAUGHT_ERR_TRAP'
+}
+
 @test "shdoc::find_unannotated_functions clean when every helper is annotated" {
   local f="${BATS_TEST_TMPDIR}/s9"
   cat > "${f}" << 'EOF'

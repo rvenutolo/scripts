@@ -11,7 +11,7 @@ function shdoc::file_has_description() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
   local end_line
-  end_line="$(grep --line-number --max-count=1 --extended-regexp '^set -Eeuo pipefail' "${file}" \
+  end_line="$({ grep --line-number --max-count=1 --extended-regexp '^set -Eeuo pipefail' "${file}" || true; } \
     | cut --delimiter=: --fields=1)"
   if strings::is_blank "${end_line}"; then
     end_line=30
