@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Pretty-print files (or stdin) with syntax highlighting; Markdown files are rendered via `glow`.
+# @arg $@ files One or more files to pretty-print. Omit when piping content on stdin.
+# @stdout Syntax-highlighted file contents.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

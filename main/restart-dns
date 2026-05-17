@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Restart `systemd-resolved.service` if it is enabled on this host.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

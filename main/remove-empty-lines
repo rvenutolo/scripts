@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Remove empty lines from stdin and write the result to stdout.
+# @noargs
+# @stdout Input text with empty lines removed.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

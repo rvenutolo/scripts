@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Pretty-print a file (or stdin) with syntax highlighting and page through `less`; Markdown files are rendered via `glow`.
+# @arg $1 file File to display. Omit when piping content on stdin.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

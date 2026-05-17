@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Strip ANSI escape sequences from stdin and write the cleaned text to stdout.
+# @noargs
+# @stdout Input text with ANSI escape sequences removed.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
