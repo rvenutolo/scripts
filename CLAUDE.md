@@ -114,7 +114,7 @@ Helper functions defined inside top-level scripts get the same full shdoc annota
 
 Files excluded from `shell_scripts::find` (`.shdoc/`, `other/`, vendored bats submodules under `test/`) are excluded from this rule.
 
-Backfill of existing scripts is tracked separately — see `.claude/plans/` for the active backfill plan.
+Library files under `functions/*.bash` follow a related but distinct rule: every function must have a preceding shdoc annotation block, but the file-level `@description` is intentionally not required because library files are documented function-by-function. `main/check-shdoc-headers` enforces both rules in a single audit pass (top-level scripts get the file-level + per-helper check; library files get the per-function check only). Both contribute to the audit's exit code, and the audit is wired into `check-scripts` so any regression fails the aggregate gate.
 
 ### Standard top-level skeleton
 
