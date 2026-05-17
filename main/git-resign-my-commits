@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+
+# @description Re-sign every commit in the repo whose author or committer matches one of the
+#   identities the user picks as theirs. Signing uses the current repo's git config (gpg.format,
+#   user.signingkey, etc.) — typically SSH or GPG via `commit.gpgSign = true`. Distinct identities
+#   (union of author and committer) in the repo are listed and the user picks which are theirs;
+#   any commit whose author OR committer matches a picked identity is re-signed. All other
+#   metadata (author/committer name, email, dates, message) is preserved. Unsigned, non-matching
+#   commits are passed through unchanged.
+# @arg $1 dir optional repo directory (default: current working directory)
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_at_most_1_arg "$@"
+
+readonly TARGET_DIR="${1:-$(pwd)}"
+dirs::assert_exists "${TARGET_DIR}"
+
+REPO_ROOT="$(git::repo_root "${TARGET_DIR}")"
+readonly REPO_ROOT
+
+# Safety: refuse to operate outside ${PERSONAL_PROJECTS_DIR} to avoid clobbering work repos.
+dirs::assert_personal_project "${REPO_ROOT}"
+
+# Required so commit-tree -S has something to sign with.
+SIGNING_KEY="$(git -C "${REPO_ROOT}" config --get user.signingkey || true)"
+readonly SIGNING_KEY
+strings::is_not_empty "${SIGNING_KEY}" || log::die "user.signingkey not configured for ${REPO_ROOT}; cannot re-sign"
+
+GPG_FORMAT="$(git -C "${REPO_ROOT}" config --get gpg.format || true)"
+readonly GPG_FORMAT
+
+files::create_temp distinct_idents_file
+files::create_temp selected_idents_file
+
+# shellcheck disable=SC2154 # distinct_idents_file assigned by files::create_temp via nameref
+git::write_distinct_identities "${REPO_ROOT}" "${distinct_idents_file}"
+git::print_identities "Distinct identities (author ∪ committer) in ${REPO_ROOT}:" "${distinct_idents_file}"
+
+log::log 'For each identity, answer y if it is YOU (commits whose author OR committer matches will be re-signed) or n otherwise.'
+# shellcheck disable=SC2154 # selected_idents_file assigned by files::create_temp via nameref
+git::prompt_select_identities "${distinct_idents_file}" "${selected_idents_file}"
+
+if [[ ! -s "${selected_idents_file}" ]]; then
+  log::log 'No identities selected. Nothing to do.'
+  exit 0
+fi
+
+author_match_count="$(git::count_author_matches "${REPO_ROOT}" "${selected_idents_file}")"
+committer_match_count="$(git::count_committer_matches "${REPO_ROOT}" "${selected_idents_file}")"
+readonly author_match_count committer_match_count
+
+log::log "Repo: ${REPO_ROOT}"
+log::log "Signing format: ${GPG_FORMAT:-<gpg default>}"
+log::log "Signing key: ${SIGNING_KEY}"
+git::print_identities 'Selected identities (commits matching either field will be re-signed):' "${selected_idents_file}"
+log::log "Commits with matching author: ${author_match_count}"
+log::log "Commits with matching committer: ${committer_match_count}"
+log::log 'Note: every commit reachable via --all will be rewritten (parent SHAs change); matching commits gain a fresh signature, others are passed through unsigned.'
+
+if ! prompt::ny 'Proceed with re-sign?'; then
+  log::log 'Aborted.'
+  exit 0
+fi
+
+# git filter-branch is the right tool here: git-filter-repo strips signatures and provides
+# no built-in mechanism to compute new ones. filter-branch's --commit-filter lets us call
+# `git commit-tree -S` conditionally, which honors the repo's gpg.format / user.signingkey.
+export GIT_RESIGN_SELECTED_FILE="${selected_idents_file}"
+
+(
+  cd "${REPO_ROOT}"
+  FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch --force --commit-filter '
+    _resign_match=0
+    while IFS=$'"'"'\t'"'"' read -r _n _e; do
+      if [[ "${GIT_AUTHOR_NAME}" == "${_n}" && "${GIT_AUTHOR_EMAIL}" == "${_e}" ]]; then
+        _resign_match=1
+        break
+      fi
+      if [[ "${GIT_COMMITTER_NAME}" == "${_n}" && "${GIT_COMMITTER_EMAIL}" == "${_e}" ]]; then
+        _resign_match=1
+        break
+      fi
+    done < "${GIT_RESIGN_SELECTED_FILE}"
+    if [[ ${_resign_match} -eq 1 ]]; then
+      git commit-tree -S "$@"
+    else
+      git commit-tree "$@"
+    fi
+  ' -- --all
+)
+
+log::log 'Re-sign complete.'
+log::log 'Verify with: git log --show-signature --all | head -40'
+log::log "Push with: git push --force --tags origin 'refs/heads/*'"
