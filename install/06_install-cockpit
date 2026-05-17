@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Install Cockpit on Debian/Ubuntu servers from the backports repo; no-op on other distros or non-server hosts.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

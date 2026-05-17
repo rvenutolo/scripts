@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Interactively install the curated distro package list for the detected OS via apt, dnf, or pacman.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

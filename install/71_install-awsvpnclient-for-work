@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Install the AWS VPN Client (Ubuntu-only, work hosts) and download the encrypted OVPN profile.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

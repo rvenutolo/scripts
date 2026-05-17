@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Enable distro-specific extra package repositories (Debian backports, Chaotic AUR on Arch/CachyOS).
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

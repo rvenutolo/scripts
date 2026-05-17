@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Interactively install Tailscale by running the upstream install.sh installer.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
@@ -16,12 +19,14 @@ readonly url='https://tailscale.com/install.sh'
 # Local function overrides (not http::curl/http::wget) because the downloaded install script
 # calls bare `curl`/`wget` and inherits these via `export -f` below. The full http::* helpers add
 # `--silent --fail` etc. which would suppress install progress output.
-# wrapper around curl to disable reading the config that is intended for interactive use
+# @description Wrapper around the system curl that passes --disable so the downloaded installer (which calls bare `curl`) does not read the user's ~/.curlrc.
+# @arg $@ args Forwarded verbatim to curl.
 function curl() {
   command curl --disable "$@"
 }
 
-# wrapper around wget to disable reading the config that is intended for interactive use
+# @description Wrapper around the system wget that passes --no-config so the downloaded installer (which calls bare `wget`) does not read the user's ~/.wgetrc.
+# @arg $@ args Forwarded verbatim to wget.
 function wget() {
   command wget --no-config "$@"
 }

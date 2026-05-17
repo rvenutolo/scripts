@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Interactively install AppMan and the configured AppImage package list.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
