@@ -118,10 +118,13 @@ Library files under `functions/*.bash` follow a related but distinct rule: every
 
 ### Standard top-level skeleton
 
-Source the function library, enable the `ERR` trap, handle `-h`/`--help`, then guard arg count:
+Carry the file-level shdoc header (see [Shdoc annotations for top-level scripts](#shdoc-annotations-for-top-level-scripts)), source the function library, enable the `ERR` trap, handle `-h`/`--help`, then guard arg count:
 
 ```bash
 #!/usr/bin/env bash
+
+# @description One-line summary of what the script does.
+# @noargs
 
 set -Eeuo pipefail
 IFS=$'\n\t'
