@@ -595,6 +595,79 @@ function _run_select() {
   assert_output --partial 'Expected exactly 2 arguments'
 }
 
+# ---------- git::count_author_or_committer_matches ----------
+
+@test "count_author_or_committer_matches: counts union, dedup per commit" {
+  local repo
+  repo="$(_seed_repo_multi_idents)"
+  local sel="${BATS_TEST_TMPDIR}/sel"
+  # Alice: c1 (A+C, counted once), c2 (A only), c3 (C only) = 3
+  printf 'Alice\talice@example.com\n' > "${sel}"
+  run git::count_author_or_committer_matches "${repo}" "${sel}"
+  assert_success
+  assert_output '3'
+}
+
+@test "count_author_or_committer_matches: GitHub committer only" {
+  local repo
+  repo="$(_seed_repo_multi_idents)"
+  local sel="${BATS_TEST_TMPDIR}/sel"
+  # GitHub appears only as committer of c2 = 1
+  printf 'GitHub\tnoreply@github.com\n' > "${sel}"
+  run git::count_author_or_committer_matches "${repo}" "${sel}"
+  assert_success
+  assert_output '1'
+}
+
+@test "count_author_or_committer_matches: multiple identities union" {
+  local repo
+  repo="$(_seed_repo_multi_idents)"
+  local sel="${BATS_TEST_TMPDIR}/sel"
+  # Alice ∪ GitHub touches c1, c2, c3 = 3
+  printf 'Alice\talice@example.com\nGitHub\tnoreply@github.com\n' > "${sel}"
+  run git::count_author_or_committer_matches "${repo}" "${sel}"
+  assert_success
+  assert_output '3'
+}
+
+@test "count_author_or_committer_matches: all four commits when both selected" {
+  local repo
+  repo="$(_seed_repo_multi_idents)"
+  local sel="${BATS_TEST_TMPDIR}/sel"
+  printf 'Alice\talice@example.com\nBob\tbob@example.com\n' > "${sel}"
+  run git::count_author_or_committer_matches "${repo}" "${sel}"
+  assert_success
+  assert_output '4'
+}
+
+@test "count_author_or_committer_matches: zero matches" {
+  local repo
+  repo="$(_seed_repo_multi_idents)"
+  local sel="${BATS_TEST_TMPDIR}/sel"
+  printf 'Nobody\tnobody@nowhere\n' > "${sel}"
+  run git::count_author_or_committer_matches "${repo}" "${sel}"
+  assert_success
+  assert_output '0'
+}
+
+@test "count_author_or_committer_matches: dies with 0 args" {
+  run git::count_author_or_committer_matches
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
+@test "count_author_or_committer_matches: dies with 1 arg" {
+  run git::count_author_or_committer_matches 'a'
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
+@test "count_author_or_committer_matches: dies with 3 args" {
+  run git::count_author_or_committer_matches 'a' 'b' 'c'
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 # ---------- git::resolve_filter_repo_cmd ----------
 
 @test "resolve_filter_repo_cmd: picks git-filter-repo when on PATH" {

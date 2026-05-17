@@ -136,6 +136,27 @@ function git::count_committer_matches() {
     | grep --fixed-strings --line-regexp --count --file="${selected_file}" || true
 }
 
+# @description Count commits across --all whose author OR committer identity (name<TAB>email)
+# matches any line in selected_file. A commit where both author and committer match is counted
+# once, not twice. Output is a single integer.
+# @arg $1 repo path inside a git repo
+# @arg $2 selected_file tab-separated name<TAB>email file
+# @stdout match count (integer)
+function git::count_author_or_committer_matches() {
+  args::check_exactly_2_args "$@"
+  local -r repo="$1"
+  local -r selected_file="$2"
+  local commits_file
+  files::create_temp commits_file
+  # shellcheck disable=SC2154 # commits_file assigned by files::create_temp via nameref
+  git -C "${repo}" log --all --format='%aN%x09%aE%x1F%cN%x09%cE' > "${commits_file}"
+  awk -F '\x1F' '
+    NR == FNR { sel[$0] = 1; next }
+    sel[$1] || sel[$2] { c++ }
+    END { print c + 0 }
+  ' "${selected_file}" "${commits_file}"
+}
+
 # @description Populate the named array with the command (and any leading args) to invoke
 # git-filter-repo. Prefers the local binary; falls back to running it via `nix run` from
 # nixpkgs-unstable. Dies if neither git-filter-repo nor nix is on PATH.

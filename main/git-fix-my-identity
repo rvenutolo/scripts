@@ -3,9 +3,13 @@
 # @description Rewrite the author and/or committer identity of selected commits in a repository
 #   to the canonical identity configured in the repo (user.name / user.email from git config).
 #   Distinct identities (union of author and committer) in the repo are listed and the user picks
-#   which are theirs. For every commit, the author is rewritten if its (name, email) matches a
-#   picked identity, and the committer is rewritten if its (name, email) matches a picked
-#   identity. Author and committer are checked independently.
+#   which are theirs. For every commit:
+#     - if the author matches a picked identity, BOTH author and committer are rewritten to
+#       canonical (catches the GitHub web-edit / online-merge case where the committer is stamped
+#       as `GitHub <noreply@github.com>`; otherwise GitHub cannot verify the re-signed commit
+#       because the committer email does not match any registered signing key on your account);
+#     - if only the committer matches a picked identity (author is someone else, e.g. dependabot),
+#       only the committer is rewritten — original authorship is preserved.
 # @arg $1 dir optional repo directory (default: current working directory)
 
 set -Eeuo pipefail
@@ -54,14 +58,14 @@ if [[ ! -s "${selected_idents_file}" ]]; then
 fi
 
 author_match_count="$(git::count_author_matches "${REPO_ROOT}" "${selected_idents_file}")"
-committer_match_count="$(git::count_committer_matches "${REPO_ROOT}" "${selected_idents_file}")"
-readonly author_match_count committer_match_count
+committer_rewrite_count="$(git::count_author_or_committer_matches "${REPO_ROOT}" "${selected_idents_file}")"
+readonly author_match_count committer_rewrite_count
 
 log::log "Repo: ${REPO_ROOT}"
 log::log "Canonical identity: ${CANONICAL_NAME} <${CANONICAL_EMAIL}>"
-git::print_identities 'Selected identities to rewrite (applies to both author and committer fields):' "${selected_idents_file}"
-log::log "Author fields to be rewritten: ${author_match_count}"
-log::log "Committer fields to be rewritten: ${committer_match_count}"
+git::print_identities 'Selected identities to rewrite:' "${selected_idents_file}"
+log::log "Author fields to be rewritten (commits where author matches): ${author_match_count}"
+log::log "Committer fields to be rewritten (commits where author OR committer matches): ${committer_rewrite_count}"
 
 if ! prompt::ny 'Proceed with rewrite?'; then
   log::log 'Aborted.'
@@ -91,7 +95,13 @@ _canon_email = _d(b'${canonical_email_b64}')
 if (commit.author_name, commit.author_email) in _sel:
     commit.author_name = _canon_name
     commit.author_email = _canon_email
-if (commit.committer_name, commit.committer_email) in _sel:
+    # When the author is us, force committer to canonical too. Catches GitHub web-edits and
+    # online merges (committer stamped as 'GitHub <noreply@github.com>') so signature
+    # verification on GitHub can match the committer email against our registered signing keys.
+    commit.committer_name = _canon_name
+    commit.committer_email = _canon_email
+elif (commit.committer_name, commit.committer_email) in _sel:
+    # Author is someone else (e.g. dependabot); preserve their authorship, only fix committer.
     commit.committer_name = _canon_name
     commit.committer_email = _canon_email
 "
