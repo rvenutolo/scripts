@@ -118,7 +118,7 @@ Library files under `functions/*.bash` follow a related but distinct rule: every
 
 ### Standard top-level skeleton
 
-Source the function library, enable the `ERR` trap, then guard arg count:
+Source the function library, enable the `ERR` trap, handle `-h`/`--help`, then guard arg count:
 
 ```bash
 #!/usr/bin/env bash
@@ -129,12 +129,15 @@ IFS=$'\n\t'
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
+args::handle_help_flag "$@"
 args::check_no_args "$@"   # or check_exactly_N_args / check_at_least_N_args / check_at_most_N_args
 ```
 
 - `log::enable_err_trap` (from `functions/log.bash`) installs an `ERR` trap that prints a red, prefixed `ERROR: line N (exit C): cmd` line to stderr when any unhandled command fails under `set -e`. Call it once, immediately after sourcing `functions.bash`. It complements `log::die` (explicit user-visible failures) — the trap catches everything else.
 
-- Create new scripts via `main/new-script <path>` (handles header + exec bit).
+- `args::handle_help_flag "$@"` (from `functions/args.bash`) scans `"$@"` for `-h`/`--help` and, if present, prints help text derived from the script's file-level shdoc header (via `args::print_help`) and exits 0. Call it directly after `log::enable_err_trap` and before any arg-count guard — otherwise `--help` would be rejected as an unexpected argument. Pass-through scripts (those forwarding `"$@"` verbatim to an underlying tool) and standalone scripts under `misc/` are exempt: pass-throughs let the wrapped tool handle its own `--help`; standalones cannot source `functions.bash`.
+
+- Create new scripts via `main/new-script <path>` (handles header + exec bit + `args::handle_help_flag` line).
 
 ### Arg-count guards
 

@@ -26,6 +26,27 @@ Personal Linux setup, install, and utility shell scripts.
 | `functions/` | Bash function library, auto-sourced via `functions.bash`. | n/a |
 | `test/` | BATS test suite for the function library. | n/a |
 
+## Architecture
+
+Provisioning a fresh machine runs in two phases. `run-install-scripts` is invoked once to install software; `run-set-up-scripts` runs idempotently to configure it.
+
+```mermaid
+flowchart LR
+  start([Fresh machine])
+  start --> rip[run-install-scripts]
+  rip --> p1[Source ~/.profile]
+  p1 --> p2[Validate sudo]
+  p2 --> p3[Execute install/* in LC_COLLATE=C order]
+  p3 --> rsu[run-set-up-scripts]
+  rsu --> s1[Source ~/.profile]
+  s1 --> s2[Validate sudo]
+  s2 --> s3[Recursively execute set_up/**]
+  s3 --> s4[Each script self-gates]
+  s4 --> done([Provisioned])
+```
+
+Top-level scripts under `main/` are user-facing utilities reachable on `PATH`. `misc/` holds standalone one-off scripts independent of this repo. `functions/*.bash` provides the shared helper library, auto-sourced by every non-`misc/` script.
+
 ## Common commands
 
 | Command | Purpose |
