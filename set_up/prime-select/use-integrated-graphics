@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Switch prime-select to integrated Intel graphics on work hosts.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

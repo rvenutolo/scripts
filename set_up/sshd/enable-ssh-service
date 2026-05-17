@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Enable the appropriate SSH server system service unit for the detected distro.
+# @noargs
+# @exitcode 1 distro is not recognized
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

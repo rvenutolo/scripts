@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Enable systemd user lingering for the current user so user services run without an active session.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
