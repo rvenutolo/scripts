@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Source $XDG_CONFIG_HOME/kitty/kitty_keys.sh and invoke its `kitty_keys` function to dump kitty key bindings.
+# @noargs
+# @exitcode 1 The kitty_keys.sh file is missing or not readable.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

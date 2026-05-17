@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Convert a dotted-quad IPv4 address to its 32-bit integer representation.
+# @arg $1 ipv4 Dotted-quad IPv4 address (e.g. 192.168.0.1).
+# @stdout The integer form of the address.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Update the home-manager flake (optionally regenerating the packages file), switch to it, and offer to run maintenance.
+# @arg $@ args Optional flags; `--no-write-packages` skips regenerating the packages file. Remaining args are forwarded to `write-home-manager-packages`.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Show the nix store closure diff between the two most recent home-manager generations.
+# @noargs
+# @stdout `nix store diff-closures` output between the previous and current generation.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

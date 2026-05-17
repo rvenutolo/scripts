@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Run periodic Nix store maintenance: garbage-collect generations older than 10 days and optimise the store.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

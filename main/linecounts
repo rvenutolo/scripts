@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Count occurrences of each distinct line in a file or stdin, sorted by descending count.
+# @arg $1 input_file Optional path to the input file; when omitted, input is read from stdin.
+# @stdout `count line` pairs, sorted by descending count.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

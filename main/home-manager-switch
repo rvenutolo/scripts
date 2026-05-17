@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Activate the home-manager flake in $HOME_MANAGER_DIR and print the generations diff.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Print the numbered field headers (first line) of a delimited file or stdin, auto-detecting the delimiter when unspecified.
+# @arg $1 input_file_or_delimiter When stdin is present: optional delimiter override; when stdin is absent: required path to the input file.
+# @arg $2 delimiter When stdin is absent: optional delimiter override.
+# @stdout One header per line, prefixed with its 1-based column number.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Hide each given file by renaming it to start with a leading dot.
+# @arg $@ paths One or more file or directory paths to hide.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

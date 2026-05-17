@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print a quick host info summary (hostname, kernel, logged-in users, date, uptime, memory).
+# @noargs
+# @stdout Multi-section host info report.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
