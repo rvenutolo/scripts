@@ -31,6 +31,12 @@ CANONICAL_NAME="$(git::canonical_name "${REPO_ROOT}")"
 CANONICAL_EMAIL="$(git::canonical_email "${REPO_ROOT}")"
 readonly CANONICAL_NAME CANONICAL_EMAIL
 
+# git filter-repo strips the 'origin' remote by design (safety guard against accidental pushes
+# of rewritten history). Capture its URL now so the post-rewrite hint can show the exact
+# command to restore it.
+ORIGIN_URL="$(git -C "${REPO_ROOT}" remote get-url origin 2> '/dev/null' || true)"
+readonly ORIGIN_URL
+
 files::create_temp distinct_idents_file
 files::create_temp selected_idents_file
 
@@ -97,4 +103,8 @@ if (commit.committer_name, commit.committer_email) in _sel:
 
 log::log 'Rewrite complete.'
 log::log 'Verify with: git log --pretty="%h %an <%ae> | %cn <%ce>" --all | head'
+if strings::is_not_empty "${ORIGIN_URL}"; then
+  log::log "git filter-repo removed the 'origin' remote (was ${ORIGIN_URL})."
+  log::log "Restore with: git remote add origin ${ORIGIN_URL}"
+fi
 log::log "Push with: git push --force --tags origin 'refs/heads/*'"
