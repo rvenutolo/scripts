@@ -1,0 +1,18 @@
+cache = true
+max_cache_age = "7d"
+no_progress = true
+include_verbatim = false
+accept = [200, 204, 206, 429]
+
+exclude_loopback = true
+
+exclude_path = [
+  ".git",
+  "test/bats",
+  "test/test_helper/bats-support",
+  "test/test_helper/bats-assert",
+  "other",
+  "lib",
+  ".shdoc",
+  "site",
+]

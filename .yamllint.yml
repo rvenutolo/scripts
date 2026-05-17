@@ -1,0 +1,20 @@
+extends: default
+
+ignore: |
+  test/bats/
+  test/test_helper/bats-support/
+  test/test_helper/bats-assert/
+  other/
+  lib/
+  .shdoc/
+  site/
+
+rules:
+  document-start: disable
+  line-length:
+    max: 200
+  truthy:
+    check-keys: false
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: disable

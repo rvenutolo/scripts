@@ -7,6 +7,7 @@ Personal Linux setup, install, and utility shell scripts.
 [![Open issues](https://img.shields.io/github/issues/rvenutolo/scripts)](https://github.com/rvenutolo/scripts/issues)
 [![Open PRs](https://img.shields.io/github/issues-pr/rvenutolo/scripts)](https://github.com/rvenutolo/scripts/pulls)
 [![Tests](https://img.shields.io/endpoint?url=https://rvenutolo.github.io/scripts/badge.json)](https://github.com/rvenutolo/scripts/tree/main/test/functions)
+[![Coverage](https://codecov.io/gh/rvenutolo/scripts/branch/main/graph/badge.svg)](https://codecov.io/gh/rvenutolo/scripts)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://www.conventionalcommits.org/en/v1.0.0/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL_3.0-blue.svg)](LICENSE)
 
