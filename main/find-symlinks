@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Find every symlink under a given directory (default `.`) that points at any of the named files and print a FILE/LINK table.
+# @arg $@ files One or more target file paths to search for.
+# @stdout Table with columns FILE and LINK listing each match.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

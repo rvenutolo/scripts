@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Run the given command once per line from stdin (sequential, via `xargs --max-args=1 --delimiter='\n'`).
+# @arg $@ command Command (and any leading args) to invoke for each stdin line.
+# @stdout Combined stdout from each command invocation.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

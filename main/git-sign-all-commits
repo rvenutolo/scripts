@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description After confirmation, GPG-sign every commit in the current repository via `git filter-branch --commit-filter`, regardless of author.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

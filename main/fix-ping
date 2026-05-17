@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Grant cap_net_raw to every `ping` binary under /nix/store so non-root users can run ping on NixOS.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
