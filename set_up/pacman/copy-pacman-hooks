@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Install user-maintained pacman hook files into /etc/pacman.d/hooks on Arch/CachyOS hosts.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

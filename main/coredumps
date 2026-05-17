@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print journalctl entries mentioning core dumps.
+# @noargs
+# @stdout Matching journalctl lines.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

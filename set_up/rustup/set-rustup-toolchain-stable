@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Install the stable Rust toolchain via rustup when rustup is present and stable isn't already installed.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

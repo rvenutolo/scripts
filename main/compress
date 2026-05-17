@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Compress one or more files/directories into an archive, dispatching by the output filename extension.
+# @arg $1 file Output archive path; extension selects the compressor (.tar*, .bz2, .gz, .lzma, .rar, .xz, .zip, .7z).
+# @arg $@ inputs Files/directories to add to the archive.
+# @exitcode 1 Output filename has an unrecognized extension.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

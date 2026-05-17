@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Enable the pkgfile-update.timer system unit when pkgfile is installed.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

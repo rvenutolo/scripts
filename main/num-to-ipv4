@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Convert a 32-bit unsigned integer into its dotted-quad IPv4 representation.
+# @arg $1 number Integer in the range 0..4294967295 to convert.
+# @stdout The corresponding IPv4 address in dotted-quad notation.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Provision a new machine by running every executable file under install/ in LC_COLLATE=C order. Sources ~/.profile so environment vars used by the install scripts are available, then validates sudo before iterating.
+# @noargs
+# @exitcode 0 All install scripts completed successfully.
+# @exitcode 1 sudo validation failed or one of the install scripts exited non-zero.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

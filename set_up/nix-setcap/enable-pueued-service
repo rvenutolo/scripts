@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Enable the nix-setcap user path and service units that reapply file capabilities after Nix store updates.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

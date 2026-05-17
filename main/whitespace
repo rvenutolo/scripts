@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Visualize whitespace in stdin or a file by replacing spaces, tabs, CR, and LF with printable glyphs.
+# @arg $1 file Optional path to read from; reads stdin when omitted.
+# @stdout The input with whitespace characters replaced by middle-dot, halfwidth arrow, section sign, and pilcrow.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

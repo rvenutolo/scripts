@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Diff two JSON files semantically by sorting keys with jq first, then producing a colored unified diff.
+# @arg $1 file_a Path to the first JSON file.
+# @arg $2 file_b Path to the second JSON file.
+# @stdout Colored unified diff (or an "identical" line) with the diff header trimmed off.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

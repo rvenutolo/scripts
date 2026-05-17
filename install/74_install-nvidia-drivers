@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Install NVIDIA drivers via ubuntu-drivers (Ubuntu work hosts only).
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

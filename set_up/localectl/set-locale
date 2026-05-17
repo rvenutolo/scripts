@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Set the system locale to en_US.UTF-8, generating it if necessary.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

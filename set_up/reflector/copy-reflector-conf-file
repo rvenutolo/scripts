@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Install the reflector config file on Arch/CachyOS hosts, restarting reflector.service if its config changed.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

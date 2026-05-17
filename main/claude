@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Dispatch to the real `claude` binary using the profile selected via CLAUDE_CONFIG_DIR, CLAUDE_PROFILE, or an interactive prompt.
+# @arg $@ args Optional arguments forwarded verbatim to claude.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

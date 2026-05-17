@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Verify Docker container DNS resolution by running nslookup inside an alpine container.
+# @arg $1 hostname Optional hostname to resolve (defaults to 'google.com').
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

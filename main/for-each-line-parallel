@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Run the given command once per line from stdin in parallel across all CPU cores.
+# @arg $@ command Command (and any leading args) to invoke for each stdin line.
+# @stdout Combined (interleaved) stdout from each command invocation.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

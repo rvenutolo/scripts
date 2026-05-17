@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Trim leading/trailing whitespace and collapse internal runs to single spaces on every line. Reads from stdin or from the given file.
+# @arg $1 file Optional input file path. When omitted, reads from stdin instead.
+# @stdout Whitespace-normalized lines.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

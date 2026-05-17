@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Bootstrap a fresh Ubuntu 22.04 work machine: validates pre-conditions, sets hostname, installs apt + flatpak packages (including the nvidia-detector driver), runs the run-install-scripts and run-set-up-scripts driver scripts, applies dconf settings, installs GNOME extensions, and (when not in a VM) installs system76-power and updates firmware.
+# @noargs
+# @exitcode 1 Pre-condition failure (run as root, pending package updates, reboot required, or any non-zero exit from the invoked apt/sudo/dconf/etc. commands).
+
 # $ bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-work-ubuntu-22.04.sh')"
 # $ bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-work-ubuntu-22.04.sh')"
 
@@ -12,17 +16,25 @@ if ((BASH_VERSINFO[0] < 4)); then
   exit 1
 fi
 
+# @description Print a timestamped info message to stderr.
+# @arg $@ message Message text to log.
 function log() {
   printf 'log [%s]: %s\n' "$(date +%T)" "$*" >&2
 }
 
+# @description Print a fatal error message with caller context and exit with status 1.
+# @arg $@ message Error message text.
+# @exitcode 1 Always exits with status 1.
 function die() {
   printf 'DIE: %s (at %s:%s line %s.)\n' "$*" "${BASH_SOURCE[1]}" "${FUNCNAME[1]}" "${BASH_LINENO[0]}" >&2
   exit 1
 }
 
-# $1 = URL
-# $2 = output file (optional)
+# @description Download a URL via curl with retries (up to 10 attempts, 15s linear backoff). Writes to a file when an output path is given, otherwise streams to stdout.
+# @arg $1 url URL to fetch.
+# @arg $2 output_file Optional path to write downloaded bytes; omit to stream to stdout.
+# @stdout Downloaded bytes (when no output_file argument is given).
+# @exitcode 1 Failed to download after 10 retries.
 function dl() {
   local -r url="$1"
   local -r output_file="${2:-}"
@@ -48,8 +60,11 @@ function dl() {
   fi
 }
 
-# $1 = URL
-# $2 = output file (optional)
+# @description Download a URL via dl() and decrypt the bytes with age using the user's age identity key. Writes to a file when an output path is given, otherwise streams the decrypted bytes to stdout.
+# @arg $1 url URL of the age-encrypted payload to fetch.
+# @arg $2 output_file Optional path to write decrypted bytes; omit to stream to stdout.
+# @stdout Decrypted bytes (when no output_file argument is given).
+# @exitcode 1 Download or age decryption failed.
 function dl_decrypt() {
   local -r url="$1"
   local -r output_file="${2:-}"

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description List packages installed by home-manager in the current generation.
+# @noargs
+# @stdout One installed home-manager package name per line.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

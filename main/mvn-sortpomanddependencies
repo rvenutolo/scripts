@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Sort the current project's `pom.xml` and its dependency entries using the sortpom-maven-plugin.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

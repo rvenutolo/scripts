@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Pick a host from `~/.ssh/config.private` via `fzf` and `ssh` to it.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

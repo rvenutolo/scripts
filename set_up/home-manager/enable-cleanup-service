@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Enable the home-manager-cleanup.timer user unit when the Nix garbage-collection tools are installed.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

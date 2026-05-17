@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Copy the Tailscale exit-node sysctl config into /etc/sysctl.d and reload sysctl if it changed.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

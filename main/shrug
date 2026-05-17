@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print the shrug emoticon `¯\_(ツ)_/¯` to stdout (no trailing newline).
+# @noargs
+# @stdout The shrug emoticon.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

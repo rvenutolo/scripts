@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Configure system locale to en_US.UTF-8 by appending to /etc/environment, /etc/locale.gen, /etc/locale.conf and running locale-gen.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

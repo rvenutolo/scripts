@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Symlink the Nix user profile fonts directory into the user's XDG fonts directory and refresh the font cache.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

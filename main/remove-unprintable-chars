@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Remove unprintable characters (keeping newlines) from stdin and write the result to stdout.
+# @noargs
+# @stdout Input text with non-printable characters stripped.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

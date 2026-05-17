@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print the given arguments as a single line to stderr.
+# @arg $@ message Words to print to stderr (joined with spaces).
+# @stderr The joined message followed by a newline.
+
 # Standalone: does NOT source functions.bash. Kept self-contained so it can run before
 # the function library is available (e.g. early in shell init or from minimal contexts).
 # As a result it inlines the ERR trap and bash-version check rather than using log::* helpers.

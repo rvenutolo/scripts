@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Enable docker.service (and containerd.service when present) when the dockerd daemon is installed.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

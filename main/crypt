@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Encrypt each given file with `age` using AGE_PUBLIC_KEY and write the armored ciphertext to CRYPT_DIR.
+# @arg $@ files One or more file paths to encrypt.
+# @exitcode 1 A given path is not a regular file.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Run `git pull` in each of the user's personal repos (crypt, packages, scripts) under PERSONAL_PROJECTS_DIR.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

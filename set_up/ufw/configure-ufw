@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Interactively configure UFW with deny-incoming/allow-outgoing defaults plus tailnet, ssh, and server-only beszel rules, then enable it.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Wrap `rsync` with a standard backup flag set (`--archive --human-readable --executability --stats --progress`).
+# @arg $@ args Source/destination paths and any additional `rsync` options to forward.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

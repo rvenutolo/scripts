@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Install the sshd drop-in config file, restarting sshd.service if its config changed.
+# @noargs
+# @exitcode 1 /etc/ssh/sshd_config.d does not exist
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

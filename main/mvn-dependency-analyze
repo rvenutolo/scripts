@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Run `mvn dependency:analyze` against the current Maven project.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

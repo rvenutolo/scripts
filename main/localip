@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print this host's primary local (LAN) IP address.
+# @noargs
+# @stdout The primary local IPv4 address.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

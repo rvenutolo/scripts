@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Log in to AWS SSO for the given profile and print the caller identity.
+# @arg $1 profile Optional AWS profile name (defaults to 'de-core-dev').
+# @stdout Caller identity JSON from `aws sts get-caller-identity` and a hint to export AWS_PROFILE.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

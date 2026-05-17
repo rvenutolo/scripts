@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Add the Chaotic AUR keyring and mirror list to pacman on Arch/CachyOS hosts.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

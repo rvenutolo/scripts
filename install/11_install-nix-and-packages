@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Interactively install Nix (single-user) and then Nix home-manager with the configured package set.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

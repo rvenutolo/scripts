@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Configure ClamAV to log to syslog by setting LogSyslog true in /etc/clamav/clamd.conf.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

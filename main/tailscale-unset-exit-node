@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Clear the active Tailscale exit node so traffic stops being routed through one.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

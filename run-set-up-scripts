@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Run every executable file under set_up/ recursively in LC_COLLATE=C order. Each set_up script is expected to be idempotent and self-gate. Sources ~/.profile and validates sudo before iterating.
+# @noargs
+# @exitcode 0 All set_up scripts completed successfully.
+# @exitcode 1 sudo validation failed or one of the set_up scripts exited non-zero.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

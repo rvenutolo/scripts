@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Remove the first line from stdin (writing to stdout) or in place from the given file.
+# @arg $1 file File to edit in place. Omit when piping content on stdin.
+# @stdout When reading stdin, the input minus its first line.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

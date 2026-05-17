@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Run batfetch (a system info / fastfetch-style tool) via `nix run`.
+# @arg $@ args Optional arguments forwarded verbatim to batfetch.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

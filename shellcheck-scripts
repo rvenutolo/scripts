@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Run shellcheck over shell scripts in the repo. When invoked with no paths, lints every in-scope script.
+# @arg $@ paths Optional file or directory paths to lint; omit to lint the full in-scope set.
+# @exitcode 0 All files pass shellcheck.
+# @exitcode 1 One or more files failed shellcheck.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Shrink a PDF by re-encoding it with Ghostscript using the /printer quality preset.
+# @arg $1 input_pdf Path to the source PDF.
+# @arg $2 output_pdf Path to write the compressed PDF.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

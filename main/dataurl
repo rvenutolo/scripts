@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print a base64-encoded `data:` URL for the given file, inferring the MIME type with `file`.
+# @arg $1 input_file Path to the file to encode.
+# @stdout The data URL on a single line.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
