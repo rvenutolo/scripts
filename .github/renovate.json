@@ -10,7 +10,7 @@
   "schedule": [
     "before 6am on saturday"
   ],
-  "commitMessagePrefix": "chore:",
+  "commitMessagePrefix": "chore",
   "labels": [
     "dependencies"
   ],
