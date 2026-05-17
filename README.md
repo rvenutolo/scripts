@@ -57,7 +57,7 @@ git config --local core.hooksPath .githooks
 | Hook | When | What it does |
 |---|---|---|
 | `pre-push` | `git push` | Runs `./check-scripts`; aborts the push on failure. |
-| `commit-msg` | `git commit` | Runs `commitlint` against the staged commit message (Conventional Commits). Skips with a warning if `commitlint` is not on `PATH`. |
+| `commit-msg` | `git commit` | Runs `commitlint` against the staged commit message (Conventional Commits). Fails the commit if `commitlint` is not on `PATH`. |
 
 Bypass any hook with `--no-verify` on the corresponding git command.
 
