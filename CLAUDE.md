@@ -302,7 +302,7 @@ The mandate that every new public helper ships with thorough BATS tests in the s
 
 ### Layout
 
-```
+```text
 test/
   bats/                       # submodule — bats-core (excluded from format/shellcheck)
   test_helper/
@@ -325,7 +325,7 @@ test/
 
 ### Bootstrap on a fresh clone
 
-```
+```bash
 git submodule update --init --recursive
 ```
 

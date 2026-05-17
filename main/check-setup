@@ -316,9 +316,9 @@ if os::is_fedora; then
     'rpmfusion-nonfree-appstream-data'
     'rpmfusion-nonfree-release'
   )
-  for rpm_fusion_pacakge in "${expected_rpm_fusions_packages[@]}"; do
-    if ! grep::contains_word "${rpm_fusion_pacakge}" <<< "${installed_packages}"; then
-      log::log "${rpm_fusion_pacakge} is not installed"
+  for rpm_fusion_package in "${expected_rpm_fusions_packages[@]}"; do
+    if ! grep::contains_word "${rpm_fusion_package}" <<< "${installed_packages}"; then
+      log::log "${rpm_fusion_package} is not installed"
     fi
   done
 fi

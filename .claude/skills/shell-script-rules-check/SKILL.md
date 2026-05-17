@@ -124,7 +124,7 @@ Output the report inline in the conversation by default. (If the user told you t
 
 Use this exact structure:
 
-```
+```markdown
 # shell-script-rules-check report — <path>
 
 ## File classification
