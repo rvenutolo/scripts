@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Scaffold one or more new executable bash scripts using the standard project template.
+# @arg $@ files One or more paths at which to create new script files; each must not already exist.
+# @exitcode 1 One of the requested paths already exists.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Grant world read/write on all `/dev/hidraw*` devices so the NuPhy.io web configurator can access the keyboard.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

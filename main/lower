@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Lowercase text from stdin, or rename each given file to a lowercase name.
+# @arg $@ files Optional file paths to rename to their lowercased basenames; omit when piping text on stdin.
+# @stdout When reading stdin: input text with all characters lowercased.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

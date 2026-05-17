@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Sort the current project's `pom.xml` using the sortpom-maven-plugin with the recommended-2008-06 order.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

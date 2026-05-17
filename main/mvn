@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Wrap `mvn`, preferring the project's `./mvnw` wrapper when one is found in the current directory or an ancestor.
+# @arg $@ args Arguments forwarded verbatim to `mvnw` or `mvn`.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
