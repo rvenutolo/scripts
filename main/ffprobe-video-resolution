@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print the video resolution and path for every .mkv/.mp4 file under the current directory.
+# @noargs
+# @stdout One line per video file: `WIDTH;<path>` (height is dropped in favor of width-only sorting).
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

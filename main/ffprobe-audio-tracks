@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Print per-track audio info (index, language, codec, channel layout) for every .mkv/.mp4 file under the current directory.
+# @noargs
+# @stdout For each video file: the relative path, one line per audio stream, and a `---------` separator.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Download a URL via http::curl with linear-backoff retries, optionally writing to a given output path.
+# @arg $1 url URL to download.
+# @arg $2 output_file Optional output file path; when omitted, content is written to stdout.
+# @stdout Downloaded content when no output file is given.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

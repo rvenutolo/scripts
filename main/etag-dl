@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Download a URL to a file using a cached ETag so unchanged content is skipped on subsequent runs.
+# @arg $1 url URL to download.
+# @arg $2 output_file Destination file path; ETag is cached under XDG_CACHE_HOME/etags.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
