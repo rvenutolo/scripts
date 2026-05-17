@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Enable the journalctl-vacuum.timer user unit that periodically vacuums the journal.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Enable the fail2ban.service system unit when fail2ban-client is installed.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

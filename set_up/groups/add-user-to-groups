@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# @description Interactively add the current user to a curated list of system groups that exist on the host.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

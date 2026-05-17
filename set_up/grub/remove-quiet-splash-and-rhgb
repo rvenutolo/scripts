@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# @description Remove the rhgb, quiet, and splash kernel options from /etc/default/grub on server hosts and regenerate the GRUB config.
+# @noargs
+# @exitcode 1 The expected GRUB config or default file is missing.
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 

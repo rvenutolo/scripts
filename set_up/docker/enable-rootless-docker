@@ -2,6 +2,9 @@
 
 ## THIS SCRIPT HAS BEEN DISABLED FROM AUTOMATICALLY RUNNING BY MAKING IT NON-EXECUTABLE
 
+# @description Disable the system docker service and install rootless docker as a user service.
+# @noargs
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
