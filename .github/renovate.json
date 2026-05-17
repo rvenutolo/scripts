@@ -1,0 +1,34 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":automergeAll",
+    ":dependencyDashboard"
+  ],
+  "timezone": "America/New_York",
+  "schedule": [
+    "before 6am on saturday"
+  ],
+  "commitMessagePrefix": "chore:",
+  "labels": [
+    "dependencies"
+  ],
+  "git-submodules": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "github-actions"
+    },
+    {
+      "matchManagers": [
+        "git-submodules"
+      ],
+      "groupName": "bats-submodules"
+    }
+  ]
+}
