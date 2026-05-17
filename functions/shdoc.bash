@@ -31,7 +31,7 @@ function shdoc::file_has_description() {
 function shdoc::find_unannotated_functions() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
-  gawk '
+  awk '
     /^function [A-Za-z_][A-Za-z0-9_]*\(\)[[:space:]]*\{/ {
       name = $2
       sub(/\(\).*$/, "", name)
