@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# @description For every non-bare git repository under a directory (root and recursive,
+#   skipping nested repos), aggregate commits by (author name, author email, committer name,
+#   committer email) and print a table sorted by those four fields.
+# @arg $1 dir optional directory to scan (default: ${PERSONAL_PROJECTS_DIR})
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+system::require_bash_version 4 0
+args::check_at_most_1_arg "$@"
+
+readonly SCAN_DIR="${1:-${PERSONAL_PROJECTS_DIR}}"
+dirs::assert_exists "${SCAN_DIR}"
+
+files::create_temp repos_file
+files::create_temp identities_file
+
+# shellcheck disable=SC2154 # repos_file assigned by files::create_temp via nameref
+find "${SCAN_DIR}" -type d -exec test -e '{}/.git' \; -print -prune > "${repos_file}"
+
+while read -r repo; do
+  # shellcheck disable=SC2154 # identities_file assigned by files::create_temp via nameref
+  git -C "${repo}" log --format='%an%x09%ae%x09%cn%x09%ce' >> "${identities_file}" || true
+done < "${repos_file}"
+
+{
+  printf 'AUTHOR NAME\tAUTHOR EMAIL\tCOMMITTER NAME\tCOMMITTER EMAIL\tCOMMITS\n'
+  awk 'BEGIN { FS = OFS = "\t" } { counts[$0]++ } END { for (k in counts) print k, counts[k] }' "${identities_file}" \
+    | sort --field-separator=$'\t' --key=1,1 --key=2,2 --key=3,3 --key=4,4
+} | column --table --separator $'\t' --output-separator ' | ' --table-right '5'
