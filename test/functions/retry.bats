@@ -80,3 +80,23 @@ echo \$(( current + 1 )) > \"\${count_file}\"
   run retry::with_exponential_backoff 3 5
   assert_failure
 }
+
+# ---------- retry::until_success ----------
+
+@test "until_success: succeeds first try — command called once" {
+  SUCCEED_ON_CALL=1 run retry::until_success flaky_cmd
+  assert_success
+  assert_equal "$(cat "${BATS_TEST_TMPDIR}/flaky_count")" '1'
+}
+
+@test "until_success: succeeds on third try — command called 3x, no sleep invoked" {
+  SUCCEED_ON_CALL=3 run retry::until_success flaky_cmd
+  assert_success
+  assert_equal "$(cat "${BATS_TEST_TMPDIR}/flaky_count")" '3'
+  [[ ! -f "${BATS_TEST_TMPDIR}/sleep_log" ]]
+}
+
+@test "until_success: no args triggers arity guard" {
+  run retry::until_success
+  assert_failure
+}

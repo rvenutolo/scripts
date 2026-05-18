@@ -27,7 +27,8 @@ log::log "Removing sudo hint block from: ${bashrc_file}"
 
 sudo cp "${bashrc_file}" "${bashrc_file}.$(date +%Y%m%d_%H%M%S).bak"
 
-awk '
+# shellcheck disable=SC2016 # awk script body uses $0/$N field refs that are not shell expansions
+files::root_transform "${bashrc_file}" awk '
 BEGIN { delete_next = 0; in_block = 0; buffer_line = ""; has_buffer = 0 }
 {
     # Check if we are entering the sudo_as_admin_successful block
@@ -66,8 +67,6 @@ END {
         print buffer_line
     }
 }
-' "${bashrc_file}" | sudo tee "${bashrc_file}.tmp" > /dev/null
-
-sudo mv "${bashrc_file}.tmp" "${bashrc_file}"
+'
 
 log::log "Removed sudo hint block from: ${bashrc_file}"

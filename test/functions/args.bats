@@ -8,6 +8,8 @@ setup() {
   load '../test_helper/common'
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/args.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/strings.bash"
 }
 
 # Helper: assert that a check died with the standard "Expected <count>" message.
@@ -295,6 +297,53 @@ assert_died_expecting() {
 @test "has_num_args 3: false with 4 remaining" {
   run args::has_num_args 3 'a' 'b' 'c' 'd'
   assert_failure
+}
+
+# ---------- has_at_least_num_args ----------
+
+@test "has_at_least_num_args: dies with 0 args" {
+  run args::has_at_least_num_args
+  assert_failure
+}
+
+@test "has_at_least_num_args 0: true with 0 remaining" {
+  run args::has_at_least_num_args 0
+  assert_success
+}
+
+@test "has_at_least_num_args 0: true with 3 remaining" {
+  run args::has_at_least_num_args 0 'a' 'b' 'c'
+  assert_success
+}
+
+@test "has_at_least_num_args 1: true with 1 remaining" {
+  run args::has_at_least_num_args 1 'a'
+  assert_success
+}
+
+@test "has_at_least_num_args 1: false with 0 remaining" {
+  run args::has_at_least_num_args 1
+  assert_failure
+}
+
+@test "has_at_least_num_args 1: true with 5 remaining" {
+  run args::has_at_least_num_args 1 'a' 'b' 'c' 'd' 'e'
+  assert_success
+}
+
+@test "has_at_least_num_args 3: true with 3 remaining" {
+  run args::has_at_least_num_args 3 'a' 'b' 'c'
+  assert_success
+}
+
+@test "has_at_least_num_args 3: false with 2 remaining" {
+  run args::has_at_least_num_args 3 'a' 'b'
+  assert_failure
+}
+
+@test "has_at_least_num_args 3: true with 4 remaining" {
+  run args::has_at_least_num_args 3 'a' 'b' 'c' 'd'
+  assert_success
 }
 
 # ---------- stdin_exists / check_for_stdin ----------

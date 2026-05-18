@@ -23,7 +23,7 @@ function usage() {
 # @arg $@ target file paths to search for
 function main() {
   for file in "$@"; do
-    find -L "${dir}" -samefile "${file}" -exec printf '%s\n' "${file} {}" \; 2> '/dev/null' || true
+    find -L "${dir}" -samefile "${file}" -exec printf '%s\n' "${file} {}" \; 2> '/dev/null' || true # no long-form equivalent for -L
   done | sort | column --table --table-columns 'FILE,LINK'
 }
 

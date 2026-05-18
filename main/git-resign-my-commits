@@ -51,7 +51,7 @@ log::log 'For each identity, answer y if it is YOU (commits whose author OR comm
 # shellcheck disable=SC2154 # selected_idents_file assigned by files::create_temp via nameref
 git::prompt_select_identities "${distinct_idents_file}" "${selected_idents_file}" "${CANONICAL_NAME}"
 
-if [[ ! -s "${selected_idents_file}" ]]; then
+if files::is_empty "${selected_idents_file}"; then
   log::log 'No identities selected. Nothing to do.'
   exit 0
 fi

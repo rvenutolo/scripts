@@ -13,30 +13,41 @@ args::handle_help_flag "$@"
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
-if ! files::exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt::yn 'Install SDKMAN?'; then
-  log::log 'Installing SDKMAN'
-  if dirs::exists "${SDKMAN_DIR}"; then
-    # chezmoi will have created ~/.sdkman and the SDKMAN install script assumes
-    # that the presence of this directory means that SDKMAN has already been
-    # installed and will not actually install SDKMAN. This directory should only
-    # contain a symlink to ~/.config/sdkman/config. This symlink will be
-    # re-created later in this script.
-    rm --recursive "${SDKMAN_DIR}"
+# @description Remove any partial SDKMAN dir, then run the SDKMAN installer.
+# Retry-friendly: the installer skips installation if ${SDKMAN_DIR} already exists, so each
+# attempt must start from a clean state.
+# @noargs
+function try_install_sdkman() {
+  args::check_no_args "$@"
+  rm --recursive --force -- "${SDKMAN_DIR}"
+  downloads::download_and_run_script 'https://get.sdkman.io?rcupdate=false'
+}
+
+function main() {
+  args::check_no_args "$@"
+
+  if ! files::exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt::yn 'Install SDKMAN?'; then
+    log::log 'Installing SDKMAN'
+    if dirs::exists "${SDKMAN_DIR}"; then
+      # chezmoi will have created ~/.sdkman and the SDKMAN install script assumes
+      # that the presence of this directory means that SDKMAN has already been
+      # installed and will not actually install SDKMAN. This directory should only
+      # contain a symlink to ~/.config/sdkman/config. This symlink will be
+      # re-created later in this script.
+      rm --recursive -- "${SDKMAN_DIR}"
+    fi
+    # Retry due to random timeouts.
+    retry::with_linear_backoff 11 30 try_install_sdkman
+    log::log 'Installed SDKMAN'
   fi
-  # Retry due to random timeouts. Remove any partial SDKMAN dir before each
-  # attempt so the installer does not skip installation thinking it is already done.
-  function try_install_sdkman() {
-    rm --recursive --force -- "${SDKMAN_DIR}"
-    downloads::download_and_run_script 'https://get.sdkman.io?rcupdate=false'
-  }
-  retry::with_linear_backoff 11 30 try_install_sdkman
-  log::log 'Installed SDKMAN'
-fi
 
-if files::exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt::yn 'Install SDKMAN packages?'; then
-  sdkman-update
-fi
+  if files::exists "${SDKMAN_DIR}/bin/sdkman-init.sh" && prompt::yn 'Install SDKMAN packages?'; then
+    sdkman-update
+  fi
 
-if files::exists "${XDG_CONFIG_HOME}/sdkman/config"; then
-  symlinks::link_file "${XDG_CONFIG_HOME}/sdkman/config" "${SDKMAN_DIR}/etc/config"
-fi
+  if files::exists "${XDG_CONFIG_HOME}/sdkman/config"; then
+    symlinks::link_file "${XDG_CONFIG_HOME}/sdkman/config" "${SDKMAN_DIR}/etc/config"
+  fi
+}
+
+main "$@"

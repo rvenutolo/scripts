@@ -22,7 +22,7 @@ if ! files::exists "${AGE_PRIVATE_KEY_FILE}"; then
   temp_file="$(downloads::download_to_temp_file "${keys_repo_url}/age.key")"
   if files::is_non_empty "${temp_file}"; then
     log::log "Decrypting: ${AGE_PRIVATE_KEY_FILE}"
-    until age --decrypt --output "${AGE_PRIVATE_KEY_FILE}" "${temp_file}"; do :; done
+    retry::until_success age --decrypt --output "${AGE_PRIVATE_KEY_FILE}" "${temp_file}"
   else
     log::die "age key file content is empty"
   fi

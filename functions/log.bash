@@ -2,25 +2,25 @@
 
 # @description Print a green timestamped info message to stderr, prefixed with the script name.
 # @arg $@ message text
-function log::log() {
+function log::log() { # variadic: any arg count valid (joined as message)
   printf '\033[0;32m[%s %s] %s\033[0m\n' "$(date +%T)" "${0##*/}" "$*" >&2
 }
 
 # @description Print a green timestamped info message (with full date) to stderr, prefixed with the script name.
 # @arg $@ message text
-function log::with_date() {
+function log::with_date() { # variadic: any arg count valid (joined as message)
   printf '\033[0;32m[%s %s] %s\033[0m\n' "$(date '+%Y-%m-%d %T')" "${0##*/}" "$*" >&2
 }
 
 # @description Print a yellow timestamped warning message to stderr, prefixed with the script name.
 # @arg $@ message text
-function log::warn() {
+function log::warn() { # variadic: any arg count valid (joined as message)
   printf '\033[0;33m[%s %s] WARN: %s\033[0m\n' "$(date +%T)" "${0##*/}" "$*" >&2
 }
 
 # @description Print a red error message with caller context to stderr and exit with status 1.
 # @arg $@ message text
-function log::die() {
+function log::die() { # variadic: any arg count valid (joined as message)
   printf '\033[0;31mDIE: %s (at %s:%s line %s)\033[0m\n' \
     "$*" "${BASH_SOURCE[1]}" "${FUNCNAME[1]}" "${BASH_LINENO[0]}" >&2
   exit 1

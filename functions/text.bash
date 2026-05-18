@@ -5,7 +5,7 @@
 # expected to pipe to this function: ex my_command | text::remove_ansi
 # @arg $1 file path (optional; reads stdin if omitted)
 function text::remove_ansi() {
-  if [[ $# -gt 0 ]]; then
+  if args::has_at_least_num_args 1 "$@"; then
     args::check_exactly_1_arg "$@"
     sed --regexp-extended "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$1"
   else
@@ -18,7 +18,7 @@ function text::remove_ansi() {
 # Output: stdout — text with blank lines removed
 # @arg $1 file path (optional; reads stdin if omitted)
 function text::remove_empty_lines() {
-  if [[ $# -gt 0 ]]; then
+  if args::has_at_least_num_args 1 "$@"; then
     args::check_exactly_1_arg "$@"
     sed '/^[[:space:]]*$/d' "$1"
   else
@@ -31,7 +31,7 @@ function text::remove_empty_lines() {
 # Output: stdout — first line of input
 # @arg $1 file path (optional; reads stdin if omitted)
 function text::first_line() {
-  if [[ $# -gt 0 ]]; then
+  if args::has_at_least_num_args 1 "$@"; then
     args::check_exactly_1_arg "$@"
     head --lines=1 "$1"
   else
@@ -44,7 +44,7 @@ function text::first_line() {
 # Output: stdout — last line of input
 # @arg $1 file path (optional; reads stdin if omitted)
 function text::last_line() {
-  if [[ $# -gt 0 ]]; then
+  if args::has_at_least_num_args 1 "$@"; then
     args::check_exactly_1_arg "$@"
     tail --lines=1 "$1"
   else
@@ -59,7 +59,7 @@ function text::last_line() {
 # Output: stdout — remaining lines after the skipped prefix
 # @noargs
 function text::skip_first_lines() {
-  if [[ $# -gt 1 ]]; then
+  if args::has_at_least_num_args 2 "$@"; then
     args::check_exactly_2_args "$@"
     local -r file="$1"
     local -r skip_count="$2"

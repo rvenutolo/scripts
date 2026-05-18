@@ -14,95 +14,95 @@ args::handle_help_flag "$@"
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
-readonly compose_file='./compose.yaml'
-readonly init_file='./init'
-readonly run_file='./run'
+readonly COMPOSE_FILE='./compose.yaml'
+readonly INIT_FILE='./init'
+readonly RUN_FILE='./run'
 
 # @description Append one or more lines to the compose file.
 # @arg $@ lines to append
 function write_to_compose_file() {
   args::check_at_least_1_arg "$@"
-  printf '%s\n' "$@" >> "${compose_file}"
+  printf '%s\n' "$@" >> "${COMPOSE_FILE}"
 }
 
-# @description Return true if the $service variable is set (i.e. this is a long-running service, not run-once).
+# @description Return true if the $SERVICE variable is set (i.e. this is a long-running service, not run-once).
 # shellcheck disable=SC2120 # function is called without args intentionally; args guard is for safety
 # @noargs
 function is_service() {
   args::check_no_args "$@"
-  strings::is_not_empty "${service:-}"
+  strings::is_not_empty "${SERVICE:-}"
 }
 
-# @description Return true if the $use_reverse_proxy variable is set.
+# @description Return true if the $USE_REVERSE_PROXY variable is set.
 # shellcheck disable=SC2120 # function is called without args intentionally; args guard is for safety
 # @noargs
 function reverse_proxy() {
   args::check_no_args "$@"
-  strings::is_not_empty "${use_reverse_proxy:-}"
+  strings::is_not_empty "${USE_REVERSE_PROXY:-}"
 }
 
-# @description Return true if the $use_socket_proxy variable is set.
+# @description Return true if the $USE_SOCKET_PROXY variable is set.
 # shellcheck disable=SC2120 # function is called without args intentionally; args guard is for safety
 # @noargs
 function socket_proxy() {
   args::check_no_args "$@"
-  strings::is_not_empty "${use_socket_proxy:-}"
+  strings::is_not_empty "${USE_SOCKET_PROXY:-}"
 }
 
-# @description Return true if the $on_unhealthy variable is set.
+# @description Return true if the $ON_UNHEALTHY variable is set.
 # shellcheck disable=SC2120 # function is called without args intentionally; args guard is for safety
 # @noargs
 function restart_on_unhealthy() {
   args::check_no_args "$@"
-  strings::is_not_empty "${on_unhealthy:-}"
+  strings::is_not_empty "${ON_UNHEALTHY:-}"
 }
 
-# @description Return true if the $multiple_containers variable is set.
+# @description Return true if the $MULTIPLE_CONTAINERS variable is set.
 # shellcheck disable=SC2120 # function is called without args intentionally; args guard is for safety
 # @noargs
 function multiple_containers() {
   args::check_no_args "$@"
-  strings::is_not_empty "${multiple_containers:-}"
+  strings::is_not_empty "${MULTIPLE_CONTAINERS:-}"
 }
 
 # @description Interactively prompt for service metadata and write a compose.yaml + init/run scripts skeleton in the cwd.
 # @noargs
 function main() {
-  for file in "${compose_file}" "${init_file}" "${run_file}"; do
+  for file in "${COMPOSE_FILE}" "${INIT_FILE}" "${RUN_FILE}"; do
     if files::exists "${file}"; then
       log::die "${file} exists"
     fi
   done
 
-  app_name="$(prompt::for_value 'App name?')"
-  readonly app_name
-  app_constant_name="${app_name^^}"
-  readonly app_constant_name="${app_constant_name//-/_}"
+  APP_NAME="$(prompt::for_value 'App name?')"
+  readonly APP_NAME
+  APP_CONSTANT_NAME="${APP_NAME^^}"
+  readonly APP_CONSTANT_NAME="${APP_CONSTANT_NAME//-/_}"
 
-  image_name="$(prompt::for_value 'Image name?')"
-  readonly image_name
+  IMAGE_NAME="$(prompt::for_value 'Image name?')"
+  readonly IMAGE_NAME
 
-  image_tag="$(prompt::for_value 'Image tag?' 'latest')"
-  readonly image_tag
+  IMAGE_TAG="$(prompt::for_value 'Image tag?' 'latest')"
+  readonly IMAGE_TAG
 
   if prompt::yn 'Is this a service (not run-once)?'; then
-    readonly service='1'
+    readonly SERVICE='1'
     if prompt::yn 'Use reverse proxy?'; then
-      readonly use_reverse_proxy='1'
-      port="$(prompt::for_value 'Port?')"
-      readonly port
+      readonly USE_REVERSE_PROXY='1'
+      PORT="$(prompt::for_value 'Port?')"
+      readonly PORT
     fi
     if prompt::yn 'Restart on unhealthy status?'; then
-      readonly on_unhealthy='1'
+      readonly ON_UNHEALTHY='1'
     fi
   fi
 
   if prompt::ny 'Use Docker socket proxy?'; then
-    readonly use_socket_proxy='1'
+    readonly USE_SOCKET_PROXY='1'
   fi
 
   if prompt::ny 'More than one non-socket-proxy container?'; then
-    readonly multiple_containers='1'
+    readonly MULTIPLE_CONTAINERS='1'
   fi
 
   if reverse_proxy || socket_proxy || multiple_containers; then
@@ -128,9 +128,9 @@ function main() {
   if socket_proxy; then
     #shellcheck disable=SC2016
     write_to_compose_file \
-      "  ${app_name}-socket-proxy:" \
+      "  ${APP_NAME}-socket-proxy:" \
       '    image: lscr.io/linuxserver/socket-proxy:latest' \
-      "    container_name: ${app_name}-socket-proxy" \
+      "    container_name: ${APP_NAME}-socket-proxy" \
       '    restart: unless-stopped' \
       '    security_opt:' \
       '      - no-new-privileges:true' \
@@ -176,9 +176,9 @@ function main() {
   fi
 
   write_to_compose_file \
-    "  ${app_name}:" \
-    "    image: ${image_name}:${image_tag}" \
-    "    container_name: ${app_name}"
+    "  ${APP_NAME}:" \
+    "    image: ${IMAGE_NAME}:${IMAGE_TAG}" \
+    "    container_name: ${APP_NAME}"
 
   if is_service; then
     write_to_compose_file '    restart: unless-stopped'
@@ -204,20 +204,20 @@ function main() {
   if socket_proxy; then
     write_to_compose_file \
       '    depends_on:' \
-      "      ${app_name}-socket-proxy:" \
+      "      ${APP_NAME}-socket-proxy:" \
       '        condition: service_healthy'
   fi
 
   write_to_compose_file \
     '    volumes:' \
-    "      - \${DOCKER_LOGS_DIR:?}/${app_name}:/var/log/${app_name}" \
-    "      - \${DOCKER_APP_DATA_DIR:?}/${app_name}/data:/data" \
+    "      - \${DOCKER_LOGS_DIR:?}/${APP_NAME}:/var/log/${APP_NAME}" \
+    "      - \${DOCKER_APP_DATA_DIR:?}/${APP_NAME}/data:/data" \
     '      - /etc/localtime:/etc/localtime:ro'
 
   if socket_proxy; then
     write_to_compose_file \
       '    environment:' \
-      "      DOCKER_HOST: tcp://${app_name}-socket-proxy:2375"
+      "      DOCKER_HOST: tcp://${APP_NAME}-socket-proxy:2375"
   fi
 
   if restart_on_unhealthy || reverse_proxy; then
@@ -230,12 +230,12 @@ function main() {
     if reverse_proxy; then
       write_to_compose_file \
         '      - traefik.enable=true' \
-        "      - traefik.http.routers.${app_name}-rtr.rule=Host(\`${app_name}.\${DOMAIN_NAME:?}\`)" \
-        "      - traefik.http.services.${app_name}-svc.loadBalancer.server.port=${port}"
+        "      - traefik.http.routers.${APP_NAME}-rtr.rule=Host(\`${APP_NAME}.\${DOMAIN_NAME:?}\`)" \
+        "      - traefik.http.services.${APP_NAME}-svc.loadBalancer.server.port=${PORT}"
     fi
   fi
 
-  cat > "${init_file}" << EOF
+  cat > "${INIT_FILE}" << EOF
 #!/usr/bin/env bash
 
 set -Eeuo pipefail
@@ -248,14 +248,14 @@ copy_env_file_template
 EOF
 
   if ! is_service; then
-    cat >> "${init_file}" << EOF
-if prompt::yn 'Run ${app_name}?'; then
-  log::log 'Running ${app_name}'
+    cat >> "${INIT_FILE}" << EOF
+if prompt::yn 'Run ${APP_NAME}?'; then
+  log::log 'Running ${APP_NAME}'
   "\$(misc::this_script_dir)/run"
-  log::log 'Ran ${app_name}'
+  log::log 'Ran ${APP_NAME}'
 fi
 EOF
-    cat > "${run_file}" << EOF
+    cat > "${RUN_FILE}" << EOF
 #!/usr/bin/env bash
 
 set -Eeuo pipefail
@@ -268,8 +268,8 @@ docker compose \\
   --file "\$(misc::this_script_dir)/compose.yaml" \\
   run \\
   --rm \\
-  --name '${app_name}' \\
-  ${app_name}
+  --name '${APP_NAME}' \\
+  ${APP_NAME}
 EOF
   fi
 }

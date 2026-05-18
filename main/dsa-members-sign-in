@@ -13,6 +13,7 @@ args::handle_help_flag "$@"
 system::require_bash_version 4 0
 args::check_exactly_1_arg "$@"
 readonly INPUT_FILE="$1"
+files::assert_exists "${INPUT_FILE}"
 
 # Download the input file from Periscope
 

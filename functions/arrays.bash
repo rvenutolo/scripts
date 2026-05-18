@@ -3,7 +3,7 @@
 # @description Print each element of an array on its own line.
 # Output: stdout — one element per line
 # @arg $@ array elements to print
-function arrays::to_lines() {
+function arrays::to_lines() { # variadic: any arg count valid
   printf '%s\n' "$@"
 }
 

@@ -21,6 +21,17 @@ function retry::with_linear_backoff() {
   done
 }
 
+# @description Retry a command indefinitely until it succeeds, with no sleep between attempts.
+# Intended for interactive prompts (e.g. passphrase entry) where the user reacts immediately to
+# failure and backoff would only add friction. No max-attempt cap — the caller's command must
+# provide its own escape hatch (e.g. SIGINT) if the operation should not be retried forever.
+# @arg $@ command and args to run (variadic, at least one)
+# @exitcode 0 once the command succeeds
+function retry::until_success() {
+  args::check_at_least_1_arg "$@"
+  until "$@"; do :; done
+}
+
 # @description Retry a command with exponential backoff. Sleeps base_sleep * 2^(attempt-1) seconds between retries.
 # Dies via log::die if the command does not succeed within max_tries attempts.
 # @arg $1 max_tries (positive integer)

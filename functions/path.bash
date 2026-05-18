@@ -30,7 +30,7 @@ function path::remove() {
 function path::append() {
   args::check_exactly_1_arg "$@"
   local -r dir="$1"
-  if [[ -z "${PATH}" ]]; then
+  if strings::is_empty "${PATH}"; then
     PATH="${dir}"
     return
   fi
@@ -44,7 +44,7 @@ function path::append() {
 function path::prepend() {
   args::check_exactly_1_arg "$@"
   local -r dir="$1"
-  if [[ -z "${PATH}" ]]; then
+  if strings::is_empty "${PATH}"; then
     PATH="${dir}"
     return
   fi

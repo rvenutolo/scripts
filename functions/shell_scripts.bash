@@ -42,7 +42,7 @@ function shell_scripts::find() {
   fi
   local arg
   for arg in "$@"; do
-    if [[ -d "${arg}" ]]; then
+    if dirs::exists "${arg}"; then
       shfmt --find "${arg}"
     else
       printf '%s\n' "${arg}"
@@ -61,7 +61,8 @@ function shell_scripts::find() {
 function shell_scripts::filter() {
   args::check_at_least_1_arg "$@"
   system::require_bash_version 4 3
-  local -n _out_ref="$1"
+  local -r out_name="$1"
+  local -n _out_ref="${out_name}"
   shift
   _out_ref=()
   local file
@@ -93,7 +94,7 @@ function shell_scripts::find_root_only() {
   args::check_no_args "$@"
   local file
   for file in "${SCRIPTS_DIR}"/*; do
-    if [[ ! -f "${file}" ]]; then
+    if ! files::exists "${file}"; then
       continue
     fi
     if [[ "$(basename -- "${file}")" == 'functions.bash' ]]; then

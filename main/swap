@@ -17,9 +17,9 @@ args::check_exactly_2_args "$@"
 readonly PATH_A="$1"
 readonly PATH_B="$2"
 
-if files::exists "${PATH_A}" && files::exists "${PATH_B}" || dirs::exists "${PATH_A}" && dirs::exists "${PATH_B}"; then
-  temp_file=''
+if { files::exists "${PATH_A}" && files::exists "${PATH_B}"; } || { dirs::exists "${PATH_A}" && dirs::exists "${PATH_B}"; }; then
   files::create_temp temp_file
+  # shellcheck disable=SC2154 # temp_file assigned by files::create_temp via nameref
   mv -- "${PATH_A}" "${temp_file}"
   mv -- "${PATH_B}" "${PATH_A}"
   mv -- "${temp_file}" "${PATH_B}"

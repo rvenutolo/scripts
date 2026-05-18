@@ -218,6 +218,7 @@ function main() {
     'https://extensions.gnome.org/extension/1460/vitals/'
     'https://extensions.gnome.org/extension/750/openweather/'
   )
+  local url package_num
   for url in "${gnome_extensions[@]}"; do
     package_num="$(cut --delimiter='/' --fields=5 <<< "${url}")"
     log "Installing extension from URL: ${url}"
@@ -245,7 +246,7 @@ function main() {
   # shellcheck disable=SC2016 # single quotes intentional, multi-line literal text
   log 'Finished
 You may want to do any of the following:
-- source ~/.bash_profile"
+- source ~/.bash_profile
 - jetbrains-toolbox
 - reboot'
 }
