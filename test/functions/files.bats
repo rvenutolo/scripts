@@ -940,3 +940,66 @@ setup_files_root_helpers() {
   assert_success
   refute_output --partial 'Copying'
 }
+
+@test "root_transform: applies sed filter to root-owned file" {
+  setup_files_root_helpers
+  local target="${BATS_TEST_TMPDIR}/cfg"
+  printf 'foo=1\nbar=2\n' > "${target}"
+  # shellcheck disable=SC2030,SC2031
+  export SCRIPTS_AUTO_ANSWER=y # intentional: export reaches child process via `run`
+  run files::root_transform "${target}" sed 's/foo=1/foo=9/'
+  assert_success
+  run cat "${target}"
+  assert_line --index 0 'foo=9'
+  assert_line --index 1 'bar=2'
+}
+
+@test "root_transform: skips when filter output byte-identical" {
+  setup_files_root_helpers
+  local target="${BATS_TEST_TMPDIR}/cfg"
+  printf 'unchanged\n' > "${target}"
+  run files::root_transform "${target}" cat
+  assert_success
+  refute_output --partial 'Copying'
+  refute_output --partial 'Overwrite'
+}
+
+@test "root_transform: invokes bash function filter" {
+  setup_files_root_helpers
+  local target="${BATS_TEST_TMPDIR}/cfg"
+  printf 'a\nb\nc\n' > "${target}"
+  _filter_uppercase() {
+    while read -r line; do
+      printf '%s\n' "${line^^}"
+    done
+  }
+  # shellcheck disable=SC2030,SC2031
+  export SCRIPTS_AUTO_ANSWER=y # intentional: export reaches child process via `run`
+  run files::root_transform "${target}" _filter_uppercase
+  assert_success
+  run cat "${target}"
+  assert_line --index 0 'A'
+  assert_line --index 1 'B'
+  assert_line --index 2 'C'
+}
+
+@test "root_transform: dies when target missing" {
+  setup_files_root_helpers
+  run files::root_transform "${BATS_TEST_TMPDIR}/nope" cat
+  assert_failure
+  assert_output --partial 'does not exist'
+}
+
+@test "root_transform: dies with no args" {
+  setup_files_root_helpers
+  run files::root_transform
+  assert_failure
+}
+
+@test "root_transform: dies with 1 arg" {
+  setup_files_root_helpers
+  local target="${BATS_TEST_TMPDIR}/cfg"
+  printf 'x\n' > "${target}"
+  run files::root_transform "${target}"
+  assert_failure
+}

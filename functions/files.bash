@@ -388,6 +388,25 @@ function files::root_copy_quiet() {
   sudo cp "${src}" "${dest}"
 }
 
+# @description Transform a root-owned file by streaming it through a filter command.
+# Reads the file via `sudo cat`, pipes the content through `filter_cmd ...`, and writes the result
+# back via `files::root_copy` (which shows a diff and prompts before overwriting). Skips if the
+# filtered output is byte-identical to the original. The filter command must read its input from
+# stdin and write the transformed content to stdout. Bash functions defined in the calling shell
+# are valid filters (they are inherited by the pipeline subshell).
+# @arg $1 file path to transform
+# @arg $@ filter command and any args
+function files::root_transform() {
+  args::check_at_least_2_args "$@"
+  local -r file="$1"
+  shift
+  files::assert_exists "${file}"
+  files::create_temp tmp_transform_out
+  # shellcheck disable=SC2154 # tmp_transform_out assigned by files::create_temp via nameref
+  sudo cat "${file}" | "$@" > "${tmp_transform_out}"
+  files::root_copy "${tmp_transform_out}" "${file}"
+}
+
 # @description Write content to a file, prompting if the file already exists; skips if content is identical.
 # @arg $1 file path
 # @arg $2 content to write
