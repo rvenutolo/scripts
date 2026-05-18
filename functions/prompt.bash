@@ -13,7 +13,7 @@ function prompt::ny() {
     read -r
     if [[ "${REPLY}" == [yY] ]]; then
       REPLY='y'
-    elif [[ "${REPLY}" == '' || "${REPLY}" == [nN] ]]; then
+    elif strings::is_empty "${REPLY}" || [[ "${REPLY}" == [nN] ]]; then
       REPLY='n'
     fi
   done
@@ -31,7 +31,7 @@ function prompt::yn() {
   while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
     printf '\033[0;33m%s [Y/n]: \033[0m' "$1"
     read -r
-    if [[ "${REPLY}" == '' || "${REPLY}" == [yY] ]]; then
+    if strings::is_empty "${REPLY}" || [[ "${REPLY}" == [yY] ]]; then
       REPLY='y'
     elif [[ "${REPLY}" == [nN] ]]; then
       REPLY='n'

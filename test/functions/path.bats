@@ -9,6 +9,8 @@ setup() {
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/args.bash"
   # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/strings.bash"
+  # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/path.bash"
   # Capture original PATH so teardown can restore it. Tests that mutate PATH
   # to a restricted value (e.g. PATH='') can break BATS's own cleanup (rm,

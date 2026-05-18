@@ -124,6 +124,18 @@ function args::no_args() {
   args::has_num_args 0 "$@"
 }
 
+# @description Return true if called with at least the given number of arguments.
+# @arg $1 minimum count
+# @arg $@ remaining args (count-checked against $1)
+# @exitcode 0 if remaining arg count is >= $1
+# @exitcode 1 otherwise
+function args::has_at_least_num_args() {
+  args::check_at_least_1_arg "$@"
+  local -r minimum="$1"
+  shift
+  [[ "$#" -ge "${minimum}" ]]
+}
+
 # @description Die if stdin has no data available (i.e., a terminal is attached).
 # shellcheck disable=SC2120 # called with no args by callers, but shellcheck can't see all call sites
 # @noargs
@@ -176,7 +188,7 @@ function args::print_help() {
     if ((!in_header)); then
       continue
     fi
-    if [[ -z "${line}" ]]; then
+    if strings::is_empty "${line}"; then
       continue
     fi
     if [[ "${line}" != '#'* ]]; then
@@ -204,7 +216,7 @@ function args::print_help() {
   done < "${script_path}"
 
   printf '%s\n' "${script_name}"
-  if [[ -n "${description}" ]]; then
+  if strings::is_not_empty "${description}"; then
     printf '\n  %s\n' "${description}"
   fi
   if ((${#args_list[@]} > 0)); then
@@ -214,10 +226,10 @@ function args::print_help() {
       printf '  %s\n' "${arg}"
     done
   fi
-  if [[ -n "${stdout_text}" ]]; then
+  if strings::is_not_empty "${stdout_text}"; then
     printf '\nStdout:\n  %s\n' "${stdout_text}"
   fi
-  if [[ -n "${stderr_text}" ]]; then
+  if strings::is_not_empty "${stderr_text}"; then
     printf '\nStderr:\n  %s\n' "${stderr_text}"
   fi
   if ((${#exitcodes[@]} > 0)); then
