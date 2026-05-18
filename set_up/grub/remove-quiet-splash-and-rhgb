@@ -14,74 +14,88 @@ args::handle_help_flag "$@"
 system::require_bash_version 4 0
 args::check_no_args "$@"
 
-if ! hosts::is_server; then
-  exit 0
-fi
-
-if ! commands::executable_exists 'grub-mkconfig' && ! commands::executable_exists 'grub2-mkconfig'; then
-  exit 0
-fi
-
-# These pairing of commands and GRUB output config file may not always be
-# correct, but seems to be consistent with the distros I've looked at recently.
-if commands::executable_exists 'grub-mkconfig'; then
-  readonly grub_mkconfig_cmd='grub-mkconfig'
-  readonly grub_config_file='/boot/grub/grub.cfg'
-else
-  readonly grub_mkconfig_cmd='grub2-mkconfig'
-  readonly grub_config_file='/boot/grub2/grub.cfg'
-fi
-if ! files::exists "${grub_config_file}"; then
-  log::die "Could not find GRUB config file at: ${grub_config_file}"
-fi
-
-readonly grub_default_file='/etc/default/grub'
-if ! files::exists "${grub_default_file}"; then
-  log::die "Unable to find file: ${grub_default_file}"
-fi
-
-readonly kernel_options_to_remove=(
+readonly KERNEL_OPTIONS_TO_REMOVE=(
   'rhgb'
   'quiet'
   'splash'
 )
 
-contains_options_to_remove='n'
-while read -r line; do
-  if grep::contains_perl_regex '^\s*(GRUB_CMDLINE_LINUX_DEFAULT|GRUB_CMDLINE_LINUX)\s*=' <<< "${line}"; then
-    options="$(cut --delimiter='"' --fields=2 <<< "${line}")"
-    for kernel_option in "${kernel_options_to_remove[@]}"; do
-      if printf '%s\n' "${options}" | grep::contains_word "${kernel_option}"; then
-        contains_options_to_remove='y'
-        break
-      fi
-    done
-    if [[ "${contains_options_to_remove}" == 'y' ]]; then
-      break
+# @description Strip the configured kernel options from GRUB_CMDLINE_LINUX(_DEFAULT) lines on stdin.
+# @noargs
+function strip_kernel_options() {
+  args::check_no_args "$@"
+  local line line_to_write kernel_option
+  while read -r line; do
+    line_to_write="${line}"
+    if grep::contains_perl_regex '^\s*(GRUB_CMDLINE_LINUX)|(GRUB_CMDLINE_LINUX_DEFAULT)\s*=' <<< "${line}"; then
+      for kernel_option in "${KERNEL_OPTIONS_TO_REMOVE[@]}"; do
+        line_to_write="${line_to_write//${kernel_option}/}"
+      done
+      line_to_write="$(sed 's/\s*"\s*/"/g ; s/\s\+/ /g' <<< "${line_to_write}")"
     fi
+    printf '%s\n' "${line_to_write}"
+  done
+}
+
+# @description Return true if the GRUB default file contains any of the configured kernel options to remove.
+# @arg $1 path to GRUB default file
+function grub_default_contains_options() {
+  args::check_exactly_1_arg "$@"
+  local -r grub_default_file="$1"
+  local line options kernel_option
+  while read -r line; do
+    if grep::contains_perl_regex '^\s*(GRUB_CMDLINE_LINUX_DEFAULT|GRUB_CMDLINE_LINUX)\s*=' <<< "${line}"; then
+      options="$(cut --delimiter='"' --fields=2 <<< "${line}")"
+      for kernel_option in "${KERNEL_OPTIONS_TO_REMOVE[@]}"; do
+        if printf '%s\n' "${options}" | grep::contains_word "${kernel_option}"; then
+          return 0
+        fi
+      done
+    fi
+  done < "${grub_default_file}"
+  return 1
+}
+
+function main() {
+  args::check_no_args "$@"
+
+  if ! hosts::is_server; then
+    exit 0
   fi
-done < "${grub_default_file}"
 
-if [[ "${contains_options_to_remove}" == 'n' ]]; then
-  exit 0
-fi
-readonly kernel_options_to_remove_string="${kernel_options_to_remove[*]}"
-if ! prompt::yn "Remove GRUB kernel options: ${kernel_options_to_remove_string// /, }"; then
-  exit 0
-fi
-
-sudo cp "${grub_default_file}" "${grub_default_file}.orig"
-sudo truncate --size=0 "${grub_default_file}"
-while read -r line; do
-  line_to_write="${line}"
-  if grep::contains_perl_regex '^\s*(GRUB_CMDLINE_LINUX)|(GRUB_CMDLINE_LINUX_DEFAULT)\s*=' <<< "${line}"; then
-    for kernel_option in "${kernel_options_to_remove[@]}"; do
-      # shellcheck disable=SC2001 # sed required for variable pattern substitution with word boundary
-      line_to_write="$(sed "s/${kernel_option}//g" <<< "${line_to_write}")"
-    done
-    line_to_write="$(sed 's/\s*"\s*/"/g ; s/\s\+/ /g' <<< "${line_to_write}")"
+  if ! commands::executable_exists 'grub-mkconfig' && ! commands::executable_exists 'grub2-mkconfig'; then
+    exit 0
   fi
-  files::root_append_to "${grub_default_file}" "${line_to_write}"
-done < "${grub_default_file}.orig"
 
-sudo "${grub_mkconfig_cmd}" --output="${grub_config_file}"
+  # These pairings of commands and GRUB output config files may not always be
+  # correct, but seem to be consistent with the distros I've looked at recently.
+  local grub_mkconfig_cmd grub_config_file
+  if commands::executable_exists 'grub-mkconfig'; then
+    grub_mkconfig_cmd='grub-mkconfig'
+    grub_config_file='/boot/grub/grub.cfg'
+  else
+    grub_mkconfig_cmd='grub2-mkconfig'
+    grub_config_file='/boot/grub2/grub.cfg'
+  fi
+  readonly grub_mkconfig_cmd
+  readonly grub_config_file
+  files::assert_exists "${grub_config_file}"
+
+  local -r grub_default_file='/etc/default/grub'
+  files::assert_exists "${grub_default_file}"
+
+  if ! grub_default_contains_options "${grub_default_file}"; then
+    exit 0
+  fi
+
+  local -r kernel_options_to_remove_string="${KERNEL_OPTIONS_TO_REMOVE[*]}"
+  if ! prompt::yn "Remove GRUB kernel options: ${kernel_options_to_remove_string// /, }"; then
+    exit 0
+  fi
+
+  files::root_transform "${grub_default_file}" strip_kernel_options
+
+  sudo "${grub_mkconfig_cmd}" --output="${grub_config_file}"
+}
+
+main "$@"
