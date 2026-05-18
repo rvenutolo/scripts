@@ -381,3 +381,10 @@ Note: `read -rp` writes the prompt text to `/dev/tty`, which BATS `run` does not
 Run `./format-scripts` then `./shellcheck-scripts`. Both must be clean. Both accept optional file/dir arguments — pass only the changed files for a faster check, or run with no args to cover the whole repo. To verify without writing, use `./check-scripts` (or `./format-scripts --check`) which runs `shfmt --diff` and `shellcheck` together and aggregates their exit codes.
 
 The tracked `.githooks/pre-push` hook runs `./check-scripts` automatically on push (activated per-clone via `git config --local core.hooksPath .githooks`), so the same gate also fires at push time as a safety net.
+
+## Merging PRs
+
+- Rebase merge is the only allowed merge method on this repo. Squash and merge-commit are disabled in repo settings and in the `protect-main` ruleset (`allowed_merge_methods: ["rebase"]`). The `main` branch also has a `required_linear_history` rule.
+- Consequence: every commit on a feature branch lands verbatim on `main` and is independently linted by the `commitlint` workflow. Each commit on a branch must satisfy Conventional Commits (`type: subject`) on its own — there is no squash subject to fall back on.
+- Before merging, clean the branch with `git rebase --interactive` so WIP / "fix review" / typo commits do not leak onto `main`.
+- Do not propose enabling squash merge to "fix" a noisy branch — fix the branch instead.
