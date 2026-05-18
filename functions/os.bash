@@ -5,10 +5,11 @@
 # @arg $1 field name (e.g. ID, VERSION_CODENAME)
 function os::release_field() {
   args::check_exactly_1_arg "$@"
+  local -r field_name="$1"
   (
     # shellcheck disable=SC1091 # /etc/os-release is sourced dynamically and not statically followable
     source '/etc/os-release'
-    printf '%s\n' "${!1:-}"
+    printf '%s\n' "${!field_name:-}"
   )
 }
 

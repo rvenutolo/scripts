@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
 
+# @description Git commit-msg hook. Validates the prospective commit message via commitlint. Bypass with `git commit --no-verify`.
+# @arg $1 commit_msg_file path to the file containing the prospective commit message (passed by git)
+# @exitcode 0 commit message passes commitlint
+# @exitcode 1 commitlint not installed or message failed validation
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/functions.bash"
 log::enable_err_trap
+args::handle_help_flag "$@"
 args::check_exactly_1_arg "$@"
 
 readonly COMMIT_MSG_FILE="$1"

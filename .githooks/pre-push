@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# @description Git pre-push hook. Runs ./check-scripts and aborts the push if it fails. Bypass with `git push --no-verify`.
+# @arg $@ args git passes ref/sha pairs that this hook does not use
+# @exitcode 0 check-scripts passed
+# @exitcode 1 check-scripts failed; push aborted
+
 set -Eeuo pipefail
 IFS=$'\n\t'
 
