@@ -57,7 +57,7 @@ function main() {
   if commands::executable_exists 'apt'; then
     sudo apt install --yes --install-recommends 'webmin'
   elif commands::executable_exists 'dnf'; then
-    sudo dnf install 'webmin'
+    sudo dnf install --assumeyes 'webmin'
   else
     log::die 'Expected either apt or dnf to be available'
   fi

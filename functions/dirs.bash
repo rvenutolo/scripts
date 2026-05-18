@@ -2,6 +2,8 @@
 
 # @description Return true if the given path exists and is a directory.
 # @arg $1 dir path
+# @exitcode 0 if true
+# @exitcode 1 if false
 function dirs::exists() {
   args::check_exactly_1_arg "$@"
   [[ -d "$1" ]]
@@ -23,6 +25,7 @@ function dirs::assert_exists() {
 # @arg $@ target directory paths
 function dirs::create() {
   args::check_at_least_1_arg "$@"
+  local dir
   for dir in "$@"; do
     if ! dirs::exists "${dir}"; then
       log::log "Creating ${dir}"
@@ -60,6 +63,7 @@ function dirs::assert_personal_project() {
 # @arg $@ target directory paths
 function dirs::root_create() {
   args::check_at_least_1_arg "$@"
+  local dir
   for dir in "$@"; do
     if ! dirs::exists "${dir}"; then
       log::log "Creating ${dir}"

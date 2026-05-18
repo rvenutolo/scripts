@@ -19,7 +19,7 @@ dir="${PWD}"
 project_root="${PWD}"
 while [[ "${dir}" != / ]]; do
   if files::exists "${dir}/pom.xml" || files::exists "${dir}/mvnw"; then
-    readonly project_root="${dir}"
+    project_root="${dir}"
     break
   fi
   dir="$(dirname -- "${dir}")"

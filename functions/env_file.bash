@@ -72,7 +72,7 @@ function env_file::set_var_value() {
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   local value_escaped
-  value_escaped=$(printf '%s\n' "${new_value}" | sed --expression='s/[\/&|]/\\&/g')
+  value_escaped="$(printf '%s\n' "${new_value}" | sed --expression='s/[\/&|]/\\&/g')"
   readonly value_escaped
   sed --in-place "s|^${var_name}=.*$|${var_name}=${value_escaped}|" "${env_file}"
 }
@@ -104,19 +104,21 @@ function env_file::prompt_var_value() {
   args::check_at_most_4_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  local -r prompt_info="${3:-}"
+  local -r default_value="${4:-}"
   env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   local prompt_text
-  if strings::is_not_empty "${3:-}"; then
-    prompt_text="Enter value for ${var_name} ( ${3:-} )"
+  if strings::is_not_empty "${prompt_info}"; then
+    prompt_text="Enter value for ${var_name} ( ${prompt_info} )"
   else
     prompt_text="Enter value for ${var_name}"
   fi
   readonly prompt_text
   local var_value
-  if strings::is_not_empty "${4:-}"; then
-    var_value="$(prompt::for_value "${prompt_text}" "${4:-}")"
+  if strings::is_not_empty "${default_value}"; then
+    var_value="$(prompt::for_value "${prompt_text}" "${default_value}")"
   else
     var_value="$(prompt::for_value "${prompt_text}")"
   fi
@@ -134,11 +136,13 @@ function env_file::prompt_var_value_if_empty() {
   args::check_at_most_4_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  local -r prompt_info="${3:-}"
+  local -r default_value="${4:-}"
   env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   if env_file::is_var_value_empty "${env_file}" "${var_name}"; then
-    env_file::prompt_var_value "${env_file}" "${var_name}" "${3:-}" "${4:-}"
+    env_file::prompt_var_value "${env_file}" "${var_name}" "${prompt_info}" "${default_value}"
   fi
 }
 
@@ -183,10 +187,11 @@ function env_file::prompt_pw_value() {
   args::check_at_most_3_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  local -r prompt_info="${3:-}"
   env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
-  env_file::prompt_var_value "${env_file}" "${var_name}" "${3:-}" "$(passwords::generate)"
+  env_file::prompt_var_value "${env_file}" "${var_name}" "${prompt_info}" "$(passwords::generate)"
 }
 
 # @description Prompt for a password-with-symbols value (pre-filled with a generated password) and write it to a variable.
@@ -198,10 +203,11 @@ function env_file::prompt_pw_with_symbols_value() {
   args::check_at_most_3_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  local -r prompt_info="${3:-}"
   env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
-  env_file::prompt_var_value "${env_file}" "${var_name}" "${3:-}" "$(passwords::generate_with_symbols)"
+  env_file::prompt_var_value "${env_file}" "${var_name}" "${prompt_info}" "$(passwords::generate_with_symbols)"
 }
 
 # @description Prompt for a password value and write it to a variable in an env file, only if currently empty.
@@ -213,11 +219,12 @@ function env_file::prompt_pw_value_if_empty() {
   args::check_at_most_3_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  local -r prompt_info="${3:-}"
   env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   if env_file::is_var_value_empty "${env_file}" "${var_name}"; then
-    env_file::prompt_pw_value "${env_file}" "${var_name}" "${3:-}"
+    env_file::prompt_pw_value "${env_file}" "${var_name}" "${prompt_info}"
   fi
 }
 
@@ -230,10 +237,11 @@ function env_file::prompt_pw_with_symbols_value_if_empty() {
   args::check_at_most_3_args "$@"
   local -r env_file="$1"
   local -r var_name="$2"
+  local -r prompt_info="${3:-}"
   env_file::_assert_valid_var_name "${var_name}"
   files::assert_exists "${env_file}"
   env_file::assert_var_exists "${env_file}" "${var_name}"
   if env_file::is_var_value_empty "${env_file}" "${var_name}"; then
-    env_file::prompt_pw_with_symbols_value "${env_file}" "${var_name}" "${3:-}"
+    env_file::prompt_pw_with_symbols_value "${env_file}" "${var_name}" "${prompt_info}"
   fi
 }

@@ -7,10 +7,11 @@
 # @arg $1 version string or artifact ID (e.g. "21.0.3-tem" or "21")
 function sdkman_jdks::get_jdk_major_version() {
   args::check_exactly_1_arg "$@"
-  if [[ "$1" =~ ^([0-9]+) ]]; then
+  local -r version="$1"
+  if [[ "${version}" =~ ^([0-9]+) ]]; then
     printf '%s' "${BASH_REMATCH[1]}"
   else
-    log::die "Unexpected version: $1"
+    log::die "Unexpected version: ${version}"
   fi
 }
 
