@@ -15,17 +15,17 @@ args::handle_help_flag "$@"
 system::require_bash_version 4 0
 args::check_at_least_1_arg "$@"
 
-readonly file="$1"
+readonly FILE="$1"
 shift
-case "${file}" in
-  *.tar | *.tar.* | *.tbz2 | *.tgz) tar --create --verbose --auto-compress --file "${file}" "$@" ;;
-  *.bz2) bzip2 --verbose "${file}" "$@" ;;
-  *.gz) gzip --verbose "${file}" "$@" ;;
-  *.lzma) xz --verbose --format=lzma "${file}" "$@" ;;
-  *.rar) rar a "${file}" "$@" ;;
-  *.xz) xz --verbose "${file}" "$@" ;;
-  *.zip) zip --verbose "${file}" "$@" ;;
-  *.7z) 7z a "${file}" "$@" ;;
-  *) log::die "Filetype not recognized: ${file}" ;;
+case "${FILE}" in
+  *.tar | *.tar.* | *.tbz2 | *.tgz) tar --create --verbose --auto-compress --file "${FILE}" "$@" ;;
+  *.bz2) bzip2 --verbose "${FILE}" "$@" ;;
+  *.gz) gzip --verbose "${FILE}" "$@" ;;
+  *.lzma) xz --verbose --format=lzma "${FILE}" "$@" ;;
+  *.rar) rar a "${FILE}" "$@" ;;
+  *.xz) xz --verbose "${FILE}" "$@" ;;
+  *.zip) zip --verbose "${FILE}" "$@" ;;
+  *.7z) 7z a "${FILE}" "$@" ;;
+  *) log::die "Filetype not recognized: ${FILE}" ;;
 esac
-log::log "compressed '${file}'"
+log::log "compressed '${FILE}'"
