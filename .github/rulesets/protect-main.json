@@ -35,8 +35,17 @@
       "parameters": {
         "strict_required_status_checks_policy": true,
         "required_status_checks": [
+          { "context": "actionlint" },
+          { "context": "bats" },
           { "context": "check-scripts" },
-          { "context": "bats" }
+          { "context": "commitlint" },
+          { "context": "dependency-review" },
+          { "context": "editorconfig" },
+          { "context": "gitleaks" },
+          { "context": "markdownlint" },
+          { "context": "typos" },
+          { "context": "yaml + json lint" },
+          { "context": "zizmor" }
         ]
       }
     }
