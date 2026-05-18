@@ -61,8 +61,11 @@ function main() {
   fi
 
   log 'Removing snaps'
+  local snap_list_tmp
+  snap_list_tmp="$(mktemp)"
   while [[ "$(snap list 2> '/dev/null' | tail --lines='+2' | wc --lines)" -gt 0 ]]; do
-    mapfile -t snaps < <(snap list | tail --lines='+2' | cut --delimiter=' ' --fields=1)
+    snap list | tail --lines='+2' | cut --delimiter=' ' --fields=1 > "${snap_list_tmp}"
+    mapfile -t snaps < "${snap_list_tmp}"
     for snap in "${snaps[@]}"; do
       if snap remove --purge "${snap}" &> '/dev/null'; then
         log "Removed snap: ${snap}"

@@ -212,6 +212,7 @@ function main() {
     'https://extensions.gnome.org/extension/1319/gsconnect/'
     'https://extensions.gnome.org/extension/1460/vitals/'
   )
+  local url package_num
   for url in "${gnome_extensions[@]}"; do
     package_num="$(cut --delimiter='/' --fields=5 <<< "${url}")"
     log "Installing extension from URL: ${url}"
@@ -223,6 +224,7 @@ function main() {
   local autostart_files=(
     '/usr/share/applications/caffeine-indicator.desktop'
   )
+  local autostart_file
   for autostart_file in "${autostart_files[@]}"; do
     if [[ -f "${autostart_file}" ]]; then
       ln --symbolic --force "${autostart_file}" "${HOME}/.config/autostart/"
@@ -276,7 +278,7 @@ function main() {
   # shellcheck disable=SC2016 # single quotes intentional, multi-line literal text
   log 'Finished
 You may want to do any of the following:
-- source ~/.bashrc"
+- source ~/.bashrc
 - jetbrains-toolbox
 - reboot'
 }
