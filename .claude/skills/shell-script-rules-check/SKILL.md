@@ -88,6 +88,11 @@ Read the script. Compare against the merged rule set. Flag every violation. Cate
 - Inline `mkdir -p` / `ln -s` / `[[ -f X ]]` where a helper exists (`dirs::create`, `symlinks::link_*`, `files::exists`, etc.)
 - Inline `[[ -z "$x" ]]` / `[[ -n "$x" ]]` instead of `strings::is_empty` / `strings::is_not_empty`
 - Inline `command -v` / `which` instead of `commands::executable_exists` / `commands::executable_path`
+- Inline `[[ ! -s "$file" ]]` / `[[ -s "$file" ]]` instead of `files::is_empty` / `files::is_non_empty`
+- Inline per-line `while read` of a sudo-owned file followed by `sudo tee`/`sudo mv` write-back where `files::root_transform` fits
+- Inline `until cmd; do :; done` (interactive retry, no backoff) instead of `retry::until_success`
+- Inline `[[ $# -gt N ]]` predicate branching instead of `args::has_at_least_num_args` / `args::no_args` / `args::has_num_args`
+- Short flags (e.g. `find -L`, `tailscale ip -4`) without a same-line `# no long-form equivalent` comment when no long form exists
 - `var="$(cmd)" || exit 1` redundant pattern
 - `local var="$(cmd)"` masking the substitution's exit status
 - Missing `main "$@"` for a multi-helper top-level script
@@ -117,6 +122,12 @@ Read the script. Compare against the merged rule set. Flag every violation. Cate
 - Refactors triggered by the "consistency tiebreaker" rule when surrounding code uses an outdated pattern
 
 When unsure which bucket a finding belongs in, default to **judgment call** and let the user decide.
+
+**Verify before flagging "no helper exists."** Before promoting an inline pattern to a judgment-call "consider new helper" finding, grep `functions/*.bash` for the operation. A prior audit incorrectly flagged `files::is_empty` as missing when it existed — silently rejecting an existing helper wastes review cycles. If a matching helper exists, treat the inline form as a mechanical violation (swap it) instead.
+
+**Inter-library helper calls are runtime-safe.** Library files (`functions/*.bash`) contain only function definitions — no top-level code runs at source time. `functions.bash` sources every `functions/*.bash` before any user code executes, so by the time a function body runs, every other helper is defined. A helper in `args.bash` can safely call `strings::is_empty`, even though `strings.bash` is sourced later alphabetically. Do NOT defer cross-library helper swaps over fear of source-order or "circular sourcing" concerns — those concerns apply only to top-level code, which library files do not contain.
+
+**Scope is NOT a judgment trigger.** The number of edits a rule fix requires (15 sites, 30 sites, whole-file rename) does not promote a mechanical violation to a judgment call. If the rule is clear and the fix is mechanical, apply it — no matter how many references must be updated. Rule adherence wins over edit-count concerns. The only reasons to defer are: (1) behavior change, (2) genuine ambiguity in how the rule applies, (3) requires authoring prose (rationale comments, opaque-filename `@description` text), (4) requires structural redesign (new helper extraction, restructuring control flow). Pure mechanical renames/replacements ship regardless of count.
 
 ### 6. Produce the report
 
@@ -154,6 +165,8 @@ If a section is empty, write `(none)` under it.
 ### 7. Apply mechanical fixes
 
 After printing the report, apply every mechanical fix to the file directly using `Edit` / `Write`. Do not ask first — the user has already opted in by invoking the skill. The judgment-call section is the only thing that pauses for input.
+
+**Follow-on: test-setup updates.** When the fix swaps an inline pattern for a helper from a different `functions/<topic>.bash` file, check the corresponding `test/functions/<topic>.bats` setup for a `source` line for the newly-depended-on library. Example: replacing `[[ -z "${var}" ]]` with `strings::is_empty` in `functions/args.bash` requires `test/functions/args.bats` to also source `functions/strings.bash`. Add the missing source as part of the same mechanical fix — otherwise BATS tests will fail with `command not found` even though the helper resolves at runtime.
 
 ### 8. Resolve judgment calls
 

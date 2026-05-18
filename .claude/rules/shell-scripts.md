@@ -63,7 +63,7 @@ Generic, project-agnostic rules for writing bash scripts. Portable to any shell 
 
 - Use `source` instead of `.` when sourcing a file. The `source` keyword is more readable and unambiguous (a leading `.` is easy to overlook).
 
-- Use long options in commands (e.g., `cut --delimiter` not `cut -d`)
+- Use long options in commands (e.g., `cut --delimiter` not `cut -d`). When a tool has no long-form equivalent for the flag (e.g. `find -L`, `tailscale ip -4`), the short flag is allowed — but every such use must carry a same-line comment justifying it: `# no long-form equivalent`.
 
 - Never define aliases in scripts. Use shell functions instead (aliases are inert in non-interactive shells anyway).
 
