@@ -155,12 +155,30 @@ jobs:
             ./test/test_helper/bats-assert/*
             ./lib/*
             ./.shdoc/*
-      - uses: reviewdog/action-shfmt@d8f080930b9be5847b4f97e9f4122b81a82aaeac # v1.0.4
+      # reviewdog/action-shfmt v1.0.4 lacks an exclude option, so it would
+      # flag vendored content under test/bats/, test/test_helper/bats-*/,
+      # .shdoc/, and other/ that this repo does not own. Run shfmt via the
+      # repo's own ./format-scripts wrapper (which uses shell_scripts::find
+      # for in-scope-only enumeration) and pipe the unified diff to reviewdog.
+      - uses: reviewdog/action-setup@e04ffabe3898a0af8d0fb1af00c188831c4b5893 # v1.3.2
         with:
-          reporter: github-pr-review
-          level: warning
-          fail_on_error: false
-          shfmt_flags: --indent 2 --case-indent --binary-next-line --space-redirects --diff
+          reviewdog_version: v0.20.3
+      - name: install shfmt
+        run: |
+          curl --disable --fail --silent --location --show-error \
+            --output "${RUNNER_TEMP}/shfmt" \
+            'https://github.com/mvdan/sh/releases/download/v3.8.0/shfmt_v3.8.0_linux_amd64'
+          chmod +x "${RUNNER_TEMP}/shfmt"
+          printf '%s\n' "${RUNNER_TEMP}" >> "${GITHUB_PATH}"
+      - name: shfmt review
+        env:
+          SCRIPTS_DIR: ${{ github.workspace }}
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./format-scripts --check \
+            | reviewdog -f=diff -f.diff.strip=0 \
+                -name=shfmt -reporter=github-pr-review \
+                -level=warning -fail-on-error=false
 
   actionlint:
     name: actionlint
