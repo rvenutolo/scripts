@@ -390,7 +390,9 @@ The tracked `.githooks/pre-push` hook runs `./check-scripts` automatically on pu
 
 ## Merging PRs
 
-- Rebase merge is the only allowed merge method on this repo. Squash and merge-commit are disabled in repo settings and in the `protect-main` ruleset (`allowed_merge_methods: ["rebase"]`). The `main` branch also has a `required_linear_history` rule.
-- Consequence: every commit on a feature branch lands verbatim on `main` and is independently linted by the `commitlint` workflow. Each commit on a branch must satisfy Conventional Commits (`type: subject`) on its own — there is no squash subject to fall back on.
-- Before merging, clean the branch with `git rebase --interactive` so WIP / "fix review" / typo commits do not leak onto `main`.
-- Do not propose enabling squash merge to "fix" a noisy branch — fix the branch instead.
+- Merge commit is the only allowed merge method on this repo. Rebase and squash are disabled in repo settings and in the `protect-main` ruleset (`allowed_merge_methods: ["merge"]`). The `main` branch does NOT enforce linear history — merge commits are intentionally allowed.
+- The PR title becomes the merge-commit subject (`merge_commit_title=PR_TITLE`), so the PR title must satisfy Conventional Commits — enforced by the `pr-title-lint` workflow. The PR body becomes the merge-commit message (`merge_commit_message=PR_BODY`).
+- Every commit on a feature branch still lands verbatim under the merge commit and is independently linted by the `commitlint` workflow, so each commit must satisfy Conventional Commits (`type: subject`) on its own.
+- Before merging, clean the branch with `git rebase --interactive` so WIP / "fix review" / typo commits do not leak onto `main` under the merge commit.
+- All commits must be signed — the ruleset enforces `required_signatures`.
+- The ruleset carries no bypass actors (`bypass_actors: []`): there is no admin override. A red required check blocks the merge for everyone, including the owner.
