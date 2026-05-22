@@ -1,0 +1,53 @@
+name: protect-main-drift-check
+# Scheduled monitor (NOT a PR gate): compares the live protect-main ruleset
+# against the in-tree mirror. Uses RULESET_READ_TOKEN (fine-grained PAT,
+# Administration: read-only) because GITHUB_TOKEN cannot read rulesets. Never
+# runs on pull_request — check-pr-workflows-no-secrets forbids non-GITHUB_TOKEN
+# secrets on PR-triggered workflows (fork-PR exfiltration risk).
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 15 * * 1'
+  workflow_dispatch:
+permissions: {}
+jobs:
+  protect-main-drift-check:
+    name: protect-main-drift-check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+      - uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+      - name: Fetch live ruleset and diff against in-tree mirror
+        env:
+          SCRIPTS_DIR: ${{ github.workspace }}
+          GH_TOKEN: ${{ secrets.RULESET_READ_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # shellcheck disable=SC2016 # GH_REPO/SCRIPTS_DIR and the gh --jq selector
+          # must expand inside the nix develop bash -c (which has gh/jq from the
+          # flake), not in the runner shell — single quotes are intentional.
+          nix develop --command bash -c '
+            set -Eeuo pipefail
+            IFS=$'"'"'\n\t'"'"'
+            live="$(mktemp)"
+            rs_id="$(gh api "repos/${GH_REPO}/rulesets" \
+              --jq ".[] | select(.name == \"protect-main\") | .id")"
+            if [[ -z "${rs_id}" ]]; then
+              printf "no protect-main ruleset found on the live repo\n" >&2
+              exit 1
+            fi
+            gh api "repos/${GH_REPO}/rulesets/${rs_id}" > "${live}"
+            ./.ci/diff-ruleset "${live}" .github/rulesets/protect-main.json
+          '
