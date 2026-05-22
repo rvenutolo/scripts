@@ -10,7 +10,7 @@ Personal collection of bash scripts for system setup, package install, and day-t
 
 - `main/` — primary utility scripts (on `PATH`).
 
-- `other/` — third-party scripts copied verbatim from elsewhere. **Never modify anything under `other/` unless explicitly told to touch a specific file in there.** This applies to formatting, shellcheck fixes, refactors, renames, or any other automated cleanup. On `PATH`; excluded from `format-scripts` / `shellcheck-scripts`.
+- `other/` — third-party scripts copied verbatim from elsewhere. **Never modify anything under `other/` unless explicitly told to touch a specific file in there.** This applies to formatting, shellcheck fixes, refactors, renames, or any other automated cleanup. On `PATH`; excluded from treefmt formatting (via `treefmt.nix` excludes) and from `shellcheck-scripts`.
 
 - `install/` — numbered scripts run in order by `run-install-scripts` to provision a new machine. Files starting with all-caps names (e.g. `00_DISTRO_PACKAGES`, `70_WORK_ONLY`) are markers/data with executable bit off — the runner skips non-executable files. `90_REMOVE` etc. follow same pattern.
 
@@ -26,13 +26,15 @@ Personal collection of bash scripts for system setup, package install, and day-t
 
 ## Required Environment
 
+The repo's tooling is provided by a **Nix flake devShell**: contributors install Nix + direnv, run `direnv allow` (or `nix develop`), and every tool (shfmt, shellcheck, bats, formatters, etc.) is available — nothing else to install. CI uses the same flake, so there is no version drift.
+
 The user's `~/.profile` exports a fixed set of env vars (`SCRIPTS_DIR`, `XDG_*`, `PERSONAL_PROJECTS_DIR`, etc.) that this repo relies on. They are always set in the environment by the time any script runs — interactive shells source `~/.profile`, and the `run-install-scripts` / `run-set-up-scripts` runners source it explicitly. Treat the full set as guaranteed. Read `~/.profile` to enumerate the available vars and their definitions.
 
 - **Reuse, don't hardcode.** When a script references a path or hostname covered by one of these vars, use the env var literal directly: `"${SCRIPTS_DIR}/functions.bash"`, `"${XDG_CONFIG_HOME}/foo/bar"`, `"${PERSONAL_PROJECTS_DIR}/some-repo"`, etc. Shell expands env vars natively — no templating needed.
 
 - **No fallbacks.** Do NOT add `${VAR:-default}` defensive defaults or `set -u` defenses for any of these vars (including `SCRIPTS_DIR`). Failure under `set -u` is the desired behavior if the environment is broken — the user wants to fix the environment, not paper over it.
 
-- **No env-var prefix when invoking repo scripts.** When running `./check-scripts`, `./format-scripts`, `./shellcheck-scripts`, or any other script in the repo, do NOT prefix the command with `SCRIPTS_DIR=...` — the env var is already set.
+- **No env-var prefix when invoking repo scripts.** When running `./check-scripts`, `./shellcheck-scripts`, or any other script in the repo, do NOT prefix the command with `SCRIPTS_DIR=...` — the env var is already set.
 
 - **Ignore conditional exports.** `EDITOR`, `VISUAL`, `PAGER`, `MANPAGER`, `FILE_MANAGER`, `TAILNET_IP`, `TAILNET_CIDR`, `TERM`, etc. are gated on `__executable_exists` / `case` / runtime probes in `~/.profile`; they're not meant for cross-file reuse and are not guaranteed to be set.
 
@@ -46,11 +48,15 @@ Every non-`misc/` script sources `"${SCRIPTS_DIR}/functions.bash"`. Exception: a
 
 ## Common Commands
 
-- `./format-scripts [--check] [<file-or-dir>...]` — runs `shfmt --list --indent 2 --case-indent --binary-next-line --space-redirects --write` over the given files/dirs, or over all shell files except `other/` when no args. `--check` swaps `--write` for `--diff` (preview mode, no in-place changes).
+Tooling is provided by a **Nix flake devShell** (see [Required Environment](#required-environment)). Run `nix fmt` / `nix flake check` from the repo; the repo scripts below run inside the flake devShell (`nix develop --command ...` or via direnv).
 
-- `./shellcheck-scripts [<file-or-dir>...]` — runs `shellcheck` over the given files/dirs, or over the same default set when no args. All scripts must pass.
+- `nix fmt` — formats every file in the repo via treefmt (shfmt for shell, plus the other configured formatters). Replaces the now-retired in-place formatter script.
 
-- `./check-scripts [<file-or-dir>...]` — combined check: runs `shfmt --diff` and `shellcheck` over the same set, aggregates exit codes (exits non-zero if either fails). Use this for CI/pre-commit-style verification.
+- `nix flake check` — verifies formatting (treefmt) and runs the flake's checks. This is the formatting gate.
+
+- `./shellcheck-scripts [<file-or-dir>...]` — runs `shellcheck` over the given files/dirs, or over all shell files except `other/` when no args. All scripts must pass.
+
+- `./check-scripts [<file-or-dir>...]` — combined check: runs `shellcheck` and the shdoc-header audit (`.ci/check-shdoc-headers`) over the same set, aggregates exit codes (exits non-zero if either fails). It no longer runs shfmt — formatting is handled by `nix fmt` / `nix flake check`. Use this for CI/pre-commit-style verification.
 
 - `./run-install-scripts` — provision new machine. Sources `~/.profile`, validates sudo, runs every executable file under `install/` in `LC_COLLATE=C` order.
 
@@ -190,7 +196,7 @@ All other rules (helper-function usage, quoting, `[[ ]]` over `[ ]`, `(( ))` ari
 
 - Top-level executables (everything under `main/`, `install/`, `set_up/`, `misc/`, `.ci/`) have no extension; library files under `functions/` use the `.bash` extension and are NOT executable.
 
-- Executables use kebab-case (`new-script`, `format-scripts`, `run-install-scripts`); library files use snake_case with the `.bash` extension (`functions/files.bash`, `functions/log.bash`).
+- Executables use kebab-case (`new-script`, `check-scripts`, `run-install-scripts`); library files use snake_case with the `.bash` extension (`functions/files.bash`, `functions/log.bash`).
 
 - Library functions are namespaced with `::`: a helper in `functions/files.bash` is `files::exists`, in `functions/log.bash` is `log::log`, etc. Internal/private helpers (not used across files) may keep plain `snake_case`.
 
@@ -378,7 +384,7 @@ Note: `read -rp` writes the prompt text to `/dev/tty`, which BATS `run` does not
 
 ## Before Committing
 
-Run `./format-scripts` then `./shellcheck-scripts`. Both must be clean. Both accept optional file/dir arguments — pass only the changed files for a faster check, or run with no args to cover the whole repo. To verify without writing, use `./check-scripts` (or `./format-scripts --check`) which runs `shfmt --diff` and `shellcheck` together and aggregates their exit codes.
+Run, all inside the flake devShell (`nix develop` or via direnv): `nix fmt` (format every file via treefmt) → `nix flake check` (formatting gate + flake checks) → `./check-scripts` (shellcheck + shdoc-header audit) → `./run-tests` (BATS suite). All must be clean. `./check-scripts` and `./shellcheck-scripts` accept optional file/dir arguments — pass only the changed files for a faster check, or run with no args to cover the whole repo.
 
 The tracked `.githooks/pre-push` hook runs `./check-scripts` automatically on push (activated per-clone via `git config --local core.hooksPath .githooks`), so the same gate also fires at push time as a safety net.
 
