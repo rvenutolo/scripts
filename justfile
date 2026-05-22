@@ -1,6 +1,6 @@
 default: check
 
-# Combined shfmt --diff + shellcheck check
+# shellcheck + shdoc audit
 check:
     ./check-scripts
 
@@ -8,13 +8,13 @@ check:
 test:
     ./run-tests
 
-# Apply shfmt formatting in place
+# Format every file via treefmt
 format:
-    ./format-scripts
+    nix fmt
 
-# Preview shfmt diffs without writing
+# Verify formatting without writing
 format-check:
-    ./format-scripts --check
+    nix flake check
 
 # Run shellcheck on shell scripts
 shellcheck:
