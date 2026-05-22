@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+# @description Assert every job in every GitHub Actions workflow begins with
+#              `step-security/harden-runner@<40-hex>` as its first step. The
+#              egress monitor must install before any other I/O.
+# @noargs
+# @stderr One line per violation, plus a final count.
+# @exitcode 0 every job leads with a SHA-pinned harden-runner step.
+# @exitcode 1 one or more jobs do not.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 3
+args::check_no_args "$@"
+commands::assert_executable_exists 'yq'
+
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${SCRIPTS_DIR}/.github/workflows}"
+
+# @description Audit harden-runner-first for every job in one workflow.
+#              Prints violations to stderr; echoes the violation count.
+# @arg $1 file path to a workflow YAML
+# @stdout integer violation count
+function audit_file() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local jobs_tmp
+  files::create_temp jobs_tmp
+  yq eval '.jobs | to_entries[] | .key + "\t" + (.value.steps[0].uses // "null")' "${file}" > "${jobs_tmp}"
+  local count=0
+  local job first
+  while IFS=$'\t' read -r job first; do
+    strings::is_empty "${job}" && continue
+    if [[ "${first}" == 'null' ]] || strings::is_empty "${first}"; then
+      printf '%s: job %q has no first-step uses: (need harden-runner)\n' "${file}" "${job}" >&2
+      count=$((count + 1))
+      continue
+    fi
+    if [[ "${first}" != step-security/harden-runner@* ]]; then
+      printf '%s: job %q first step is %q, want harden-runner\n' "${file}" "${job}" "${first}" >&2
+      count=$((count + 1))
+      continue
+    fi
+    if [[ ! "${first}" =~ ^step-security/harden-runner@[0-9a-f]{40}$ ]]; then
+      printf '%s: job %q harden-runner ref %q not SHA-pinned\n' "${file}" "${job}" "${first}" >&2
+      count=$((count + 1))
+    fi
+  done < "${jobs_tmp}"
+  printf '%s\n' "${count}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  if ! dirs::exists "${WORKFLOWS_DIR}"; then
+    exit 0
+  fi
+  local files_tmp
+  files::create_temp files_tmp
+  find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
+  local total=0
+  local file n
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    n="$(audit_file "${file}")"
+    total=$((total + n))
+  done < "${files_tmp}"
+  if ((total > 0)); then
+    printf '%d job(s) missing harden-runner as first step\n' "${total}" >&2
+    exit 1
+  fi
+  exit 0
+}
+
+main "$@"
