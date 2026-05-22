@@ -4,7 +4,6 @@ setup() {
 }
 
 @test "runs clean against the real repo" {
-  skip "enable after workflow + renovate rewrites land"
   run "${AGG}"
   assert_success
 }
