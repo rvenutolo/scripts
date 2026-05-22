@@ -284,10 +284,10 @@ The generic rule requires a comment on any `PATH` modification. The repo's PATH-
 **Every helper function in `functions/*.bash` must have thorough BATS unit tests in `test/functions/<topic>.bats`.** Applies to both new and existing helpers — if you touch or notice an untested helper, the expectation is to add coverage in the same PR (or a follow-up PR explicitly tracked in the description). Tests are spec-driven (encode what the helper *should* do, not what the current implementation happens to do — see the "Testing philosophy" section below). Required coverage per helper:
 
 1. One positive assertion per intended behavior.
-2. The standard edge-case sweep — empty input, whitespace-only, single element, multi-element, leading/trailing separators, boundary arg counts.
-3. Every arity guard branch (e.g. "dies with 0 args", "dies with 2 args" for a 1-arg helper).
-4. Every documented `@exitcode`.
-5. For stateful or side-effecting helpers, both the success path and any failure paths (`log::die`, missing dependency, etc.).
+1. The standard edge-case sweep — empty input, whitespace-only, single element, multi-element, leading/trailing separators, boundary arg counts.
+1. Every arity guard branch (e.g. "dies with 0 args", "dies with 2 args" for a 1-arg helper).
+1. Every documented `@exitcode`.
+1. For stateful or side-effecting helpers, both the success path and any failure paths (`log::die`, missing dependency, etc.).
 
 When adding a helper to an existing topic file that already has a `.bats` file, extend that file. When adding a new topic file, create the matching `.bats` file in the same PR. The PR is not complete until `./run-tests` is green and coverage matches the bullets above. If a helper genuinely cannot be tested without mocking a side effect that has no existing test-helper for it (sudo, network, package manager), add the helper and the new test-helper together — do not ship the helper untested.
 
@@ -343,10 +343,10 @@ Tests are **specification-driven**: each test encodes what the function *should*
 ### Adding tests
 
 1. Pick a `functions/<name>.bash` file.
-2. Create `test/functions/<name>.bats`.
-3. In `setup()`, `load '../test_helper/common'` and `source` the file under test plus any of its dependencies (e.g. `args.bash` for any helper that uses `args::check_*`).
-4. Per function: one assertion per intended behavior, plus the standard edge-case sweep — empty input, whitespace-only, single char, multi-line, leading/trailing separators, arg-count boundaries.
-5. Run `./run-tests test/functions/<name>.bats` and triage failures: genuine bug → fix the function; ambiguity → escalate; test bug → fix the test.
+1. Create `test/functions/<name>.bats`.
+1. In `setup()`, `load '../test_helper/common'` and `source` the file under test plus any of its dependencies (e.g. `args.bash` for any helper that uses `args::check_*`).
+1. Per function: one assertion per intended behavior, plus the standard edge-case sweep — empty input, whitespace-only, single char, multi-line, leading/trailing separators, arg-count boundaries.
+1. Run `./run-tests test/functions/<name>.bats` and triage failures: genuine bug → fix the function; ambiguity → escalate; test bug → fix the test.
 
 ### Dual-mode helper
 

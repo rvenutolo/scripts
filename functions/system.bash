@@ -7,8 +7,8 @@ function system::require_bash_version() {
   args::check_exactly_2_args "$@"
   local -r req_major="$1"
   local -r req_minor="$2"
-  if ((BASH_VERSINFO[0] < req_major)) \
-    || ((BASH_VERSINFO[0] == req_major && BASH_VERSINFO[1] < req_minor)); then
+  if ((BASH_VERSINFO[0] < req_major)) ||
+    ((BASH_VERSINFO[0] == req_major && BASH_VERSINFO[1] < req_minor)); then
     log::die "bash ${req_major}.${req_minor}+ required (current: ${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]})"
   fi
 }

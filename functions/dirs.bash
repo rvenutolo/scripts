@@ -6,7 +6,7 @@
 # @exitcode 1 if false
 function dirs::exists() {
   args::check_exactly_1_arg "$@"
-  [[ -d "$1" ]]
+  [[ -d $1 ]]
 }
 
 # @description Die if the given directory does not exist.
@@ -44,7 +44,7 @@ function dirs::is_personal_project() {
   local dir_real personal_real
   dir_real="$(realpath --canonicalize-missing "${dir}")"
   personal_real="$(realpath "${PERSONAL_PROJECTS_DIR}")"
-  [[ "${dir_real}" == "${personal_real}" || "${dir_real}" == "${personal_real}/"* ]]
+  [[ ${dir_real} == "${personal_real}" || ${dir_real} == "${personal_real}/"* ]]
 }
 
 # @description Die if the given directory is not under ${PERSONAL_PROJECTS_DIR}.

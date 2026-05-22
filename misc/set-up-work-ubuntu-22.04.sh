@@ -39,7 +39,7 @@ function dl() {
   local -r url="$1"
   local -r output_file="${2:-}"
   log "Downloading: ${url}"
-  if [[ -n "${output_file}" ]]; then
+  if [[ -n ${output_file} ]]; then
     local tries=0
     until curl --disable --fail --silent --location --show-error "${url}" --output "${output_file}"; do
       ((tries += 1))
@@ -68,7 +68,7 @@ function dl() {
 function dl_decrypt() {
   local -r url="$1"
   local -r output_file="${2:-}"
-  if [[ -n "${output_file}" ]]; then
+  if [[ -n ${output_file} ]]; then
     dl "${url}" | age --decrypt --identity "${HOME}/.keys/age.key" --output "${output_file}"
   else
     dl "${url}" | age --decrypt --identity "${HOME}/.keys/age.key"
@@ -76,7 +76,7 @@ function dl_decrypt() {
 }
 
 function main() {
-  if [[ "${EUID}" == 0 ]]; then
+  if [[ ${EUID} == 0 ]]; then
     die "Do not run this script as root"
   fi
 
@@ -207,7 +207,7 @@ function main() {
     'org.gtk.Settings.FileChooser clock-format 12h'
   )
   for line in "${gsettings[@]}"; do
-    IFS=' ' read -r schema key value <<< "${line}"
+    IFS=' ' read -r schema key value <<<"${line}"
     gsettings set "${schema}" "${key}" "${value}"
   done
 
@@ -220,7 +220,7 @@ function main() {
   )
   local url package_num
   for url in "${gnome_extensions[@]}"; do
-    package_num="$(cut --delimiter='/' --fields=5 <<< "${url}")"
+    package_num="$(cut --delimiter='/' --fields=5 <<<"${url}")"
     log "Installing extension from URL: ${url}"
     gext --filesystem install "${package_num}"
   done

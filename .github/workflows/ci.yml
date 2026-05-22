@@ -1,19 +1,15 @@
 name: CI
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   check-scripts:
     name: check-scripts
@@ -23,7 +19,6 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
-
       - name: Resolve tool versions
         id: tools
         run: |
@@ -35,7 +30,6 @@ jobs:
             | jq --raw-output .tag_name)
           printf 'sc=%s\n' "${sc}" >> "${GITHUB_OUTPUT}"
           printf 'shfmt=%s\n' "${shfmt}" >> "${GITHUB_OUTPUT}"
-
       - name: Cache tools
         id: cache-tools
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
@@ -44,7 +38,6 @@ jobs:
             ~/.local/bin/shellcheck
             ~/.local/bin/shfmt
           key: tools-${{ runner.os }}-sc-${{ steps.tools.outputs.sc }}-shfmt-${{ steps.tools.outputs.shfmt }}
-
       - name: Install shellcheck
         if: steps.cache-tools.outputs.cache-hit != 'true'
         env:
@@ -55,7 +48,6 @@ jobs:
             "https://github.com/koalaman/shellcheck/releases/download/${SC_VERSION}/shellcheck-${SC_VERSION}.linux.x86_64.tar.xz" \
             | tar --extract --xz --strip-components=1 -C "${HOME}/.local/bin" \
               "shellcheck-${SC_VERSION}/shellcheck"
-
       - name: Install shfmt
         if: steps.cache-tools.outputs.cache-hit != 'true'
         env:
@@ -65,15 +57,12 @@ jobs:
           curl --disable --fail --silent --location --output "${HOME}/.local/bin/shfmt" \
             "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64"
           chmod +x "${HOME}/.local/bin/shfmt"
-
       - name: Add tools to PATH
         run: echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
-
       - name: Run check-scripts
         env:
           SCRIPTS_DIR: ${{ github.workspace }}
         run: ./check-scripts
-
   bats:
     name: bats
     runs-on: ubuntu-latest
@@ -82,7 +71,6 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
-
       - name: Resolve shfmt version
         id: tools
         run: |
@@ -90,14 +78,12 @@ jobs:
             https://api.github.com/repos/mvdan/sh/releases/latest \
             | jq --raw-output .tag_name)
           printf 'shfmt=%s\n' "${shfmt}" >> "${GITHUB_OUTPUT}"
-
       - name: Cache shfmt
         id: cache-shfmt
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.local/bin/shfmt
           key: shfmt-${{ runner.os }}-${{ steps.tools.outputs.shfmt }}
-
       - name: Install shfmt
         if: steps.cache-shfmt.outputs.cache-hit != 'true'
         env:
@@ -107,13 +93,10 @@ jobs:
           curl --disable --fail --silent --location --output "${HOME}/.local/bin/shfmt" \
             "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64"
           chmod +x "${HOME}/.local/bin/shfmt"
-
       - name: Add tools to PATH
         run: echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
-
       - name: Install pwgen and GNU parallel
         run: sudo apt-get update && sudo apt-get install --yes pwgen parallel
-
       - name: Run BATS
         env:
           SCRIPTS_DIR: ${{ github.workspace }}
@@ -123,14 +106,12 @@ jobs:
             --print-output-on-failure \
             --report-formatter junit --output bats-junit \
             test/functions
-
       - uses: mikepenz/action-junit-report@3a81627bfac62268172037048872e8ebd4207e6d # v6.4.1
         if: always()
         with:
           report_paths: bats-junit/*.xml
           check_name: BATS results
           fail_on_failure: true
-
   review:
     name: reviewdog
     if: github.event_name == 'pull_request'
@@ -179,7 +160,6 @@ jobs:
             | reviewdog -f=diff -f.diff.strip=0 \
                 -name=shfmt -reporter=github-pr-review \
                 -level=warning -fail-on-error=false
-
   actionlint:
     name: actionlint
     runs-on: ubuntu-latest
@@ -192,7 +172,6 @@ jobs:
           reporter: github-check
           level: error
           fail_on_error: true
-
   lint-configs:
     name: yaml + json lint
     runs-on: ubuntu-latest
@@ -206,7 +185,6 @@ jobs:
         run: yamllint .
       - name: Lint JSON
         run: find .github -name '*.json' -print0 | xargs --null --no-run-if-empty --max-args=1 jq empty
-
   markdownlint:
     name: markdownlint
     runs-on: ubuntu-latest
@@ -223,7 +201,6 @@ jobs:
             !test/test_helper/bats-assert
             !other
             !.shdoc
-
   typos:
     name: typos
     runs-on: ubuntu-latest
@@ -232,7 +209,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: crate-ci/typos@aca895bf05aec0cb7dffa6f94495e923224d9f17 # v1.46.2
-
   editorconfig:
     name: editorconfig
     runs-on: ubuntu-latest
@@ -241,7 +217,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: editorconfig-checker/action-editorconfig-checker@840e866d93b8e032123c23bac69dece044d4d84c # v2.2.0
-
   commitlint:
     name: commitlint
     runs-on: ubuntu-latest
@@ -251,7 +226,6 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed # v6.2.1
-
   coverage:
     name: coverage
     runs-on: ubuntu-latest
@@ -262,7 +236,6 @@ jobs:
           persist-credentials: false
       - name: Install pwgen, parallel
         run: sudo apt-get update && sudo apt-get install --yes pwgen parallel
-
       - name: Build kcov from source
         run: |
           sudo apt-get install --yes binutils-dev libssl-dev libcurl4-openssl-dev \
@@ -270,7 +243,6 @@ jobs:
           git clone --depth 1 https://github.com/SimonKagstrom/kcov.git /tmp/kcov
           cd /tmp/kcov && mkdir build && cd build
           cmake .. && make && sudo make install
-
       - name: Resolve shfmt version
         id: tools
         run: |
@@ -278,14 +250,12 @@ jobs:
             https://api.github.com/repos/mvdan/sh/releases/latest \
             | jq --raw-output .tag_name)
           printf 'shfmt=%s\n' "${shfmt}" >> "${GITHUB_OUTPUT}"
-
       - name: Cache shfmt
         id: cache-shfmt
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.local/bin/shfmt
           key: shfmt-${{ runner.os }}-${{ steps.tools.outputs.shfmt }}
-
       - name: Install shfmt
         if: steps.cache-shfmt.outputs.cache-hit != 'true'
         env:
@@ -295,7 +265,6 @@ jobs:
           curl --disable --fail --silent --location --output "${HOME}/.local/bin/shfmt" \
             "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64"
           chmod +x "${HOME}/.local/bin/shfmt"
-
       - name: Add tools to PATH
         run: echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
       - uses: ruby/setup-ruby@97ecb7b512899eb71ab1bf2310a624c6f1589ac6 # v1.308.0

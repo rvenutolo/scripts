@@ -32,7 +32,7 @@ function dual_mode::assert_file() {
   local -r input="$2"
   local -r expected="$3"
   local -r tmp="${BATS_TEST_TMPDIR}/dual_mode_input"
-  printf '%s' "${input}" > "${tmp}"
+  printf '%s' "${input}" >"${tmp}"
   run bash -c "source '${SCRIPTS_DIR}/functions.bash'; ${fn} \"\$1\"" _ "${tmp}"
   assert_success
   assert_output "${expected}"

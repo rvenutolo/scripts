@@ -1,14 +1,11 @@
 name: Links
-
 on:
   schedule:
     - cron: '0 12 * * 1'
   workflow_dispatch:
-
 permissions:
   contents: read
   issues: write
-
 jobs:
   lychee:
     runs-on: ubuntu-latest

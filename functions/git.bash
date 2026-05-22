@@ -5,7 +5,7 @@
 function git::is_git_repo() {
   args::check_exactly_1_arg "$@"
   local -r dir="$1"
-  git -C "${dir}" rev-parse --git-dir > '/dev/null' 2>&1
+  git -C "${dir}" rev-parse --git-dir >'/dev/null' 2>&1
 }
 
 # @description Die if the given path is not inside a git repository.
@@ -39,8 +39,8 @@ function git::canonical_name() {
   args::check_exactly_1_arg "$@"
   local -r repo="$1"
   local name
-  name="$(git -C "${repo}" config --get user.name)" \
-    || log::die "user.name not set in git config for ${repo}"
+  name="$(git -C "${repo}" config --get user.name)" ||
+    log::die "user.name not set in git config for ${repo}"
   strings::is_not_empty "${name}" || log::die "user.name is empty in git config for ${repo}"
   printf '%s\n' "${name}"
 }
@@ -53,8 +53,8 @@ function git::canonical_email() {
   args::check_exactly_1_arg "$@"
   local -r repo="$1"
   local email
-  email="$(git -C "${repo}" config --get user.email)" \
-    || log::die "user.email not set in git config for ${repo}"
+  email="$(git -C "${repo}" config --get user.email)" ||
+    log::die "user.email not set in git config for ${repo}"
   strings::is_not_empty "${email}" || log::die "user.email is empty in git config for ${repo}"
   printf '%s\n' "${email}"
 }
@@ -70,11 +70,11 @@ function git::write_distinct_identities() {
   local -r out_file="$2"
   files::create_temp _gwdi_raw
   # shellcheck disable=SC2154 # _gwdi_raw assigned by files::create_temp via nameref
-  git -C "${repo}" log --all --format='%aN%x09%aE%x0A%cN%x09%cE' > "${_gwdi_raw}"
-  if [[ ! -s "${_gwdi_raw}" ]]; then
+  git -C "${repo}" log --all --format='%aN%x09%aE%x0A%cN%x09%cE' >"${_gwdi_raw}"
+  if [[ ! -s ${_gwdi_raw} ]]; then
     log::die "No commits found in ${repo}"
   fi
-  sort --unique "${_gwdi_raw}" > "${out_file}"
+  sort --unique "${_gwdi_raw}" >"${out_file}"
 }
 
 # @description Pretty-print identities from a tab-separated name<TAB>email file as bullet list to stderr.
@@ -89,7 +89,7 @@ function git::print_identities() {
   log::log "${prefix_msg}"
   while IFS=$'\t' read -r name email; do
     printf '  %s <%s>\n' "${name}" "${email}" >&2
-  done < "${file}"
+  done <"${file}"
 }
 
 # @description Interactively prompt the user for each identity in distinct_file. Each accepted
@@ -108,9 +108,9 @@ function git::prompt_select_identities() {
   local -r selected_file="$2"
   local -r canonical_name="$3"
   local -a canon_tokens
-  read -r -a canon_tokens <<< "${canonical_name,,}"
+  read -r -a canon_tokens <<<"${canonical_name,,}"
   local name email name_words tok prompt_fn
-  : > "${selected_file}"
+  : >"${selected_file}"
   while IFS=$'\t' read -r -u 3 name email; do
     # Normalize identity name to space-delimited lowercase alphanumeric tokens, padded with
     # spaces so per-token substring matches don't bleed across word boundaries.
@@ -119,15 +119,15 @@ function git::prompt_select_identities() {
     prompt_fn='prompt::ny'
     for tok in "${canon_tokens[@]}"; do
       strings::is_empty "${tok}" && continue
-      if [[ "${name_words}" == *" ${tok} "* ]]; then
+      if [[ ${name_words} == *" ${tok} "* ]]; then
         prompt_fn='prompt::yn'
         break
       fi
     done
     if "${prompt_fn}" "Is '${name} <${email}>' your identity?"; then
-      printf '%s\t%s\n' "${name}" "${email}" >> "${selected_file}"
+      printf '%s\t%s\n' "${name}" "${email}" >>"${selected_file}"
     fi
-  done 3< "${distinct_file}"
+  done 3<"${distinct_file}"
 }
 
 # @description Count commits across --all whose author identity (name<TAB>email) matches any line
@@ -139,8 +139,8 @@ function git::count_author_matches() {
   args::check_exactly_2_args "$@"
   local -r repo="$1"
   local -r selected_file="$2"
-  git -C "${repo}" log --all --format='%aN%x09%aE' \
-    | grep --fixed-strings --line-regexp --count --file="${selected_file}" || true
+  git -C "${repo}" log --all --format='%aN%x09%aE' |
+    grep --fixed-strings --line-regexp --count --file="${selected_file}" || true
 }
 
 # @description Count commits across --all whose committer identity (name<TAB>email) matches any line
@@ -152,8 +152,8 @@ function git::count_committer_matches() {
   args::check_exactly_2_args "$@"
   local -r repo="$1"
   local -r selected_file="$2"
-  git -C "${repo}" log --all --format='%cN%x09%cE' \
-    | grep --fixed-strings --line-regexp --count --file="${selected_file}" || true
+  git -C "${repo}" log --all --format='%cN%x09%cE' |
+    grep --fixed-strings --line-regexp --count --file="${selected_file}" || true
 }
 
 # @description Count commits across --all whose author OR committer identity (name<TAB>email)
@@ -169,7 +169,7 @@ function git::count_author_or_committer_matches() {
   local commits_file
   files::create_temp commits_file
   # shellcheck disable=SC2154 # commits_file assigned by files::create_temp via nameref
-  git -C "${repo}" log --all --format='%aN%x09%aE%x1F%cN%x09%cE' > "${commits_file}"
+  git -C "${repo}" log --all --format='%aN%x09%aE%x1F%cN%x09%cE' >"${commits_file}"
   awk -F '\x1F' '
     NR == FNR { sel[$0] = 1; next }
     sel[$1] || sel[$2] { c++ }

@@ -12,9 +12,9 @@
 # Output: stdout — fixture path
 function os_release_fixture::create() {
   local -r fixture="${BATS_TEST_TMPDIR}/os-release"
-  : > "${fixture}"
+  : >"${fixture}"
   for line in "$@"; do
-    printf '%s\n' "${line}" >> "${fixture}"
+    printf '%s\n' "${line}" >>"${fixture}"
   done
   printf '%s\n' "${fixture}"
 }
@@ -26,7 +26,7 @@ function os_release_fixture::create() {
 function os_release_fixture::install_source_override() {
   # shellcheck disable=SC2329 # invoked indirectly by bash function lookup when os::release_field calls `source`
   source() {
-    if [[ "$1" == '/etc/os-release' ]]; then
+    if [[ $1 == '/etc/os-release' ]]; then
       builtin source "${BATS_TEST_TMPDIR}/os-release"
     else
       builtin source "$@"

@@ -2,43 +2,35 @@ ci:
   - changed-files:
       - any-glob-to-any-file:
           - .github/**
-
 docs:
   - changed-files:
       - any-glob-to-any-file:
           - '**/*.md'
           - .claude/**
-
 functions:
   - changed-files:
       - any-glob-to-any-file:
           - functions/**
-
 install:
   - changed-files:
       - any-glob-to-any-file:
           - install/**
-
 main:
   - changed-files:
       - any-glob-to-any-file:
           - main/**
-
 misc:
   - changed-files:
       - any-glob-to-any-file:
           - misc/**
-
 other:
   - changed-files:
       - any-glob-to-any-file:
           - other/**
-
 set_up:
   - changed-files:
       - any-glob-to-any-file:
           - set_up/**
-
 test:
   - changed-files:
       - any-glob-to-any-file:

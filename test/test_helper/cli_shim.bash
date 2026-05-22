@@ -15,7 +15,7 @@
 function cli_shim::record() {
   local -r name="$1"
   path_shim::mkbin
-  cat > "${BATS_TEST_TMPDIR}/bin/${name}" << EOF
+  cat >"${BATS_TEST_TMPDIR}/bin/${name}" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "${BATS_TEST_TMPDIR}/${name}.calls"
 exit 0
@@ -33,8 +33,8 @@ function cli_shim::record_with_output() {
   local -r exit_code="${3:-0}"
   path_shim::mkbin
   local -r out_file="${BATS_TEST_TMPDIR}/${name}.stdout"
-  printf '%s\n' "${stdout}" > "${out_file}"
-  cat > "${BATS_TEST_TMPDIR}/bin/${name}" << EOF
+  printf '%s\n' "${stdout}" >"${out_file}"
+  cat >"${BATS_TEST_TMPDIR}/bin/${name}" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "${BATS_TEST_TMPDIR}/${name}.calls"
 cat "${out_file}"
@@ -55,11 +55,11 @@ function cli_shim::record_stateful() {
   mkdir --parents "${outputs_dir}"
   local i=1
   for out in "$@"; do
-    printf '%s\n' "${out}" > "${outputs_dir}/${i}"
+    printf '%s\n' "${out}" >"${outputs_dir}/${i}"
     ((i += 1))
   done
   local -r last_index=$((i - 1))
-  cat > "${BATS_TEST_TMPDIR}/bin/${name}" << EOF
+  cat >"${BATS_TEST_TMPDIR}/bin/${name}" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "${BATS_TEST_TMPDIR}/${name}.calls"
 counter_file="${BATS_TEST_TMPDIR}/${name}.callno"
@@ -80,7 +80,7 @@ EOF
 # Long flags (--preserve-env, etc.) NOT handled; tests should use short forms.
 function cli_shim::install_passthrough_sudo() {
   path_shim::mkbin
-  cat > "${BATS_TEST_TMPDIR}/bin/sudo" << 'EOF'
+  cat >"${BATS_TEST_TMPDIR}/bin/sudo" <<'EOF'
 #!/usr/bin/env bash
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -101,7 +101,7 @@ EOF
 # Output: stdout — call log contents (or empty if shim was never invoked)
 function cli_shim::calls() {
   local -r name="$1"
-  cat "${BATS_TEST_TMPDIR}/${name}.calls" 2> /dev/null || true
+  cat "${BATS_TEST_TMPDIR}/${name}.calls" 2>/dev/null || true
 }
 
 # Count recorded calls.
@@ -110,7 +110,7 @@ function cli_shim::calls() {
 function cli_shim::call_count() {
   local -r name="$1"
   if [[ -f "${BATS_TEST_TMPDIR}/${name}.calls" ]]; then
-    wc --lines < "${BATS_TEST_TMPDIR}/${name}.calls"
+    wc --lines <"${BATS_TEST_TMPDIR}/${name}.calls"
   else
     printf '0\n'
   fi

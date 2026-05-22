@@ -11,16 +11,16 @@
 function path::remove() {
   args::check_exactly_1_arg "$@"
   local -r dir="$1"
-  if [[ "${PATH}" == "${dir}" ]]; then
+  if [[ ${PATH} == "${dir}" ]]; then
     # Intentional: clearing PATH is this function's explicit purpose.
     # shellcheck disable=SC2123
     PATH=''
     return
   fi
   PATH="$(
-    printf '%s' "${PATH}" \
-      | awk -v 'RS=:' -v 'ORS=:' -v "path=${dir}" '$0 != path' \
-      | sed 's/:$//'
+    printf '%s' "${PATH}" |
+      awk -v 'RS=:' -v 'ORS=:' -v "path=${dir}" '$0 != path' |
+      sed 's/:$//'
   )"
 }
 

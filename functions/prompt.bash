@@ -8,16 +8,16 @@ function prompt::ny() {
   if misc::auto_answer; then
     REPLY='n'
   fi
-  while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
+  while [[ ${REPLY} != 'y' && ${REPLY} != 'n' ]]; do
     printf '\033[0;33m%s [y/N]: \033[0m' "$1"
     read -r
-    if [[ "${REPLY}" == [yY] ]]; then
+    if [[ ${REPLY} == [yY] ]]; then
       REPLY='y'
-    elif strings::is_empty "${REPLY}" || [[ "${REPLY}" == [nN] ]]; then
+    elif strings::is_empty "${REPLY}" || [[ ${REPLY} == [nN] ]]; then
       REPLY='n'
     fi
   done
-  [[ "${REPLY}" == 'y' ]]
+  [[ ${REPLY} == 'y' ]]
 }
 
 # @description Prompt the user with a [Y/n] question (default: yes); return true if the user answers yes.
@@ -28,16 +28,16 @@ function prompt::yn() {
   if misc::auto_answer; then
     REPLY='y'
   fi
-  while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
+  while [[ ${REPLY} != 'y' && ${REPLY} != 'n' ]]; do
     printf '\033[0;33m%s [Y/n]: \033[0m' "$1"
     read -r
-    if strings::is_empty "${REPLY}" || [[ "${REPLY}" == [yY] ]]; then
+    if strings::is_empty "${REPLY}" || [[ ${REPLY} == [yY] ]]; then
       REPLY='y'
-    elif [[ "${REPLY}" == [nN] ]]; then
+    elif [[ ${REPLY} == [nN] ]]; then
       REPLY='n'
     fi
   done
-  [[ "${REPLY}" == 'y' ]]
+  [[ ${REPLY} == 'y' ]]
 }
 
 # @description Prompt the user for a free-form value; loops until a non-empty response is given.
