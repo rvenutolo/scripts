@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+# @description Validate repo config files against JSON Schemas: renovate.json
+#              (builtin vendor.renovate), workflow YAML (builtin
+#              vendor.github-workflows), and .markdownlint.json (SchemaStore
+#              schema pinned by SCHEMASTORE_SHA). Catches schema-shape
+#              regressions the file-specific linters miss.
+# @noargs
+# @stderr Validation progress + a line per failing target.
+# @exitcode 0 every target validates.
+# @exitcode 1 one or more targets fail schema validation.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 3
+args::check_no_args "$@"
+commands::assert_executable_exists 'check-jsonschema'
+
+# renovate: datasource=git-refs depName=SchemaStore/schemastore packageName=https://github.com/SchemaStore/schemastore currentValue=master
+readonly SCHEMASTORE_SHA='0c09eaee518187f3ed6885467cccb67026835394'
+readonly MARKDOWNLINT_SCHEMA_URL="https://raw.githubusercontent.com/SchemaStore/schemastore/${SCHEMASTORE_SHA}/src/schemas/json/markdownlint.json"
+
+failed=0
+
+# @description Run check-jsonschema with the given args; on failure, set the
+#              global failed flag and report which target failed.
+# @arg $1 label human label for the target
+# @arg $@ remaining args forwarded to check-jsonschema
+# @stderr Progress line, and a failure line when validation fails.
+function run_check() {
+  args::check_at_least_2_args "$@"
+  local -r label="$1"
+  shift
+  log::log "validating ${label}"
+  if ! check-jsonschema "$@"; then
+    printf '%s: schema validation failed\n' "${label}" >&2
+    failed=1
+  fi
+}
+
+function main() {
+  args::check_no_args "$@"
+  local -r root="${SCRIPTS_DIR}"
+
+  if files::exists "${root}/.github/renovate.json"; then
+    run_check 'renovate.json' --builtin-schema vendor.renovate "${root}/.github/renovate.json"
+  fi
+
+  local wf_tmp
+  files::create_temp wf_tmp
+  find "${root}/.github/workflows" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${wf_tmp}" 2> '/dev/null' || true
+  mapfile -t workflow_files < "${wf_tmp}"
+  if ((${#workflow_files[@]} > 0)); then
+    run_check 'github-workflows' --builtin-schema vendor.github-workflows "${workflow_files[@]}"
+  fi
+
+  if files::exists "${root}/.markdownlint.json"; then
+    run_check 'markdownlint config' --schemafile "${MARKDOWNLINT_SCHEMA_URL}" "${root}/.markdownlint.json"
+  fi
+
+  if ((failed != 0)); then
+    log::die 'one or more schema validations failed'
+  fi
+  log::log 'all schema validations passed'
+}
+
+main "$@"
