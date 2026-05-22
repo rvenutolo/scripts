@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+
+# @description Strict least-privilege lint for GitHub Actions GITHUB_TOKEN
+#              scopes. Asserts, for every workflow: (1) top-level
+#              `permissions:` is the empty map `{}`; (2) every job declares
+#              its own `permissions:` block (no inheritance).
+# @noargs
+# @stderr One line per violation, plus a final count.
+# @exitcode 0 every workflow satisfies the posture.
+# @exitcode 1 one or more violations found.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 3
+args::check_no_args "$@"
+commands::assert_executable_exists 'yq'
+
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${SCRIPTS_DIR}/.github/workflows}"
+
+# @description Audit the top-level permissions: of one workflow. Prints
+#              violations to stderr; echoes the violation count to stdout.
+# @arg $1 file path to a workflow YAML
+# @stdout integer violation count
+function audit_top_level() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local tag
+  tag="$(yq eval '.permissions | tag' "${file}")"
+  case "${tag}" in
+    '!!null')
+      # shellcheck disable=SC2016 # literal backticks in human-readable prose
+      printf '%s: missing top-level `permissions:` (need `permissions: {}`)\n' "${file}" >&2
+      printf '1\n'
+      ;;
+    '!!map')
+      local len
+      len="$(yq eval '.permissions | length' "${file}")"
+      if [[ "${len}" != '0' ]]; then
+        local keys
+        keys="$(yq eval '.permissions | keys | join(",")' "${file}")"
+        printf '%s: top-level permissions non-empty (keys: %s); need empty map\n' "${file}" "${keys}" >&2
+        printf '1\n'
+      else
+        printf '0\n'
+      fi
+      ;;
+    *)
+      printf '%s: top-level permissions has wrong shape (tag=%s); need empty map\n' "${file}" "${tag}" >&2
+      printf '1\n'
+      ;;
+  esac
+}
+
+# @description Audit per-job permissions blocks of one workflow. Prints
+#              violations to stderr; echoes the violation count to stdout.
+# @arg $1 file path to a workflow YAML
+# @stdout integer violation count
+function audit_jobs() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local jobs_tmp
+  files::create_temp jobs_tmp
+  yq eval '.jobs | to_entries[] | .key + "\t" + (.value.permissions | tag)' "${file}" > "${jobs_tmp}"
+  local count=0
+  local job tag
+  while IFS=$'\t' read -r job tag; do
+    strings::is_empty "${job}" && continue
+    case "${tag}" in
+      '!!map') : ;;
+      '!!null' | '')
+        # An absent `permissions:` key surfaces as `!!null` via direct path
+        # access but as an empty tag through the `to_entries` traversal; both
+        # mean "no block declared".
+        # shellcheck disable=SC2016 # literal backticks in human-readable prose
+        printf '%s: job %q missing `permissions:` block\n' "${file}" "${job}" >&2
+        count=$((count + 1))
+        ;;
+      *)
+        printf '%s: job %q permissions wrong shape (tag=%s)\n' "${file}" "${job}" "${tag}" >&2
+        count=$((count + 1))
+        ;;
+    esac
+  done < "${jobs_tmp}"
+  printf '%s\n' "${count}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  if ! dirs::exists "${WORKFLOWS_DIR}"; then
+    exit 0
+  fi
+  local files_tmp
+  files::create_temp files_tmp
+  find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
+  local total=0
+  local file n
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    n="$(audit_top_level "${file}")"
+    total=$((total + n))
+    n="$(audit_jobs "${file}")"
+    total=$((total + n))
+  done < "${files_tmp}"
+  if ((total > 0)); then
+    printf '%d permissions posture violation(s) found\n' "${total}" >&2
+    exit 1
+  fi
+  exit 0
+}
+
+main "$@"
