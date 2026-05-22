@@ -33,9 +33,9 @@ Most repo-level operations have both a shell script and a `just` recipe (see [`j
 | ------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------- |
 | `./.ci/build-docs && mkdocs build --strict` | `just docs`              | Build the docs site locally (requires `mkdocs`).                                |
 | `./.ci/check-shdoc-headers`                 | `just shdoc-check`       | Audit shdoc header coverage on scripts and library helpers.                     |
-| `./check-scripts [<paths>...]`              | `just check` (default)   | Combined `shfmt --diff` and `shellcheck` check; non-zero exit on failure.       |
-| `./format-scripts [<paths>...]`             | `just format`            | Apply `shfmt` formatting in place.                                              |
-| `./format-scripts --check [<paths>...]`     | `just format-check`      | Preview `shfmt` diffs without writing.                                          |
+| `./check-scripts [<paths>...]`              | `just check` (default)   | Combined `shellcheck` and shdoc-header audit; non-zero exit on failure.         |
+| `nix fmt`                                   | `just format`            | Format every file via treefmt (shfmt for shell).                                |
+| `nix flake check`                           | `just format-check`      | Verify formatting (treefmt) and run flake checks.                               |
 | `./run-install-scripts`                     | `just install`           | Provision a new machine — runs every executable file under `install/` in order. |
 | `./run-set-up-scripts`                      | `just setup`             | Run idempotent setup scripts under `set_up/`.                                   |
 | `./run-tests [<bats-args>...]`              | `just test`              | Run BATS tests under `test/functions/`.                                         |
@@ -45,6 +45,10 @@ Most repo-level operations have both a shell script and a `just` recipe (see [`j
 ## Required environment
 
 Set `SCRIPTS_DIR` to the repo root. Every script sources `${SCRIPTS_DIR}/functions.bash`. The user's `~/.profile` is expected to export it.
+
+## Development
+
+Tooling is provided by a Nix flake devShell. Install [Nix](https://nixos.org/) and [direnv](https://direnv.net/), then run `direnv allow` (or `nix develop`) in the repo root. Every tool (shfmt, shellcheck, bats, formatters, etc.) is then available — nothing else to install, and CI uses the same flake. From inside the devShell, `nix fmt`, `nix flake check`, `./check-scripts`, and `./run-tests` all work.
 
 ## Git hooks
 
