@@ -2,13 +2,17 @@ name: Labeler
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-permissions:
-  contents: read
-  pull-requests: write
+permissions: {}
 jobs:
   label:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/labeler@f27b608878404679385c85cfa523b85ccb86e213 # v6.1.0
         with:
           configuration-path: .github/labeler.yml
