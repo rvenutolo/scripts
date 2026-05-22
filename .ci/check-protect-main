@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+# @description Statically validate the in-tree protect-main branch ruleset
+#              (.github/rulesets/protect-main.json) against the required
+#              security posture: merge-commit-only, signed commits, no linear-
+#              history rule, no bypass actors, strict required-status-checks.
+#              The live drift-check workflow performs the exact live-vs-tree
+#              comparison; this is the cheap PR-gating sibling.
+# @noargs
+# @stderr A line per failing invariant.
+# @exitcode 0 the ruleset matches the posture.
+# @exitcode 1 a posture invariant is violated or the file is missing.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 3
+args::check_no_args "$@"
+
+readonly RULESET_PATH="${RULESET_JSON_OVERRIDE:-${SCRIPTS_DIR}/.github/rulesets/protect-main.json}"
+
+function main() {
+  args::check_no_args "$@"
+  if ! files::exists "${RULESET_PATH}"; then
+    log::die "protect-main ruleset not found: ${RULESET_PATH}"
+  fi
+  local failed=0
+
+  if [[ "$(jq -r '.name' "${RULESET_PATH}")" != 'protect-main' ]]; then
+    printf 'ruleset name is not "protect-main"\n' >&2
+    failed=1
+  fi
+  if [[ "$(jq -r '.enforcement' "${RULESET_PATH}")" != 'active' ]]; then
+    printf 'enforcement is not "active"\n' >&2
+    failed=1
+  fi
+  if [[ "$(jq -r '.bypass_actors | length' "${RULESET_PATH}")" != '0' ]]; then
+    printf 'bypass_actors must be empty (no admin bypass)\n' >&2
+    failed=1
+  fi
+  if jq -e '.rules | any(.type == "required_linear_history")' "${RULESET_PATH}" > '/dev/null'; then
+    printf 'required_linear_history rule must be absent (incompatible with merge commits)\n' >&2
+    failed=1
+  fi
+  local rule
+  for rule in deletion non_fast_forward required_signatures; do
+    if ! jq -e --arg t "${rule}" '.rules | any(.type == $t)' "${RULESET_PATH}" > '/dev/null'; then
+      printf 'missing required rule: %s\n' "${rule}" >&2
+      failed=1
+    fi
+  done
+  if ! jq -e '
+    .rules[] | select(.type == "pull_request")
+    | .parameters.allowed_merge_methods == ["merge"]
+  ' "${RULESET_PATH}" > '/dev/null'; then
+    printf 'pull_request allowed_merge_methods must be ["merge"]\n' >&2
+    failed=1
+  fi
+  if ! jq -e '
+    .rules[] | select(.type == "required_status_checks")
+    | .parameters.strict_required_status_checks_policy == true
+  ' "${RULESET_PATH}" > '/dev/null'; then
+    printf 'required_status_checks must set strict policy true\n' >&2
+    failed=1
+  fi
+  exit "${failed}"
+}
+
+main "$@"
