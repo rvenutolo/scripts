@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+# @description Semantically compare two GitHub branch-ruleset JSON documents
+#              (live vs in-tree). Normalizes both — drops volatile fields
+#              (id, timestamps, _links, node_id, source), sorts rules by type,
+#              and reduces required_status_checks to a sorted context list
+#              (ignoring integration_id) — then diffs the canonical forms.
+# @arg $1 live path to the live ruleset JSON (e.g. from `gh api`)
+# @arg $2 expected path to the in-tree ruleset JSON
+# @stdout Unified diff of the canonical forms when they differ.
+# @exitcode 0 the two rulesets are semantically equal.
+# @exitcode 1 they differ (drift), or an input file is missing.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 3
+args::check_exactly_2_args "$@"
+
+readonly LIVE="$1"
+readonly EXPECTED="$2"
+
+readonly NORMALIZE_JQ='
+  {
+    name, target, enforcement,
+    bypass_actors: (.bypass_actors // []),
+    conditions,
+    rules: (
+      (.rules // [])
+      | map(
+          if .type == "required_status_checks" then
+            .parameters.required_status_checks =
+              ((.parameters.required_status_checks // [])
+               | map(.context) | sort | map({context: .}))
+          else . end
+        )
+      | sort_by(.type)
+    )
+  }
+'
+
+function main() {
+  args::check_exactly_2_args "$@"
+  files::assert_exists "${LIVE}"
+  files::assert_exists "${EXPECTED}"
+  local live_tmp expected_tmp
+  files::create_temp live_tmp
+  files::create_temp expected_tmp
+  jq -S "${NORMALIZE_JQ}" "${LIVE}" > "${live_tmp}"
+  jq -S "${NORMALIZE_JQ}" "${EXPECTED}" > "${expected_tmp}"
+  if diff --unified "${expected_tmp}" "${live_tmp}"; then
+    exit 0
+  fi
+  printf 'protect-main ruleset drift detected (live differs from in-tree)\n' >&2
+  exit 1
+}
+
+main "$@"
