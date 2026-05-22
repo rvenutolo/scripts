@@ -5,8 +5,7 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
-permissions:
-  contents: read
+permissions: {}
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -14,7 +13,12 @@ jobs:
   check-scripts:
     name: check-scripts
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
@@ -31,7 +35,12 @@ jobs:
   bats:
     name: bats
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
@@ -64,6 +73,9 @@ jobs:
       contents: read
       pull-requests: write
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
@@ -83,7 +95,12 @@ jobs:
   actionlint:
     name: actionlint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
@@ -97,7 +114,12 @@ jobs:
   lint-configs:
     name: yaml + json lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
@@ -115,7 +137,12 @@ jobs:
   markdownlint:
     name: markdownlint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
@@ -136,7 +163,12 @@ jobs:
   typos:
     name: typos
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
@@ -150,7 +182,12 @@ jobs:
   editorconfig:
     name: editorconfig
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
@@ -164,7 +201,12 @@ jobs:
   commitlint:
     name: commitlint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
@@ -173,7 +215,12 @@ jobs:
   nix-flake-check:
     name: nix-flake-check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
@@ -187,7 +234,12 @@ jobs:
   coverage:
     name: coverage
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
