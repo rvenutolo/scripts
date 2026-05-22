@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+# @description Apply the mirrored GitHub repo settings (merge-commit-only,
+#              auto-merge, branch deletion, vulnerability alerts, Dependabot
+#              security fixes) and the protect-main branch ruleset to the live
+#              repository via the GitHub REST API. One-shot operator tool — not
+#              run by CI or pre-push. Idempotent: re-running converges state.
+# @arg $1 repo Optional owner/repo slug (default: rvenutolo/scripts).
+# @stderr Progress messages.
+# @exitcode 0 all settings applied.
+# @exitcode 1 a gh api call failed or gh is unavailable/unauthenticated.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 3
+args::check_at_most_1_arg "$@"
+commands::assert_executable_exists 'gh'
+
+readonly REPO="${1:-rvenutolo/scripts}"
+readonly HOSTNAME='github.com'
+
+function main() {
+  args::check_at_most_1_arg "$@"
+
+  log::log "applying repo settings to ${REPO}"
+  gh api --hostname "${HOSTNAME}" --method PATCH "repos/${REPO}" \
+    --field allow_merge_commit=true \
+    --field allow_rebase_merge=false \
+    --field allow_squash_merge=false \
+    --field allow_auto_merge=true \
+    --field delete_branch_on_merge=true \
+    --field allow_update_branch=true \
+    --field merge_commit_title=PR_TITLE \
+    --field merge_commit_message=PR_BODY \
+    --field has_wiki=false \
+    > '/dev/null'
+
+  log::log 'enabling vulnerability alerts'
+  gh api --hostname "${HOSTNAME}" --method PUT "repos/${REPO}/vulnerability-alerts"
+
+  log::log 'enabling automated security fixes (Dependabot)'
+  gh api --hostname "${HOSTNAME}" --method PUT "repos/${REPO}/automated-security-fixes"
+
+  log::log 'applying protect-main ruleset'
+  local rs_id
+  rs_id="$(gh api --hostname "${HOSTNAME}" "repos/${REPO}/rulesets" \
+    --jq '.[] | select(.name == "protect-main") | .id' || true)"
+  if strings::is_empty "${rs_id}"; then
+    log::log 'creating protect-main ruleset'
+    gh api --hostname "${HOSTNAME}" --method POST "repos/${REPO}/rulesets" \
+      --input "${SCRIPTS_DIR}/.github/rulesets/protect-main.json" > '/dev/null'
+  else
+    log::log "updating protect-main ruleset (id ${rs_id})"
+    gh api --hostname "${HOSTNAME}" --method PUT "repos/${REPO}/rulesets/${rs_id}" \
+      --input "${SCRIPTS_DIR}/.github/rulesets/protect-main.json" > '/dev/null'
+  fi
+  log::log 'done'
+}
+
+main "$@"
