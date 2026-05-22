@@ -1,0 +1,36 @@
+name: pr-title-lint
+# Under the merge-commit-only policy the PR title becomes the merge-commit
+# subject, so it must satisfy the same Conventional Commits rules as branch
+# commits (enforced by commitlint).
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+    branches: [main]
+permissions: {}
+jobs:
+  lint-pr-title:
+    name: lint-pr-title
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+      - uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+      - name: lint PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # shellcheck disable=SC2016 # ${PR_TITLE} must expand inside the inner
+          # bash -c (which has PR_TITLE from the env: block), not the runner
+          # shell — single quotes intended; this avoids PR-title injection.
+          nix develop --command bash -c \
+            'printf "%s\n" "${PR_TITLE}" | commitlint --config .commitlintrc.yml'
