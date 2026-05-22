@@ -26,49 +26,59 @@
         formatting = treefmtEval.${pkgs.system}.config.build.check self;
       });
 
-      devShells = eachSystem (pkgs: {
-        default = pkgs.mkShellNoCC {
-          packages = with pkgs; [
-            # formatters (also wired into treefmt)
-            shfmt
-            prettier
-            yamlfmt
-            taplo
-            nixfmt
-            (mdformat.withPlugins (ps: [
-              ps.mdformat-gfm
-              ps.mdformat-frontmatter
-            ]))
-            # linters / checks
-            shellcheck
-            yamllint
-            markdownlint-cli2
-            editorconfig-checker
-            typos
-            actionlint
-            zizmor
-            check-jsonschema
-            yq-go
-            jq
-            lychee
-            # tests / runtime
-            commitlint
-            bats
-            parallel
-            pwgen
-            gawk
-            kcov
-            # ruby provides `gem` so the coverage job can install bashcov
-            # (bashcov itself is not packaged in nixpkgs)
-            ruby
-            # TODO: bashcov for coverage job — not packaged in nixpkgs-unstable; coverage handled in a later task
-            gh
-            git
-            coreutils
-            findutils
-            gnugrep
-          ];
-        };
-      });
+      devShells = eachSystem (
+        pkgs:
+        let
+          # bashcov is not packaged in nixpkgs; provide it (with simplecov-cobertura
+          # for the cobertura.xml the coverage job uploads to Codecov) via a pinned
+          # bundlerEnv — gemset.nix lives under nix/bashcov/. Includes its own ruby.
+          bashcovEnv = pkgs.bundlerEnv {
+            name = "bashcov-env";
+            ruby = pkgs.ruby;
+            gemdir = ./nix/bashcov;
+          };
+        in
+        {
+          default = pkgs.mkShellNoCC {
+            packages = with pkgs; [
+              # formatters (also wired into treefmt)
+              shfmt
+              prettier
+              yamlfmt
+              taplo
+              nixfmt
+              (mdformat.withPlugins (ps: [
+                ps.mdformat-gfm
+                ps.mdformat-frontmatter
+              ]))
+              # linters / checks
+              shellcheck
+              yamllint
+              markdownlint-cli2
+              editorconfig-checker
+              typos
+              actionlint
+              zizmor
+              check-jsonschema
+              yq-go
+              jq
+              lychee
+              # tests / runtime
+              commitlint
+              bats
+              parallel
+              pwgen
+              gawk
+              kcov
+              bashcovEnv # bashcov + simplecov-cobertura (gemset under nix/bashcov)
+              gh
+              git
+              coreutils
+              findutils
+              gnugrep
+            ];
+          };
+        }
+      );
     };
 }

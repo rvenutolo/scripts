@@ -252,16 +252,9 @@ jobs:
       - name: Run BATS under bashcov
         env:
           SCRIPTS_DIR: ${{ github.workspace }}
-        # kcov comes from the flake; bashcov is gem-installed because it is not
-        # packaged in nixpkgs.
-        # TODO: package bashcov via nix (not in nixpkgs)
-        run: |
-          # shellcheck disable=SC2016 # $(ruby ...) and ${PATH} must expand in the inner
-          # bash -c (which has ruby from the flake), not the runner shell — single quotes intended.
-          nix develop --command bash -c \
-            'gem install --user-install bashcov simplecov-cobertura \
-              && export PATH="$(ruby -e "print Gem.user_dir")/bin:${PATH}" \
-              && bashcov --root . -- ./test/bats/bin/bats --recursive test/functions'
+        # bashcov + simplecov-cobertura come from the flake's bundlerEnv
+        # (nix/bashcov/gemset.nix); kcov is in the flake too. Fully hermetic.
+        run: nix develop --command bashcov --root . -- ./test/bats/bin/bats --recursive test/functions
       - uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         with:
           files: coverage/coverage.xml
