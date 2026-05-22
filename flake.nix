@@ -58,6 +58,9 @@
             pwgen
             gawk
             kcov
+            # ruby provides `gem` so the coverage job can install bashcov
+            # (bashcov itself is not packaged in nixpkgs)
+            ruby
             # TODO: bashcov for coverage job — not packaged in nixpkgs-unstable; coverage handled in a later task
             gh
             git
