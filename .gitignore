@@ -5,3 +5,7 @@ site/
 docs/functions/
 docs/scripts/
 docs/index.md
+
+# Nix / direnv
+.direnv/
+result
