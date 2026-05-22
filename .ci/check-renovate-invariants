@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+# @description Assert renovate.json carries the security-critical invariants:
+#              (1) extends includes helpers:pinGitHubActionDigests;
+#              (2) minimumReleaseAge is set; (3) no top-level automerge
+#              (must be per-manager); (4) the github-actions packageRule sets
+#              pinDigests: true.
+# @noargs
+# @stderr A line describing the first failing invariant.
+# @exitcode 0 all invariants intact.
+# @exitcode 1 an invariant is violated or the config is missing.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 3
+args::check_no_args "$@"
+
+readonly CONFIG_PATH="${RENOVATE_JSON_OVERRIDE:-${SCRIPTS_DIR}/.github/renovate.json}"
+
+function main() {
+  args::check_no_args "$@"
+  if ! files::exists "${CONFIG_PATH}"; then
+    log::die "renovate config not found: ${CONFIG_PATH}"
+  fi
+  if ! jq -e '.extends | type == "array" and any(. == "helpers:pinGitHubActionDigests")' \
+    "${CONFIG_PATH}" > '/dev/null' 2>&1; then
+    log::die 'extends does not include helpers:pinGitHubActionDigests'
+  fi
+  if ! jq -e '.minimumReleaseAge | type == "string" and length > 0' \
+    "${CONFIG_PATH}" > '/dev/null' 2>&1; then
+    log::die 'minimumReleaseAge not set (expected e.g. "7 days")'
+  fi
+  if jq -e 'has("automerge")' "${CONFIG_PATH}" > '/dev/null' 2>&1; then
+    log::die 'top-level automerge present - move to per-manager packageRules'
+  fi
+  if ! jq -e '
+    .packageRules // []
+    | any(((.matchManagers // []) | any(. == "github-actions")) and (.pinDigests == true))
+  ' "${CONFIG_PATH}" > '/dev/null' 2>&1; then
+    log::die 'github-actions packageRule missing pinDigests: true'
+  fi
+}
+
+main "$@"
