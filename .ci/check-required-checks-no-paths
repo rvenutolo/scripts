@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+# @description Assert no workflow declares `paths:` or `paths-ignore:` under
+#              `on.pull_request:`. Path filters on PR triggers create the
+#              auto-merge trap where required checks are skipped (and count as
+#              passed) on path-narrow PRs.
+# @noargs
+# @stderr One line per offending workflow.
+# @exitcode 0 no PR-trigger path filters found.
+# @exitcode 1 one or more workflows declare path filters under pull_request.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 3
+args::check_no_args "$@"
+commands::assert_executable_exists 'yq'
+
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${SCRIPTS_DIR}/.github/workflows}"
+
+function main() {
+  args::check_no_args "$@"
+  if ! dirs::exists "${WORKFLOWS_DIR}"; then
+    exit 0
+  fi
+  local files_tmp
+  files::create_temp files_tmp
+  find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
+  local failed=0
+  local file has_filter
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    # select(type == "!!map") guards the case where .on.pull_request is a
+    # scalar/list (e.g. `on: [pull_request]`) — only a map can carry the path
+    # filter keys, so other shapes contribute nothing instead of erroring.
+    has_filter="$(yq eval '
+      (.on.pull_request | select(type == "!!map") | (has("paths") or has("paths-ignore"))) // false
+    ' "${file}" 2> /dev/null || printf 'false\n')"
+    if [[ "${has_filter}" == 'true' ]]; then
+      printf '%s: declares paths/paths-ignore under on.pull_request\n' "${file}" >&2
+      failed=1
+    fi
+  done < "${files_tmp}"
+  exit "${failed}"
+}
+
+main "$@"
