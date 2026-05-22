@@ -11,7 +11,7 @@ function shell_scripts::has_shell_shebang() {
   local -r file="$1"
   local first_line
   first_line="$(head --lines=1 -- "${file}")"
-  [[ "${first_line}" =~ ^#!.*[/\ ](((ba)?sh)|bats)([[:space:]]|$) ]]
+  [[ ${first_line} =~ ^#!.*[/\ ](((ba)?sh)|bats)([[:space:]]|$) ]]
 }
 
 # @description Die if any of the given paths does not exist on disk.
@@ -36,8 +36,8 @@ function shell_scripts::assert_paths_exist() {
 # @arg $@ files or directories to search (optional; defaults to all scripts under SCRIPTS_DIR)
 function shell_scripts::find() {
   if args::no_args "$@"; then
-    shfmt --find "${SCRIPTS_DIR}" \
-      | grep --invert-match --extended-regexp '/(\.shdoc|other|test/bats|test/test_helper/bats-(support|assert))/'
+    shfmt --find "${SCRIPTS_DIR}" |
+      grep --invert-match --extended-regexp '/(\.shdoc|other|test/bats|test/test_helper/bats-(support|assert))/'
     return
   fi
   local arg
@@ -71,7 +71,7 @@ function shell_scripts::filter() {
       log::log "Skipping (no bash/sh shebang): ${file}"
       continue
     fi
-    if [[ "${file}" == */other/* ]]; then
+    if [[ ${file} == */other/* ]]; then
       if ! prompt::ny "Process file under other/: ${file}?"; then
         continue
       fi

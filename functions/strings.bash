@@ -6,7 +6,7 @@
 # @exitcode 1 if false
 function strings::is_empty() {
   args::check_exactly_1_arg "$@"
-  [[ -z "$1" ]]
+  [[ -z $1 ]]
 }
 
 # @description Return true if the string is non-empty (at least one character).
@@ -15,7 +15,7 @@ function strings::is_empty() {
 # @exitcode 1 if false
 function strings::is_not_empty() {
   args::check_exactly_1_arg "$@"
-  [[ -n "$1" ]]
+  [[ -n $1 ]]
 }
 
 # @description Return true if the string is empty or contains only whitespace characters.
@@ -24,7 +24,7 @@ function strings::is_not_empty() {
 # @exitcode 1 if false
 function strings::is_blank() {
   args::check_exactly_1_arg "$@"
-  [[ -z "${1//[[:space:]]/}" ]]
+  [[ -z ${1//[[:space:]]/} ]]
 }
 
 # @description Return true if the string contains at least one non-whitespace character.
@@ -33,7 +33,7 @@ function strings::is_blank() {
 # @exitcode 1 if false
 function strings::is_not_blank() {
   args::check_exactly_1_arg "$@"
-  [[ -n "${1//[[:space:]]/}" ]]
+  [[ -n ${1//[[:space:]]/} ]]
 }
 
 # @description Die if the string is not empty (zero length).
@@ -91,8 +91,8 @@ function strings::ensure_trailing_slash() {
   local -r str="$1"
   if strings::is_not_empty "${str}"; then
     case "${str}" in
-      */) printf '%s\n' "${str}" ;;
-      *) printf '%s\n' "${str}/" ;;
+    */) printf '%s\n' "${str}" ;;
+    *) printf '%s\n' "${str}/" ;;
     esac
   else
     printf '%s\n' "${str}"

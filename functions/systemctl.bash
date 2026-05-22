@@ -26,7 +26,7 @@ function systemctl::is_system_unit_enabled() {
 # @exitcode 1 if false
 function systemctl::user_service_unit_file_exists() {
   args::check_exactly_1_arg "$@"
-  systemctl --user list-unit-files --all --quiet "$1" > '/dev/null'
+  systemctl --user list-unit-files --all --quiet "$1" >'/dev/null'
 }
 
 # @description Return true if a system systemd unit file with the given name exists.
@@ -35,7 +35,7 @@ function systemctl::user_service_unit_file_exists() {
 # @exitcode 1 if false
 function systemctl::system_service_unit_file_exists() {
   args::check_exactly_1_arg "$@"
-  systemctl --system list-unit-files --all --quiet "$1" > '/dev/null'
+  systemctl --system list-unit-files --all --quiet "$1" >'/dev/null'
 }
 
 # @description Enable and start a user systemd service if its unit file exists and it is not already enabled.

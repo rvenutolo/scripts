@@ -4,7 +4,7 @@
 # @arg $1 file path
 function files::exists() {
   args::check_exactly_1_arg "$@"
-  [[ -f "$1" ]]
+  [[ -f $1 ]]
 }
 
 # @description Die if the given file does not exist.
@@ -25,7 +25,7 @@ function files::assert_exists() {
 # @exitcode 1 if false
 function files::any_exists() {
   args::check_exactly_1_arg "$@"
-  [[ -e "$1" ]]
+  [[ -e $1 ]]
 }
 
 # @description Return true if the given path is executable and is not a directory.
@@ -36,7 +36,7 @@ function files::any_exists() {
 # @exitcode 1 if false
 function files::is_executable() {
   args::check_exactly_1_arg "$@"
-  [[ ! -d "$1" && -x "$1" ]]
+  [[ ! -d $1 && -x $1 ]]
 }
 
 # @description Die if the given path is not executable or is a directory.
@@ -55,7 +55,7 @@ function files::assert_executable() {
 # @exitcode 1 if false
 function files::is_empty() {
   args::check_exactly_1_arg "$@"
-  [[ -f "$1" && ! -s "$1" ]]
+  [[ -f $1 && ! -s $1 ]]
 }
 
 # @description Return true if the given path exists, is a regular file, and has size greater than zero.
@@ -64,7 +64,7 @@ function files::is_empty() {
 # @exitcode 1 if false
 function files::is_non_empty() {
   args::check_exactly_1_arg "$@"
-  [[ -f "$1" && -s "$1" ]]
+  [[ -f $1 && -s $1 ]]
 }
 
 # @description Die if the given file does not exist or is not empty.
@@ -93,7 +93,7 @@ function files::assert_non_empty() {
 # @exitcode 1 if false
 function files::is_readable() {
   args::check_exactly_1_arg "$@"
-  [[ -r "$1" ]]
+  [[ -r $1 ]]
 }
 
 # @description Print the size of a file in gigabytes (two decimal places).
@@ -114,7 +114,7 @@ function files::move() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ "${src}" == "${dest}" ]]; then
+  if [[ ${src} == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if files::exists "${dest}"; then
@@ -147,7 +147,7 @@ function files::move_quiet() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ "${src}" == "${dest}" ]]; then
+  if [[ ${src} == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if files::exists "${dest}"; then
@@ -178,7 +178,7 @@ function files::move_no_prompt() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ "${src}" == "${dest}" ]]; then
+  if [[ ${src} == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   log::log "Moving: ${src} -> ${dest}"
@@ -196,7 +196,7 @@ function files::move_no_prompt_quiet() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ "${src}" == "${dest}" ]]; then
+  if [[ ${src} == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   dirs::create "$(dirname "${dest}")"
@@ -211,7 +211,7 @@ function files::root_move() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ "${src}" == "${dest}" ]]; then
+  if [[ ${src} == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if sudo test -f "${dest}"; then
@@ -244,7 +244,7 @@ function files::root_move_quiet() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ "${src}" == "${dest}" ]]; then
+  if [[ ${src} == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if sudo test -f "${dest}"; then
@@ -274,7 +274,7 @@ function files::copy() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ "${src}" == "${dest}" ]]; then
+  if [[ ${src} == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if files::exists "${dest}"; then
@@ -306,7 +306,7 @@ function files::copy_quiet() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ "${src}" == "${dest}" ]]; then
+  if [[ ${src} == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if files::exists "${dest}"; then
@@ -335,7 +335,7 @@ function files::root_copy() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ "${src}" == "${dest}" ]]; then
+  if [[ ${src} == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if sudo test -f "${dest}"; then
@@ -367,7 +367,7 @@ function files::root_copy_quiet() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ "${src}" == "${dest}" ]]; then
+  if [[ ${src} == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if sudo test -f "${dest}"; then
@@ -403,7 +403,7 @@ function files::root_transform() {
   files::assert_exists "${file}"
   files::create_temp tmp_transform_out
   # shellcheck disable=SC2154 # tmp_transform_out assigned by files::create_temp via nameref
-  sudo cat "${file}" | "$@" > "${tmp_transform_out}"
+  sudo cat "${file}" | "$@" >"${tmp_transform_out}"
   files::root_copy "${tmp_transform_out}" "${file}"
 }
 
@@ -415,10 +415,10 @@ function files::write() {
   local -r file="$1"
   local -r content="$2"
   if files::exists "${file}"; then
-    if [[ "$(< "${file}")" == "${content}" ]]; then
+    if [[ "$(<"${file}")" == "${content}" ]]; then
       return 0
     else
-      diff --color --unified "${file}" - <<< "${content}" || true
+      diff --color --unified "${file}" - <<<"${content}" || true
       if ! prompt::yn "${file} exists - Overwrite?"; then
         return 0
       fi
@@ -426,7 +426,7 @@ function files::write() {
   fi
   log::log "Writing ${file}"
   dirs::create "$(dirname "${file}")"
-  printf '%s\n' "${content}" > "${file}"
+  printf '%s\n' "${content}" >"${file}"
   log::log "Wrote ${file}"
 }
 
@@ -439,17 +439,17 @@ function files::write_quiet() {
   local -r file="$1"
   local -r content="$2"
   if files::exists "${file}"; then
-    if [[ "$(< "${file}")" == "${content}" ]]; then
+    if [[ "$(<"${file}")" == "${content}" ]]; then
       return 0
     else
-      diff --color --unified "${file}" - <<< "${content}" || true
+      diff --color --unified "${file}" - <<<"${content}" || true
       if ! prompt::yn "${file} exists - Overwrite?"; then
         return 0
       fi
     fi
   fi
   dirs::create "$(dirname "${file}")"
-  printf '%s\n' "${content}" > "${file}"
+  printf '%s\n' "${content}" >"${file}"
 }
 
 # @description Write content to a root-owned file, prompting if the file already exists; skips if content is identical.
@@ -463,7 +463,7 @@ function files::root_write() {
     if [[ "$(sudo cat "${file}")" == "${content}" ]]; then
       return 0
     else
-      sudo diff --color --unified "${file}" - <<< "${content}" || true
+      sudo diff --color --unified "${file}" - <<<"${content}" || true
       if ! prompt::yn "${file} exists - Overwrite?"; then
         return 0
       fi
@@ -471,7 +471,7 @@ function files::root_write() {
   fi
   log::log "Writing ${file}"
   dirs::root_create "$(dirname "${file}")"
-  printf '%s\n' "${content}" | sudo tee "${file}" > '/dev/null'
+  printf '%s\n' "${content}" | sudo tee "${file}" >'/dev/null'
   log::log "Wrote ${file}"
 }
 
@@ -487,14 +487,14 @@ function files::root_write_quiet() {
     if [[ "$(sudo cat "${file}")" == "${content}" ]]; then
       return 0
     else
-      sudo diff --color --unified "${file}" - <<< "${content}" || true
+      sudo diff --color --unified "${file}" - <<<"${content}" || true
       if ! prompt::yn "${file} exists - Overwrite?"; then
         return 0
       fi
     fi
   fi
   dirs::root_create "$(dirname "${file}")"
-  printf '%s\n' "${content}" | sudo tee "${file}" > '/dev/null'
+  printf '%s\n' "${content}" | sudo tee "${file}" >'/dev/null'
 }
 
 # @description Append content to a file, creating the file and any missing parent directories as needed.
@@ -506,7 +506,7 @@ function files::append_to() {
   local -r content="$2"
   log::log "Appending to ${file}"
   dirs::create "$(dirname "${file}")"
-  printf '%s\n' "${content}" >> "${file}"
+  printf '%s\n' "${content}" >>"${file}"
   log::log "Appended to ${file}"
 }
 
@@ -519,7 +519,7 @@ function files::append_to_quiet() {
   local -r file="$1"
   local -r content="$2"
   dirs::create "$(dirname "${file}")"
-  printf '%s\n' "${content}" >> "${file}"
+  printf '%s\n' "${content}" >>"${file}"
 }
 
 # @description Append content to a root-owned file, creating the file and any missing parent directories as needed.
@@ -531,7 +531,7 @@ function files::root_append_to() {
   local -r content="$2"
   log::log "Appending to ${file}"
   dirs::root_create "$(dirname "${file}")"
-  printf '%s\n' "${content}" | sudo tee --append "${file}" > '/dev/null'
+  printf '%s\n' "${content}" | sudo tee --append "${file}" >'/dev/null'
   log::log "Appended to ${file}"
 }
 
@@ -544,7 +544,7 @@ function files::root_append_to_quiet() {
   local -r file="$1"
   local -r content="$2"
   dirs::root_create "$(dirname "${file}")"
-  printf '%s\n' "${content}" | sudo tee --append "${file}" > '/dev/null'
+  printf '%s\n' "${content}" | sudo tee --append "${file}" >'/dev/null'
 }
 
 # @description Create a temporary file under /tmp and set the named variable in the

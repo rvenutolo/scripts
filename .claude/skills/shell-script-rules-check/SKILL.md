@@ -14,7 +14,7 @@ Audit one shell script against this repo's shell-script rules and apply fixes.
 Two paths:
 
 1. **Slash command** — `/shell-script-rules-check <path>`. Run the skill immediately. No confirmation prompt.
-2. **Natural-language paraphrase** — anything that sounds like this skill ("check shell rules on X", "lint this against the rules", "audit X for rule compliance", "does this follow the shell-script rules", etc.). Do NOT auto-run. Ask first: "Run the shell-script-rules-check skill on `<path>`?" Proceed only on confirmation. If the user says no, handle the request however they prefer (or not at all).
+1. **Natural-language paraphrase** — anything that sounds like this skill ("check shell rules on X", "lint this against the rules", "audit X for rule compliance", "does this follow the shell-script rules", etc.). Do NOT auto-run. Ask first: "Run the shell-script-rules-check skill on `<path>`?" Proceed only on confirmation. If the user says no, handle the request however they prefer (or not at all).
 
 Never silently invoke the skill from a natural-language request — the confirmation prompt is mandatory in that path.
 
@@ -25,7 +25,7 @@ A single file path. The user supplies it as an argument to `/shell-script-rules-
 ## Rule sources (merged, in precedence order)
 
 1. **Project rules** (highest): `.claude/rules/shell-scripts.md` (relative to the project root)
-2. **Global rules**: `$CLAUDE_CONFIG_DIR/rules/shell-scripts.md` (resolve `CLAUDE_CONFIG_DIR` via `printenv CLAUDE_CONFIG_DIR`)
+1. **Global rules**: `$CLAUDE_CONFIG_DIR/rules/shell-scripts.md` (resolve `CLAUDE_CONFIG_DIR` via `printenv CLAUDE_CONFIG_DIR`)
 
 Read both at the start of every run. If a rule appears in both with a conflict, the project version wins. Do not cache between invocations — rules drift.
 
@@ -47,6 +47,7 @@ If the file is under `other/`: per CLAUDE.md, `other/` files are third-party and
 - Anything else under `main/`, `install/`, `set_up/`, `misc/`, `other/`, or the repo root → **top-level executable**.
 
 Misc subtleties:
+
 - `misc/` scripts do NOT source `functions.bash` and use the inline `ERR` trap form, not `log::enable_err_trap`. Because they cannot source the function library, do NOT flag them for missing helper-function usage — the "use `files::exists` instead of `[[ -f ]]`", "use `log::log` instead of inline `log`", "use `commands::executable_exists` instead of `command -v`", "use `dirs::create` instead of `mkdir --parents`", "use `prompt::yn` instead of inline read", retry-loop-via-helper, etc. rules are all inapplicable here. Misc scripts are expected to inline equivalents. Do flag every OTHER rule (filename, extension, quoting, structure, `[[ ]]` over `[ ]`, long flags, `set -Eeuo pipefail`, IFS, ERR trap form, bash-version check, etc.).
 - Scripts that source `${DOCKER_COMPOSE_DIR}/functions.bash` (e.g. some `main/docker-*` scripts) DO have access to this repo's helpers transitively, and use `log::enable_err_trap` (not the inline trap). Helper-function usage rules apply normally.
 - `install/` files starting with all-caps names (e.g. `00_DISTRO_PACKAGES`) are markers/data, not executables — they have the executable bit off on purpose. Don't flag the missing strict-mode pragma if the file is non-executable.
@@ -73,6 +74,7 @@ Capture the output. Anything `shfmt` would change is mechanical; anything `shell
 Read the script. Compare against the merged rule set. Flag every violation. Categorize each finding into one of two buckets:
 
 **Mechanical / clear-cut** — the rule is unambiguous and the fix is obvious. Examples:
+
 - Missing `#!/usr/bin/env bash` shebang
 - Missing or misplaced `set -Eeuo pipefail` / `IFS=$'\n\t'`
 - Missing `log::enable_err_trap` (or inline trap form for `misc/`)
@@ -112,6 +114,7 @@ Read the script. Compare against the merged rule set. Flag every violation. Cate
 - `# shellcheck disable=SCxxxx` directives missing a same-line justification comment. Rule is unambiguous: justification must be on the SAME line as the disable directive. A justification comment on the line ABOVE does not satisfy the rule. Flag every disable directive lacking a same-line justification. **Format the justification as a separate comment using `# ` as the separator** — `# shellcheck disable=SC2016 # single quotes intentional`. Do NOT use `--` as a separator (shellcheck parses everything after `disable=` up to the next `#` as directive content and will error on `SC1072`/`SC1073`).
 
 **Judgment calls** — the rule applies but the right answer depends on context, taste, or invasive design changes. Examples:
+
 - A piece of inline shell that *could* be extracted into a new helper in `functions/<topic>.bash` (rule says "propose new helper rather than silently inlining" — but only when "logic looks reusable across scripts")
 - Whether a function should be split because it's getting long
 - Whether a comment block above a function is "non-trivial enough" to require the documented-positional-params block

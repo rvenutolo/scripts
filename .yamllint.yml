@@ -1,5 +1,4 @@
 extends: default
-
 ignore: |
   test/bats/
   test/test_helper/bats-support/
@@ -8,7 +7,6 @@ ignore: |
   lib/
   .shdoc/
   site/
-
 rules:
   document-start: disable
   line-length:

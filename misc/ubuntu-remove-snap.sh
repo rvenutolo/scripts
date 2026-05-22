@@ -35,15 +35,15 @@ function die() {
 # @exitcode 1 User answered no.
 function prompt_yn() {
   REPLY=''
-  while [[ "${REPLY}" != 'y' && "${REPLY}" != 'n' ]]; do
+  while [[ ${REPLY} != 'y' && ${REPLY} != 'n' ]]; do
     read -rp "$1 [Y/n]: "
-    if [[ "${REPLY}" == '' || "${REPLY}" == [yY] ]]; then
+    if [[ ${REPLY} == '' || ${REPLY} == [yY] ]]; then
       REPLY='y'
-    elif [[ "${REPLY}" == [nN] ]]; then
+    elif [[ ${REPLY} == [nN] ]]; then
       REPLY='n'
     fi
   done
-  [[ "${REPLY}" == 'y' ]]
+  [[ ${REPLY} == 'y' ]]
 }
 
 # @description Return true if the named executable exists on PATH (excluding builtins, aliases, and functions).
@@ -52,22 +52,22 @@ function prompt_yn() {
 # @exitcode 1 Executable not found.
 function executable_exists() {
   # executables / no builtins, aliases, or functions
-  type -aPf "$1" > '/dev/null' 2>&1
+  type -aPf "$1" >'/dev/null' 2>&1
 }
 
 function main() {
-  if [[ "${EUID}" != 0 ]]; then
+  if [[ ${EUID} != 0 ]]; then
     die "You need to run this script with root privileges"
   fi
 
   log 'Removing snaps'
   local snap_list_tmp
   snap_list_tmp="$(mktemp)"
-  while [[ "$(snap list 2> '/dev/null' | tail --lines='+2' | wc --lines)" -gt 0 ]]; do
-    snap list | tail --lines='+2' | cut --delimiter=' ' --fields=1 > "${snap_list_tmp}"
-    mapfile -t snaps < "${snap_list_tmp}"
+  while [[ "$(snap list 2>'/dev/null' | tail --lines='+2' | wc --lines)" -gt 0 ]]; do
+    snap list | tail --lines='+2' | cut --delimiter=' ' --fields=1 >"${snap_list_tmp}"
+    mapfile -t snaps <"${snap_list_tmp}"
     for snap in "${snaps[@]}"; do
-      if snap remove --purge "${snap}" &> '/dev/null'; then
+      if snap remove --purge "${snap}" &>'/dev/null'; then
         log "Removed snap: ${snap}"
       fi
     done
@@ -92,8 +92,8 @@ function main() {
   printf '%s\n' \
     'Package: snapd' \
     'Pin: release a=*' \
-    'Pin-Priority: -10' \
-    | tee '/etc/apt/preferences.d/disable-snap.pref' > '/dev/null'
+    'Pin-Priority: -10' |
+    tee '/etc/apt/preferences.d/disable-snap.pref' >'/dev/null'
 
   log 'Updating apt package index'
   sudo apt update
@@ -103,8 +103,8 @@ function main() {
   existing_mounts="$(grep --invert '^\s*#' '/etc/fstab' | awk '{ print $2 }')"
 
   for dir in '/snap' '/var/snap' '/var/lib/snapd' '/var/cache/snapd' '/root/snap'; do
-    if [[ -d "${dir}" ]]; then
-      if grep --quiet --fixed-strings --line-regexp "${dir}" <<< "${existing_mounts}"; then
+    if [[ -d ${dir} ]]; then
+      if grep --quiet --fixed-strings --line-regexp "${dir}" <<<"${existing_mounts}"; then
         # if this dir exists in fstab, it is likely because I have a btrfs subvolume mounted at that dir
         log "Removing all files in: ${dir}"
         rm --recursive --force -- "${dir:?}/"*
@@ -119,7 +119,7 @@ function main() {
 
   for dir in "/home/"*; do
     if [[ -d "${dir}/snap" ]]; then
-      if grep --quiet --fixed-strings --line-regexp "${dir}" <<< "${existing_mounts}"; then
+      if grep --quiet --fixed-strings --line-regexp "${dir}" <<<"${existing_mounts}"; then
         # if this dir exists in fstab, it is likely because I have a btrfs subvolume mounted at that dir
         log "Removing all files in: ${dir}/snap"
         rm --recursive --force -- "${dir}/snap/"*

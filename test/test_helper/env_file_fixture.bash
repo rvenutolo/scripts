@@ -12,6 +12,6 @@ function env_file_fixture::create() {
   local -r content="$1"
   local -r name="${2:-env}"
   local -r path="${BATS_TEST_TMPDIR}/${name}"
-  printf '%s' "${content}" > "${path}"
+  printf '%s' "${content}" >"${path}"
   printf '%s' "${path}"
 }

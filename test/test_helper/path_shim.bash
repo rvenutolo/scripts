@@ -12,8 +12,8 @@ function path_shim::mkbin() {
   local -r bindir="${BATS_TEST_TMPDIR}/bin"
   mkdir --parents "${bindir}"
   case ":${PATH}:" in
-    *":${bindir}:"*) ;;
-    *) PATH="${bindir}:${PATH}" ;;
+  *":${bindir}:"*) ;;
+  *) PATH="${bindir}:${PATH}" ;;
   esac
 }
 
@@ -24,6 +24,6 @@ function path_shim::add() {
   local -r name="$1"
   local -r body="$2"
   path_shim::mkbin
-  printf '%s\n' "${body}" > "${BATS_TEST_TMPDIR}/bin/${name}"
+  printf '%s\n' "${body}" >"${BATS_TEST_TMPDIR}/bin/${name}"
   chmod +x "${BATS_TEST_TMPDIR}/bin/${name}"
 }

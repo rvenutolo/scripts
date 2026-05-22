@@ -23,7 +23,7 @@ function arrays::diff() {
   local first_tmp second_tmp
   files::create_temp first_tmp
   files::create_temp second_tmp
-  [[ ${#first_array[@]} -gt 0 ]] && arrays::to_lines "${first_array[@]}" > "${first_tmp}" || true
-  [[ ${#second_array[@]} -gt 0 ]] && arrays::to_lines "${second_array[@]}" > "${second_tmp}" || true
+  [[ ${#first_array[@]} -gt 0 ]] && arrays::to_lines "${first_array[@]}" >"${first_tmp}" || true
+  [[ ${#second_array[@]} -gt 0 ]] && arrays::to_lines "${second_array[@]}" >"${second_tmp}" || true
   comm -23 "${first_tmp}" "${second_tmp}"
 }

@@ -6,7 +6,7 @@
 function env_file::_assert_valid_var_name() {
   args::check_exactly_1_arg "$@"
   local -r var_name="$1"
-  if ! [[ "${var_name}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+  if ! [[ ${var_name} =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
     log::die "Invalid env var name: ${var_name}"
   fi
 }
@@ -66,7 +66,7 @@ function env_file::set_var_value() {
   local -r var_name="$2"
   local -r new_value="$3"
   env_file::_assert_valid_var_name "${var_name}"
-  if [[ "${new_value}" == *$'\n'* ]]; then
+  if [[ ${new_value} == *$'\n'* ]]; then
     log::die 'env file values cannot contain newlines'
   fi
   files::assert_exists "${env_file}"

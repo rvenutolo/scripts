@@ -6,7 +6,7 @@
 function ip::ipv4_to_num() {
   args::check_exactly_1_arg "$@"
   local a b c d
-  IFS=. read -r a b c d <<< "$1"
+  IFS=. read -r a b c d <<<"$1"
   readonly a b c d
   printf '%s\n' "$(((a << 24) + (b << 16) + (c << 8) + d))"
 }
