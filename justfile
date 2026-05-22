@@ -4,6 +4,10 @@ default: check
 check:
     ./check-scripts
 
+# Run the repo-governance lint suite (workflow posture, renovate, ruleset)
+governance:
+    ./.ci/run-governance-checks
+
 # Run BATS tests
 test:
     ./run-tests

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# @description Git pre-push hook. Runs check-scripts (shellcheck + shdoc audit) and nix flake check (formatting) inside the flake devShell, aborting the push if either fails. Bypass with `git push --no-verify`.
+# @description Git pre-push hook. Runs check-scripts (shellcheck + shdoc audit), nix flake check (formatting), and the governance lint suite inside the flake devShell, aborting the push if any fails. Bypass with `git push --no-verify`.
 # @arg $@ args git passes ref/sha pairs that this hook does not use
-# @exitcode 0 check-scripts and nix flake check passed
-# @exitcode 1 check-scripts or nix flake check failed; push aborted
+# @exitcode 0 check-scripts, nix flake check, and governance checks passed
+# @exitcode 1 check-scripts, nix flake check, or governance checks failed; push aborted
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -24,3 +24,9 @@ if ! nix flake check; then
   log::die 'nix flake check failed — push aborted. Run nix fmt to format, or rerun with --no-verify to bypass.'
 fi
 log::log 'pre-push: nix flake check passed'
+
+log::log 'pre-push: running governance checks'
+if ! nix develop --command "${SCRIPTS_DIR}/.ci/run-governance-checks"; then
+  log::die 'governance checks failed — push aborted. Fix issues or rerun with --no-verify to bypass.'
+fi
+log::log 'pre-push: governance checks passed'

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+# @description Run every governance lint in sequence and aggregate exit codes.
+#              The local equivalent of the per-check CI jobs; invoked by
+#              `just governance` and the pre-push hook. Does NOT run formatting
+#              or shellcheck — that is treefmt (`nix flake check`) and
+#              `check-scripts`.
+# @noargs
+# @stderr Output from each failing check.
+# @exitcode 0 every governance check passed.
+# @exitcode 1 one or more governance checks failed.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 3
+args::check_no_args "$@"
+
+function main() {
+  args::check_no_args "$@"
+  local -r ci="${SCRIPTS_DIR}/.ci"
+  local rc=0
+  local check
+  for check in \
+    check-uses-sha-pinned \
+    check-min-permissions \
+    check-harden-runner-first \
+    check-pr-workflows-no-secrets \
+    check-renovate-invariants \
+    check-required-checks-no-paths \
+    check-protect-main \
+    check-jsonschema; do
+    log::log "running ${check}"
+    "${ci}/${check}" || rc=1
+  done
+  if ((rc != 0)); then
+    log::warn 'one or more governance checks failed'
+  fi
+  exit "${rc}"
+}
+
+main "$@"
