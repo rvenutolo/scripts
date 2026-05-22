@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+# @description Assert every `uses:` reference in the repo's GitHub Actions
+#              workflows ends with a full 40-hex commit SHA, or is a local
+#              path-relative (`./...`) reference that the checkout content-
+#              addresses intrinsically. Belt-and-braces backup to the
+#              GitHub-side sha-pinning ruleset.
+# @noargs
+# @stderr One line per unpinned reference, plus a final count.
+# @exitcode 0 every uses: reference is SHA-pinned or local.
+# @exitcode 1 one or more references are not SHA-pinned.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 3
+args::check_no_args "$@"
+
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${SCRIPTS_DIR}/.github/workflows}"
+
+# @description Check one workflow file for unpinned uses: refs. Prints a line
+#              per violation to stderr and echoes the violation count to stdout.
+# @arg $1 file path to a workflow YAML
+# @stdout integer count of violations in this file
+function count_unpinned_in_file() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local uses_tmp
+  files::create_temp uses_tmp
+  grep --extended-regexp '^\s*-?\s*uses:\s*[^[:space:]]+' "${file}" > "${uses_tmp}" || true
+  local count=0
+  local line ref
+  while IFS= read -r line; do
+    ref="${line#*uses:}"
+    ref="${ref#"${ref%%[![:space:]]*}"}"
+    ref="${ref%%#*}"
+    ref="${ref%"${ref##*[![:space:]]}"}"
+    if strings::is_empty "${ref}"; then
+      continue
+    fi
+    if [[ "${ref}" == ./* ]]; then
+      continue
+    fi
+    if [[ ! "${ref}" =~ @[0-9a-f]{40}$ ]]; then
+      printf '%s: %q not SHA-pinned (need owner/repo@<40-hex>)\n' "${file}" "${ref}" >&2
+      count=$((count + 1))
+    fi
+  done < "${uses_tmp}"
+  printf '%s\n' "${count}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  if ! dirs::exists "${WORKFLOWS_DIR}"; then
+    exit 0
+  fi
+  local files_tmp
+  files::create_temp files_tmp
+  find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
+  local total=0
+  local file file_count
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    file_count="$(count_unpinned_in_file "${file}")"
+    total=$((total + file_count))
+  done < "${files_tmp}"
+  if ((total > 0)); then
+    printf '%d unpinned uses: reference(s) found\n' "${total}" >&2
+    exit 1
+  fi
+  exit 0
+}
+
+main "$@"
