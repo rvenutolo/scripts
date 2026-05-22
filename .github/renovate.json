@@ -3,11 +3,11 @@
   "extends": [
     "config:recommended",
     "helpers:pinGitHubActionDigests",
-    ":automergeAll",
     ":dependencyDashboard"
   ],
   "timezone": "America/New_York",
   "schedule": ["before 6am on saturday"],
+  "minimumReleaseAge": "7 days",
   "commitMessagePrefix": "chore",
   "labels": ["dependencies"],
   "git-submodules": {
@@ -15,12 +15,34 @@
   },
   "packageRules": [
     {
+      "description": "github-actions: pin SHAs and auto-merge after the 7-day quarantine.",
       "matchManagers": ["github-actions"],
-      "groupName": "github-actions"
+      "groupName": "github-actions",
+      "pinDigests": true,
+      "automerge": true
     },
     {
+      "description": "bats submodules: group and auto-merge after the quarantine.",
       "matchManagers": ["git-submodules"],
-      "groupName": "bats-submodules"
+      "groupName": "bats-submodules",
+      "automerge": true
+    },
+    {
+      "description": "flake.lock (nixpkgs) bumps: auto-merge once CI is green. CI validates the exact locked toolset and nix flake check (treefmt --ci) goes red if a bumped formatter would change output, so a green run is safe to merge.",
+      "matchManagers": ["nix"],
+      "automerge": true
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "SchemaStore master HEAD tracker for the JSON Schema URL consumed by .ci/check-jsonschema. SchemaStore publishes no releases/tags, so master HEAD is the only signal; the global 7-day minimumReleaseAge applies.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.ci/check-jsonschema$/"],
+      "matchStrings": ["SCHEMASTORE_SHA='(?<currentDigest>[0-9a-f]{40})'"],
+      "currentValueTemplate": "master",
+      "datasourceTemplate": "git-refs",
+      "depNameTemplate": "SchemaStore/schemastore",
+      "packageNameTemplate": "https://github.com/SchemaStore/schemastore"
     }
   ]
 }
