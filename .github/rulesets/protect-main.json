@@ -10,9 +10,15 @@
     }
   },
   "rules": [
-    { "type": "deletion" },
-    { "type": "non_fast_forward" },
-    { "type": "required_signatures" },
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    },
+    {
+      "type": "required_signatures"
+    },
     {
       "type": "pull_request",
       "parameters": {
@@ -21,7 +27,8 @@
         "require_code_owner_review": false,
         "require_last_push_approval": false,
         "required_review_thread_resolution": true,
-        "allowed_merge_methods": ["merge"]
+        "allowed_merge_methods": ["merge"],
+        "required_reviewers": []
       }
     },
     {
@@ -29,28 +36,71 @@
       "parameters": {
         "strict_required_status_checks_policy": true,
         "required_status_checks": [
-          { "context": "actionlint" },
-          { "context": "bats" },
-          { "context": "check-jsonschema" },
-          { "context": "check-protect-main" },
-          { "context": "check-scripts" },
-          { "context": "commitlint" },
-          { "context": "dependency-review" },
-          { "context": "editorconfig" },
-          { "context": "gitleaks" },
-          { "context": "harden-runner-first" },
-          { "context": "lint-pr-title" },
-          { "context": "markdownlint" },
-          { "context": "min-permissions" },
-          { "context": "nix-flake-check" },
-          { "context": "pr-workflows-no-secrets" },
-          { "context": "renovate-invariants" },
-          { "context": "required-checks-no-paths" },
-          { "context": "typos" },
-          { "context": "uses-sha-pinned" },
-          { "context": "yaml + json lint" },
-          { "context": "zizmor" }
-        ]
+          {
+            "context": "actionlint"
+          },
+          {
+            "context": "bats"
+          },
+          {
+            "context": "check-jsonschema"
+          },
+          {
+            "context": "check-protect-main"
+          },
+          {
+            "context": "check-scripts"
+          },
+          {
+            "context": "commitlint"
+          },
+          {
+            "context": "dependency-review"
+          },
+          {
+            "context": "editorconfig"
+          },
+          {
+            "context": "gitleaks"
+          },
+          {
+            "context": "harden-runner-first"
+          },
+          {
+            "context": "lint-pr-title"
+          },
+          {
+            "context": "markdownlint"
+          },
+          {
+            "context": "min-permissions"
+          },
+          {
+            "context": "nix-flake-check"
+          },
+          {
+            "context": "pr-workflows-no-secrets"
+          },
+          {
+            "context": "renovate-invariants"
+          },
+          {
+            "context": "required-checks-no-paths"
+          },
+          {
+            "context": "typos"
+          },
+          {
+            "context": "uses-sha-pinned"
+          },
+          {
+            "context": "yaml + json lint"
+          },
+          {
+            "context": "zizmor"
+          }
+        ],
+        "do_not_enforce_on_create": false
       }
     }
   ]
