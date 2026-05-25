@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# @description Run the `claude` CLI with CLAUDE_CONFIG_DIR pointed at the work profile.
+# @description Run the `claude` CLI with CLAUDE_CONFIG_DIR forced to the work profile, overriding any existing value.
 # @arg $@ args Optional arguments forwarded verbatim to claude.
 
 set -Eeuo pipefail
@@ -15,4 +15,4 @@ system::require_bash_version 4 0
 # remove this dir from the path so executing `claude` doesn't run the `claude` script
 path::remove "$(misc::this_script_dir)"
 
-CLAUDE_CONFIG_DIR="${XDG_CONFIG_HOME}/claude/work" exec claude -- "$@"
+CLAUDE_CONFIG_DIR="${XDG_CONFIG_HOME}/claude/work" exec claude "$@"
