@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-# @description Dispatch to the real `claude` binary using the profile selected via CLAUDE_CONFIG_DIR, CLAUDE_PROFILE, or an interactive prompt.
+# @description Pass-through to the real `claude` binary. Fails if CLAUDE_CONFIG_DIR is not set (no ~/.claude fallback).
 # @arg $@ args Optional arguments forwarded verbatim to claude.
+# @exitcode 1 CLAUDE_CONFIG_DIR is not set
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -12,30 +13,8 @@ log::enable_err_trap
 system::require_bash_version 4 0
 # pass-through: any arg count valid (forwarded to claude)
 
-# remove this dir from the path so executing `claude` doesn't this run this script
+# remove this dir from the path so executing `claude` doesn't run this script
 path::remove "$(misc::this_script_dir)"
 
-if strings::is_not_empty "${CLAUDE_CONFIG_DIR:-}"; then
-  CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR}" exec claude "$@"
-elif strings::is_not_empty "${CLAUDE_PROFILE:-}"; then
-  exec "$(misc::this_script_dir)/claude-${CLAUDE_PROFILE}" "$@"
-else
-  log::log "Set CLAUDE_PROFILE='work' or CLAUDE_PROFILE='personal' to skip this prompt"
-  PS3='Select profile (1=work, 2=personal): '
-  select profile in 'work' 'personal'; do
-    case "${profile}" in
-      work)
-        log::log "Using Claude 'work' profile"
-        break
-        ;;
-      personal)
-        printf '%s\n' "Using Claude 'personal' profile"
-        break
-        ;;
-      *)
-        log::log "Invalid choice: ${REPLY}"
-        ;;
-    esac
-  done
-  exec "$(misc::this_script_dir)/claude-${profile}" "$@"
-fi
+env::assert_var_set 'CLAUDE_CONFIG_DIR'
+exec claude "$@"
