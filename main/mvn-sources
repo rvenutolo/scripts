@@ -19,7 +19,7 @@ function get_sources() {
   args::check_exactly_1_arg "$@"
   local -r pom="$1"
   mvn --file "${pom}" \
-    org.apache.maven.plugins:maven-dependency-plugin:resolve-sources \
+    org.apache.maven.plugins:maven-dependency-plugin:sources \
     org.apache.maven.plugins:maven-dependency-plugin:resolve \
     -Dclassifier=javadoc
 }
