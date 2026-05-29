@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# @description Enable the ssh-agent user service unit.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # source path not known statically
+source "${SCRIPTS_DIR}/functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 0
+args::check_no_args "$@"
+
+systemctl::enable_user_service_unit 'ssh-add.service'
