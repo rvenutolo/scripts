@@ -27,8 +27,9 @@ function shell_scripts::assert_paths_exist() {
 }
 
 # @description Emit shell-script paths under SCRIPTS_DIR when called with no args; excludes
-# /other/ (third-party copies), /.shdoc/ (vendored shdoc submodule), and
-# /test/bats/, /test/test_helper/bats-support/, /test/test_helper/bats-assert/
+# /other/ (third-party copies), /.shdoc/ (vendored shdoc submodule),
+# /.direnv/ (Nix/direnv-managed cache), and /test/bats/,
+# /test/test_helper/bats-support/, /test/test_helper/bats-assert/
 # (vendored BATS submodules). With args: each arg is either a directory
 # (recursed via `shfmt --find`) or a file (emitted as-is). Caller must
 # validate that each arg exists before calling.
@@ -37,7 +38,7 @@ function shell_scripts::assert_paths_exist() {
 function shell_scripts::find() {
   if args::no_args "$@"; then
     shfmt --find "${SCRIPTS_DIR}" |
-      grep --invert-match --extended-regexp '/(\.shdoc|other|test/bats|test/test_helper/bats-(support|assert))/'
+      grep --invert-match --extended-regexp '/(\.shdoc|\.direnv|other|test/bats|test/test_helper/bats-(support|assert))/'
     return
   fi
   local arg
