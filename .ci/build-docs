@@ -2,7 +2,7 @@
 
 # @description Generate markdown reference docs for the scripts repo by running
 #              shdoc against every functions/*.bash file and every shell script
-#              under main/. Output lands in docs/functions/ and docs/scripts/
+#              under main/. Output lands in .docs/functions/ and .docs/scripts/
 #              (gitignored, regenerated on every build). Companion config:
 #              .mkdocs.yml. Companion deploy: .github/workflows/pages.yml.
 # @noargs
@@ -18,8 +18,8 @@ system::require_bash_version 4 3
 args::check_no_args "$@"
 
 readonly SHDOC="${SCRIPTS_DIR}/.shdoc/shdoc"
-readonly DOCS_FUNCTIONS_DIR="${SCRIPTS_DIR}/docs/functions"
-readonly DOCS_SCRIPTS_DIR="${SCRIPTS_DIR}/docs/scripts"
+readonly DOCS_FUNCTIONS_DIR="${SCRIPTS_DIR}/.docs/functions"
+readonly DOCS_SCRIPTS_DIR="${SCRIPTS_DIR}/.docs/scripts"
 
 # @description Wipe and recreate output directories so each build is clean.
 function reset_output_dirs() {
@@ -249,7 +249,7 @@ function write_scripts_top_index() {
 #              landing page. MkDocs adds the chrome around it.
 # @noargs
 function write_home_index() {
-  cp -- "${SCRIPTS_DIR}/README.md" "${SCRIPTS_DIR}/docs/index.md"
+  cp -- "${SCRIPTS_DIR}/README.md" "${SCRIPTS_DIR}/.docs/index.md"
 }
 
 function main() {
@@ -262,7 +262,7 @@ function main() {
   fi
 
   reset_output_dirs
-  dirs::create "${SCRIPTS_DIR}/docs"
+  dirs::create "${SCRIPTS_DIR}/.docs"
 
   log::log "Generating function reference"
   local file base
@@ -284,7 +284,7 @@ function main() {
   log::log "Generating home page from README.md"
   write_home_index
 
-  log::log "Doc generation complete: ${SCRIPTS_DIR}/docs/"
+  log::log "Doc generation complete: ${SCRIPTS_DIR}/.docs/"
 }
 
 main "$@"

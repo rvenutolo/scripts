@@ -36,7 +36,7 @@ in
     ".shdoc/**"
     "site/**"
     "lib/**"
-    "docs/**"
+    ".docs/**"
     "flake.lock"
     "LICENSE"
     ".gitmodules"
