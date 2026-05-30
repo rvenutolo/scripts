@@ -529,7 +529,7 @@ write_fixture() {
     '' \
     'set -Eeuo pipefail' \
     '# shellcheck disable=SC1091' \
-    'source "${SCRIPTS_DIR}/functions.bash"' \
+    'source "${SCRIPTS_DIR}/.functions.bash"' \
     'args::handle_help_flag "$@"' \
     'echo "did-not-exit"'
   chmod +x "${fixture}"
@@ -549,7 +549,7 @@ write_fixture() {
     '' \
     'set -Eeuo pipefail' \
     '# shellcheck disable=SC1091' \
-    'source "${SCRIPTS_DIR}/functions.bash"' \
+    'source "${SCRIPTS_DIR}/.functions.bash"' \
     'args::handle_help_flag "$@"' \
     'echo "did-not-exit"'
   chmod +x "${fixture}"
@@ -568,7 +568,7 @@ write_fixture() {
     '' \
     'set -Eeuo pipefail' \
     '# shellcheck disable=SC1091' \
-    'source "${SCRIPTS_DIR}/functions.bash"' \
+    'source "${SCRIPTS_DIR}/.functions.bash"' \
     'args::handle_help_flag "$@"' \
     'echo "did-not-exit"'
   chmod +x "${fixture}"

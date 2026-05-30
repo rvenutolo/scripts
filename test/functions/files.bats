@@ -400,7 +400,7 @@ setup() {
 }
 
 @test "hash stdin: empty stdin -> sha256 of empty string" {
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; : | files::hash"
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; : | files::hash"
   assert_success
   assert_output 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
 }
@@ -422,7 +422,7 @@ setup() {
 }
 
 @test "hash: dies with 2 args" {
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; files::hash a b"
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; files::hash a b"
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
@@ -460,13 +460,13 @@ setup() {
 }
 
 @test "hash_if_exists: dies with 0 args" {
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; files::hash_if_exists"
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; files::hash_if_exists"
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "hash_if_exists: dies with 2 args" {
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; files::hash_if_exists a b"
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; files::hash_if_exists a b"
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
@@ -499,7 +499,7 @@ setup() {
 @test "write: different content with prompt rejected -> preserves old" {
   printf '%s\n' 'old' > "${BATS_TEST_TMPDIR}/f"
   run bash -c "
-    source '${SCRIPTS_DIR}/functions.bash'
+    source '${SCRIPTS_DIR}/.functions.bash'
     files::write '${BATS_TEST_TMPDIR}/f' 'new'
   " <<< 'n'
   assert_success

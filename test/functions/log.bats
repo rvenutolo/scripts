@@ -100,7 +100,7 @@ setup() {
 @test "enable_err_trap: failing cmd in subshell triggers ERROR line" {
   run bash -c "
     set -Eeuo pipefail
-    source '${SCRIPTS_DIR}/functions.bash'
+    source '${SCRIPTS_DIR}/.functions.bash'
     log::enable_err_trap
     false
     echo unreachable

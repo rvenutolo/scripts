@@ -8,8 +8,8 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
-source "${SCRIPTS_DIR}/functions.bash"
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 # pass-through: git passes ref/sha pairs on stdin we ignore
 

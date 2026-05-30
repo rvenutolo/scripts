@@ -9,7 +9,7 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 #shellcheck disable=SC1091
-source "${SCRIPTS_DIR}/functions.bash"
+source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_exactly_1_arg "$@"

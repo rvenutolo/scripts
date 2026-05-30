@@ -49,7 +49,7 @@ prompt_via_stdin() {
   shift 2
   # shellcheck disable=SC2016 # single quotes intentional: $1/$2 expand in child shell, not here
   run bash -c "
-    source '${SCRIPTS_DIR}/functions.bash'
+    source '${SCRIPTS_DIR}/.functions.bash'
     function passwords::generate() { printf '%s\n' 'MOCK_PASSWORD_64'; }
     function passwords::generate_with_symbols() { printf '%s\n' 'MOCK_PASSWORD_SYMBOLS'; }
     ${cmd}
@@ -320,7 +320,7 @@ prompt_via_stdin() {
 # Helper: read back a var from a file using a fresh subshell so test
 # state doesn't bleed between invocations of get/set in the same @test.
 read_back() {
-  bash -c "source '${SCRIPTS_DIR}/functions.bash'; env_file::get_var_value \"\$1\" \"\$2\"" _ "$1" "$2"
+  bash -c "source '${SCRIPTS_DIR}/.functions.bash'; env_file::get_var_value \"\$1\" \"\$2\"" _ "$1" "$2"
 }
 
 @test "set_var_value: replaces simple value" {

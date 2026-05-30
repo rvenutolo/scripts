@@ -16,9 +16,9 @@ Personal collection of bash scripts for system setup, package install, and day-t
 
 - `set_up/` — idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script must self-check whether it should run.
 
-- `misc/` — one-off setup scripts (not on `PATH`, not auto-run). Scripts here are expected to be **standalone** — runnable on a fresh machine by someone without access to this repo's function library. Do NOT source `functions.bash` from `misc/` scripts; inline anything they need (including the `ERR` trap — see Script Conventions).
+- `misc/` — one-off setup scripts (not on `PATH`, not auto-run). Scripts here are expected to be **standalone** — runnable on a fresh machine by someone without access to this repo's function library. Do NOT source `.functions.bash` from `misc/` scripts; inline anything they need (including the `ERR` trap — see Script Conventions).
 
-- `functions/` — bash function library, all sourced via `functions.bash` (loops `functions/*.bash`).
+- `functions/` — bash function library, all sourced via `.functions.bash` (loops `functions/*.bash`).
 
 - `lib/` — vendored Groovy jars (used by some scripts).
 
@@ -30,7 +30,7 @@ The repo's tooling is provided by a **Nix flake devShell**: contributors install
 
 The user's `~/.profile` exports a fixed set of env vars (`SCRIPTS_DIR`, `XDG_*`, `PERSONAL_PROJECTS_DIR`, etc.) that this repo relies on. They are always set in the environment by the time any script runs — interactive shells source `~/.profile`, and the `run-install-scripts` / `run-set-up-scripts` runners source it explicitly. Treat the full set as guaranteed. Read `~/.profile` to enumerate the available vars and their definitions.
 
-- **Reuse, don't hardcode.** When a script references a path or hostname covered by one of these vars, use the env var literal directly: `"${SCRIPTS_DIR}/functions.bash"`, `"${XDG_CONFIG_HOME}/foo/bar"`, `"${PERSONAL_PROJECTS_DIR}/some-repo"`, etc. Shell expands env vars natively — no templating needed.
+- **Reuse, don't hardcode.** When a script references a path or hostname covered by one of these vars, use the env var literal directly: `"${SCRIPTS_DIR}/.functions.bash"`, `"${XDG_CONFIG_HOME}/foo/bar"`, `"${PERSONAL_PROJECTS_DIR}/some-repo"`, etc. Shell expands env vars natively — no templating needed.
 
 - **No fallbacks.** Do NOT add `${VAR:-default}` defensive defaults or `set -u` defenses for any of these vars (including `SCRIPTS_DIR`). Failure under `set -u` is the desired behavior if the environment is broken — the user wants to fix the environment, not paper over it.
 
@@ -42,9 +42,9 @@ The user's `~/.profile` exports a fixed set of env vars (`SCRIPTS_DIR`, `XDG_*`,
 
 - **`misc/` exemption.** Scripts under `misc/` are explicitly standalone — they must NOT depend on this repo's env or functions. Hardcoded paths are acceptable there.
 
-### Sourcing `functions.bash`
+### Sourcing `.functions.bash`
 
-Every non-`misc/` script sources `"${SCRIPTS_DIR}/functions.bash"`. Exception: a small number of Docker-related scripts (e.g. `main/docker-grype-scan`, `main/docker-trivy-scan`) source `${DOCKER_COMPOSE_DIR}/functions.bash` from a separate Docker repo instead. That file transitively sources `${SCRIPTS_DIR}/functions.bash`, so all helpers from this repo (`log::enable_err_trap`, `log::log`, `log::die`, etc.) ARE available — no need to inline equivalents in those scripts.
+Every non-`misc/` script sources `"${SCRIPTS_DIR}/.functions.bash"`. Exception: a small number of Docker-related scripts (e.g. `main/docker-grype-scan`, `main/docker-trivy-scan`) source `${DOCKER_COMPOSE_DIR}/functions.bash` from a separate Docker repo instead. That file transitively sources `${SCRIPTS_DIR}/.functions.bash`, so all helpers from this repo (`log::enable_err_trap`, `log::log`, `log::die`, etc.) ARE available — no need to inline equivalents in those scripts.
 
 ## Common Commands
 
@@ -118,7 +118,7 @@ IFS=$'\n\t'
 
 Helper functions defined inside top-level scripts get the same full shdoc annotation block as library functions. **Exception:** the `main` function is exempt — the file-level header covers it.
 
-`misc/` standalone scripts (those that do not source `functions.bash`) follow the same rule. Shdoc tags are plain comments and do not depend on the function library.
+`misc/` standalone scripts (those that do not source `.functions.bash`) follow the same rule. Shdoc tags are plain comments and do not depend on the function library.
 
 Files excluded from `shell_scripts::find` (`.shdoc/`, `other/`, vendored bats submodules under `test/`) are excluded from this rule.
 
@@ -138,15 +138,15 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 #shellcheck disable=SC1091
-source "${SCRIPTS_DIR}/functions.bash"
+source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"   # or check_exactly_N_args / check_at_least_N_args / check_at_most_N_args
 ```
 
-- `log::enable_err_trap` (from `functions/log.bash`) installs an `ERR` trap that prints a red, prefixed `ERROR: line N (exit C): cmd` line to stderr when any unhandled command fails under `set -e`. Call it once, immediately after sourcing `functions.bash`. It complements `log::die` (explicit user-visible failures) — the trap catches everything else.
+- `log::enable_err_trap` (from `functions/log.bash`) installs an `ERR` trap that prints a red, prefixed `ERROR: line N (exit C): cmd` line to stderr when any unhandled command fails under `set -e`. Call it once, immediately after sourcing `.functions.bash`. It complements `log::die` (explicit user-visible failures) — the trap catches everything else.
 
-- `args::handle_help_flag "$@"` (from `functions/args.bash`) scans `"$@"` for `-h`/`--help` and, if present, prints help text derived from the script's file-level shdoc header (via `args::print_help`) and exits 0. Call it directly after `log::enable_err_trap` and before any arg-count guard — otherwise `--help` would be rejected as an unexpected argument. Pass-through scripts (those forwarding `"$@"` verbatim to an underlying tool) and standalone scripts under `misc/` are exempt: pass-throughs let the wrapped tool handle its own `--help`; standalones cannot source `functions.bash`.
+- `args::handle_help_flag "$@"` (from `functions/args.bash`) scans `"$@"` for `-h`/`--help` and, if present, prints help text derived from the script's file-level shdoc header (via `args::print_help`) and exits 0. Call it directly after `log::enable_err_trap` and before any arg-count guard — otherwise `--help` would be rejected as an unexpected argument. Pass-through scripts (those forwarding `"$@"` verbatim to an underlying tool) and standalone scripts under `misc/` are exempt: pass-throughs let the wrapped tool handle its own `--help`; standalones cannot source `.functions.bash`.
 
 - Create new scripts via `main/new-script <path>` (handles header + exec bit + `args::handle_help_flag` line).
 
@@ -162,7 +162,7 @@ args::check_no_args "$@"   # or check_exactly_N_args / check_at_least_N_args / c
 
 ### Library file conventions
 
-Library files under `functions/` get only the shebang — do NOT add `set -euo pipefail` or source `functions.bash`. Strict mode is owned by the parent script that sources them.
+Library files under `functions/` get only the shebang — do NOT add `set -euo pipefail` or source `.functions.bash`. Strict mode is owned by the parent script that sources them.
 
 **`functions/*.bash` exemption list** — library files are exempt from the following rules that apply to top-level scripts:
 
@@ -170,7 +170,7 @@ Library files under `functions/` get only the shebang — do NOT add `set -euo p
 
 - `IFS=$'\n\t'` (parent owns IFS)
 
-- `source "${SCRIPTS_DIR}/functions.bash"` (would be circular)
+- `source "${SCRIPTS_DIR}/.functions.bash"` (would be circular)
 
 - `log::enable_err_trap` call (parent installs the trap)
 
@@ -206,7 +206,7 @@ Scripts under `set_up/` must be idempotent and self-gate — check current state
 
 ### Standalone `misc/` ERR trap
 
-Standalone scripts that do NOT source this repo's `functions.bash` (everything in `misc/`) cannot call `log::enable_err_trap`. Inline the trap directly after the `IFS=` line. (Note: scripts that source `${DOCKER_COMPOSE_DIR}/functions.bash` DO have access to this repo's helpers — that file transitively sources `${SCRIPTS_DIR}/functions.bash` — so use `log::enable_err_trap` there, not the inline form.)
+Standalone scripts that do NOT source this repo's `.functions.bash` (everything in `misc/`) cannot call `log::enable_err_trap`. Inline the trap directly after the `IFS=` line. (Note: scripts that source `${DOCKER_COMPOSE_DIR}/functions.bash` DO have access to this repo's helpers — that file transitively sources `${SCRIPTS_DIR}/.functions.bash` — so use `log::enable_err_trap` there, not the inline form.)
 
 ```bash
 trap 'printf "\033[0;31m[%s %s] ERROR: line %s (exit %s): %s\033[0m\n" "$(date +%T)" "${0##*/}" "${LINENO}" "$?" "${BASH_COMMAND}" >&2' ERR
@@ -250,7 +250,7 @@ For absolute-path resolution (when you need the path, not just a yes/no): helper
 
 ### Tempfiles
 
-**Overrides** the generic `tmp="$(mktemp)"` rule in `.claude/rules/shell-scripts.md`. Use the `files::create_temp tmp_var_name` helper from `functions/files.bash`. Do NOT install an EXIT trap or otherwise manually `rm` the temp file at end of script. Temporary files created under `/tmp` are managed by the OS (tmpfs reboot wipe + systemd-tmpfiles age-based cleanup), so process-level cleanup adds complexity (EXIT-trap clobbering between multiple temp files, accounting for early exits) without buying anything. Standalone scripts under `misc/` that cannot source `functions.bash` should call `mktemp` directly and similarly omit any cleanup trap.
+**Overrides** the generic `tmp="$(mktemp)"` rule in `.claude/rules/shell-scripts.md`. Use the `files::create_temp tmp_var_name` helper from `functions/files.bash`. Do NOT install an EXIT trap or otherwise manually `rm` the temp file at end of script. Temporary files created under `/tmp` are managed by the OS (tmpfs reboot wipe + systemd-tmpfiles age-based cleanup), so process-level cleanup adds complexity (EXIT-trap clobbering between multiple temp files, accounting for early exits) without buying anything. Standalone scripts under `misc/` that cannot source `.functions.bash` should call `mktemp` directly and similarly omit any cleanup trap.
 
 ### Network retry
 

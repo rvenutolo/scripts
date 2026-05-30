@@ -7,8 +7,8 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-# shellcheck disable=SC1091 # functions.bash is not statically followable
-source "${SCRIPTS_DIR}/functions.bash"
+# shellcheck disable=SC1091 # .functions.bash is not statically followable
+source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 system::require_bash_version 4 0
 # pass-through: any arg count valid (forwarded to claude)

@@ -93,12 +93,12 @@ setup() {
 }
 
 @test "sort: invalid JSON fails (stdin)" {
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; printf '%s' 'not json' | json::sort"
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; printf '%s' 'not json' | json::sort"
   assert_failure
 }
 
 @test "sort: invalid JSON fails (file)" {
   printf '%s' 'not json' > "${BATS_TEST_TMPDIR}/bad.json"
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; json::sort \"\$1\"" _ "${BATS_TEST_TMPDIR}/bad.json"
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; json::sort \"\$1\"" _ "${BATS_TEST_TMPDIR}/bad.json"
   assert_failure
 }

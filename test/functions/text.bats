@@ -141,44 +141,44 @@ setup() {
 # ---------- text::skip_first_lines ----------
 
 @test "skip_first_lines: skip 0 -> all lines (stdin)" {
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; printf '%s' \"\$1\" | text::skip_first_lines 0" _ $'a\nb\nc'
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; printf '%s' \"\$1\" | text::skip_first_lines 0" _ $'a\nb\nc'
   assert_success
   assert_output $'a\nb\nc'
 }
 
 @test "skip_first_lines: skip 1 -> drop first line (stdin)" {
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; printf '%s' \"\$1\" | text::skip_first_lines 1" _ $'a\nb\nc'
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; printf '%s' \"\$1\" | text::skip_first_lines 1" _ $'a\nb\nc'
   assert_success
   assert_output $'b\nc'
 }
 
 @test "skip_first_lines: skip 2 -> drop first two lines (stdin)" {
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; printf '%s' \"\$1\" | text::skip_first_lines 2" _ $'a\nb\nc'
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; printf '%s' \"\$1\" | text::skip_first_lines 2" _ $'a\nb\nc'
   assert_success
   assert_output 'c'
 }
 
 @test "skip_first_lines: skip count == total -> empty (stdin)" {
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; printf '%s' \"\$1\" | text::skip_first_lines 3" _ $'a\nb\nc'
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; printf '%s' \"\$1\" | text::skip_first_lines 3" _ $'a\nb\nc'
   assert_success
   assert_output ''
 }
 
 @test "skip_first_lines: skip count > total -> empty (stdin)" {
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; printf '%s' \"\$1\" | text::skip_first_lines 99" _ $'a\nb\nc'
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; printf '%s' \"\$1\" | text::skip_first_lines 99" _ $'a\nb\nc'
   assert_success
   assert_output ''
 }
 
 @test "skip_first_lines: file mode skips first N lines" {
   printf '%s' $'a\nb\nc\nd' > "${BATS_TEST_TMPDIR}/in"
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; text::skip_first_lines \"\$1\" 2" _ "${BATS_TEST_TMPDIR}/in"
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; text::skip_first_lines \"\$1\" 2" _ "${BATS_TEST_TMPDIR}/in"
   assert_success
   assert_output $'c\nd'
 }
 
 @test "skip_first_lines: zero args fails" {
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; printf '%s' \"\$1\" | text::skip_first_lines" _ $'a\nb'
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; printf '%s' \"\$1\" | text::skip_first_lines" _ $'a\nb'
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }

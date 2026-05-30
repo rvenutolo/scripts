@@ -198,17 +198,17 @@ setup() {
   assert_output ''
 }
 
-@test "shell_scripts::find_root_only excludes functions.bash loader" {
+@test "shell_scripts::find_root_only excludes .functions.bash loader" {
   local fake_root="${BATS_TEST_TMPDIR}/repo_with_loader"
   mkdir -p "${fake_root}"
-  printf '#!/usr/bin/env bash\n' > "${fake_root}/functions.bash"
+  printf '#!/usr/bin/env bash\n' > "${fake_root}/.functions.bash"
   printf '#!/usr/bin/env bash\n' > "${fake_root}/legit-script"
   chmod +x "${fake_root}/legit-script"
 
   SCRIPTS_DIR="${fake_root}" run shell_scripts::find_root_only
   assert_success
   assert_line "${fake_root}/legit-script"
-  refute_line "${fake_root}/functions.bash"
+  refute_line "${fake_root}/.functions.bash"
 }
 
 @test "shell_scripts::find_root_only dies when called with any args" {
