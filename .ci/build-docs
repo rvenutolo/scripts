@@ -4,7 +4,7 @@
 #              shdoc against every functions/*.bash file and every shell script
 #              under main/. Output lands in docs/functions/ and docs/scripts/
 #              (gitignored, regenerated on every build). Companion config:
-#              mkdocs.yml. Companion deploy: .github/workflows/pages.yml.
+#              .mkdocs.yml. Companion deploy: .github/workflows/pages.yml.
 # @noargs
 
 set -Eeuo pipefail
