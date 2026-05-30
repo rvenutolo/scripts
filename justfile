@@ -31,7 +31,7 @@ shdoc-check:
 # Build the docs site locally (requires mkdocs)
 docs:
     ./.ci/build-docs
-    mkdocs build --strict
+    mkdocs build --strict --config-file .mkdocs.yml
 
 # Provision a new machine — run every executable under install/
 install:

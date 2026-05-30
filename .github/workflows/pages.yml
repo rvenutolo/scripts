@@ -37,7 +37,7 @@ jobs:
           SCRIPTS_DIR: ${{ github.workspace }}
         run: |
           ./.ci/build-docs
-          mkdocs build --strict
+          mkdocs build --strict --config-file .mkdocs.yml
       - name: Generate BATS test count badge
         run: |
           count=$(./test/bats/bin/bats --count --recursive test/functions)
