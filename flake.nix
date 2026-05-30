@@ -31,11 +31,11 @@
         let
           # bashcov is not packaged in nixpkgs; provide it (with simplecov-cobertura
           # for the cobertura.xml the coverage job uploads to Codecov) via a pinned
-          # bundlerEnv — gemset.nix lives under nix/bashcov/. Includes its own ruby.
+          # bundlerEnv — gemset.nix lives under .nix/bashcov/. Includes its own ruby.
           bashcovEnv = pkgs.bundlerEnv {
             name = "bashcov-env";
             ruby = pkgs.ruby;
-            gemdir = ./nix/bashcov;
+            gemdir = ./.nix/bashcov;
           };
         in
         {
@@ -70,7 +70,7 @@
               pwgen
               gawk
               kcov
-              bashcovEnv # bashcov + simplecov-cobertura (gemset under nix/bashcov)
+              bashcovEnv # bashcov + simplecov-cobertura (gemset under .nix/bashcov)
               gh
               git
               coreutils
