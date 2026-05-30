@@ -2,7 +2,7 @@ site_name: rvenutolo/scripts
 site_url: https://rvenutolo.github.io/scripts/
 repo_url: https://github.com/rvenutolo/scripts
 repo_name: rvenutolo/scripts
-docs_dir: docs
+docs_dir: .docs
 theme:
   name: material
   palette:
