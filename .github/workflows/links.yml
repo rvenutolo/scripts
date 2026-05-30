@@ -19,5 +19,5 @@ jobs:
           persist-credentials: false
       - uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2.8.0
         with:
-          args: --config lychee.toml --no-progress --verbose './**/*.md'
+          args: --config .lycheerc --no-progress --verbose './**/*.md'
           fail: true
