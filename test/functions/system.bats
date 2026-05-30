@@ -109,7 +109,7 @@ SUDOEOF
   chmod +x "${bin_dir}/sudo"
   run bash -c "
     export PATH='${bin_dir}:\${PATH}'
-    source '${SCRIPTS_DIR}/functions.bash'
+    source '${SCRIPTS_DIR}/.functions.bash'
     system::reload_sysctl_conf
   " <<< 'n'
   assert_success

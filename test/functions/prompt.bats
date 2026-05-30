@@ -21,7 +21,7 @@ prompt_via_stdin() {
   shift 2
   # shellcheck disable=SC2016 # single quotes intentional: $1+ expand in child shell
   run bash -c "
-    source '${SCRIPTS_DIR}/functions.bash'
+    source '${SCRIPTS_DIR}/.functions.bash'
     ${cmd}
   " _ "$@" <<< "${stdin_str}"
 }

@@ -7,8 +7,8 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
-source "${SCRIPTS_DIR}/functions.bash"
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
 system::require_bash_version 4 0
@@ -27,8 +27,8 @@ for file in "$@"; do
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-# shellcheck disable=SC1091 # functions.bash is sourced from SCRIPTS_DIR at runtime
-source "${SCRIPTS_DIR}/functions.bash"
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
 system::require_bash_version 4 0

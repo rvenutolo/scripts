@@ -17,7 +17,7 @@ function dual_mode::assert_stdin() {
   local -r fn="$1"
   local -r input="$2"
   local -r expected="$3"
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; printf '%s' \"\$1\" | ${fn}" _ "${input}"
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; printf '%s' \"\$1\" | ${fn}" _ "${input}"
   assert_success
   assert_output "${expected}"
 }
@@ -33,7 +33,7 @@ function dual_mode::assert_file() {
   local -r expected="$3"
   local -r tmp="${BATS_TEST_TMPDIR}/dual_mode_input"
   printf '%s' "${input}" >"${tmp}"
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; ${fn} \"\$1\"" _ "${tmp}"
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; ${fn} \"\$1\"" _ "${tmp}"
   assert_success
   assert_output "${expected}"
 }

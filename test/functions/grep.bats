@@ -20,7 +20,7 @@ function run_stdin_grep() {
   local -r fn="$1"
   local -r haystack="$2"
   local -r needle="$3"
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; printf '%s' \"\$1\" | ${fn} \"\$2\"" _ "${haystack}" "${needle}"
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; printf '%s' \"\$1\" | ${fn} \"\$2\"" _ "${haystack}" "${needle}"
 }
 
 # Run a dual-mode grep variant via file: write haystack to tmpfile, call fn(file, needle).
@@ -32,7 +32,7 @@ function run_file_grep() {
   local -r content="$2"
   local -r needle="$3"
   printf '%s' "${content}" > "${BATS_TEST_TMPDIR}/in"
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; ${fn} \"\$1\" \"\$2\"" _ "${BATS_TEST_TMPDIR}/in" "${needle}"
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; ${fn} \"\$1\" \"\$2\"" _ "${BATS_TEST_TMPDIR}/in" "${needle}"
 }
 
 # ---------- grep::contains_exactly (stdin) ----------
@@ -63,14 +63,14 @@ function run_file_grep() {
 }
 
 @test "contains_exactly: dies with 0 args" {
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; printf '%s' 'data' | grep::contains_exactly"
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; printf '%s' 'data' | grep::contains_exactly"
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "contains_exactly: dies with 3 args" {
   printf '%s' 'data' > "${BATS_TEST_TMPDIR}/in"
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; grep::contains_exactly \"\$1\" 'a' 'b'" _ "${BATS_TEST_TMPDIR}/in"
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; grep::contains_exactly \"\$1\" 'a' 'b'" _ "${BATS_TEST_TMPDIR}/in"
   assert_failure
   assert_output --partial 'Expected exactly 2 arguments'
 }
@@ -98,7 +98,7 @@ function run_file_grep() {
 }
 
 @test "contains_exactly file: dies on missing file" {
-  run bash -c "source '${SCRIPTS_DIR}/functions.bash'; grep::contains_exactly /nonexistent 'x'"
+  run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; grep::contains_exactly /nonexistent 'x'"
   assert_failure
   assert_output --partial 'does not exist'
 }

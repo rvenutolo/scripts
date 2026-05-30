@@ -17,7 +17,7 @@ Personal Linux setup, install, and utility shell scripts.
 
 | Path         | Purpose                                                                                                                        | On `PATH` |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------ | --------- |
-| `functions/` | Bash function library, auto-sourced via `functions.bash`.                                                                      | n/a       |
+| `functions/` | Bash function library, auto-sourced via `.functions.bash`.                                                                     | n/a       |
 | `install/`   | Numbered scripts run in order by `run-install-scripts` to provision a new machine.                                             | no        |
 | `main/`      | Primary utility scripts.                                                                                                       | yes       |
 | `misc/`      | One-off setup scripts. Standalone — runnable on a fresh machine without this repo.                                             | no        |
@@ -44,7 +44,7 @@ Most repo-level operations have both a shell script and a `just` recipe (see [`.
 
 ## Required environment
 
-Set `SCRIPTS_DIR` to the repo root. Every script sources `${SCRIPTS_DIR}/functions.bash`. The user's `~/.profile` is expected to export it.
+Set `SCRIPTS_DIR` to the repo root. Every script sources `${SCRIPTS_DIR}/.functions.bash`. The user's `~/.profile` is expected to export it.
 
 ## Development
 

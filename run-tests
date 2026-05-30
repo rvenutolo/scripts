@@ -7,7 +7,7 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 #shellcheck disable=SC1091
-source "${SCRIPTS_DIR}/functions.bash"
+source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 # pass-through: any arg count valid (forwarded to bats)
 
