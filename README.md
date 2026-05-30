@@ -27,7 +27,7 @@ Personal Linux setup, install, and utility shell scripts.
 
 ## Common commands
 
-Most repo-level operations have both a shell script and a `just` recipe (see [`justfile`](justfile)). Either form works; `just` is shorter for the common ones.
+Most repo-level operations have both a shell script and a `just` recipe (see [`.justfile`](.justfile)). Either form works; `just` is shorter for the common ones.
 
 | Shell script                                                          | `just` recipe            | Purpose                                                                         |
 | --------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------- |
