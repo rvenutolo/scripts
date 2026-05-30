@@ -10,7 +10,7 @@ Personal collection of bash scripts for system setup, package install, and day-t
 
 - `main/` — primary utility scripts (on `PATH`).
 
-- `other/` — third-party scripts copied verbatim from elsewhere. **Never modify anything under `other/` unless explicitly told to touch a specific file in there.** This applies to formatting, shellcheck fixes, refactors, renames, or any other automated cleanup. On `PATH`; excluded from treefmt formatting (via `treefmt.nix` excludes) and from `shellcheck-scripts`.
+- `other/` — third-party scripts copied verbatim from elsewhere. **Never modify anything under `other/` unless explicitly told to touch a specific file in there.** This applies to formatting, shellcheck fixes, refactors, renames, or any other automated cleanup. On `PATH`; excluded from treefmt formatting (via `.treefmt.nix` excludes) and from `shellcheck-scripts`.
 
 - `install/` — numbered scripts run in order by `run-install-scripts` to provision a new machine. Files starting with all-caps names (e.g. `00_DISTRO_PACKAGES`, `70_WORK_ONLY`) are markers/data with executable bit off — the runner skips non-executable files. `90_REMOVE` etc. follow same pattern.
 
