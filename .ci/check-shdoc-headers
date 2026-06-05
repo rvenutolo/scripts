@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# @description Audit every shebang-bearing executable under main/, install/,
-#              set_up/, misc/, and the project root AND every library file
+# @description Audit every shebang-bearing executable under main/, wrapper/,
+#              install/, set_up/, misc/, and the project root AND every library file
 #              under functions/ for the project's shdoc annotation convention.
 #              Top-level scripts must carry a file-level `# @description` tag
 #              in the header and an annotation block on every helper function
@@ -26,8 +26,8 @@ system::require_bash_version 4 3
 args::check_no_args "$@"
 
 # @description Print every in-scope top-level script path, one per line.
-#              In-scope means any shebang-bearing file under main/, install/,
-#              set_up/, misc/, .ci/, or directly under SCRIPTS_DIR (project
+#              In-scope means any shebang-bearing file under main/, wrapper/,
+#              install/, set_up/, misc/, .ci/, or directly under SCRIPTS_DIR (project
 #              root). Library files under functions/ are listed by
 #              collect_library_files instead, since they follow a different
 #              annotation rule.
@@ -37,7 +37,7 @@ args::check_no_args "$@"
 function collect_in_scope_scripts() {
   args::check_no_args "$@"
   local subdir
-  for subdir in main install set_up misc .ci; do
+  for subdir in main wrapper install set_up misc .ci; do
     if dirs::exists "${SCRIPTS_DIR}/${subdir}"; then
       shell_scripts::find "${SCRIPTS_DIR}/${subdir}"
     fi
