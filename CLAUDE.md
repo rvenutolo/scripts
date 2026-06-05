@@ -12,6 +12,8 @@ Personal collection of bash scripts for system setup, package install, and day-t
 
 - `other/` — third-party scripts copied verbatim from elsewhere. **Never modify anything under `other/` unless explicitly told to touch a specific file in there.** This applies to formatting, shellcheck fixes, refactors, renames, or any other automated cleanup. On `PATH`; excluded from treefmt formatting (via `.treefmt.nix` excludes) and from `shellcheck-scripts`.
 
+- `wrapper/` — small pass-through wrappers that forward all args to an underlying tool (flatpak app, `nix run` target, or a same-name binary). Currently contains `batfetch`, `xdg-ninja`, `kate`, `mvn`, `gradle`, `claude`, `claude-personal`, `claude-work`, and 21 flatpak wrappers. NOT yet on `PATH` (user wires this in manually via `~/.profile`). Same shellcheck / shdoc-header / formatting rules and same `./check-scripts` gate as `main/`.
+
 - `install/` — numbered scripts run in order by `run-install-scripts` to provision a new machine. Files starting with all-caps names (e.g. `00_DISTRO_PACKAGES`, `70_WORK_ONLY`) are markers/data with executable bit off — the runner skips non-executable files. `90_REMOVE` etc. follow same pattern.
 
 - `set_up/` — idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script must self-check whether it should run.
@@ -38,7 +40,7 @@ The user's `~/.profile` exports a fixed set of env vars (`SCRIPTS_DIR`, `XDG_*`,
 
 - **Ignore conditional exports.** `EDITOR`, `VISUAL`, `PAGER`, `MANPAGER`, `FILE_MANAGER`, `TAILNET_IP`, `TAILNET_CIDR`, `TERM`, etc. are gated on `__executable_exists` / `case` / runtime probes in `~/.profile`; they're not meant for cross-file reuse and are not guaranteed to be set.
 
-- **`PATH` membership.** `main/` and `other/` are always on `PATH`. `install/`, `set_up/`, `misc/`, `.ci/` are not.
+- **`PATH` membership.** `main/` and `other/` are always on `PATH`. `install/`, `set_up/`, `misc/`, `.ci/`, `wrapper/` are not. `wrapper/` is intentionally absent — the user wires it into `PATH` separately via `~/.profile` so wrapper scripts can shadow same-named binaries (`mvn`, `kate`, `code`, …) only when the user opts in.
 
 - **`misc/` exemption.** Scripts under `misc/` are explicitly standalone — they must NOT depend on this repo's env or functions. Hardcoded paths are acceptable there.
 
@@ -70,7 +72,7 @@ To gate a script from the `install`/`set_up runners`, remove its executable bit 
 
 ## Function Library
 
-`functions/` is organized by topic — `args`, `arrays`, `commands`, `docker`, `downloads`, `env`, `files`, `grep`, `http`, `json`, `log`, `mvn`, `network`, `os`, `packages`, `path`, `prompt`, `retry`, `sdkman`, `strings`, `symlinks`, `system`, `systemctl`, `text`, `time`, etc. When adding a helper, drop it in the topically-matching file; it's auto-sourced. If no existing topic fits, Claude may create a new `functions/<topic>.bash` file — but must ask first before adding the new topic.
+`functions/` is organized by topic — `args`, `arrays`, `commands`, `docker`, `downloads`, `env`, `files`, `flatpak`, `grep`, `http`, `json`, `log`, `mvn`, `network`, `os`, `packages`, `path`, `prompt`, `retry`, `sdkman`, `strings`, `symlinks`, `system`, `systemctl`, `text`, `time`, etc. When adding a helper, drop it in the topically-matching file; it's auto-sourced. If no existing topic fits, Claude may create a new `functions/<topic>.bash` file — but must ask first before adding the new topic.
 
 ## Script Conventions
 
