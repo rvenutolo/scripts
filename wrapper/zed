@@ -12,4 +12,4 @@ source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 # pass-through: any arg count valid (forwarded to flatpak app)
 
-flatpak::exec 'dev.zed.Zed' "$@"
+flatpak::exec_gui 'dev.zed.Zed' "$@"
