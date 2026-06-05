@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+# @description Launch the Chromium flatpak (id: org.chromium.Chromium), forwarding all args.
+# @arg $@ args Arguments forwarded verbatim to the flatpak app.
+# @exitcode 1 flatpak application is not installed
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+# pass-through: any arg count valid (forwarded to flatpak app)
+
+flatpak::exec_gui 'org.chromium.Chromium' "$@"
