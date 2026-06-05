@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# @description Launch the Kate editor attached to the current terminal and block until
+#              the last opened file is closed. Intended for use as $EDITOR / $VISUAL so
+#              callers like `git commit` and `crontab -e` can read the edited file after
+#              kate exits. Passes `--block` to kate so kate itself stays in the
+#              foreground; does not detach via setsid/background.
+# @arg $@ args Arguments forwarded verbatim to the real `kate` binary.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 0
+
+# remove this dir from the path so executing `kate` doesn't execute this script
+path::remove "$(misc::this_script_dir)"
+
+exec kate --block "$@"
