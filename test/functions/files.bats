@@ -1003,3 +1003,51 @@ setup_files_root_helpers() {
   run files::root_transform "${target}"
   assert_failure
 }
+
+# ---------- files::largest_files ----------
+
+@test "largest_files: ranks regular files by size descending, honors count" {
+  mkdir -p "${BATS_TEST_TMPDIR}/t"
+  head --bytes=300 /dev/zero > "${BATS_TEST_TMPDIR}/t/big"
+  head --bytes=100 /dev/zero > "${BATS_TEST_TMPDIR}/t/mid"
+  head --bytes=10  /dev/zero > "${BATS_TEST_TMPDIR}/t/small"
+  run files::largest_files "${BATS_TEST_TMPDIR}/t" 2
+  assert_success
+  assert_line --index 0 --regexp '^300	.*/big$'
+  assert_line --index 1 --regexp '^100	.*/mid$'
+  refute_output --partial '/small'
+}
+
+@test "largest_files: dies with 1 arg" {
+  run files::largest_files "${BATS_TEST_TMPDIR}"
+  assert_failure
+}
+
+# ---------- files::largest_dirs ----------
+
+@test "largest_dirs: ranks directories by cumulative byte size descending" {
+  mkdir -p "${BATS_TEST_TMPDIR}/t/heavy" "${BATS_TEST_TMPDIR}/t/light"
+  head --bytes=5000 /dev/zero > "${BATS_TEST_TMPDIR}/t/heavy/f"
+  head --bytes=50   /dev/zero > "${BATS_TEST_TMPDIR}/t/light/f"
+  run files::largest_dirs "${BATS_TEST_TMPDIR}/t" 10
+  assert_success
+  heavy_idx="$(printf '%s\n' "${output}" | grep --line-number '/heavy$' | cut --delimiter=: --fields=1)"
+  light_idx="$(printf '%s\n' "${output}" | grep --line-number '/light$' | cut --delimiter=: --fields=1)"
+  [[ "${heavy_idx}" -lt "${light_idx}" ]]
+}
+
+# ---------- files::largest_all ----------
+
+@test "largest_all: includes both files and directories" {
+  mkdir -p "${BATS_TEST_TMPDIR}/t/sub"
+  head --bytes=400 /dev/zero > "${BATS_TEST_TMPDIR}/t/sub/file"
+  run files::largest_all "${BATS_TEST_TMPDIR}/t" 50
+  assert_success
+  assert_output --partial '/sub/file'
+  assert_output --partial '/sub'
+}
+
+@test "largest_all: dies with 0 args" {
+  run files::largest_all
+  assert_failure
+}

@@ -558,6 +558,51 @@ function files::create_temp() {
   _files_create_temp_var="$(mktemp)"
 }
 
+# @description Print the largest regular files under a directory, biggest first.
+# @arg $1 dir directory to scan
+# @arg $2 count maximum number of rows to print
+# @stdout tab-separated `<bytes>\t<path>` rows, largest first, at most <count> rows
+function files::largest_files() {
+  args::check_exactly_2_args "$@"
+  local -r dir="$1"
+  local -r count="$2"
+  local tmp
+  files::create_temp tmp
+  # shellcheck disable=SC2154 # tmp assigned by files::create_temp via nameref
+  find "${dir}" -type f -printf '%s\t%p\n' > "${tmp}"
+  sort --field-separator=$'\t' --key=1,1nr "${tmp}" | head --lines="${count}"
+}
+
+# @description Print the largest directories (cumulative apparent size) under a directory, biggest first.
+# @arg $1 dir directory to scan
+# @arg $2 count maximum number of rows to print
+# @stdout tab-separated `<bytes>\t<path>` rows, largest first, at most <count> rows
+function files::largest_dirs() {
+  args::check_exactly_2_args "$@"
+  local -r dir="$1"
+  local -r count="$2"
+  local tmp
+  files::create_temp tmp
+  # shellcheck disable=SC2154 # tmp assigned by files::create_temp via nameref
+  du --bytes "${dir}" > "${tmp}"
+  sort --field-separator=$'\t' --key=1,1nr "${tmp}" | head --lines="${count}"
+}
+
+# @description Print the largest entries (files and directories combined) under a directory, biggest first.
+# @arg $1 dir directory to scan
+# @arg $2 count maximum number of rows to print
+# @stdout tab-separated `<bytes>\t<path>` rows, largest first, at most <count> rows
+function files::largest_all() {
+  args::check_exactly_2_args "$@"
+  local -r dir="$1"
+  local -r count="$2"
+  local tmp
+  files::create_temp tmp
+  # shellcheck disable=SC2154 # tmp assigned by files::create_temp via nameref
+  du --bytes --all "${dir}" > "${tmp}"
+  sort --field-separator=$'\t' --key=1,1nr "${tmp}" | head --lines="${count}"
+}
+
 # @description Print the SHA-256 hash of a file or stdin. Dies if the file argument does not exist.
 # Output: stdout — hex SHA-256 digest
 # @arg $1 file path (optional; reads stdin if omitted)
