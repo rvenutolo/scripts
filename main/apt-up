@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# @description One-shot Debian/Ubuntu system update + upgrade, preferring nala over apt.
+# @noargs
+# @exitcode 0 success
+# @exitcode 1 non-apt distro
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+if ! os::is_debian && ! os::is_ubuntu; then
+  log::die 'not an apt-based distro'
+fi
+
+if commands::executable_exists nala; then
+  log::log 'Updating package lists (nala)'
+  sudo nala update
+  log::log 'Upgrading packages (nala)'
+  sudo nala upgrade --assume-yes
+else
+  log::log 'Updating package lists (apt)'
+  sudo apt update
+  log::log 'Upgrading packages (apt)'
+  sudo apt upgrade --assume-yes
+fi
