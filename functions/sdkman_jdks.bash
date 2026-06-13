@@ -328,13 +328,43 @@ function sdkman_jdks::set_default_sdk_to_latest_installed_for_major_version() {
   sdkman_jdks::set_default_jdk_by_id "${new_default_artifact_id}"
 }
 
-# @description Set the SDKMAN default java to the latest installed Temurin JDK across all major versions.
+# @description Return true if a default java is currently set (the SDKMAN java/current symlink exists).
+# @exitcode 0 if a default java is set
+# @exitcode 1 if no default java is set
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
-function sdkman_jdks::set_default_jdk_to_latest_installed() {
+function sdkman_jdks::has_default_jdk() {
   args::check_no_args "$@"
-  sdkman_jdks::set_default_sdk_to_latest_installed_for_major_version \
-    "$(sdkman_jdks::get_latest_installed_tem_jdk_major_version)"
+  symlinks::exists "${SDKMAN_CANDIDATES_DIR}/java/current"
+}
+
+# @description Print the major version of the current default java. Dies if no default is set.
+# Output: stdout — major version number (e.g. "17")
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+# @noargs
+function sdkman_jdks::get_current_default_jdk_major_version() {
+  args::check_no_args "$@"
+  local target
+  target="$(symlinks::get_target "${SDKMAN_CANDIDATES_DIR}/java/current")"
+  readonly target
+  local -r artifact="${target##*/}"
+  sdkman_jdks::get_jdk_major_version "${artifact}"
+}
+
+# @description Set the SDKMAN default java to the latest installed Temurin JDK of the current default's major version.
+# Falls back to the highest installed major version when no default is currently set.
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+# @noargs
+function sdkman_jdks::set_default_jdk_to_latest_patch_of_current_major() {
+  args::check_no_args "$@"
+  local major_version
+  if sdkman_jdks::has_default_jdk; then
+    major_version="$(sdkman_jdks::get_current_default_jdk_major_version)"
+  else
+    major_version="$(sdkman_jdks::get_latest_installed_tem_jdk_major_version)"
+  fi
+  readonly major_version
+  sdkman_jdks::set_default_sdk_to_latest_installed_for_major_version "${major_version}"
 }
 
 ### PRUNE JDKS
