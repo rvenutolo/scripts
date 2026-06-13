@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# @description Block until an SSH host becomes reachable, then hand off the interactive session.
+#   Probes the host with a BatchMode SSH connection on a bounded linear backoff, then `exec`s
+#   into a normal interactive `ssh` once it is reachable. Any extra arguments after the host are
+#   forwarded verbatim to the final `ssh` invocation.
+# @arg $1 host SSH host (or user@host) to wait for and connect to.
+# @arg $@ extra ssh args forwarded to the final `ssh` connection.
+# @exitcode 0 connected to the host.
+# @exitcode 1 host never became reachable within the retry budget.
+# @example
+#   ssh-wait my-server
+#   ssh-wait user@my-server -p 2222
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_at_least_1_arg "$@"
+
+readonly HOST="$1"
+shift
+
+# Probe with a BatchMode SSH connection (distinguishes sshd-ready from network-up); the helper
+# dies after the bounded retry budget is exhausted. `-o` has no long-form equivalent.
+retry::with_linear_backoff 30 60 ssh -o BatchMode=yes -o ConnectTimeout=5 "${HOST}" true
+
+exec ssh "${HOST}" "$@"
