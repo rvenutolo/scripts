@@ -11,7 +11,9 @@ extend-exclude = [
 ]
 
 [default.extend-words]
+# gir = Debian `gir1.2-*` package prefix (GObject-Introspection); not a typo.
 gir = "gir"
+# ba = matches the `(ba)?sh` shebang regex fragment in functions/shell_scripts.bash; not a typo.
 ba = "ba"
 # BRE = POSIX Basic Regular Expression (sed); not a typo of "BE"/"BRIE".
 bre = "bre"
