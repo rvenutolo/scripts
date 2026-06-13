@@ -633,6 +633,62 @@ function files::hash() {
   fi
 }
 
+# @description Find files with identical content under a directory. Pre-filters by byte size
+# (only files sharing a size are hashed), then groups survivors by SHA-256. Emits one
+# tab-separated `<bytes>\t<sha256>\t<path>` line per file belonging to a duplicate set
+# (>1 member), sorted by size descending then hash, so set members are contiguous.
+# Paths containing embedded newlines are not handled and may produce corrupt rows.
+# @arg $1 dir optional directory to scan (default ".")
+# @stdout tab-separated `size\thash\tpath` lines for duplicated files; empty if none
+function files::find_duplicates() {
+  args::check_at_most_1_arg "$@"
+  local dir
+  if args::no_args "$@"; then
+    dir="."
+  else
+    dir="$1"
+  fi
+  local all_tmp dupsizes_tmp candidates_tmp hashed_tmp duphashes_tmp
+  files::create_temp all_tmp
+  # shellcheck disable=SC2154 # all_tmp assigned by files::create_temp via nameref
+  files::create_temp dupsizes_tmp
+  # shellcheck disable=SC2154 # dupsizes_tmp assigned by files::create_temp via nameref
+  files::create_temp candidates_tmp
+  # shellcheck disable=SC2154 # candidates_tmp assigned by files::create_temp via nameref
+  files::create_temp hashed_tmp
+  # shellcheck disable=SC2154 # hashed_tmp assigned by files::create_temp via nameref
+  files::create_temp duphashes_tmp
+  # shellcheck disable=SC2154 # duphashes_tmp assigned by files::create_temp via nameref
+
+  find "${dir}" -type f -printf '%s\t%p\n' > "${all_tmp}"
+
+  # sizes that occur more than once
+  cut --fields=1 "${all_tmp}" | sort | uniq --repeated > "${dupsizes_tmp}"
+
+  # keep only files whose size is in the repeated-size set
+  awk --field-separator='\t' \
+    'NR == FNR { sizes[$1]; next } ($1 in sizes)' \
+    "${dupsizes_tmp}" "${all_tmp}" > "${candidates_tmp}"
+
+  # hash each candidate -> size<TAB>hash<TAB>path
+  local line size path hash
+  while read -r line; do
+    size="${line%%$'\t'*}"
+    path="${line#*$'\t'}"
+    hash="$(files::hash "${path}")"
+    printf '%s\t%s\t%s\n' "${size}" "${hash}" "${path}"
+  done < "${candidates_tmp}" > "${hashed_tmp}"
+
+  # hashes that occur more than once
+  cut --fields=2 "${hashed_tmp}" | sort | uniq --repeated > "${duphashes_tmp}"
+
+  # keep only rows whose hash is duplicated, sorted by size desc then hash
+  awk --field-separator='\t' \
+    'NR == FNR { hashes[$1]; next } ($2 in hashes)' \
+    "${duphashes_tmp}" "${hashed_tmp}" \
+    | sort --field-separator=$'\t' --key=1,1nr --key=2,2
+}
+
 # @description Print the SHA-256 hash of a file, or the empty string if the file does not exist.
 # Intended for the "hash before / hash after" idiom where the destination file may not yet exist on first run.
 # Output: stdout — hex SHA-256 digest, or empty string if the file is absent

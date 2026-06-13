@@ -1095,3 +1095,57 @@ setup_files_root_helpers() {
   run files::largest_all "${BATS_TEST_TMPDIR}" 5 extra
   assert_failure
 }
+
+# ---------- files::hash ----------
+
+# ---------- files::find_duplicates ----------
+
+@test "find_duplicates: groups identical-content files, skips unique files" {
+  mkdir -p "${BATS_TEST_TMPDIR}/d"
+  printf 'same\n' > "${BATS_TEST_TMPDIR}/d/a"
+  printf 'same\n' > "${BATS_TEST_TMPDIR}/d/b"
+  printf 'unique\n' > "${BATS_TEST_TMPDIR}/d/c"
+  run files::find_duplicates "${BATS_TEST_TMPDIR}/d"
+  assert_success
+  assert_output --partial '/d/a'
+  assert_output --partial '/d/b'
+  refute_output --partial '/d/c'
+}
+
+@test "find_duplicates: same size but different content are not grouped" {
+  mkdir -p "${BATS_TEST_TMPDIR}/d"
+  printf 'AAAA\n' > "${BATS_TEST_TMPDIR}/d/x"
+  printf 'BBBB\n' > "${BATS_TEST_TMPDIR}/d/y"
+  run files::find_duplicates "${BATS_TEST_TMPDIR}/d"
+  assert_success
+  assert_output ''
+}
+
+@test "find_duplicates: output lines are size<TAB>hash<TAB>path" {
+  mkdir -p "${BATS_TEST_TMPDIR}/d"
+  printf 'dup\n' > "${BATS_TEST_TMPDIR}/d/a"
+  printf 'dup\n' > "${BATS_TEST_TMPDIR}/d/b"
+  run files::find_duplicates "${BATS_TEST_TMPDIR}/d"
+  assert_success
+  assert_line --index 0 --regexp '^[0-9]+	[0-9a-f]{64}	'
+}
+
+@test "find_duplicates: empty output when no duplicates" {
+  mkdir -p "${BATS_TEST_TMPDIR}/d"
+  printf 'only\n' > "${BATS_TEST_TMPDIR}/d/one"
+  run files::find_duplicates "${BATS_TEST_TMPDIR}/d"
+  assert_success
+  assert_output ''
+}
+
+@test "find_duplicates: empty output for empty directory" {
+  mkdir -p "${BATS_TEST_TMPDIR}/empty"
+  run files::find_duplicates "${BATS_TEST_TMPDIR}/empty"
+  assert_success
+  assert_output ''
+}
+
+@test "find_duplicates: dies with 2 args" {
+  run files::find_duplicates a b
+  assert_failure
+}
