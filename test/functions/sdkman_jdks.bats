@@ -23,9 +23,13 @@ setup() {
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/files.bash"
   # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/symlinks.bash"
+  # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/sdkman.bash"
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/sdkman_jdks.bash"
+  export SDKMAN_CANDIDATES_DIR="${BATS_TEST_TMPDIR}/candidates"
+  mkdir --parents "${SDKMAN_CANDIDATES_DIR}/java"
 }
 
 # ---------- get_jdk_major_version ----------
@@ -175,6 +179,13 @@ stub_jdks_and_sdk() {
   function sdkman_jdks::get_formatted_all_tem_jdks() { printf '%s\n' "${CANNED_JDKS}"; }
   function sdk() { printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"; }
   export -f sdkman_jdks::get_formatted_all_tem_jdks sdk
+}
+
+# SDKMAN_CANDIDATES_DIR is exported once in setup(); this only creates the symlink.
+fixture_default_symlink() {
+  # $1 = artifact id, e.g. 17.0.19-tem
+  mkdir --parents "${SDKMAN_CANDIDATES_DIR}/java/$1"
+  ln --symbolic "${SDKMAN_CANDIDATES_DIR}/java/$1" "${SDKMAN_CANDIDATES_DIR}/java/current"
 }
 
 # ---------- get_formatted_all_tem_jdks (parser test) ----------
@@ -401,9 +412,67 @@ EOF
   assert_output 'default java 21.0.5-tem'
 }
 
-@test "set_default_jdk_to_latest_installed: sets default across all majors (highest)" {
+# ---------- has_default_jdk ----------
+
+@test "has_default_jdk: true when current symlink exists" {
+  fixture_default_symlink '17.0.19-tem'
+  run sdkman_jdks::has_default_jdk
+  assert_success
+}
+
+@test "has_default_jdk: false when no current symlink" {
+  # setup() creates candidates/java with no current symlink
+  run sdkman_jdks::has_default_jdk
+  assert_failure
+}
+
+@test "has_default_jdk: dies with wrong arg count" {
+  run sdkman_jdks::has_default_jdk x
+  assert_failure
+}
+
+# ---------- get_current_default_jdk_major_version ----------
+
+@test "get_current_default_jdk_major_version: extracts major from current symlink" {
+  fixture_default_symlink '17.0.19-tem'
+  run sdkman_jdks::get_current_default_jdk_major_version
+  assert_success
+  assert_output '17'
+}
+
+@test "get_current_default_jdk_major_version: multi-digit major" {
+  fixture_default_symlink '21.0.5-tem'
+  run sdkman_jdks::get_current_default_jdk_major_version
+  assert_success
+  assert_output '21'
+}
+
+@test "get_current_default_jdk_major_version: dies when no symlink" {
+  # setup() creates candidates/java with no current symlink
+  run sdkman_jdks::get_current_default_jdk_major_version
+  assert_failure
+}
+
+@test "get_current_default_jdk_major_version: dies with wrong arg count" {
+  run sdkman_jdks::get_current_default_jdk_major_version x
+  assert_failure
+}
+
+# ---------- set_default_jdk_to_latest_patch_of_current_major ----------
+
+@test "set_default_jdk_to_latest_patch_of_current_major: uses current major when a default is set" {
   stub_jdks_and_sdk
-  run sdkman_jdks::set_default_jdk_to_latest_installed
+  fixture_default_symlink '17.0.19-tem'
+  run sdkman_jdks::set_default_jdk_to_latest_patch_of_current_major
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  assert_output 'default java 17.0.10-tem'
+}
+
+@test "set_default_jdk_to_latest_patch_of_current_major: falls back to highest installed major when no default set" {
+  stub_jdks_and_sdk
+  # setup() creates candidates/java with no current symlink
+  run sdkman_jdks::set_default_jdk_to_latest_patch_of_current_major
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output 'default java 21.0.5-tem'
