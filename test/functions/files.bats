@@ -1214,7 +1214,33 @@ setup_files_root_helpers() {
   refute_output --partial "${BATS_TEST_TMPDIR}/bar/"
 }
 
+@test "plan_renames: warns and skips a nonexistent source file" {
+  cd "${BATS_TEST_TMPDIR}"
+  printf x > real.txt
+  run files::plan_renames 'real' 'renamed' real.txt ghost.txt
+  assert_success
+  assert_output --partial $'real.txt\trenamed.txt'
+  assert_output --partial 'source does not exist'
+  refute_output --partial 'ghost'$'\t'
+}
+
 @test "plan_renames: dies with fewer than 3 args" {
   run files::plan_renames 'a' 'b'
   assert_failure
+}
+
+# ---------- files::largest_dirs / files::largest_all — empty-directory edge cases ----------
+
+@test "largest_dirs: empty directory yields a single zero-byte row for the dir" {
+  mkdir -p "${BATS_TEST_TMPDIR}/empty"
+  run files::largest_dirs "${BATS_TEST_TMPDIR}/empty" 10
+  assert_success
+  assert_line --index 0 --regexp '^0	.*/empty$'
+}
+
+@test "largest_all: empty directory yields a single zero-byte row for the dir" {
+  mkdir -p "${BATS_TEST_TMPDIR}/empty"
+  run files::largest_all "${BATS_TEST_TMPDIR}/empty" 10
+  assert_success
+  assert_line --index 0 --regexp '^0	.*/empty$'
 }

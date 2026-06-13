@@ -4,11 +4,11 @@
 #              with a preview and a single confirmation before any rename is applied.
 # @arg $1 pattern sed BRE pattern matched against each file's basename
 # @arg $2 replacement sed replacement string
-# @arg $3 files one or more files to rename
+# @arg $@ files one or more files to rename (after the first two args)
 # @stdout Rename preview (`old -> new` per line).
 # @stderr A warning line for each file skipped due to an existing destination or an intra-batch target collision.
 # @exitcode 0 renames applied, or user declined at the prompt
-# @exitcode 1 no candidate renames remain after collision filtering
+# @exitcode 1 plan is empty (no files matched the pattern, or all candidates were filtered out)
 
 set -Eeuo pipefail
 IFS=$'\n\t'

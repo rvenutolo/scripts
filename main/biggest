@@ -107,11 +107,11 @@ readonly COUNT="${_count}"
 
 args::check_at_most_1_arg "$@"
 if args::no_args "$@"; then
-  readonly SCAN_DIR="."
+  readonly DIR="."
 else
-  readonly SCAN_DIR="$1"
+  readonly DIR="$1"
 fi
 
-dirs::assert_exists "${SCAN_DIR}"
+dirs::assert_exists "${DIR}"
 
-main "${MODE}" "${SCAN_DIR}" "${COUNT}"
+main "${MODE}" "${DIR}" "${COUNT}"

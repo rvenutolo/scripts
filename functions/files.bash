@@ -709,7 +709,7 @@ function files::hash_if_exists() {
 #              Pattern/replacement must not contain an unescaped `/` (sed s/// delimiter).
 # @arg $1 pattern sed BRE pattern matched against the basename
 # @arg $2 replacement sed replacement string
-# @arg $3 files one or more file paths to rename
+# @arg $@ files one or more file paths (after the first two args) to rename
 # @stdout tab-separated `old\tnew` rename pairs for files that pass collision filtering
 # @stderr a `log::warn` line for each skipped file
 function files::plan_renames() {
@@ -725,6 +725,10 @@ function files::plan_renames() {
   # shellcheck disable=SC2154 # targets_tmp assigned by files::create_temp via nameref
   local file dir base new_base new
   for file in "$@"; do
+    if ! files::exists "${file}"; then
+      log::warn "Skipping ${file}: source does not exist"
+      continue
+    fi
     dir="$(dirname "${file}")"
     base="$(basename "${file}")"
     # shellcheck disable=SC2001 # pattern is a BRE variable; ${//} only supports globs, not regex
