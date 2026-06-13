@@ -709,13 +709,16 @@ function files::hash_if_exists() {
 #              Pattern/replacement must not contain an unescaped `/` (sed s/// delimiter).
 # @arg $1 pattern sed BRE pattern matched against the basename
 # @arg $2 replacement sed replacement string
-# @arg $@ files one or more file paths (after the first two args)
+# @arg $3 files one or more file paths to rename
 # @stdout tab-separated `old\tnew` rename pairs for files that pass collision filtering
 # @stderr a `log::warn` line for each skipped file
 function files::plan_renames() {
   args::check_at_least_3_args "$@"
   local -r pattern="$1"
   local -r replacement="$2"
+  if [[ "${pattern}" == *'/'* || "${replacement}" == *'/'* ]]; then
+    log::die "pattern and replacement must not contain '/' (sed s/// delimiter)"
+  fi
   shift 2
   local targets_tmp
   files::create_temp targets_tmp
@@ -724,6 +727,7 @@ function files::plan_renames() {
   for file in "$@"; do
     dir="$(dirname "${file}")"
     base="$(basename "${file}")"
+    # shellcheck disable=SC2001 # pattern is a BRE variable; ${//} only supports globs, not regex
     new_base="$(sed "s/${pattern}/${replacement}/" <<< "${base}")"
     if [[ "${dir}" == '.' ]]; then
       new="${new_base}"

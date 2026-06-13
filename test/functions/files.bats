@@ -1193,7 +1193,16 @@ setup_files_root_helpers() {
   printf x > one_b.txt
   run files::plan_renames '_[ab]' '' one_a.txt one_b.txt
   assert_success
+  assert_output --partial $'one_a.txt\tone.txt'
   assert_output --partial 'duplicate target'
+}
+
+@test "plan_renames: dies when pattern contains a slash" {
+  cd "${BATS_TEST_TMPDIR}"
+  printf x > f.txt
+  run files::plan_renames 'a/b' 'c' f.txt
+  assert_failure
+  assert_output --partial "must not contain"
 }
 
 @test "plan_renames: applies only to basename, never the directory" {
