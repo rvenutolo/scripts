@@ -567,10 +567,14 @@ function files::largest_files() {
   local -r dir="$1"
   local -r count="$2"
   local tmp
+  local sorted_tmp
   files::create_temp tmp
+  files::create_temp sorted_tmp
   # shellcheck disable=SC2154 # tmp assigned by files::create_temp via nameref
   find "${dir}" -type f -printf '%s\t%p\n' > "${tmp}"
-  sort --field-separator=$'\t' --key=1,1nr "${tmp}" | head --lines="${count}"
+  # shellcheck disable=SC2154 # sorted_tmp assigned by files::create_temp via nameref
+  sort --field-separator=$'\t' --key=1,1nr "${tmp}" > "${sorted_tmp}"
+  head --lines="${count}" "${sorted_tmp}"
 }
 
 # @description Print the largest directories (cumulative apparent size) under a directory, biggest first.
@@ -582,10 +586,14 @@ function files::largest_dirs() {
   local -r dir="$1"
   local -r count="$2"
   local tmp
+  local sorted_tmp
   files::create_temp tmp
+  files::create_temp sorted_tmp
   # shellcheck disable=SC2154 # tmp assigned by files::create_temp via nameref
   du --bytes "${dir}" > "${tmp}"
-  sort --field-separator=$'\t' --key=1,1nr "${tmp}" | head --lines="${count}"
+  # shellcheck disable=SC2154 # sorted_tmp assigned by files::create_temp via nameref
+  sort --field-separator=$'\t' --key=1,1nr "${tmp}" > "${sorted_tmp}"
+  head --lines="${count}" "${sorted_tmp}"
 }
 
 # @description Print the largest entries (files and directories combined) under a directory, biggest first.
@@ -597,10 +605,14 @@ function files::largest_all() {
   local -r dir="$1"
   local -r count="$2"
   local tmp
+  local sorted_tmp
   files::create_temp tmp
+  files::create_temp sorted_tmp
   # shellcheck disable=SC2154 # tmp assigned by files::create_temp via nameref
   du --bytes --all "${dir}" > "${tmp}"
-  sort --field-separator=$'\t' --key=1,1nr "${tmp}" | head --lines="${count}"
+  # shellcheck disable=SC2154 # sorted_tmp assigned by files::create_temp via nameref
+  sort --field-separator=$'\t' --key=1,1nr "${tmp}" > "${sorted_tmp}"
+  head --lines="${count}" "${sorted_tmp}"
 }
 
 # @description Print the SHA-256 hash of a file or stdin. Dies if the file argument does not exist.
