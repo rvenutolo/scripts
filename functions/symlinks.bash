@@ -46,7 +46,7 @@ function symlinks::find_broken() {
     dir="$1"
   fi
   # -L: no long-form equivalent; -L + -type l is the canonical broken-symlink idiom
-  find -L "${dir}" -type l 2> '/dev/null' || true
+  find -L "${dir}" -type l 2>'/dev/null' || true
 }
 
 # @description Create a symbolic link from a file to a link path, prompting if the destination already exists.
