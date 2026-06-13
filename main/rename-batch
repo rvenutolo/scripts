@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+# @description Batch-rename files by applying `sed s/PATTERN/REPLACEMENT/` to each basename,
+#              with a preview and a single confirmation before any rename is applied.
+# @arg $1 pattern sed BRE pattern matched against each file's basename
+# @arg $2 replacement sed replacement string
+# @arg $@ files one or more files to rename (after the first two args)
+# @stdout Rename preview (`old -> new` per line).
+# @exitcode 0 renames applied, or user declined at the prompt
+# @exitcode 1 no candidate renames remain after collision filtering
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 0
+args::check_at_least_3_args "$@"
+
+readonly PATTERN="$1"
+readonly REPLACEMENT="$2"
+shift 2
+
+files::create_temp plan_tmp
+# shellcheck disable=SC2154 # plan_tmp assigned by files::create_temp via nameref
+files::plan_renames "${PATTERN}" "${REPLACEMENT}" "$@" > "${plan_tmp}"
+
+mapfile -t plan < "${plan_tmp}"
+if [[ "${#plan[@]}" -eq 0 ]]; then
+  log::die 'No renames to apply'
+fi
+
+log::log 'Planned renames:'
+for pair in "${plan[@]}"; do
+  IFS=$'\t' read -r old new <<< "${pair}"
+  printf '  %s -> %s\n' "${old}" "${new}"
+done
+
+if ! prompt::yn 'Apply these renames?'; then
+  exit 0
+fi
+
+for pair in "${plan[@]}"; do
+  IFS=$'\t' read -r old new <<< "${pair}"
+  files::move_no_prompt_quiet "${old}" "${new}"
+done
