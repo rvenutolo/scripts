@@ -1158,3 +1158,54 @@ setup_files_root_helpers() {
   assert_output --partial 'a'
   assert_output --partial 'b'
 }
+
+# ---------- files::plan_renames ----------
+
+@test "plan_renames: emits old<TAB>new for a matching basename" {
+  cd "${BATS_TEST_TMPDIR}"
+  printf x > foo1.txt
+  run files::plan_renames 'foo' 'bar' foo1.txt
+  assert_success
+  assert_output $'foo1.txt\tbar1.txt'
+}
+
+@test "plan_renames: skips file when pattern does not change the name" {
+  cd "${BATS_TEST_TMPDIR}"
+  printf x > keep.txt
+  run files::plan_renames 'zzz' 'qqq' keep.txt
+  assert_success
+  assert_output ''
+}
+
+@test "plan_renames: warns and skips when destination already exists" {
+  cd "${BATS_TEST_TMPDIR}"
+  printf x > a.txt
+  printf x > b.txt
+  run files::plan_renames 'a' 'b' a.txt
+  assert_success
+  refute_output --partial $'a.txt\tb.txt'
+  assert_output --partial 'destination exists'
+}
+
+@test "plan_renames: warns and skips intra-batch duplicate targets" {
+  cd "${BATS_TEST_TMPDIR}"
+  printf x > one_a.txt
+  printf x > one_b.txt
+  run files::plan_renames '_[ab]' '' one_a.txt one_b.txt
+  assert_success
+  assert_output --partial 'duplicate target'
+}
+
+@test "plan_renames: applies only to basename, never the directory" {
+  mkdir -p "${BATS_TEST_TMPDIR}/foo"
+  printf x > "${BATS_TEST_TMPDIR}/foo/foo.txt"
+  run files::plan_renames 'foo' 'bar' "${BATS_TEST_TMPDIR}/foo/foo.txt"
+  assert_success
+  assert_output --partial "${BATS_TEST_TMPDIR}/foo/bar.txt"
+  refute_output --partial "${BATS_TEST_TMPDIR}/bar/"
+}
+
+@test "plan_renames: dies with fewer than 3 args" {
+  run files::plan_renames 'a' 'b'
+  assert_failure
+}

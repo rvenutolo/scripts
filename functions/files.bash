@@ -701,3 +701,50 @@ function files::hash_if_exists() {
     sha256sum "${file}" | cut --delimiter=' ' --fields=1
   fi
 }
+
+# @description Compute a batch-rename plan. For each file, apply `sed s/<pattern>/<replacement>/`
+#              to its basename (directory portion untouched). Emits surviving `old\tnew` pairs to
+#              stdout and warns (stderr) for each skip: no-op (unchanged name), destination already
+#              on disk, or a target duplicated within the batch.
+#              Pattern/replacement must not contain an unescaped `/` (sed s/// delimiter).
+# @arg $1 pattern sed BRE pattern matched against the basename
+# @arg $2 replacement sed replacement string
+# @arg $@ files one or more file paths (after the first two args)
+# @stdout tab-separated `old\tnew` rename pairs for files that pass collision filtering
+# @stderr a `log::warn` line for each skipped file
+function files::plan_renames() {
+  args::check_at_least_3_args "$@"
+  local -r pattern="$1"
+  local -r replacement="$2"
+  shift 2
+  local targets_tmp
+  files::create_temp targets_tmp
+  # shellcheck disable=SC2154 # targets_tmp assigned by files::create_temp via nameref
+  local file dir base new_base new
+  for file in "$@"; do
+    dir="$(dirname "${file}")"
+    base="$(basename "${file}")"
+    new_base="$(sed "s/${pattern}/${replacement}/" <<< "${base}")"
+    if [[ "${dir}" == '.' ]]; then
+      new="${new_base}"
+    else
+      new="${dir}/${new_base}"
+    fi
+    if [[ "${new}" == "${file}" ]]; then
+      # Silent skip — pattern produced no change; no warning needed
+      continue
+    fi
+    if files::exists "${new}"; then
+      log::warn "Skipping ${file}: destination exists: ${new}"
+      continue
+    fi
+    # No grep:: helper combines --line-regexp with --fixed-strings; raw grep is correct here.
+    # The `if` consumes the exit status (0=match, 1=no-match), so set -e does not fire on no-match.
+    if grep --quiet --line-regexp --fixed-strings -- "${new}" "${targets_tmp}"; then
+      log::warn "Skipping ${file}: duplicate target within batch: ${new}"
+      continue
+    fi
+    printf '%s\n' "${new}" >> "${targets_tmp}"
+    printf '%s\t%s\n' "${file}" "${new}"
+  done
+}
