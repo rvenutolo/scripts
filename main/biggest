@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+
+# @description Rank the largest files (default), directories, or both under a path.
+# @arg $1 path Optional directory to scan; defaults to the current directory.
+# @stdout Aligned `SIZE` / `PATH` table, largest first.
+# @exitcode 0 success
+# @exitcode 1 invalid flag combination or non-numeric count
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 0
+
+# @description Print usage information to stderr.
+# @noargs
+function usage() {
+  printf '%s\n' "Usage: ${0##*/} [--dirs | --all] [-n | --count N] [PATH]" >&2
+}
+
+# @description Render `<bytes>\t<path>` rows from stdin into an aligned human-readable table.
+# @noargs
+function format_table() {
+  local rows_tmp
+  files::create_temp rows_tmp
+  # shellcheck disable=SC2154 # rows_tmp assigned by files::create_temp via nameref
+  numfmt --to=iec --suffix=B --field=1 --delimiter=$'\t' > "${rows_tmp}"
+  column --table --separator=$'\t' --table-columns 'SIZE,PATH' "${rows_tmp}"
+}
+
+# @description Dispatch to the selected ranking helper and format its output.
+# @arg $1 run_mode one of files|dirs|all
+# @arg $2 scan_dir directory to scan
+# @arg $3 row_count number of rows
+function main() {
+  local -r run_mode="$1"
+  local -r scan_dir="$2"
+  local -r row_count="$3"
+  case "${run_mode}" in
+    files)
+      files::largest_files "${scan_dir}" "${row_count}"
+      ;;
+    dirs)
+      files::largest_dirs "${scan_dir}" "${row_count}"
+      ;;
+    all)
+      files::largest_all "${scan_dir}" "${row_count}"
+      ;;
+    *)
+      log::die "Unknown mode: ${run_mode} - this should not happen."
+      ;;
+  esac | format_table
+}
+
+parsed_args="$(getopt --alternative --name "${0##*/}" --options 'n:' --longoptions 'dirs,all,count:' -- "$@")"
+readonly parsed_args
+# eval is required to re-tokenize the quoted output of getopt
+eval set -- "${parsed_args}"
+_mode='files'
+_count=20
+while true; do
+  case "$1" in
+    --dirs)
+      [[ "${_mode}" == 'all' ]] && log::die '--dirs and --all are mutually exclusive'
+      _mode='dirs'
+      shift
+      ;;
+    --all)
+      [[ "${_mode}" == 'dirs' ]] && log::die '--dirs and --all are mutually exclusive'
+      _mode='all'
+      shift
+      ;;
+    -n | --count)
+      _count="$2"
+      shift 2
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      usage
+      log::die "Unexpected option: $1 - this should not happen."
+      ;;
+  esac
+done
+readonly MODE="${_mode}"
+if [[ ! "${_count}" =~ ^[0-9]+$ ]] || [[ "${_count}" -eq 0 ]]; then
+  log::die "Count must be a positive integer: ${_count}"
+fi
+readonly COUNT="${_count}"
+
+args::check_at_most_1_arg "$@"
+if args::no_args "$@"; then
+  readonly SCAN_DIR="."
+else
+  readonly SCAN_DIR="$1"
+fi
+
+dirs::assert_exists "${SCAN_DIR}"
+
+main "${MODE}" "${SCAN_DIR}" "${COUNT}"
