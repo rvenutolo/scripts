@@ -3,6 +3,8 @@
 # @description List dangling (broken) symlinks under a directory as a LINK/TARGET table.
 # @arg $1 dir Optional directory to scan; defaults to the current directory.
 # @stdout Table with columns LINK and TARGET; empty when no broken links exist.
+# @exitcode 0 success
+# @exitcode 1 directory does not exist or an unexpected error occurred
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -19,6 +21,7 @@ if args::no_args "$@"; then
 else
   readonly DIR="$1"
 fi
+dirs::assert_exists "${DIR}"
 
 files::create_temp links_tmp
 # shellcheck disable=SC2154 # links_tmp assigned by files::create_temp via nameref

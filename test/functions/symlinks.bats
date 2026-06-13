@@ -292,4 +292,5 @@ setup() {
 @test "find_broken: dies with 2 args" {
   run symlinks::find_broken a b
   assert_failure
+  assert_output --partial 'Expected at most 1 argument'
 }
