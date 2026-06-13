@@ -1018,9 +1018,26 @@ setup_files_root_helpers() {
   refute_output --partial '/small'
 }
 
+@test "largest_files: dies with 0 args" {
+  run files::largest_files
+  assert_failure
+}
+
 @test "largest_files: dies with 1 arg" {
   run files::largest_files "${BATS_TEST_TMPDIR}"
   assert_failure
+}
+
+@test "largest_files: dies with 3 args" {
+  run files::largest_files "${BATS_TEST_TMPDIR}" 5 extra
+  assert_failure
+}
+
+@test "largest_files: empty directory yields no output" {
+  mkdir -p "${BATS_TEST_TMPDIR}/empty"
+  run files::largest_files "${BATS_TEST_TMPDIR}/empty" 10
+  assert_success
+  assert_output ''
 }
 
 # ---------- files::largest_dirs ----------
@@ -1033,7 +1050,24 @@ setup_files_root_helpers() {
   assert_success
   heavy_idx="$(printf '%s\n' "${output}" | grep --line-number '/heavy$' | cut --delimiter=: --fields=1)"
   light_idx="$(printf '%s\n' "${output}" | grep --line-number '/light$' | cut --delimiter=: --fields=1)"
+  [[ -n "${heavy_idx}" ]]
+  [[ -n "${light_idx}" ]]
   [[ "${heavy_idx}" -lt "${light_idx}" ]]
+}
+
+@test "largest_dirs: dies with 0 args" {
+  run files::largest_dirs
+  assert_failure
+}
+
+@test "largest_dirs: dies with 1 arg" {
+  run files::largest_dirs "${BATS_TEST_TMPDIR}"
+  assert_failure
+}
+
+@test "largest_dirs: dies with 3 args" {
+  run files::largest_dirs "${BATS_TEST_TMPDIR}" 5 extra
+  assert_failure
 }
 
 # ---------- files::largest_all ----------
@@ -1049,5 +1083,15 @@ setup_files_root_helpers() {
 
 @test "largest_all: dies with 0 args" {
   run files::largest_all
+  assert_failure
+}
+
+@test "largest_all: dies with 1 arg" {
+  run files::largest_all "${BATS_TEST_TMPDIR}"
+  assert_failure
+}
+
+@test "largest_all: dies with 3 args" {
+  run files::largest_all "${BATS_TEST_TMPDIR}" 5 extra
   assert_failure
 }

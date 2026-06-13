@@ -559,6 +559,7 @@ function files::create_temp() {
 }
 
 # @description Print the largest regular files under a directory, biggest first.
+#              Paths containing embedded newlines are not handled and may produce corrupt rows.
 # @arg $1 dir directory to scan
 # @arg $2 count maximum number of rows to print
 # @stdout tab-separated `<bytes>\t<path>` rows, largest first, at most <count> rows
@@ -578,6 +579,7 @@ function files::largest_files() {
 }
 
 # @description Print the largest directories (cumulative apparent size) under a directory, biggest first.
+#              Paths containing embedded newlines are not handled and may produce corrupt rows.
 # @arg $1 dir directory to scan
 # @arg $2 count maximum number of rows to print
 # @stdout tab-separated `<bytes>\t<path>` rows, largest first, at most <count> rows
@@ -597,6 +599,7 @@ function files::largest_dirs() {
 }
 
 # @description Print the largest entries (files and directories combined) under a directory, biggest first.
+#              Paths containing embedded newlines are not handled and may produce corrupt rows.
 # @arg $1 dir directory to scan
 # @arg $2 count maximum number of rows to print
 # @stdout tab-separated `<bytes>\t<path>` rows, largest first, at most <count> rows

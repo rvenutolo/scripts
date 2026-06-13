@@ -4,7 +4,7 @@
 # @arg $1 path Optional directory to scan; defaults to the current directory.
 # @stdout Aligned `SIZE` / `PATH` table, largest first.
 # @exitcode 0 success
-# @exitcode 1 invalid flag combination or non-numeric count
+# @exitcode 1 any error (invalid flags, non-numeric count, path not found, scan failure)
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -17,13 +17,17 @@ system::require_bash_version 4 0
 
 # @description Print usage information to stderr.
 # @noargs
+# shellcheck disable=SC2120 # args::check_no_args "$@" is a defensive arity guard; usage is always called with no args
 function usage() {
+  args::check_no_args "$@"
   printf '%s\n' "Usage: ${0##*/} [--dirs | --all] [-n | --count N] [PATH]" >&2
 }
 
 # @description Render `<bytes>\t<path>` rows from stdin into an aligned human-readable table.
 # @noargs
+# shellcheck disable=SC2120 # args::check_no_args "$@" is a defensive arity guard; format_table is always called with no args
 function format_table() {
+  args::check_no_args "$@"
   local rows_tmp
   files::create_temp rows_tmp
   # shellcheck disable=SC2154 # rows_tmp assigned by files::create_temp via nameref
@@ -39,20 +43,27 @@ function main() {
   local -r run_mode="$1"
   local -r scan_dir="$2"
   local -r row_count="$3"
-  case "${run_mode}" in
-    files)
-      files::largest_files "${scan_dir}" "${row_count}"
-      ;;
-    dirs)
-      files::largest_dirs "${scan_dir}" "${row_count}"
-      ;;
-    all)
-      files::largest_all "${scan_dir}" "${row_count}"
-      ;;
-    *)
-      log::die "Unknown mode: ${run_mode} - this should not happen."
-      ;;
-  esac | format_table
+  local raw_tmp
+  files::create_temp raw_tmp
+  # shellcheck disable=SC2154 # raw_tmp assigned by files::create_temp via nameref
+  {
+    case "${run_mode}" in
+      files)
+        files::largest_files "${scan_dir}" "${row_count}"
+        ;;
+      dirs)
+        files::largest_dirs "${scan_dir}" "${row_count}"
+        ;;
+      all)
+        files::largest_all "${scan_dir}" "${row_count}"
+        ;;
+      *)
+        log::die "Unknown mode: ${run_mode} - this should not happen."
+        ;;
+    esac
+  } > "${raw_tmp}"
+  # shellcheck disable=SC2119 # format_table takes no args; $@ intentionally not forwarded
+  format_table < "${raw_tmp}"
 }
 
 parsed_args="$(getopt --alternative --name "${0##*/}" --options 'n:' --longoptions 'dirs,all,count:' -- "$@")"
@@ -82,6 +93,7 @@ while true; do
       break
       ;;
     *)
+      # shellcheck disable=SC2119 # usage takes no args; $@ intentionally not forwarded
       usage
       log::die "Unexpected option: $1 - this should not happen."
       ;;
