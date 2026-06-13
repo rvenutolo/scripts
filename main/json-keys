@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# @description List all leaf key paths in a JSON document (dotted, [N] for array
+#              indices), deduped and sorted. Reads from stdin or from the given file.
+# @arg $1 file Optional JSON file path. When omitted, reads from stdin instead.
+# @stdout One key path per line.
+# @exitcode 0 success
+# @exitcode 1 jq missing, or invalid JSON input
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced via SCRIPTS_DIR, not a relative path
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 0
+commands::assert_executable_exists 'jq'
+
+if args::stdin_exists; then
+  args::check_no_args "$@"
+  json::key_paths
+else
+  args::check_exactly_1_arg "$@"
+  readonly FILE="$1"
+  json::key_paths "${FILE}"
+fi
