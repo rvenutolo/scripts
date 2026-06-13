@@ -1096,8 +1096,6 @@ setup_files_root_helpers() {
   assert_failure
 }
 
-# ---------- files::hash ----------
-
 # ---------- files::find_duplicates ----------
 
 @test "find_duplicates: groups identical-content files, skips unique files" {
@@ -1148,4 +1146,15 @@ setup_files_root_helpers() {
 @test "find_duplicates: dies with 2 args" {
   run files::find_duplicates a b
   assert_failure
+}
+
+@test "find_duplicates: no args scans the current directory" {
+  mkdir -p "${BATS_TEST_TMPDIR}/cwd"
+  cd "${BATS_TEST_TMPDIR}/cwd"
+  printf 'same\n' > a
+  printf 'same\n' > b
+  run files::find_duplicates
+  assert_success
+  assert_output --partial 'a'
+  assert_output --partial 'b'
 }

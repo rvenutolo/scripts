@@ -637,7 +637,8 @@ function files::hash() {
 # (only files sharing a size are hashed), then groups survivors by SHA-256. Emits one
 # tab-separated `<bytes>\t<sha256>\t<path>` line per file belonging to a duplicate set
 # (>1 member), sorted by size descending then hash, so set members are contiguous.
-# Paths containing embedded newlines are not handled and may produce corrupt rows.
+# Paths containing embedded newlines or tab characters are not handled and may produce corrupt output rows.
+# If a candidate file is removed between enumeration and hashing, files::hash dies (fail-loud) and aborts the scan.
 # @arg $1 dir optional directory to scan (default ".")
 # @stdout tab-separated `size\thash\tpath` lines for duplicated files; empty if none
 function files::find_duplicates() {
@@ -666,7 +667,7 @@ function files::find_duplicates() {
   cut --fields=1 "${all_tmp}" | sort | uniq --repeated > "${dupsizes_tmp}"
 
   # keep only files whose size is in the repeated-size set
-  awk --field-separator='\t' \
+  awk --field-separator=$'\t' \
     'NR == FNR { sizes[$1]; next } ($1 in sizes)' \
     "${dupsizes_tmp}" "${all_tmp}" > "${candidates_tmp}"
 
@@ -683,7 +684,7 @@ function files::find_duplicates() {
   cut --fields=2 "${hashed_tmp}" | sort | uniq --repeated > "${duphashes_tmp}"
 
   # keep only rows whose hash is duplicated, sorted by size desc then hash
-  awk --field-separator='\t' \
+  awk --field-separator=$'\t' \
     'NR == FNR { hashes[$1]; next } ($2 in hashes)' \
     "${duphashes_tmp}" "${hashed_tmp}" \
     | sort --field-separator=$'\t' --key=1,1nr --key=2,2
