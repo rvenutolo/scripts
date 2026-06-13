@@ -1003,3 +1003,244 @@ setup_files_root_helpers() {
   run files::root_transform "${target}"
   assert_failure
 }
+
+# ---------- files::largest_files ----------
+
+@test "largest_files: ranks regular files by size descending, honors count" {
+  mkdir -p "${BATS_TEST_TMPDIR}/t"
+  head --bytes=300 /dev/zero > "${BATS_TEST_TMPDIR}/t/big"
+  head --bytes=100 /dev/zero > "${BATS_TEST_TMPDIR}/t/mid"
+  head --bytes=10  /dev/zero > "${BATS_TEST_TMPDIR}/t/small"
+  run files::largest_files "${BATS_TEST_TMPDIR}/t" 2
+  assert_success
+  assert_line --index 0 --regexp '^300	.*/big$'
+  assert_line --index 1 --regexp '^100	.*/mid$'
+  refute_output --partial '/small'
+}
+
+@test "largest_files: dies with 0 args" {
+  run files::largest_files
+  assert_failure
+}
+
+@test "largest_files: dies with 1 arg" {
+  run files::largest_files "${BATS_TEST_TMPDIR}"
+  assert_failure
+}
+
+@test "largest_files: dies with 3 args" {
+  run files::largest_files "${BATS_TEST_TMPDIR}" 5 extra
+  assert_failure
+}
+
+@test "largest_files: empty directory yields no output" {
+  mkdir -p "${BATS_TEST_TMPDIR}/empty"
+  run files::largest_files "${BATS_TEST_TMPDIR}/empty" 10
+  assert_success
+  assert_output ''
+}
+
+# ---------- files::largest_dirs ----------
+
+@test "largest_dirs: ranks directories by cumulative byte size descending" {
+  mkdir -p "${BATS_TEST_TMPDIR}/t/heavy" "${BATS_TEST_TMPDIR}/t/light"
+  head --bytes=5000 /dev/zero > "${BATS_TEST_TMPDIR}/t/heavy/f"
+  head --bytes=50   /dev/zero > "${BATS_TEST_TMPDIR}/t/light/f"
+  run files::largest_dirs "${BATS_TEST_TMPDIR}/t" 10
+  assert_success
+  heavy_idx="$(printf '%s\n' "${output}" | grep --line-number '/heavy$' | cut --delimiter=: --fields=1)"
+  light_idx="$(printf '%s\n' "${output}" | grep --line-number '/light$' | cut --delimiter=: --fields=1)"
+  [[ -n "${heavy_idx}" ]]
+  [[ -n "${light_idx}" ]]
+  [[ "${heavy_idx}" -lt "${light_idx}" ]]
+}
+
+@test "largest_dirs: dies with 0 args" {
+  run files::largest_dirs
+  assert_failure
+}
+
+@test "largest_dirs: dies with 1 arg" {
+  run files::largest_dirs "${BATS_TEST_TMPDIR}"
+  assert_failure
+}
+
+@test "largest_dirs: dies with 3 args" {
+  run files::largest_dirs "${BATS_TEST_TMPDIR}" 5 extra
+  assert_failure
+}
+
+# ---------- files::largest_all ----------
+
+@test "largest_all: includes both files and directories" {
+  mkdir -p "${BATS_TEST_TMPDIR}/t/sub"
+  head --bytes=400 /dev/zero > "${BATS_TEST_TMPDIR}/t/sub/file"
+  run files::largest_all "${BATS_TEST_TMPDIR}/t" 50
+  assert_success
+  assert_output --partial '/sub/file'
+  assert_output --partial '/sub'
+}
+
+@test "largest_all: dies with 0 args" {
+  run files::largest_all
+  assert_failure
+}
+
+@test "largest_all: dies with 1 arg" {
+  run files::largest_all "${BATS_TEST_TMPDIR}"
+  assert_failure
+}
+
+@test "largest_all: dies with 3 args" {
+  run files::largest_all "${BATS_TEST_TMPDIR}" 5 extra
+  assert_failure
+}
+
+# ---------- files::find_duplicates ----------
+
+@test "find_duplicates: groups identical-content files, skips unique files" {
+  mkdir -p "${BATS_TEST_TMPDIR}/d"
+  printf 'same\n' > "${BATS_TEST_TMPDIR}/d/a"
+  printf 'same\n' > "${BATS_TEST_TMPDIR}/d/b"
+  printf 'unique\n' > "${BATS_TEST_TMPDIR}/d/c"
+  run files::find_duplicates "${BATS_TEST_TMPDIR}/d"
+  assert_success
+  assert_output --partial '/d/a'
+  assert_output --partial '/d/b'
+  refute_output --partial '/d/c'
+}
+
+@test "find_duplicates: same size but different content are not grouped" {
+  mkdir -p "${BATS_TEST_TMPDIR}/d"
+  printf 'AAAA\n' > "${BATS_TEST_TMPDIR}/d/x"
+  printf 'BBBB\n' > "${BATS_TEST_TMPDIR}/d/y"
+  run files::find_duplicates "${BATS_TEST_TMPDIR}/d"
+  assert_success
+  assert_output ''
+}
+
+@test "find_duplicates: output lines are size<TAB>hash<TAB>path" {
+  mkdir -p "${BATS_TEST_TMPDIR}/d"
+  printf 'dup\n' > "${BATS_TEST_TMPDIR}/d/a"
+  printf 'dup\n' > "${BATS_TEST_TMPDIR}/d/b"
+  run files::find_duplicates "${BATS_TEST_TMPDIR}/d"
+  assert_success
+  assert_line --index 0 --regexp '^[0-9]+	[0-9a-f]{64}	'
+}
+
+@test "find_duplicates: empty output when no duplicates" {
+  mkdir -p "${BATS_TEST_TMPDIR}/d"
+  printf 'only\n' > "${BATS_TEST_TMPDIR}/d/one"
+  run files::find_duplicates "${BATS_TEST_TMPDIR}/d"
+  assert_success
+  assert_output ''
+}
+
+@test "find_duplicates: empty output for empty directory" {
+  mkdir -p "${BATS_TEST_TMPDIR}/empty"
+  run files::find_duplicates "${BATS_TEST_TMPDIR}/empty"
+  assert_success
+  assert_output ''
+}
+
+@test "find_duplicates: dies with 2 args" {
+  run files::find_duplicates a b
+  assert_failure
+}
+
+@test "find_duplicates: no args scans the current directory" {
+  mkdir -p "${BATS_TEST_TMPDIR}/cwd"
+  cd "${BATS_TEST_TMPDIR}/cwd"
+  printf 'same\n' > a
+  printf 'same\n' > b
+  run files::find_duplicates
+  assert_success
+  assert_output --partial 'a'
+  assert_output --partial 'b'
+}
+
+# ---------- files::plan_renames ----------
+
+@test "plan_renames: emits old<TAB>new for a matching basename" {
+  cd "${BATS_TEST_TMPDIR}"
+  printf x > foo1.txt
+  run files::plan_renames 'foo' 'bar' foo1.txt
+  assert_success
+  assert_output $'foo1.txt\tbar1.txt'
+}
+
+@test "plan_renames: skips file when pattern does not change the name" {
+  cd "${BATS_TEST_TMPDIR}"
+  printf x > keep.txt
+  run files::plan_renames 'zzz' 'qqq' keep.txt
+  assert_success
+  assert_output ''
+}
+
+@test "plan_renames: warns and skips when destination already exists" {
+  cd "${BATS_TEST_TMPDIR}"
+  printf x > a.txt
+  printf x > b.txt
+  run files::plan_renames 'a' 'b' a.txt
+  assert_success
+  refute_output --partial $'a.txt\tb.txt'
+  assert_output --partial 'destination exists'
+}
+
+@test "plan_renames: warns and skips intra-batch duplicate targets" {
+  cd "${BATS_TEST_TMPDIR}"
+  printf x > one_a.txt
+  printf x > one_b.txt
+  run files::plan_renames '_[ab]' '' one_a.txt one_b.txt
+  assert_success
+  assert_output --partial $'one_a.txt\tone.txt'
+  assert_output --partial 'duplicate target'
+}
+
+@test "plan_renames: dies when pattern contains a slash" {
+  cd "${BATS_TEST_TMPDIR}"
+  printf x > f.txt
+  run files::plan_renames 'a/b' 'c' f.txt
+  assert_failure
+  assert_output --partial "must not contain"
+}
+
+@test "plan_renames: applies only to basename, never the directory" {
+  mkdir -p "${BATS_TEST_TMPDIR}/foo"
+  printf x > "${BATS_TEST_TMPDIR}/foo/foo.txt"
+  run files::plan_renames 'foo' 'bar' "${BATS_TEST_TMPDIR}/foo/foo.txt"
+  assert_success
+  assert_output --partial "${BATS_TEST_TMPDIR}/foo/bar.txt"
+  refute_output --partial "${BATS_TEST_TMPDIR}/bar/"
+}
+
+@test "plan_renames: warns and skips a nonexistent source file" {
+  cd "${BATS_TEST_TMPDIR}"
+  printf x > real.txt
+  run files::plan_renames 'real' 'renamed' real.txt ghost.txt
+  assert_success
+  assert_output --partial $'real.txt\trenamed.txt'
+  assert_output --partial 'source does not exist'
+  refute_output --partial 'ghost'$'\t'
+}
+
+@test "plan_renames: dies with fewer than 3 args" {
+  run files::plan_renames 'a' 'b'
+  assert_failure
+}
+
+# ---------- files::largest_dirs / files::largest_all — empty-directory edge cases ----------
+
+@test "largest_dirs: empty directory yields a single zero-byte row for the dir" {
+  mkdir -p "${BATS_TEST_TMPDIR}/empty"
+  run files::largest_dirs "${BATS_TEST_TMPDIR}/empty" 10
+  assert_success
+  assert_line --index 0 --regexp '^0	.*/empty$'
+}
+
+@test "largest_all: empty directory yields a single zero-byte row for the dir" {
+  mkdir -p "${BATS_TEST_TMPDIR}/empty"
+  run files::largest_all "${BATS_TEST_TMPDIR}/empty" 10
+  assert_success
+  assert_line --index 0 --regexp '^0	.*/empty$'
+}

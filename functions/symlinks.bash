@@ -32,6 +32,23 @@ function symlinks::get_target() {
   readlink "${symlink}"
 }
 
+# @description List broken (dangling) symlinks under a directory. Uses the `find -L ... -type l`
+# idiom: with -L, working links resolve to their target's type and drop out, leaving only
+# danglers as -type l.
+# @arg $1 dir optional directory to scan (default ".")
+# @stdout one broken-symlink path per line; empty if none found
+function symlinks::find_broken() {
+  args::check_at_most_1_arg "$@"
+  local dir
+  if args::no_args "$@"; then
+    dir="."
+  else
+    dir="$1"
+  fi
+  # -L: no long-form equivalent; -L + -type l is the canonical broken-symlink idiom
+  find -L "${dir}" -type l 2>'/dev/null' || true
+}
+
 # @description Create a symbolic link from a file to a link path, prompting if the destination already exists.
 # No-ops if the link already points to the correct target.
 # @arg $1 target file path

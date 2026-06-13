@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+# @description List dangling (broken) symlinks under a directory as a LINK/TARGET table.
+# @arg $1 dir Optional directory to scan; defaults to the current directory.
+# @stdout Table with columns LINK and TARGET; empty when no broken links exist.
+# @exitcode 0 success
+# @exitcode 1 directory does not exist or an unexpected error occurred
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 0
+args::check_at_most_1_arg "$@"
+
+if args::no_args "$@"; then
+  readonly DIR="."
+else
+  readonly DIR="$1"
+fi
+dirs::assert_exists "${DIR}"
+
+files::create_temp links_tmp
+# shellcheck disable=SC2154 # links_tmp assigned by files::create_temp via nameref
+symlinks::find_broken "${DIR}" > "${links_tmp}"
+
+mapfile -t broken_links < "${links_tmp}"
+if [[ "${#broken_links[@]}" -eq 0 ]]; then
+  exit 0
+fi
+
+files::create_temp table_tmp
+# shellcheck disable=SC2154 # table_tmp assigned by files::create_temp via nameref
+for link in "${broken_links[@]}"; do
+  printf '%s\t%s\n' "${link}" "$(symlinks::get_target "${link}")" >> "${table_tmp}"
+done
+
+column --table --separator=$'\t' --table-columns 'LINK,TARGET' "${table_tmp}"

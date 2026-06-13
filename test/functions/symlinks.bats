@@ -255,3 +255,42 @@ setup() {
   assert_failure
   assert_output --partial 'Expected exactly 2 arguments'
 }
+
+# ---------- symlinks::find_broken ----------
+
+@test "find_broken: returns only broken symlinks under a dir" {
+  mkdir -p "${BATS_TEST_TMPDIR}/tree"
+  cd "${BATS_TEST_TMPDIR}/tree"
+  printf 'x\n' > real.txt
+  ln --symbolic real.txt good.link
+  ln --symbolic missing.txt broken.link
+  run symlinks::find_broken "${BATS_TEST_TMPDIR}/tree"
+  assert_success
+  assert_output --partial 'broken.link'
+  refute_output --partial 'good.link'
+}
+
+@test "find_broken: no args defaults to current directory" {
+  mkdir -p "${BATS_TEST_TMPDIR}/cwd"
+  cd "${BATS_TEST_TMPDIR}/cwd"
+  ln --symbolic nope.txt dangling.link
+  run symlinks::find_broken
+  assert_success
+  assert_output --partial 'dangling.link'
+}
+
+@test "find_broken: empty output when no broken links" {
+  mkdir -p "${BATS_TEST_TMPDIR}/clean"
+  cd "${BATS_TEST_TMPDIR}/clean"
+  printf 'x\n' > a.txt
+  ln --symbolic a.txt a.link
+  run symlinks::find_broken "${BATS_TEST_TMPDIR}/clean"
+  assert_success
+  assert_output ''
+}
+
+@test "find_broken: dies with 2 args" {
+  run symlinks::find_broken a b
+  assert_failure
+  assert_output --partial 'Expected at most 1 argument'
+}

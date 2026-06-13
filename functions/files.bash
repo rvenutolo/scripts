@@ -558,6 +558,66 @@ function files::create_temp() {
   _files_create_temp_var="$(mktemp)"
 }
 
+# @description Print the largest regular files under a directory, biggest first.
+#              Paths containing embedded newlines are not handled and may produce corrupt rows.
+# @arg $1 dir directory to scan
+# @arg $2 count maximum number of rows to print
+# @stdout tab-separated `<bytes>\t<path>` rows, largest first, at most <count> rows
+function files::largest_files() {
+  args::check_exactly_2_args "$@"
+  local -r dir="$1"
+  local -r count="$2"
+  local tmp
+  local sorted_tmp
+  files::create_temp tmp
+  files::create_temp sorted_tmp
+  # shellcheck disable=SC2154 # tmp assigned by files::create_temp via nameref
+  find "${dir}" -type f -printf '%s\t%p\n' >"${tmp}"
+  # shellcheck disable=SC2154 # sorted_tmp assigned by files::create_temp via nameref
+  sort --field-separator=$'\t' --key=1,1nr "${tmp}" >"${sorted_tmp}"
+  head --lines="${count}" "${sorted_tmp}"
+}
+
+# @description Print the largest directories (cumulative apparent size) under a directory, biggest first.
+#              Paths containing embedded newlines are not handled and may produce corrupt rows.
+# @arg $1 dir directory to scan
+# @arg $2 count maximum number of rows to print
+# @stdout tab-separated `<bytes>\t<path>` rows, largest first, at most <count> rows
+function files::largest_dirs() {
+  args::check_exactly_2_args "$@"
+  local -r dir="$1"
+  local -r count="$2"
+  local tmp
+  local sorted_tmp
+  files::create_temp tmp
+  files::create_temp sorted_tmp
+  # shellcheck disable=SC2154 # tmp assigned by files::create_temp via nameref
+  du --bytes "${dir}" >"${tmp}"
+  # shellcheck disable=SC2154 # sorted_tmp assigned by files::create_temp via nameref
+  sort --field-separator=$'\t' --key=1,1nr "${tmp}" >"${sorted_tmp}"
+  head --lines="${count}" "${sorted_tmp}"
+}
+
+# @description Print the largest entries (files and directories combined) under a directory, biggest first.
+#              Paths containing embedded newlines are not handled and may produce corrupt rows.
+# @arg $1 dir directory to scan
+# @arg $2 count maximum number of rows to print
+# @stdout tab-separated `<bytes>\t<path>` rows, largest first, at most <count> rows
+function files::largest_all() {
+  args::check_exactly_2_args "$@"
+  local -r dir="$1"
+  local -r count="$2"
+  local tmp
+  local sorted_tmp
+  files::create_temp tmp
+  files::create_temp sorted_tmp
+  # shellcheck disable=SC2154 # tmp assigned by files::create_temp via nameref
+  du --bytes --all "${dir}" >"${tmp}"
+  # shellcheck disable=SC2154 # sorted_tmp assigned by files::create_temp via nameref
+  sort --field-separator=$'\t' --key=1,1nr "${tmp}" >"${sorted_tmp}"
+  head --lines="${count}" "${sorted_tmp}"
+}
+
 # @description Print the SHA-256 hash of a file or stdin. Dies if the file argument does not exist.
 # Output: stdout — hex SHA-256 digest
 # @arg $1 file path (optional; reads stdin if omitted)
@@ -573,6 +633,63 @@ function files::hash() {
   fi
 }
 
+# @description Find files with identical content under a directory. Pre-filters by byte size
+# (only files sharing a size are hashed), then groups survivors by SHA-256. Emits one
+# tab-separated `<bytes>\t<sha256>\t<path>` line per file belonging to a duplicate set
+# (>1 member), sorted by size descending then hash, so set members are contiguous.
+# Paths containing embedded newlines or tab characters are not handled and may produce corrupt output rows.
+# If a candidate file is removed between enumeration and hashing, files::hash dies (fail-loud) and aborts the scan.
+# @arg $1 dir optional directory to scan (default ".")
+# @stdout tab-separated `size\thash\tpath` lines for duplicated files; empty if none
+function files::find_duplicates() {
+  args::check_at_most_1_arg "$@"
+  local dir
+  if args::no_args "$@"; then
+    dir="."
+  else
+    dir="$1"
+  fi
+  local all_tmp dupsizes_tmp candidates_tmp hashed_tmp duphashes_tmp
+  files::create_temp all_tmp
+  # shellcheck disable=SC2154 # all_tmp assigned by files::create_temp via nameref
+  files::create_temp dupsizes_tmp
+  # shellcheck disable=SC2154 # dupsizes_tmp assigned by files::create_temp via nameref
+  files::create_temp candidates_tmp
+  # shellcheck disable=SC2154 # candidates_tmp assigned by files::create_temp via nameref
+  files::create_temp hashed_tmp
+  # shellcheck disable=SC2154 # hashed_tmp assigned by files::create_temp via nameref
+  files::create_temp duphashes_tmp
+  # shellcheck disable=SC2154 # duphashes_tmp assigned by files::create_temp via nameref
+
+  find "${dir}" -type f -printf '%s\t%p\n' >"${all_tmp}"
+
+  # sizes that occur more than once
+  cut --fields=1 "${all_tmp}" | sort | uniq --repeated >"${dupsizes_tmp}"
+
+  # keep only files whose size is in the repeated-size set
+  awk --field-separator=$'\t' \
+    'NR == FNR { sizes[$1]; next } ($1 in sizes)' \
+    "${dupsizes_tmp}" "${all_tmp}" >"${candidates_tmp}"
+
+  # hash each candidate -> size<TAB>hash<TAB>path
+  local line size path hash
+  while read -r line; do
+    size="${line%%$'\t'*}"
+    path="${line#*$'\t'}"
+    hash="$(files::hash "${path}")"
+    printf '%s\t%s\t%s\n' "${size}" "${hash}" "${path}"
+  done <"${candidates_tmp}" >"${hashed_tmp}"
+
+  # hashes that occur more than once
+  cut --fields=2 "${hashed_tmp}" | sort | uniq --repeated >"${duphashes_tmp}"
+
+  # keep only rows whose hash is duplicated, sorted by size desc then hash
+  awk --field-separator=$'\t' \
+    'NR == FNR { hashes[$1]; next } ($2 in hashes)' \
+    "${duphashes_tmp}" "${hashed_tmp}" |
+    sort --field-separator=$'\t' --key=1,1nr --key=2,2
+}
+
 # @description Print the SHA-256 hash of a file, or the empty string if the file does not exist.
 # Intended for the "hash before / hash after" idiom where the destination file may not yet exist on first run.
 # Output: stdout — hex SHA-256 digest, or empty string if the file is absent
@@ -583,4 +700,59 @@ function files::hash_if_exists() {
   if files::exists "${file}"; then
     sha256sum "${file}" | cut --delimiter=' ' --fields=1
   fi
+}
+
+# @description Compute a batch-rename plan. For each file, apply `sed s/<pattern>/<replacement>/`
+#              to its basename (directory portion untouched). Emits surviving `old\tnew` pairs to
+#              stdout and warns (stderr) for each skip: no-op (unchanged name), destination already
+#              on disk, or a target duplicated within the batch.
+#              Pattern/replacement must not contain an unescaped `/` (sed s/// delimiter).
+# @arg $1 pattern sed BRE pattern matched against the basename
+# @arg $2 replacement sed replacement string
+# @arg $@ files one or more file paths (after the first two args) to rename
+# @stdout tab-separated `old\tnew` rename pairs for files that pass collision filtering
+# @stderr a `log::warn` line for each skipped file
+function files::plan_renames() {
+  args::check_at_least_3_args "$@"
+  local -r pattern="$1"
+  local -r replacement="$2"
+  if [[ ${pattern} == *'/'* || ${replacement} == *'/'* ]]; then
+    log::die "pattern and replacement must not contain '/' (sed s/// delimiter)"
+  fi
+  shift 2
+  local targets_tmp
+  files::create_temp targets_tmp
+  # shellcheck disable=SC2154 # targets_tmp assigned by files::create_temp via nameref
+  local file dir base new_base new
+  for file in "$@"; do
+    if ! files::exists "${file}"; then
+      log::warn "Skipping ${file}: source does not exist"
+      continue
+    fi
+    dir="$(dirname "${file}")"
+    base="$(basename "${file}")"
+    # shellcheck disable=SC2001 # pattern is a BRE variable; ${//} only supports globs, not regex
+    new_base="$(sed "s/${pattern}/${replacement}/" <<<"${base}")"
+    if [[ ${dir} == '.' ]]; then
+      new="${new_base}"
+    else
+      new="${dir}/${new_base}"
+    fi
+    if [[ ${new} == "${file}" ]]; then
+      # Silent skip — pattern produced no change; no warning needed
+      continue
+    fi
+    if files::exists "${new}"; then
+      log::warn "Skipping ${file}: destination exists: ${new}"
+      continue
+    fi
+    # No grep:: helper combines --line-regexp with --fixed-strings; raw grep is correct here.
+    # The `if` consumes the exit status (0=match, 1=no-match), so set -e does not fire on no-match.
+    if grep --quiet --line-regexp --fixed-strings -- "${new}" "${targets_tmp}"; then
+      log::warn "Skipping ${file}: duplicate target within batch: ${new}"
+      continue
+    fi
+    printf '%s\n' "${new}" >>"${targets_tmp}"
+    printf '%s\t%s\n' "${file}" "${new}"
+  done
 }

@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+# @description Find duplicate files by content (SHA-256) under a path, grouped largest-first.
+# @arg $1 path Optional directory to scan; defaults to the current directory.
+# @stdout Duplicate groups: a `<hash>  <size>` header per group, then indented member paths,
+#         blank line between groups. Empty when no duplicates exist.
+# @exitcode 0 success
+# @exitcode 1 directory does not exist or an unexpected error occurred
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 0
+args::check_at_most_1_arg "$@"
+
+if args::no_args "$@"; then
+  readonly DIR="."
+else
+  readonly DIR="$1"
+fi
+dirs::assert_exists "${DIR}"
+
+files::create_temp dupes_tmp
+# shellcheck disable=SC2154 # dupes_tmp assigned by files::create_temp via nameref
+files::find_duplicates "${DIR}" > "${dupes_tmp}"
+
+mapfile -t rows < "${dupes_tmp}"
+if [[ "${#rows[@]}" -eq 0 ]]; then
+  exit 0
+fi
+
+prev_hash=''
+for row in "${rows[@]}"; do
+  IFS=$'\t' read -r size hash path <<< "${row}"
+  if [[ "${hash}" != "${prev_hash}" ]]; then
+    if strings::is_not_empty "${prev_hash}"; then
+      printf '\n'
+    fi
+    printf '%s  %s\n' "${hash}" "$(numfmt --to=iec --suffix=B "${size}")"
+    prev_hash="${hash}"
+  fi
+  printf '  %s\n' "${path}"
+done
