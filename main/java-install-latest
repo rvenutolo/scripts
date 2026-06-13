@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# @description Install the latest available Temurin JDK for the given major version.
+# @arg $1 major java version (e.g. "21")
+# @exitcode 0 success
+# @exitcode 1 the given major version is not available
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_exactly_1_arg "$@"
+
+readonly MAJOR_VERSION="$1"
+
+sdkman_jdks::install_latest_tem_jdk "${MAJOR_VERSION}"
