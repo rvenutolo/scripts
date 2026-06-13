@@ -12,7 +12,7 @@ Personal collection of bash scripts for system setup, package install, and day-t
 
 - `other/` — third-party scripts copied verbatim from elsewhere. **Never modify anything under `other/` unless explicitly told to touch a specific file in there.** This applies to formatting, shellcheck fixes, refactors, renames, or any other automated cleanup. On `PATH`; excluded from treefmt formatting (via `.treefmt.nix` excludes) and from `shellcheck-scripts`.
 
-- `wrapper/` — small pass-through wrappers that forward all args to an underlying tool (flatpak app, `nix run` target, or a same-name binary). Currently contains `batfetch`, `xdg-ninja`, `kate`, `mvn`, `gradle`, `claude`, `claude-personal`, `claude-work`, and 21 flatpak wrappers. NOT yet on `PATH` (user wires this in manually via `~/.profile`). Same shellcheck / shdoc-header / formatting rules and same `./check-scripts` gate as `main/`.
+- `wrapper/` — small pass-through wrappers that forward all args to an underlying tool (flatpak app, `nix run` target, or a same-name binary). Currently contains `batfetch`, `xdg-ninja`, `kate`, `mvn`, `gradle`, `claude`, `claude-personal`, `claude-work`, `claude-yolo`, and 21 flatpak wrappers. NOT yet on `PATH` (user wires this in manually via `~/.profile`). Same shellcheck / shdoc-header / formatting rules and same `./check-scripts` gate as `main/`.
 
 - `install/` — numbered scripts run in order by `run-install-scripts` to provision a new machine. Files starting with all-caps names (e.g. `00_DISTRO_PACKAGES`, `70_WORK_ONLY`) are markers/data with executable bit off — the runner skips non-executable files. `90_REMOVE` etc. follow same pattern.
 

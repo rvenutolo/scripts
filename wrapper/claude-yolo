@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# @description Pass-through to the real `claude` binary with --dangerously-skip-permissions.
+#              Fails if CLAUDE_CONFIG_DIR is not set (no ~/.claude fallback).
+# @arg $@ args Optional arguments forwarded verbatim to claude.
+# @exitcode 1 CLAUDE_CONFIG_DIR is not set
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is not statically followable
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+system::require_bash_version 4 0
+# pass-through: any arg count valid (forwarded to claude)
+
+# remove this dir from the path so executing `claude` doesn't run this script
+path::remove "$(misc::this_script_dir)"
+
+env::assert_var_set 'CLAUDE_CONFIG_DIR'
+exec claude --dangerously-skip-permissions "$@"
