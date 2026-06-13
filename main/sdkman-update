@@ -35,6 +35,6 @@ args::check_no_args "$@"
   log::log 'Updated Temurin JDKs'
 
   log::log 'Setting default JDK'
-  sdkman_jdks::set_default_jdk_to_latest_installed
+  sdkman_jdks::set_default_jdk_to_latest_patch_of_current_major
   log::log 'Set default JDK'
 )
