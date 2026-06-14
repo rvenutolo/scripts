@@ -61,7 +61,6 @@ function shell_scripts::find() {
 # @arg $1 name of output array (will be cleared and populated)
 function shell_scripts::filter() {
   args::check_at_least_1_arg "$@"
-  system::require_bash_version 4 3
   local -r out_name="$1"
   local -n _out_ref="${out_name}"
   shift
