@@ -13,7 +13,6 @@ IFS=$'\n\t'
 source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
-system::require_bash_version 4 0
 
 # @description Emit `<bytes>\t<package-name>` rows for every installed package on this distro.
 # @noargs

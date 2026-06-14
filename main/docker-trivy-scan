@@ -10,7 +10,6 @@ IFS=$'\n\t'
 source "${DOCKER_COMPOSE_DIR}/functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
-system::require_bash_version 4 0
 
 if args::no_args "$@"; then
   files::create_temp images_tmp

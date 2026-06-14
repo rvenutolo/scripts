@@ -22,7 +22,6 @@ IFS=$'\n\t'
 source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
-system::require_bash_version 4 3
 args::check_no_args "$@"
 
 # @description Print every in-scope top-level script path, one per line.

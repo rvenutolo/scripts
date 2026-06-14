@@ -17,7 +17,6 @@ IFS=$'\n\t'
 source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
-system::require_bash_version 4 3
 args::check_no_args "$@"
 commands::assert_executable_exists 'check-jsonschema'
 

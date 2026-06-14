@@ -11,7 +11,6 @@ IFS=$'\n\t'
 source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
-system::require_bash_version 4 0
 args::check_exactly_1_arg "$@"
 
 ip::ipv4_to_num "$1"

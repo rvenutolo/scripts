@@ -12,7 +12,6 @@ IFS=$'\n\t'
 source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
-system::require_bash_version 4 0
 args::check_at_most_1_arg "$@"
 
 readonly SCAN_DIR="${1:-$(pwd)}"

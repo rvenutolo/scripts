@@ -10,6 +10,5 @@ IFS=$'\n\t'
 source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
-system::require_bash_version 4 0
 
 nix run 'github:b3nj5m1n/xdg-ninja' -- "$@"

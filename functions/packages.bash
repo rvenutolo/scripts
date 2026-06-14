@@ -16,7 +16,6 @@ function packages::dpkg_package_installed() {
 # @arg $1 package list type (appimage, flatpak, nixpkgs, or nixpkgs-unstable)
 function packages::get_universal() {
   args::check_at_least_1_arg "$@"
-  system::require_bash_version 4 0
   local package_type
   case "$1" in
   appimage | flatpak | nixpkgs | nixpkgs-unstable)
@@ -111,7 +110,6 @@ function packages::get_universal() {
 # @arg $2 OS codename (e.g. "jammy")
 function packages::get_distro() {
   args::check_at_least_2_args "$@"
-  system::require_bash_version 4 0
   local id="$1"
   readonly id
   shift
@@ -201,7 +199,6 @@ function packages::get_distro() {
 # Output: stdout — package names, one per line, sorted
 # @noargs
 function packages::get_sdkman() {
-  system::require_bash_version 4 0
   local packages_to_ignore=()
   local quiet=''
   while [[ $# -gt 0 ]]; do
