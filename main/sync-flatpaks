@@ -10,7 +10,6 @@ IFS=$'\n\t'
 source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
-system::require_bash_version 4 0
 # pass-through: any arg count valid ($@ forwarded as filter args to packages::get_universal)
 
 commands::assert_executable_exists 'flatpak'

@@ -9,7 +9,6 @@ IFS=$'\n\t'
 # shellcheck disable=SC1091 # .functions.bash is sourced via SCRIPTS_DIR, not a relative path
 source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
-system::require_bash_version 4 0
 # pass-through: any arg count valid ($@ forwarded as filter args to packages::get_universal)
 
 commands::assert_executable_exists 'appman'
