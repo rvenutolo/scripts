@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+# @description Look up common DNS record types for a host via dig and print a
+#   labeled section for each. Record types with no records show "(none)".
+# @arg $1 host the hostname (or domain) to query
+# @stdout One labeled section per record type, separated by blank lines.
+# @example
+#   dns-lookup example.com
+# @exitcode 0 success
+# @exitcode 1 wrong argument count, or dig is not installed
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_exactly_1_arg "$@"
+
+readonly HOST="$1"
+
+commands::executable_exists dig || log::die 'dig is required but not installed'
+
+readonly RECORD_TYPES=(A AAAA MX TXT NS CNAME SOA CAA SRV)
+
+for type in "${RECORD_TYPES[@]}"; do
+  output=""
+  output="$(dig +short "${type}" "${HOST}")"
+  printf '== %s ==\n' "${type}"
+  if strings::is_empty "${output}"; then
+    printf '%s\n' '(none)'
+  else
+    printf '%s\n' "${output}"
+  fi
+  printf '\n'
+done
