@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+# @description Run a command in each personal git repo found recursively under
+#   PERSONAL_PROJECTS_DIR. Prints a header per repo. Stops on the first command failure.
+# @arg $@ cmd command (and args) to run in each repo
+# @exitcode 0 all repos succeeded
+# @exitcode 1 a command failed in one of the repos
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 0
+args::check_at_least_1_arg "$@" # requires: cmd [args...] to run in each repo
+
+files::create_temp repos_file
+# find/test flags: no long-form equivalents
+# shellcheck disable=SC2154 # repos_file assigned by files::create_temp via nameref
+find "${PERSONAL_PROJECTS_DIR}" -type d -exec test -e '{}/.git' \; -print -prune > "${repos_file}"
+
+mapfile -t repos < "${repos_file}"
+for repo in "${repos[@]}"; do
+  log::log "=== ${repo} ==="
+  ( cd "${repo}" && "$@" ) || log::die "Command failed in ${repo}"
+done
