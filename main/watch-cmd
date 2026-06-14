@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# @description Run `watch` with change-highlighting (--differences) enabled by default.
+# @arg $@ watch options and the command to run, forwarded verbatim to watch
+# @exitcode 0 delegated to watch
+# @exitcode 1 watch not installed
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+# pass-through: any arg count valid; watch owns --help
+
+if ! commands::executable_exists watch; then
+  log::die "watch executable not found"
+fi
+
+# exec replaces this process; must be the last statement (does not return)
+exec watch --differences "$@"
