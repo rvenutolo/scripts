@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+# @description Port scan a host with nmap (authorized local/lab use only).
+#              Scans the full port range by default, or a caller-supplied
+#              range/list when the second argument is given.
+# @arg $1 host hostname or IP address to scan
+# @arg $2 port-range optional nmap port spec, e.g. "1-1024" or "22,80,443" (default: all ports)
+# @stdout nmap scan report for the target host.
+# @example
+#   portscan-host 192.168.1.10            # scan all ports
+#   portscan-host 192.168.1.10 1-1024     # scan a port range
+#   portscan-host example.lab 22,80,443   # scan a specific port list
+# @exitcode 0 success
+# @exitcode 1 nmap is not installed, or the scan failed
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_at_least_1_arg "$@"
+args::check_at_most_2_args "$@"
+
+readonly HOST="$1"
+readonly PORT_RANGE="${2:-}"
+
+if ! commands::executable_exists nmap; then
+  log::die 'nmap is required'
+fi
+
+nmap_args=()
+if strings::is_not_empty "${PORT_RANGE}"; then
+  nmap_args+=(-p "${PORT_RANGE}") # nmap has no long-form equivalent for -p
+else
+  nmap_args+=(-p-) # nmap has no long-form equivalent for -p-
+fi
+
+nmap "${nmap_args[@]}" "${HOST}"
