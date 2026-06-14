@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+# @description Append a timestamped note to a single notes file under
+#              XDG_DATA_HOME. With an argument, that argument is the note body.
+#              With no argument but piped stdin, the note body is read from
+#              stdin. With no argument and no stdin (bare invocation), open the
+#              notes file in $EDITOR.
+# @arg $1 body optional note body; if omitted, read from stdin, or bare opens the notes file in $EDITOR
+# @stdin note body (used when no argument is given and stdin is piped)
+# @exitcode 0 success
+# @exitcode 1 bare invocation with EDITOR unset
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_at_most_1_arg "$@"
+
+readonly NOTES_FILE="${XDG_DATA_HOME}/notes/notes.md"
+
+if args::no_args "$@" && ! args::stdin_exists; then
+  # Bare invocation: open the notes file in the editor.
+  if strings::is_empty "${EDITOR:-}"; then
+    log::die 'EDITOR not set'
+  fi
+  dirs::create "$(dirname "${NOTES_FILE}")"
+  exec "${EDITOR}" "${NOTES_FILE}"
+fi
+
+if args::no_args "$@"; then
+  body="$(cat)"
+else
+  body="$1"
+fi
+
+timestamp="$(date '+%Y-%m-%dT%H:%M:%S%z')"
+# Entry layout: header line, blank line, body, trailing blank line (separates
+# consecutive entries). files::append_to writes content followed by a single
+# newline, so the entry string itself ends with one explicit "\n" to produce
+# that trailing blank line. Built via printf into a var (not $(...), which would
+# strip the trailing newlines).
+printf -v entry '## %s\n\n%s\n' "${timestamp}" "${body}"
+
+files::append_to "${NOTES_FILE}" "${entry}"
