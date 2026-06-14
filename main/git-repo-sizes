@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+
+# @description Report the largest blobs in the repo's history (across all refs),
+#   largest first, with human-readable sizes. --count N limits the number of results
+#   (default: 20).
+# @arg $1 dir optional repo dir (default: current working directory)
+# @stdout table of largest blobs: human-readable size and path, largest first
+# @exitcode 0 success
+# @exitcode 1 not a git repo, invalid --count value, or numfmt missing
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 4
+
+count=20
+positional=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --count)
+      [[ $# -ge 2 ]] || log::die "--count requires a value"
+      count="$2"
+      shift 2
+      ;;
+    --count=*)
+      count="${1#*=}"
+      shift
+      ;;
+    *)
+      positional+=("$1")
+      shift
+      ;;
+  esac
+done
+set -- "${positional[@]+"${positional[@]}"}"
+args::check_at_most_1_arg "$@"
+
+[[ "${count}" =~ ^[0-9]+$ ]] || log::die "--count must be a non-negative integer: ${count}"
+readonly COUNT="${count}"
+readonly DIR="${1:-$(pwd)}"
+
+git::assert_git_repo "${DIR}"
+commands::executable_exists numfmt || log::die "numfmt (coreutils) not found on PATH"
+
+files::create_temp objects_file
+# shellcheck disable=SC2154 # objects_file assigned by files::create_temp via nameref
+git -C "${DIR}" rev-list --objects --all > "${objects_file}"
+
+files::create_temp checked_file
+# cat-file reads 'sha path' lines; %(rest) is the path (text after the sha).
+# shellcheck disable=SC2154 # checked_file assigned by files::create_temp via nameref
+git -C "${DIR}" cat-file --batch-check='%(objecttype) %(objectsize) %(rest)' \
+  < "${objects_file}" > "${checked_file}"
+
+files::create_temp sorted_file
+# Keep blobs, emit 'size<TAB>path', sort by size descending.
+# Sort writes to a temp file (rather than piping into head) so that head closing
+# the pipe early cannot SIGPIPE-kill sort and trip pipefail + the ERR trap.
+# shellcheck disable=SC2154 # sorted_file assigned by files::create_temp via nameref
+awk '
+  $1 == "blob" {
+    size = $2
+    line = $0
+    sub(/^blob +[0-9]+ +/, "", line)
+    print size "\t" line
+  }
+' "${checked_file}" | sort --reverse --numeric-sort > "${sorted_file}"
+
+files::create_temp top_file
+# Take the top COUNT rows.
+# shellcheck disable=SC2154 # top_file assigned by files::create_temp via nameref
+head --lines="${COUNT}" "${sorted_file}" > "${top_file}"
+
+{
+  printf 'SIZE\tPATH\n'
+  while IFS=$'\t' read -r size path; do
+    printf '%s\t%s\n' "$(numfmt --to=iec "${size}")" "${path}"
+  done < "${top_file}"
+} | column --table --separator $'\t' --output-separator '  '
