@@ -6,3 +6,5 @@
 for file in "${SCRIPTS_DIR}"/functions/*.bash; do
   source "${file}"
 done
+
+system::require_bash_version 5 0
