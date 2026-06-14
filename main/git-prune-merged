@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+# @description Delete local branches already merged into the repo's default branch
+#   (main or master). Prompts per branch. The current branch and the default branch
+#   are never offered for deletion.
+# @arg $1 dir optional repo dir to operate on (default: current working directory)
+# @exitcode 0 success
+# @exitcode 1 not a git repo, or no default branch (main/master) found
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 0
+args::check_at_most_1_arg "$@"
+
+readonly DIR="${1:-$(pwd)}"
+git::assert_git_repo "${DIR}"
+
+DEFAULT_BRANCH="$(git::default_branch "${DIR}")"
+readonly DEFAULT_BRANCH
+
+CURRENT_BRANCH="$(git -C "${DIR}" branch --show-current)"
+readonly CURRENT_BRANCH
+
+files::create_temp merged_file
+# shellcheck disable=SC2154 # merged_file assigned by files::create_temp via nameref
+git -C "${DIR}" branch --merged "${DEFAULT_BRANCH}" --format='%(refname:short)' > "${merged_file}"
+
+mapfile -t merged_branches < "${merged_file}"
+
+deleted_any='false'
+for branch in "${merged_branches[@]}"; do
+  strings::is_empty "${branch}" && continue
+  [[ "${branch}" == "${DEFAULT_BRANCH}" ]] && continue
+  [[ "${branch}" == "${CURRENT_BRANCH}" ]] && continue
+  if prompt::yn "Delete merged branch '${branch}'?"; then
+    git -C "${DIR}" branch --delete "${branch}"
+    deleted_any='true'
+  fi
+done
+
+if [[ "${deleted_any}" == 'false' ]]; then
+  log::log "No merged branches deleted"
+fi

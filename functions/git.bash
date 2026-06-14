@@ -192,3 +192,21 @@ function git::resolve_filter_repo_cmd() {
     _grfrc_arr=(nix run 'github:NixOS/nixpkgs/nixpkgs-unstable#git-filter-repo' --)
   fi
 }
+
+# @description Resolve the repo's default branch: 'main' if a local main branch
+# exists, else 'master'. Dies if neither exists.
+# @arg $1 repo path inside a git repo
+# @stdout the default branch name (main or master)
+# @exitcode 0 success
+# @exitcode 1 neither main nor master exists
+function git::default_branch() {
+  args::check_exactly_1_arg "$@"
+  local -r repo="$1"
+  if git -C "${repo}" show-ref --verify --quiet refs/heads/main; then
+    printf '%s\n' 'main'
+  elif git -C "${repo}" show-ref --verify --quiet refs/heads/master; then
+    printf '%s\n' 'master'
+  else
+    log::die "no default branch (main or master) in ${repo}"
+  fi
+}
