@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# @description Render a string (or stdin) as a QR code in the terminal.
+# @arg $1 text Text/URL to encode (optional; reads stdin when omitted).
+# @stdout The QR code as ANSI-UTF8 art.
+# @exitcode 0 success
+# @exitcode 1 qrencode not installed, or no argument and no stdin
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 0
+args::check_at_most_1_arg "$@"
+
+if ! commands::executable_exists qrencode; then
+  log::die 'qrencode not installed'
+fi
+
+# -t: no long-form equivalent
+if args::no_args "$@"; then
+  if ! args::stdin_exists; then
+    log::die 'no argument given and no stdin'
+  fi
+  qrencode -t ANSIUTF8
+else
+  printf '%s' "$1" | qrencode -t ANSIUTF8
+fi
