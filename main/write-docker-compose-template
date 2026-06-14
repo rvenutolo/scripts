@@ -75,7 +75,7 @@ function main() {
 
   APP_NAME="$(prompt::for_value 'App name?')"
   readonly APP_NAME
-  APP_CONSTANT_NAME="${APP_NAME^^}"
+  APP_CONSTANT_NAME="${APP_NAME@U}"
   readonly APP_CONSTANT_NAME="${APP_CONSTANT_NAME//-/_}"
 
   IMAGE_NAME="$(prompt::for_value 'Image name?')"

@@ -108,13 +108,13 @@ function git::prompt_select_identities() {
   local -r selected_file="$2"
   local -r canonical_name="$3"
   local -a canon_tokens
-  read -r -a canon_tokens <<<"${canonical_name,,}"
+  read -r -a canon_tokens <<<"${canonical_name@L}"
   local name email name_words tok prompt_fn
   : >"${selected_file}"
   while IFS=$'\t' read -r -u 3 name email; do
     # Normalize identity name to space-delimited lowercase alphanumeric tokens, padded with
     # spaces so per-token substring matches don't bleed across word boundaries.
-    name_words=" ${name,,} "
+    name_words=" ${name@L} "
     name_words="${name_words//[^a-z0-9 ]/ }"
     prompt_fn='prompt::ny'
     for tok in "${canon_tokens[@]}"; do
