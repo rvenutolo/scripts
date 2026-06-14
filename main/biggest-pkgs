@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+
+# @description Rank installed packages by on-disk size, largest first.
+# @noargs
+# @stdout Aligned `SIZE` / `PACKAGE` table, largest first.
+# @exitcode 0 success
+# @exitcode 1 any error (invalid flags, non-numeric count, unsupported distro, backend failure)
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 0
+
+# @description Emit `<bytes>\t<package-name>` rows for every installed package on this distro.
+# @noargs
+# @stdout One `<bytes>\t<name>` row per installed package.
+# @exitcode 1 if the distro is unsupported
+# shellcheck disable=SC2120 # args::check_no_args "$@" is a defensive arity guard; always called with no args
+function installed_sizes() {
+  args::check_no_args "$@"
+  if os::is_arch || os::is_cachyos; then
+    LC_ALL=C pacman -Qi | awk '
+      BEGIN {
+        mult["B"] = 1; mult["KiB"] = 1024; mult["MiB"] = 1048576
+        mult["GiB"] = 1073741824; mult["TiB"] = 1099511627776
+      }
+      /^Name +:/ { name = $3 }
+      /^Installed Size +:/ { printf "%d\t%s\n", $4 * mult[$5], name }
+    '
+  elif os::is_debian || os::is_ubuntu; then
+    dpkg-query --show --showformat='${Installed-Size}\t${Package}\n' |
+      awk --field-separator '\t' '{ printf "%d\t%s\n", $1 * 1024, $2 }'
+  elif os::is_fedora || os::is_leap || os::is_tumbleweed; then
+    rpm --query --all --queryformat='%{SIZE}\t%{NAME}\n'
+  else
+    log::die "Unsupported distro: $(os::id)"
+  fi
+}
+
+# @description Render `<bytes>\t<name>` rows from stdin into an aligned human-readable table.
+# @noargs
+# shellcheck disable=SC2120 # args::check_no_args "$@" is a defensive arity guard; always called with no args
+function format_table() {
+  args::check_no_args "$@"
+  local rows_tmp
+  files::create_temp rows_tmp
+  # shellcheck disable=SC2154 # rows_tmp assigned by files::create_temp via nameref
+  numfmt --to=iec --suffix=B --field=1 --delimiter=$'\t' > "${rows_tmp}"
+  column --table --separator=$'\t' --table-columns 'SIZE,PACKAGE' "${rows_tmp}"
+}
+
+# @description Rank installed packages by size and print the top `row_count`.
+# @arg $1 row_count number of rows to print
+function main() {
+  local -r row_count="$1"
+  local sizes_tmp ranked_tmp
+  files::create_temp sizes_tmp
+  files::create_temp ranked_tmp
+  # shellcheck disable=SC2154 # *_tmp assigned by files::create_temp via nameref
+  # shellcheck disable=SC2119 # installed_sizes takes no args; $@ intentionally not forwarded
+  installed_sizes > "${sizes_tmp}"
+  sort --numeric-sort --reverse --key=1 "${sizes_tmp}" > "${ranked_tmp}"
+  # shellcheck disable=SC2119 # format_table takes no args; $@ intentionally not forwarded
+  head --lines="${row_count}" "${ranked_tmp}" | format_table
+}
+
+parsed_args="$(getopt --alternative --name "${0##*/}" --options 'n:' --longoptions 'count:' -- "$@")"
+readonly parsed_args
+# eval is required to re-tokenize the quoted output of getopt
+eval set -- "${parsed_args}"
+_count=20
+while true; do
+  case "$1" in
+    -n | --count)
+      _count="$2"
+      shift 2
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      log::die "Unexpected option: $1 - this should not happen."
+      ;;
+  esac
+done
+if [[ ! "${_count}" =~ ^[0-9]+$ ]] || [[ "${_count}" -eq 0 ]]; then
+  log::die "Count must be a positive integer: ${_count}"
+fi
+readonly COUNT="${_count}"
+
+args::check_no_args "$@"
+
+main "${COUNT}"
