@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+
+# @description Kill the process(es) holding a given TCP/UDP port, confirming each pid.
+# @arg $1 port TCP/UDP port number (1-65535)
+# @exitcode 0 success (including when the user declines every kill)
+# @exitcode 1 invalid port, ss not found, or nothing listening on the port
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+
+# @description Print the unique pids listening on the given port (TCP or UDP).
+#   Uses sudo for ss when not already root, since process info needs root.
+# @arg $1 port port number
+# @stdout Unique pids, one per line (empty when nothing is listening).
+function port_pids() {
+  args::check_exactly_1_arg "$@"
+  local -r port="$1"
+  local ss_cmd=(ss --listening --tcp --udp --processes --numeric "sport = :${port}")
+  if [[ "${EUID}" -ne 0 ]]; then
+    ss_cmd=(sudo "${ss_cmd[@]}")
+  fi
+  local out_tmp
+  files::create_temp out_tmp
+  # shellcheck disable=SC2154 # out_tmp assigned by files::create_temp via nameref
+  "${ss_cmd[@]}" > "${out_tmp}"
+  # grep exits 1 on no match; that is the empty case, not an error
+  { grep --only-matching 'pid=[0-9]\+' "${out_tmp}" || true; } |
+    cut --delimiter='=' --fields=2 |
+    sort --unique
+}
+
+# @description Resolve pids on the port and kill each after per-pid confirmation.
+# @arg $1 port port number
+# @arg $2 signal signal name to send (TERM or KILL)
+function main() {
+  local -r port="$1"
+  local -r signal="$2"
+  local pids_tmp
+  files::create_temp pids_tmp
+  # shellcheck disable=SC2154 # pids_tmp assigned by files::create_temp via nameref
+  port_pids "${port}" > "${pids_tmp}"
+  local -a pids
+  mapfile -t pids < "${pids_tmp}"
+  if [[ "${#pids[@]}" -eq 0 ]]; then
+    log::die "Nothing listening on port ${port}"
+  fi
+  local pid
+  for pid in "${pids[@]}"; do
+    local info
+    info="$(ps --pid "${pid}" --format 'pid,user,comm,args' --no-headers)" || info="${pid} (process gone)"
+    log::log "Port ${port} held by: ${info}"
+    if prompt::yn "Kill pid ${pid} with SIG${signal}?"; then
+      local kill_cmd=(kill --signal "${signal}" "${pid}")
+      if [[ "${EUID}" -ne 0 ]]; then
+        kill_cmd=(sudo "${kill_cmd[@]}")
+      fi
+      "${kill_cmd[@]}"
+      log::log "Sent SIG${signal} to ${pid}"
+    fi
+  done
+}
+
+parsed_args="$(getopt --alternative --name "${0##*/}" --options '9' --longoptions 'force' -- "$@")"
+readonly parsed_args
+# eval is required to re-tokenize the quoted output of getopt
+eval set -- "${parsed_args}"
+_signal='TERM'
+while true; do
+  case "$1" in
+    -9 | --force)
+      _signal='KILL'
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      log::die "Unexpected option: $1 - this should not happen."
+      ;;
+  esac
+done
+readonly SIGNAL="${_signal}"
+
+args::check_exactly_1_arg "$@"
+readonly PORT="$1"
+if [[ ! "${PORT}" =~ ^[0-9]+$ ]] || [[ "${PORT}" -lt 1 ]] || [[ "${PORT}" -gt 65535 ]]; then
+  log::die "Port must be an integer 1-65535: ${PORT}"
+fi
+if ! commands::executable_exists ss; then
+  log::die "ss executable not found"
+fi
+
+main "${PORT}" "${SIGNAL}"
