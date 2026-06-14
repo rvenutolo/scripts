@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+# @description List recently checked-out branches, most-recent first, derived from the
+#   reflog. Only branches that still exist are shown. --count N limits the number of
+#   results (default: 10).
+# @arg $1 dir optional repo dir (default: current working directory)
+# @stdout recently checked-out branch names, one per line, most-recent first
+# @exitcode 0 success
+# @exitcode 1 not a git repo, or invalid --count value
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 4
+
+count=10
+positional=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --count)
+      [[ $# -ge 2 ]] || log::die "--count requires a value"
+      count="$2"
+      shift 2
+      ;;
+    --count=*)
+      count="${1#*=}"
+      shift
+      ;;
+    *)
+      positional+=("$1")
+      shift
+      ;;
+  esac
+done
+set -- "${positional[@]+"${positional[@]}"}"
+args::check_at_most_1_arg "$@"
+
+[[ "${count}" =~ ^[0-9]+$ ]] || log::die "--count must be a non-negative integer: ${count}"
+readonly COUNT="${count}"
+readonly DIR="${1:-$(pwd)}"
+
+git::assert_git_repo "${DIR}"
+
+files::create_temp reflog_file
+# shellcheck disable=SC2154 # reflog_file assigned by files::create_temp via nameref
+git -C "${DIR}" reflog --format='%gs' > "${reflog_file}"
+
+files::create_temp targets_file
+# Keep 'checkout: moving from X to Y' lines, capture Y (branch switched to), dedup preserving order.
+# sed -n: no long-form equivalent
+# shellcheck disable=SC2154 # targets_file assigned by files::create_temp via nameref
+sed -n 's/^checkout: moving from .* to //p' "${reflog_file}" | awk '!seen[$0]++' > "${targets_file}"
+
+shown=0
+while read -r branch; do
+  if (( shown >= COUNT )); then
+    break
+  fi
+  if git -C "${DIR}" rev-parse --verify --quiet "refs/heads/${branch}" > '/dev/null'; then
+    printf '%s\n' "${branch}"
+    shown=$(( shown + 1 ))
+  fi
+done < "${targets_file}"
