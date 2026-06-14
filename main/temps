@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# @description Print CPU/GPU temperature sensor readings via lm-sensors, plus NVIDIA GPUs when present.
+# @noargs
+# @stdout lm-sensors output, followed by an NVIDIA GPU temperature section when nvidia-smi exists.
+# @exitcode 0 success
+# @exitcode 1 lm-sensors not installed or a sensor command fails
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+if ! commands::executable_exists sensors; then
+  log::die "sensors executable not found (install lm-sensors)"
+fi
+
+sensors
+
+if commands::executable_exists nvidia-smi; then
+  nvidia_tmp=''
+  files::create_temp nvidia_tmp
+  # shellcheck disable=SC2154 # nvidia_tmp assigned by files::create_temp via nameref
+  nvidia-smi --query-gpu=name,temperature.gpu --format=csv,noheader > "${nvidia_tmp}"
+  printf '\n%s\n' 'NVIDIA GPU:'
+  while read -r line; do
+    gpu_name="${line%,*}"
+    gpu_temp="${line##*, }"
+    printf 'GPU %s: %s°C\n' "${gpu_name}" "${gpu_temp}"
+  done < "${nvidia_tmp}"
+fi
