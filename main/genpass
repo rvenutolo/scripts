@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+# @description Generate a secure random password. Defaults to a 64-character
+#              alphanumeric password; pass an integer LENGTH to override the
+#              length, and pass --symbols to include symbol characters.
+# @arg $1 length password length (optional; defaults to 64). The LENGTH
+#         argument and the --symbols flag may be given in any order.
+# @stdout the generated password
+# @exitcode 0 success
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 0
+args::check_at_most_2_args "$@"
+
+symbols=''
+length=''
+for arg in "$@"; do
+  case "${arg}" in
+    --symbols)
+      symbols='1'
+      ;;
+    *)
+      length="${arg}"
+      ;;
+  esac
+done
+
+# Pass the length to the helper only when the user supplied one, so the helper's
+# own default of 64 applies when LENGTH is omitted.
+args_for_helper=()
+if strings::is_not_empty "${length}"; then
+  args_for_helper+=("${length}")
+fi
+
+if strings::is_not_empty "${symbols}"; then
+  passwords::generate_with_symbols "${args_for_helper[@]}"
+else
+  passwords::generate "${args_for_helper[@]}"
+fi
