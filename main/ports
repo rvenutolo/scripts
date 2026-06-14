@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# @description Print a table of listening TCP/UDP sockets with their owning pid/process.
+#   The process column only populates when run as root, so when not already root the
+#   underlying ss invocation is prefixed with sudo.
+# @noargs
+# @stdout Tab-aligned table of listening sockets with owning pid/process.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+if ! commands::executable_exists ss; then
+  log::die "ss executable not found"
+fi
+
+ss_cmd=(ss --listening --tcp --udp --processes --numeric)
+if [[ "${EUID}" -ne 0 ]]; then
+  ss_cmd=(sudo "${ss_cmd[@]}")
+fi
+
+"${ss_cmd[@]}" | column --table
