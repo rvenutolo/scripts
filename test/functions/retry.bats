@@ -100,3 +100,44 @@ echo \$(( current + 1 )) > \"\${count_file}\"
   run retry::until_success
   assert_failure
 }
+
+# ---------- retry::until_deadline ----------
+
+@test "until_deadline: succeeds immediately when cmd is true — returns 0 fast, no sleep" {
+  run retry::until_deadline 10 1 true
+  assert_success
+  [[ ! -f "${BATS_TEST_TMPDIR}/sleep_log" ]]
+}
+
+@test "until_deadline: succeeds after two failing attempts within the deadline" {
+  # Real sleep so the SECONDS-based deadline advances; flaky_cmd succeeds on the 3rd call.
+  path_shim::add sleep "#!/usr/bin/env bash
+exec /usr/bin/sleep \"\$1\""
+  SUCCEED_ON_CALL=3 run retry::until_deadline 10 1 flaky_cmd
+  assert_success
+  assert_equal "$(cat "${BATS_TEST_TMPDIR}/flaky_count")" '3'
+}
+
+@test "until_deadline: times out and dies when cmd never succeeds" {
+  # Real sleep so the SECONDS-based deadline actually elapses.
+  path_shim::add sleep "#!/usr/bin/env bash
+exec /usr/bin/sleep \"\$1\""
+  run --separate-stderr retry::until_deadline 1 1 false
+  assert_failure
+  [[ "${stderr}" == *'Timed out after 1s waiting for'* ]]
+}
+
+@test "until_deadline: no args triggers arity guard" {
+  run retry::until_deadline
+  assert_failure
+}
+
+@test "until_deadline: one arg triggers arity guard" {
+  run retry::until_deadline 10
+  assert_failure
+}
+
+@test "until_deadline: two args triggers arity guard" {
+  run retry::until_deadline 10 1
+  assert_failure
+}

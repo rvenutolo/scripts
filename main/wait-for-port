@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+# @description Wait until a TCP host:port becomes reachable, or time out.
+# Polls the target once per second with `nc -z` until it accepts a connection or the
+# deadline passes. The deadline defaults to 30 seconds and is overridable with --timeout N.
+# @arg $1 host:port target to probe (host and port separated by a colon)
+# @exitcode 0 the target became reachable before the deadline
+# @exitcode 1 the target was not reachable within the timeout, or input was invalid
+# @example
+#   wait-for-port localhost:8080
+#   wait-for-port db.example.com:5432 --timeout 120
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+
+# @description Probe the target until reachable or the deadline passes.
+# @arg $1 host hostname or IP to connect to
+# @arg $2 port TCP port to connect to
+# @arg $3 timeout deadline in seconds
+function main() {
+  local -r host="$1"
+  local -r port="$2"
+  local -r timeout="$3"
+  commands::executable_exists nc || log::die 'nc (netcat) is required but not installed'
+  log::log "Waiting up to ${timeout}s for ${host}:${port} ..."
+  # -z: no long-form equivalent
+  retry::until_deadline "${timeout}" 1 nc -z "${host}" "${port}"
+  log::log "${host}:${port} is reachable"
+}
+
+parsed_args="$(getopt --alternative --name "${0##*/}" --options '' --longoptions 'timeout:' -- "$@")"
+readonly parsed_args
+# eval is required to re-tokenize the quoted output of getopt
+eval set -- "${parsed_args}"
+_timeout=30
+while true; do
+  case "$1" in
+    --timeout)
+      _timeout="$2"
+      shift 2
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      log::die "Unexpected option: $1 - this should not happen."
+      ;;
+  esac
+done
+if [[ ! "${_timeout}" =~ ^[0-9]+$ ]] || [[ "${_timeout}" -eq 0 ]]; then
+  log::die "Timeout must be a positive integer: ${_timeout}"
+fi
+readonly TIMEOUT="${_timeout}"
+
+args::check_exactly_1_arg "$@"
+readonly TARGET="$1"
+
+if [[ "${TARGET}" != *:* ]]; then
+  log::die "Invalid target (expected host:port): ${TARGET}"
+fi
+readonly HOST="${TARGET%%:*}"
+readonly PORT="${TARGET##*:}"
+if strings::is_empty "${HOST}"; then
+  log::die "Empty host in target: ${TARGET}"
+fi
+if [[ ! "${PORT}" =~ ^[0-9]+$ ]]; then
+  log::die "Invalid port (must be numeric): ${PORT}"
+fi
+
+main "${HOST}" "${PORT}" "${TIMEOUT}"
