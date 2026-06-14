@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+# @description Bridge stdin and the system clipboard, auto-detecting Wayland vs X11.
+#              With piped stdin, copies it to the clipboard; otherwise pastes the
+#              clipboard contents to stdout.
+# @noargs
+# @stdin text to copy to clipboard
+# @stdout clipboard contents when no stdin
+# @exitcode 0 success
+# @exitcode 1 clipboard backend not installed
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+system::require_bash_version 4 0
+args::check_no_args "$@"
+
+if strings::is_not_empty "${WAYLAND_DISPLAY:-}"; then
+  if args::stdin_exists; then
+    commands::executable_exists 'wl-copy' || log::die 'wl-copy not installed'
+    wl-copy
+  else
+    commands::executable_exists 'wl-paste' || log::die 'wl-paste not installed'
+    wl-paste
+  fi
+else
+  commands::executable_exists 'xclip' || log::die 'xclip not installed'
+  if args::stdin_exists; then
+    xclip -selection clipboard -in # no long-form equivalent
+  else
+    xclip -selection clipboard -out # no long-form equivalent
+  fi
+fi
