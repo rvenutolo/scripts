@@ -793,3 +793,58 @@ function _run_select() {
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
+
+# Create an empty repo with one commit on branch $1 at ${BATS_TEST_TMPDIR}/$2 (default 'dbr').
+function _seed_repo_on_branch() {
+  local -r branch="$1"
+  local -r name="${2:-dbr}"
+  local -r dir="${BATS_TEST_TMPDIR}/${name}"
+  git init --quiet --initial-branch="${branch}" "${dir}"
+  git -C "${dir}" -c user.name=t -c user.email=t@e commit --allow-empty --quiet --message init
+  printf '%s\n' "${dir}"
+}
+
+@test "default_branch: returns main when main exists" {
+  local repo
+  repo="$(_seed_repo_on_branch main)"
+  run git::default_branch "${repo}"
+  assert_success
+  assert_output 'main'
+}
+
+@test "default_branch: returns master when only master exists" {
+  local repo
+  repo="$(_seed_repo_on_branch master)"
+  run git::default_branch "${repo}"
+  assert_success
+  assert_output 'master'
+}
+
+@test "default_branch: prefers main when both exist" {
+  local repo
+  repo="$(_seed_repo_on_branch master)"
+  git -C "${repo}" branch main
+  run git::default_branch "${repo}"
+  assert_success
+  assert_output 'main'
+}
+
+@test "default_branch: dies when neither main nor master exists" {
+  local repo
+  repo="$(_seed_repo_on_branch trunk)"
+  run git::default_branch "${repo}"
+  assert_failure
+  assert_output --partial 'no default branch'
+}
+
+@test "default_branch: dies with 0 args" {
+  run git::default_branch
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "default_branch: dies with 2 args" {
+  run git::default_branch 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
