@@ -106,6 +106,16 @@ function files::size_gb() {
   printf '%s\n' "scale=2; $(stat --format='%s' "${file}") / 1073741824" | bc
 }
 
+# @description Print the file's modification time as Unix epoch seconds.
+# @arg $1 file path
+# @stdout epoch seconds
+function files::mtime_epoch() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  files::assert_exists "${file}"
+  stat --format='%Y' "${file}"
+}
+
 # @description Move a file, prompting if the destination already exists; skips if source and dest are byte-identical.
 # @arg $1 source file path
 # @arg $2 destination file path

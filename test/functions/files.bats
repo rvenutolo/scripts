@@ -382,6 +382,32 @@ setup() {
   assert_output --partial 'does not exist'
 }
 
+# ---------- files::mtime_epoch ----------
+
+@test "mtime_epoch: returns file mtime as epoch seconds" {
+  local -r file="${BATS_TEST_TMPDIR}/mt"
+  : > "${file}"
+  touch -d '2020-01-02 03:04:05' "${file}"
+  run files::mtime_epoch "${file}"
+  assert_success
+  assert_output "$(date -d '2020-01-02 03:04:05' +%s)"
+}
+
+@test "mtime_epoch: missing file dies" {
+  run files::mtime_epoch "${BATS_TEST_TMPDIR}/does-not-exist"
+  assert_failure
+}
+
+@test "mtime_epoch: 0 args dies" {
+  run files::mtime_epoch
+  assert_failure
+}
+
+@test "mtime_epoch: 2 args dies" {
+  run files::mtime_epoch a b
+  assert_failure
+}
+
 # ---------- files::hash ----------
 
 @test "hash file: known content -> known sha256" {
