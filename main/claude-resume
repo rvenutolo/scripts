@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+
+# @description Pick a Claude Code session via `fzf` and resume it, optionally forking.
+#              Lists sessions for the current directory by default, or all projects with
+#              `--all`. Any flags after `--` are forwarded verbatim to the real `claude`
+#              binary (e.g. `-- --dangerously-skip-permissions`).
+# @arg $@ args Optional `--all`, then `--`, then claude flags.
+# @stdout none (execs `claude`, which takes over the terminal)
+# @exitcode 0 success, or the user aborted the picker
+# @exitcode 1 CLAUDE_CONFIG_DIR unset, no sessions found, or an unexpected flag before `--`
+# @example
+#   claude-resume
+#   claude-resume --all
+#   claude-resume -- --dangerously-skip-permissions
+#   claude-resume --all -- --model opus
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+# remove this dir from PATH so `exec claude` resolves the real binary, not a wrapper
+path::remove "$(misc::this_script_dir)"
+env::assert_var_set 'CLAUDE_CONFIG_DIR'
+# pass-through: variadic (`--all` plus forwarded claude flags), no fixed arity
+
+# @description Normalize a raw session prompt for single-line display: collapse newlines/tabs
+#   to spaces, strip leading whitespace, truncate to 80 chars, and substitute a placeholder
+#   when empty.
+# @arg $1 raw the raw prompt text
+# @stdout the display-ready prompt
+function format_prompt() {
+  args::check_exactly_1_arg "$@"
+  local raw="$1"
+  raw="${raw//$'\n'/ }"
+  raw="${raw//$'\t'/ }"
+  # strip leading whitespace
+  raw="${raw#"${raw%%[![:space:]]*}"}"
+  if strings::is_empty "${raw}"; then
+    printf '%s' '(no prompt)'
+    return
+  fi
+  if (( ${#raw} > 80 )); then
+    printf '%s…' "${raw:0:80}"
+  else
+    printf '%s' "${raw}"
+  fi
+}
+
+# @description Entry point: collect sessions in scope, let the user pick one, optionally fork,
+#   then exec `claude --resume`.
+# @arg $@ args parsed for `--all` and post-`--` claude flags
+function main() {
+  local all=0
+  local seen_sep=0
+  local -a claude_args=()
+  local arg
+  for arg in "$@"; do
+    if (( seen_sep )); then
+      claude_args+=("${arg}")
+      continue
+    fi
+    case "${arg}" in
+      --)
+        seen_sep=1
+        ;;
+      --all)
+        all=1
+        ;;
+      *)
+        log::die "unexpected flag '${arg}' before '--'; put claude flags after '--'"
+        ;;
+    esac
+  done
+
+  local projects_dir
+  projects_dir="$(claude::projects_dir)"
+  if ! dirs::exists "${projects_dir}"; then
+    log::die "no sessions found"
+  fi
+
+  local files_tmp
+  files::create_temp files_tmp
+  # shellcheck disable=SC2154 # files_tmp assigned by files::create_temp via nameref
+  if (( all )); then
+    # -mindepth/-maxdepth/-type/-name: find primaries, no long-form equivalents
+    find "${projects_dir}" -mindepth 2 -maxdepth 2 -type f -name '*.jsonl' > "${files_tmp}"
+  else
+    local enc scope_dir
+    enc="$(claude::encode_path "${PWD}")"
+    scope_dir="${projects_dir}/${enc}"
+    if dirs::exists "${scope_dir}"; then
+      # -mindepth/-maxdepth/-type/-name: find primaries, no long-form equivalents
+      find "${scope_dir}" -mindepth 1 -maxdepth 1 -type f -name '*.jsonl' > "${files_tmp}"
+    fi
+  fi
+
+  local -a session_files
+  mapfile -t session_files < "${files_tmp}"
+  if (( ${#session_files[@]} == 0 )); then
+    log::die "no sessions found"
+  fi
+
+  local rows_tmp
+  files::create_temp rows_tmp
+  local file uuid epoch when branch first last label
+  for file in "${session_files[@]}"; do
+    uuid="${file##*/}"
+    uuid="${uuid%.jsonl}"
+    epoch="$(files::mtime_epoch "${file}")"
+    when="$(date --date="@${epoch}" '+%Y-%m-%d %H:%M')"
+    branch="$(claude::session_branch "${file}")"
+    first="$(format_prompt "$(claude::session_first_prompt "${file}")")"
+    last="$(format_prompt "$(claude::session_last_prompt "${file}")")"
+    if [[ ${first} == "${last}" ]]; then
+      label="${when} | ${branch} | ${first}"
+    else
+      label="${when} | ${branch} | ${first} » ${last}"
+    fi
+    # shellcheck disable=SC2154 # rows_tmp assigned by files::create_temp via nameref
+    printf '%s\t%s\t%s\t%s\n' "${epoch}" "${uuid}" "${file}" "${label}" >> "${rows_tmp}"
+  done
+
+  local sorted_tmp
+  files::create_temp sorted_tmp
+  # shellcheck disable=SC2154 # sorted_tmp assigned by files::create_temp via nameref
+  sort --field-separator=$'\t' --key=1,1 --numeric-sort --reverse "${rows_tmp}" > "${sorted_tmp}"
+
+  local selection
+  selection="$(fzf::select --delimiter=$'\t' --with-nth=4 < "${sorted_tmp}")" || true
+  if strings::is_empty "${selection}"; then
+    exit 0
+  fi
+
+  uuid="$(printf '%s' "${selection}" | cut --delimiter=$'\t' --fields=2)"
+  file="$(printf '%s' "${selection}" | cut --delimiter=$'\t' --fields=3)"
+
+  local -a fork_flag=()
+  if prompt::ny 'Fork this session?'; then
+    fork_flag=(--fork-session)
+  fi
+
+  if (( all )); then
+    local session_cwd
+    session_cwd="$(claude::session_cwd "${file}")"
+    if strings::is_empty "${session_cwd}"; then
+      log::die "could not determine session cwd for ${uuid}"
+    fi
+    dirs::assert_exists "${session_cwd}"
+    cd "${session_cwd}" || log::die "cannot cd to ${session_cwd}"
+  fi
+
+  exec claude --resume "${uuid}" "${fork_flag[@]}" "${claude_args[@]}"
+}
+
+main "$@"
