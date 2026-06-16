@@ -2,17 +2,20 @@
 
 # @description Pick a Claude Code session via `fzf` and resume it, optionally forking.
 #              Lists sessions for the current directory by default, or all projects with
-#              `--all`. Any flags after `--` are forwarded verbatim to the real `claude`
-#              binary (e.g. `-- --dangerously-skip-permissions`).
-# @arg $@ args Optional `--all`, then `--`, then claude flags.
+#              `--all`. The fzf preview pane shows each session's first message and its last
+#              N messages (N defaults to 3, set with `--recent`). Any flags after `--` are
+#              forwarded verbatim to the real `claude` binary (e.g. `-- --dangerously-skip-permissions`).
+# @arg $@ args Optional `--all` and/or `--recent <n>`, then `--`, then claude flags.
 # @stdout none (execs `claude`, which takes over the terminal)
 # @exitcode 0 success, or the user aborted the picker
-# @exitcode 1 CLAUDE_CONFIG_DIR unset, no sessions found, or an unexpected flag before `--`
+# @exitcode 1 CLAUDE_CONFIG_DIR unset, no sessions found, a bad `--recent` value, or an
+#             unexpected flag before `--`
 # @example
 #   claude-resume
 #   claude-resume --all
+#   claude-resume --recent 5
 #   claude-resume -- --dangerously-skip-permissions
-#   claude-resume --all -- --model opus
+#   claude-resume --all --recent=10 -- --model opus
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -54,26 +57,43 @@ function format_prompt() {
 # @arg $@ args parsed for `--all` and post-`--` claude flags
 function main() {
   local all=0
+  local recent=3
   local seen_sep=0
   local -a claude_args=()
-  local arg
-  for arg in "$@"; do
+  while (( $# )); do
     if (( seen_sep )); then
-      claude_args+=("${arg}")
+      claude_args+=("$1")
+      shift
       continue
     fi
-    case "${arg}" in
+    case "$1" in
       --)
         seen_sep=1
+        shift
         ;;
       --all)
         all=1
+        shift
+        ;;
+      --recent)
+        if (( $# < 2 )); then
+          log::die "--recent requires a value"
+        fi
+        recent="$2"
+        shift 2
+        ;;
+      --recent=*)
+        recent="${1#--recent=}"
+        shift
         ;;
       *)
-        log::die "unexpected flag '${arg}' before '--'; put claude flags after '--'"
+        log::die "unexpected flag '$1' before '--'; put claude flags after '--'"
         ;;
     esac
   done
+  if [[ ! ${recent} =~ ^[1-9][0-9]*$ ]]; then
+    log::die "--recent must be a positive integer: ${recent}"
+  fi
 
   local projects_dir
   projects_dir="$(claude::projects_dir)"
@@ -105,7 +125,7 @@ function main() {
 
   local rows_tmp
   files::create_temp rows_tmp
-  local file uuid epoch when branch first last label
+  local file uuid epoch when branch first label
   for file in "${session_files[@]}"; do
     uuid="${file##*/}"
     uuid="${uuid%.jsonl}"
@@ -113,12 +133,7 @@ function main() {
     when="$(date --date="@${epoch}" '+%Y-%m-%d %H:%M')"
     branch="$(claude::session_branch "${file}")"
     first="$(format_prompt "$(claude::session_first_prompt "${file}")")"
-    last="$(format_prompt "$(claude::session_last_prompt "${file}")")"
-    if [[ ${first} == "${last}" ]]; then
-      label="${when} | ${branch} | ${first}"
-    else
-      label="${when} | ${branch} | ${first} » ${last}"
-    fi
+    label="${when} | ${branch} | ${first}"
     # shellcheck disable=SC2154 # rows_tmp assigned by files::create_temp via nameref
     printf '%s\t%s\t%s\t%s\n' "${epoch}" "${uuid}" "${file}" "${label}" >> "${rows_tmp}"
   done
@@ -128,8 +143,21 @@ function main() {
   # shellcheck disable=SC2154 # sorted_tmp assigned by files::create_temp via nameref
   sort --field-separator=$'\t' --key=1,1 --numeric-sort --reverse "${rows_tmp}" > "${sorted_tmp}"
 
+  # fzf substitutes {3} (the jsonl path field) into the preview command, which renders the
+  # session's first message and last N messages. Run under bash (via SHELL) so the sourced
+  # function library and `claude::session_preview` work; scoped to the subshell so SHELL does
+  # not leak.
+  local preview_cmd
+  preview_cmd="source '${SCRIPTS_DIR}/.functions.bash'; claude::session_preview {3} ${recent}"
   local selection
-  selection="$(fzf::select --delimiter=$'\t' --with-nth=4 < "${sorted_tmp}")" || true
+  selection="$(
+    export SHELL
+    SHELL="$(commands::executable_path bash)"
+    fzf::select \
+      --delimiter=$'\t' --with-nth=4 \
+      --preview="${preview_cmd}" --preview-window='down,40%,wrap' \
+      < "${sorted_tmp}"
+  )" || true
   if strings::is_empty "${selection}"; then
     exit 0
   fi

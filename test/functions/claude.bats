@@ -59,6 +59,15 @@ make_null_session() {
   printf '%s\n' "${path}"
 }
 
+# Write a session jsonl fixture whose lastPrompt contains an embedded newline.
+make_multiline_session() {
+  local -r path="${BATS_TEST_TMPDIR}/multiline.jsonl"
+  {
+    printf '%s\n' '{"type":"last-prompt","lastPrompt":"line one\nline two"}'
+  } > "${path}"
+  printf '%s\n' "${path}"
+}
+
 # ---------- claude::encode_path ----------
 
 @test "encode_path: config-style path replaces / and ." {
@@ -286,6 +295,149 @@ make_null_session() {
   run claude::session_last_prompt a b
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
+}
+
+# ---------- claude::session_first_prompt (multi-line) ----------
+
+@test "session_first_prompt: collapses embedded newline to a single line" {
+  local f
+  f="$(make_multiline_session)"
+  run claude::session_first_prompt "${f}"
+  assert_success
+  assert_output 'line one line two'
+}
+
+# ---------- claude::session_recent_prompts ----------
+
+@test "session_recent_prompts: returns last n prompts in chronological order" {
+  local f
+  f="$(make_full_session)"
+  run claude::session_recent_prompts "${f}" 2
+  assert_success
+  assert_line --index 0 'second thing'
+  assert_line --index 1 'third thing'
+}
+
+@test "session_recent_prompts: n larger than available returns all" {
+  local f
+  f="$(make_full_session)"
+  run claude::session_recent_prompts "${f}" 10
+  assert_success
+  assert_line --index 0 'first thing'
+  assert_line --index 2 'third thing'
+}
+
+@test "session_recent_prompts: n of 1 returns only the most recent" {
+  local f
+  f="$(make_full_session)"
+  run claude::session_recent_prompts "${f}" 1
+  assert_success
+  assert_output 'third thing'
+}
+
+@test "session_recent_prompts: skips null lastPrompt values" {
+  local f
+  f="$(make_null_session)"
+  run claude::session_recent_prompts "${f}" 3
+  assert_success
+  assert_output 'real prompt'
+}
+
+@test "session_recent_prompts: empty when no last-prompt lines" {
+  local f
+  f="$(make_empty_session)"
+  run claude::session_recent_prompts "${f}" 3
+  assert_success
+  assert_output ''
+}
+
+@test "session_recent_prompts: collapses embedded newline to a single line" {
+  local f
+  f="$(make_multiline_session)"
+  run claude::session_recent_prompts "${f}" 1
+  assert_success
+  assert_output 'line one line two'
+}
+
+@test "session_recent_prompts: dies when n is zero" {
+  local f
+  f="$(make_full_session)"
+  run claude::session_recent_prompts "${f}" 0
+  assert_failure
+  assert_output --partial 'positive integer'
+}
+
+@test "session_recent_prompts: dies when n is non-numeric" {
+  local f
+  f="$(make_full_session)"
+  run claude::session_recent_prompts "${f}" abc
+  assert_failure
+  assert_output --partial 'positive integer'
+}
+
+@test "session_recent_prompts: dies on missing file" {
+  run claude::session_recent_prompts "${BATS_TEST_TMPDIR}/nope.jsonl" 3
+  assert_failure
+  assert_output --partial 'does not exist'
+}
+
+@test "session_recent_prompts: dies with 1 arg" {
+  run claude::session_recent_prompts "${BATS_TEST_TMPDIR}/x.jsonl"
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
+@test "session_recent_prompts: dies with 3 args" {
+  run claude::session_recent_prompts a b c
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
+# ---------- claude::session_preview ----------
+
+@test "session_preview: shows first message and last n messages" {
+  local f
+  f="$(make_full_session)"
+  run claude::session_preview "${f}" 2
+  assert_success
+  assert_output --partial 'First message:'
+  assert_output --partial 'first thing'
+  assert_output --partial 'Last 2 messages:'
+  assert_output --partial '- second thing'
+  assert_output --partial '- third thing'
+}
+
+@test "session_preview: placeholder when no first message" {
+  local f
+  f="$(make_empty_session)"
+  run claude::session_preview "${f}" 3
+  assert_success
+  assert_output --partial '(no prompt)'
+}
+
+@test "session_preview: dies when n is non-numeric" {
+  local f
+  f="$(make_full_session)"
+  run claude::session_preview "${f}" xyz
+  assert_failure
+}
+
+@test "session_preview: dies on missing file" {
+  run claude::session_preview "${BATS_TEST_TMPDIR}/nope.jsonl" 3
+  assert_failure
+  assert_output --partial 'does not exist'
+}
+
+@test "session_preview: dies with 1 arg" {
+  run claude::session_preview "${BATS_TEST_TMPDIR}/x.jsonl"
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
+@test "session_preview: dies with 3 args" {
+  run claude::session_preview a b c
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 # ---------- claude::projects_dir ----------
