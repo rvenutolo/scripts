@@ -26,7 +26,7 @@ function shell_scripts::assert_paths_exist() {
   done
 }
 
-# @description Emit shell-script paths under SCRIPTS_DIR when called with no args; excludes
+# @description Emit shell-script paths under the repo root when called with no args; excludes
 # /other/ (third-party copies), /.shdoc/ (vendored shdoc submodule),
 # /.direnv/ (Nix/direnv-managed cache), and /test/bats/,
 # /test/test_helper/bats-support/, /test/test_helper/bats-assert/
@@ -34,10 +34,12 @@ function shell_scripts::assert_paths_exist() {
 # (recursed via `shfmt --find`) or a file (emitted as-is). Caller must
 # validate that each arg exists before calling.
 # Output: stdout — shell script file paths, one per line
-# @arg $@ files or directories to search (optional; defaults to all scripts under SCRIPTS_DIR)
+# @arg $@ files or directories to search (optional; defaults to all scripts under the repo root)
 function shell_scripts::find() {
   if args::no_args "$@"; then
-    shfmt --find "${SCRIPTS_DIR}" |
+    local repo_dir
+    repo_dir="$(git rev-parse --show-toplevel)"
+    shfmt --find "${repo_dir}" |
       grep --invert-match --extended-regexp '/(\.shdoc|\.direnv|other|test/bats|test/test_helper/bats-(support|assert))/'
     return
   fi
@@ -80,7 +82,7 @@ function shell_scripts::filter() {
   done
 }
 
-# @description Emit shell-script paths that live directly in SCRIPTS_DIR (no
+# @description Emit shell-script paths that live directly in the repo root (no
 # subdirectories). Used by .ci/build-docs and .ci/check-shdoc-headers to enumerate
 # project-root executables such as shellcheck-scripts,
 # check-scripts, run-install-scripts, run-set-up-scripts, run-tests.
@@ -92,8 +94,10 @@ function shell_scripts::filter() {
 # @noargs
 function shell_scripts::find_root_only() {
   args::check_no_args "$@"
+  local repo_dir
+  repo_dir="$(git rev-parse --show-toplevel)"
   local file
-  for file in "${SCRIPTS_DIR}"/*; do
+  for file in "${repo_dir}"/*; do
     if ! files::exists "${file}"; then
       continue
     fi
