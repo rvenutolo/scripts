@@ -2,9 +2,10 @@
 
 # @description Generate markdown reference docs for the scripts repo by running
 #              shdoc against every functions/*.bash file and every shell script
-#              under main/. Output lands in .docs/functions/ and .docs/scripts/
-#              (gitignored, regenerated on every build). Companion config:
-#              .mkdocs.yml. Companion deploy: .github/workflows/pages.yml.
+#              under non-interactive/ and interactive/. Output lands in
+#              .docs/functions/ and .docs/scripts/ (gitignored, regenerated on
+#              every build). Companion config: .mkdocs.yml. Companion deploy:
+#              .github/workflows/pages.yml.
 # @noargs
 
 set -Eeuo pipefail
@@ -16,9 +17,11 @@ log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
 
-readonly SHDOC="${SCRIPTS_DIR}/.shdoc/shdoc"
-readonly DOCS_FUNCTIONS_DIR="${SCRIPTS_DIR}/.docs/functions"
-readonly DOCS_SCRIPTS_DIR="${SCRIPTS_DIR}/.docs/scripts"
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly SHDOC="${REPO_DIR}/.shdoc/shdoc"
+readonly DOCS_FUNCTIONS_DIR="${REPO_DIR}/.docs/functions"
+readonly DOCS_SCRIPTS_DIR="${REPO_DIR}/.docs/scripts"
 
 # @description Wipe and recreate output directories so each build is clean.
 function reset_output_dirs() {
@@ -236,7 +239,7 @@ function write_scripts_top_index() {
   {
     printf '# Scripts\n\n'
     local subdir
-    for subdir in main install set_up misc root; do
+    for subdir in non-interactive interactive install set_up misc root; do
       if files::exists "${DOCS_SCRIPTS_DIR}/${subdir}/index.md"; then
         printf -- '- [%s](%s/index.md)\n' "${subdir}" "${subdir}"
       fi
@@ -248,7 +251,7 @@ function write_scripts_top_index() {
 #              landing page. MkDocs adds the chrome around it.
 # @noargs
 function write_home_index() {
-  cp -- "${SCRIPTS_DIR}/README.md" "${SCRIPTS_DIR}/.docs/index.md"
+  cp -- "${REPO_DIR}/README.md" "${REPO_DIR}/.docs/index.md"
 }
 
 function main() {
@@ -261,7 +264,7 @@ function main() {
   fi
 
   reset_output_dirs
-  dirs::create "${SCRIPTS_DIR}/.docs"
+  dirs::create "${REPO_DIR}/.docs"
 
   log::log "Generating function reference"
   local file base
@@ -272,7 +275,8 @@ function main() {
   write_index "${DOCS_FUNCTIONS_DIR}" 'Functions'
 
   log::log "Generating scripts reference"
-  generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/main" main 'main'
+  generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/non-interactive" non-interactive 'non-interactive'
+  generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/interactive" interactive 'interactive'
   generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/install" install 'install'
   generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/set_up" set_up 'set_up'
   generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/misc" misc 'misc'
@@ -283,7 +287,7 @@ function main() {
   log::log "Generating home page from README.md"
   write_home_index
 
-  log::log "Doc generation complete: ${SCRIPTS_DIR}/.docs/"
+  log::log "Doc generation complete: ${REPO_DIR}/.docs/"
 }
 
 main "$@"

@@ -20,6 +20,8 @@ args::handle_help_flag "$@"
 args::check_at_most_1_arg "$@"
 commands::assert_executable_exists 'gh'
 
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
 readonly REPO="${1:-rvenutolo/scripts}"
 readonly HOSTNAME='github.com'
 
@@ -52,11 +54,11 @@ function main() {
   if strings::is_empty "${rs_id}"; then
     log::log 'creating protect-main ruleset'
     gh api --hostname "${HOSTNAME}" --method POST "repos/${REPO}/rulesets" \
-      --input "${SCRIPTS_DIR}/.github/rulesets/protect-main.json" > '/dev/null'
+      --input "${REPO_DIR}/.github/rulesets/protect-main.json" > '/dev/null'
   else
     log::log "updating protect-main ruleset (id ${rs_id})"
     gh api --hostname "${HOSTNAME}" --method PUT "repos/${REPO}/rulesets/${rs_id}" \
-      --input "${SCRIPTS_DIR}/.github/rulesets/protect-main.json" > '/dev/null'
+      --input "${REPO_DIR}/.github/rulesets/protect-main.json" > '/dev/null'
   fi
   log::log 'done'
 }

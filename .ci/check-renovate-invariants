@@ -19,7 +19,9 @@ log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
 
-readonly CONFIG_PATH="${RENOVATE_JSON_OVERRIDE:-${SCRIPTS_DIR}/.github/renovate.json}"
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly CONFIG_PATH="${RENOVATE_JSON_OVERRIDE:-${REPO_DIR}/.github/renovate.json}"
 
 function main() {
   args::check_no_args "$@"
