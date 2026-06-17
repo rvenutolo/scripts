@@ -34,7 +34,7 @@ jobs:
           sudo chmod +x /usr/local/bin/shfmt
       - name: Build docs
         env:
-          SCRIPTS_DIR: ${{ github.workspace }}
+          SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: |
           ./.ci/build-docs
           mkdocs build --strict --config-file .mkdocs.yml

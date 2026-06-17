@@ -4,8 +4,8 @@
 # @noargs
 # @exitcode 1 Pre-condition failure (run as root, pending package updates, reboot required, or any non-zero exit from the invoked apt/sudo/dconf/etc. commands).
 
-# $ bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-work-pop-os.sh')"
-# $ bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-work-pop-os.sh')"
+# $ bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/scripts/misc/set-up-work-pop-os.sh')"
+# $ bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/scripts/misc/set-up-work-pop-os.sh')"
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -162,10 +162,10 @@ function main() {
   source "${HOME}/.profile"
 
   log 'Running install scripts'
-  SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-install-scripts"
+  SCRIPTS_AUTO_ANSWER='y' "$(dirname "${SCRIPTS_DIR}")/run-install-scripts"
 
   log 'Running set up scripts'
-  SCRIPTS_AUTO_ANSWER='y' "${SCRIPTS_DIR}/run-set-up-scripts"
+  SCRIPTS_AUTO_ANSWER='y' "$(dirname "${SCRIPTS_DIR}")/run-set-up-scripts"
 
   log 'Getting de-400 connection file'
   dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' |

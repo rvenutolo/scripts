@@ -3,8 +3,8 @@
 # @description Remove all installed snaps, disable and mask the snapd service, uninstall the snapd package, and clean up snap directories. Must be run as root.
 # @noargs
 
-# $ sudo bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/ubuntu-remove-snap.sh')"
-# $ sudo bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/ubuntu-remove-snap.sh')"
+# $ sudo bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/scripts/misc/ubuntu-remove-snap.sh')"
+# $ sudo bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/scripts/misc/ubuntu-remove-snap.sh')"
 
 set -Eeuo pipefail
 IFS=$'\n\t'

@@ -43,4 +43,4 @@ setup:
 
 # Scaffold a new top-level script with the standard header + exec bit
 new-script PATH:
-    ./main/new-script {{PATH}}
+    ./scripts/non-interactive/new-script {{PATH}}

@@ -4,8 +4,8 @@
 # @noargs
 # @exitcode 1 Pre-condition failure (run as root, pending package updates, reboot required, or any non-zero exit from the invoked apt/sudo/dconf/etc. commands).
 
-# $ bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-work-ubuntu-22.04.sh')"
-# $ bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-work-ubuntu-22.04.sh')"
+# $ bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/scripts/misc/set-up-work-ubuntu-22.04.sh')"
+# $ bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/scripts/misc/set-up-work-ubuntu-22.04.sh')"
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -158,10 +158,10 @@ function main() {
   source "${HOME}/.bash_profile"
 
   log 'Running install scripts'
-  "${SCRIPTS_DIR}/run-install-scripts"
+  "$(dirname "${SCRIPTS_DIR}")/run-install-scripts"
 
   log 'Running set up scripts'
-  "${SCRIPTS_DIR}/run-set-up-scripts"
+  "$(dirname "${SCRIPTS_DIR}")/run-set-up-scripts"
 
   log 'Setting dconf settings'
   local gsettings=(

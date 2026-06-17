@@ -10,11 +10,14 @@ IFS=$'\n\t'
 
 # shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
 source "${SCRIPTS_DIR}/.functions.bash"
+# check-scripts and .ci/ live at the repo root, not under SCRIPTS_DIR (= repo-root/scripts).
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
 log::enable_err_trap
 # pass-through: git passes ref/sha pairs on stdin we ignore
 
 log::log 'pre-push: running check-scripts'
-if ! nix develop --command "${SCRIPTS_DIR}/check-scripts"; then
+if ! nix develop --command "${REPO_DIR}/check-scripts"; then
   log::die 'check-scripts failed — push aborted. Fix issues or rerun with --no-verify to bypass.'
 fi
 log::log 'pre-push: check-scripts passed'
@@ -26,7 +29,7 @@ fi
 log::log 'pre-push: nix flake check passed'
 
 log::log 'pre-push: running governance checks'
-if ! nix develop --command "${SCRIPTS_DIR}/.ci/run-governance-checks"; then
+if ! nix develop --command "${REPO_DIR}/.ci/run-governance-checks"; then
   log::die 'governance checks failed — push aborted. Fix issues or rerun with --no-verify to bypass.'
 fi
 log::log 'pre-push: governance checks passed'

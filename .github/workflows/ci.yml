@@ -30,7 +30,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: Run check-scripts
         env:
-          SCRIPTS_DIR: ${{ github.workspace }}
+          SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: nix develop --command ./check-scripts
   bats:
     name: bats
@@ -52,7 +52,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: Run BATS
         env:
-          SCRIPTS_DIR: ${{ github.workspace }}
+          SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: |
           mkdir -p bats-junit
           nix develop --command ./test/bats/bin/bats --jobs "$(nproc)" --recursive \
@@ -251,7 +251,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: Run BATS under bashcov
         env:
-          SCRIPTS_DIR: ${{ github.workspace }}
+          SCRIPTS_DIR: ${{ github.workspace }}/scripts
         # bashcov + simplecov-cobertura come from the flake's bundlerEnv
         # (.nix/bashcov/gemset.nix); kcov is in the flake too. Fully hermetic.
         run: nix develop --command bashcov --root . -- ./test/bats/bin/bats --recursive test/functions
@@ -284,7 +284,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: uses-sha-pinned
         env:
-          SCRIPTS_DIR: ${{ github.workspace }}
+          SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: nix develop --command ./.ci/check-uses-sha-pinned
   min-permissions:
     name: min-permissions
@@ -305,7 +305,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: min-permissions
         env:
-          SCRIPTS_DIR: ${{ github.workspace }}
+          SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: nix develop --command ./.ci/check-min-permissions
   harden-runner-first:
     name: harden-runner-first
@@ -326,7 +326,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: harden-runner-first
         env:
-          SCRIPTS_DIR: ${{ github.workspace }}
+          SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: nix develop --command ./.ci/check-harden-runner-first
   pr-workflows-no-secrets:
     name: pr-workflows-no-secrets
@@ -347,7 +347,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: pr-workflows-no-secrets
         env:
-          SCRIPTS_DIR: ${{ github.workspace }}
+          SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: nix develop --command ./.ci/check-pr-workflows-no-secrets
   renovate-invariants:
     name: renovate-invariants
@@ -368,7 +368,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: renovate-invariants
         env:
-          SCRIPTS_DIR: ${{ github.workspace }}
+          SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: nix develop --command ./.ci/check-renovate-invariants
   required-checks-no-paths:
     name: required-checks-no-paths
@@ -389,7 +389,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: required-checks-no-paths
         env:
-          SCRIPTS_DIR: ${{ github.workspace }}
+          SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: nix develop --command ./.ci/check-required-checks-no-paths
   check-protect-main:
     name: check-protect-main
@@ -410,7 +410,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: check-protect-main
         env:
-          SCRIPTS_DIR: ${{ github.workspace }}
+          SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: nix develop --command ./.ci/check-protect-main
   check-jsonschema:
     name: check-jsonschema
@@ -431,5 +431,5 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: check-jsonschema
         env:
-          SCRIPTS_DIR: ${{ github.workspace }}
+          SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: nix develop --command ./.ci/check-jsonschema
