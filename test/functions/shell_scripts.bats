@@ -163,7 +163,7 @@ setup() {
   printf '#!/usr/bin/env bash\n' > "${fake_root}/install/i1"
   chmod +x "${fake_root}/install/i1"
 
-  SCRIPTS_DIR="${fake_root}" run shell_scripts::find_root_only
+  REPO_DIR="${fake_root}" run shell_scripts::find_root_only
   assert_success
   assert_line "${fake_root}/root-a"
   assert_line "${fake_root}/root-b"
@@ -180,20 +180,20 @@ setup() {
   printf 'plain text\n' > "${fake_root}/no-shebang"
   chmod +x "${fake_root}/no-shebang"
 
-  SCRIPTS_DIR="${fake_root}" run shell_scripts::find_root_only
+  REPO_DIR="${fake_root}" run shell_scripts::find_root_only
   assert_success
   assert_line "${fake_root}/with-shebang"
   refute_line "${fake_root}/no-shebang"
 }
 
-@test "shell_scripts::find_root_only emits nothing when SCRIPTS_DIR has no shell scripts at top level" {
+@test "shell_scripts::find_root_only emits nothing when repo root has no shell scripts at top level" {
   local fake_root="${BATS_TEST_TMPDIR}/empty_repo"
   mkdir -p "${fake_root}/main"
   printf 'plain text\n' > "${fake_root}/README"
   printf '#!/usr/bin/env bash\n' > "${fake_root}/main/m1"
   chmod +x "${fake_root}/main/m1"
 
-  SCRIPTS_DIR="${fake_root}" run shell_scripts::find_root_only
+  REPO_DIR="${fake_root}" run shell_scripts::find_root_only
   assert_success
   assert_output ''
 }
@@ -205,7 +205,7 @@ setup() {
   printf '#!/usr/bin/env bash\n' > "${fake_root}/legit-script"
   chmod +x "${fake_root}/legit-script"
 
-  SCRIPTS_DIR="${fake_root}" run shell_scripts::find_root_only
+  REPO_DIR="${fake_root}" run shell_scripts::find_root_only
   assert_success
   assert_line "${fake_root}/legit-script"
   refute_line "${fake_root}/.functions.bash"

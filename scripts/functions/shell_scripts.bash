@@ -37,8 +37,10 @@ function shell_scripts::assert_paths_exist() {
 # @arg $@ files or directories to search (optional; defaults to all scripts under the repo root)
 function shell_scripts::find() {
   if args::no_args "$@"; then
+    # REPO_DIR override seam: production leaves it unset and the repo root is
+    # derived via git; tests set REPO_DIR to point the scan at a fixture tree.
     local repo_dir
-    repo_dir="$(git rev-parse --show-toplevel)"
+    repo_dir="${REPO_DIR:-$(git rev-parse --show-toplevel)}"
     shfmt --find "${repo_dir}" |
       grep --invert-match --extended-regexp '/(\.shdoc|\.direnv|other|test/bats|test/test_helper/bats-(support|assert))/'
     return
@@ -94,8 +96,10 @@ function shell_scripts::filter() {
 # @noargs
 function shell_scripts::find_root_only() {
   args::check_no_args "$@"
+  # REPO_DIR override seam: production leaves it unset and the repo root is
+  # derived via git; tests set REPO_DIR to point the scan at a fixture tree.
   local repo_dir
-  repo_dir="$(git rev-parse --show-toplevel)"
+  repo_dir="${REPO_DIR:-$(git rev-parse --show-toplevel)}"
   local file
   for file in "${repo_dir}"/*; do
     if ! files::exists "${file}"; then
