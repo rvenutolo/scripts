@@ -25,10 +25,21 @@ jobs:
       - name: Install MkDocs Material
         run: pip install mkdocs-material
       - name: Install shfmt (latest)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          # Authenticate the API call: unauthenticated requests share a 60/hr
+          # per-IP limit on shared runners and intermittently 403, which left
+          # SHFMT_VERSION empty and produced a broken download URL.
           SHFMT_VERSION=$(curl --disable --fail --silent --location \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
             https://api.github.com/repos/mvdan/sh/releases/latest \
             | jq --raw-output .tag_name)
+          if [[ -z "${SHFMT_VERSION}" || "${SHFMT_VERSION}" == "null" ]]; then
+            echo "Failed to resolve latest shfmt version" >&2
+            exit 1
+          fi
           sudo curl --disable --fail --silent --location --output /usr/local/bin/shfmt \
             "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64"
           sudo chmod +x /usr/local/bin/shfmt
