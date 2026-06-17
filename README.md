@@ -15,15 +15,18 @@ Personal Linux setup, install, and utility shell scripts.
 
 ## Layout
 
-| Path         | Purpose                                                                                                                        | On `PATH` |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------ | --------- |
-| `functions/` | Bash function library, auto-sourced via `.functions.bash`.                                                                     | n/a       |
-| `install/`   | Numbered scripts run in order by `run-install-scripts` to provision a new machine.                                             | no        |
-| `main/`      | Primary utility scripts.                                                                                                       | yes       |
-| `misc/`      | One-off setup scripts. Standalone — runnable on a fresh machine without this repo.                                             | no        |
-| `other/`     | Third-party scripts copied verbatim; never modified locally.                                                                   | yes       |
-| `set_up/`    | Idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script self-checks whether it should run. | no        |
-| `test/`      | BATS test suite for the function library.                                                                                      | n/a       |
+All script directories live under a top-level `scripts/` dir; `SCRIPTS_DIR` points at `repo-root/scripts`. Repo-tooling and config (the root runners, `.ci/`, `test/`, `lib/`, `flake.nix`, etc.) stay at the repo root.
+
+| Path                       | Purpose                                                                                                                                 | On `PATH`          |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| `scripts/non-interactive/` | Automation-safe utility scripts: no prompts, no GUI, no picker, no TTY assumptions. Callable by cron/`topgrade`/other programs.         | yes                |
+| `scripts/interactive/`     | Utility scripts that prompt, launch a GUI, or drive a picker, plus every wrapper (`mvn`, `gradle`, `kate`, `claude`, flatpak wrappers). | interactive shells |
+| `scripts/other/`           | Third-party scripts copied verbatim; never modified locally.                                                                            | yes                |
+| `scripts/install/`         | Numbered scripts run in order by `run-install-scripts` to provision a new machine.                                                      | no                 |
+| `scripts/set_up/`          | Idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script self-checks whether it should run.          | no                 |
+| `scripts/misc/`            | One-off setup scripts. Standalone — runnable on a fresh machine without this repo.                                                      | no                 |
+| `scripts/functions/`       | Bash function library, auto-sourced via `scripts/.functions.bash`.                                                                      | n/a                |
+| `test/`                    | BATS test suite for the function library (at the repo root).                                                                            | n/a                |
 
 ## Common commands
 
@@ -40,11 +43,11 @@ Most repo-level operations have both a shell script and a `just` recipe (see [`.
 | `./run-set-up-scripts`                                                | `just setup`             | Run idempotent setup scripts under `set_up/`.                                   |
 | `./run-tests [<bats-args>...]`                                        | `just test`              | Run BATS tests under `test/functions/`.                                         |
 | `./shellcheck-scripts [<paths>...]`                                   | `just shellcheck`        | Run `shellcheck` over shell scripts.                                            |
-| `main/new-script <path>`                                              | `just new-script <path>` | Scaffold a new top-level script with the standard header and exec bit.          |
+| `scripts/non-interactive/new-script <path>`                           | `just new-script <path>` | Scaffold a new top-level script with the standard header and exec bit.          |
 
 ## Required environment
 
-Set `SCRIPTS_DIR` to the repo root. Every script sources `${SCRIPTS_DIR}/.functions.bash`. The user's `~/.profile` is expected to export it.
+Set `SCRIPTS_DIR` to `repo-root/scripts`. Every script sources `${SCRIPTS_DIR}/.functions.bash`. The user's `~/.profile` is expected to export it. Repo-tooling scripts that need the repo root itself derive it via `git rev-parse --show-toplevel`.
 
 ## Development
 

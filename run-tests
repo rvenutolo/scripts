@@ -11,8 +11,11 @@ source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 # pass-through: any arg count valid (forwarded to bats)
 
-readonly BATS_BIN="${SCRIPTS_DIR}/test/bats/bin/bats"
-readonly DEFAULT_TARGETS=("${SCRIPTS_DIR}/test/functions" "${SCRIPTS_DIR}/test/ci")
+# test/ lives at the repo root, not under SCRIPTS_DIR (= repo-root/scripts).
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly BATS_BIN="${REPO_DIR}/test/bats/bin/bats"
+readonly DEFAULT_TARGETS=("${REPO_DIR}/test/functions" "${REPO_DIR}/test/ci")
 
 # @description Run bats with default parallel settings or forward all args to bats verbatim.
 # @arg $@ args Optional bats arguments forwarded verbatim, or empty to run all tests in parallel.

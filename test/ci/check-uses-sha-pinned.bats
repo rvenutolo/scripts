@@ -1,6 +1,6 @@
 setup() {
   load '../test_helper/common'
-  CHECK="${SCRIPTS_DIR}/.ci/check-uses-sha-pinned"
+  CHECK="${REPO_DIR}/.ci/check-uses-sha-pinned"
   WF="${BATS_TEST_TMPDIR}/wf"
   mkdir -p "${WF}"
 }

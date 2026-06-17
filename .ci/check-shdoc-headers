@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# @description Audit every shebang-bearing executable under main/, wrapper/,
-#              install/, set_up/, misc/, and the project root AND every library file
+# @description Audit every shebang-bearing executable under non-interactive/,
+#              interactive/, install/, set_up/, misc/, .ci/, and the project root AND every library file
 #              under functions/ for the project's shdoc annotation convention.
 #              Top-level scripts must carry a file-level `# @description` tag
 #              in the header and an annotation block on every helper function
@@ -20,14 +20,17 @@ IFS=$'\n\t'
 
 # shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
 source "${SCRIPTS_DIR}/.functions.bash"
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
 log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
 
 # @description Print every in-scope top-level script path, one per line.
-#              In-scope means any shebang-bearing file under main/, wrapper/,
-#              install/, set_up/, misc/, .ci/, or directly under SCRIPTS_DIR (project
-#              root). Library files under functions/ are listed by
+#              In-scope means any shebang-bearing file under non-interactive/,
+#              interactive/, install/, set_up/, misc/ (under SCRIPTS_DIR), .ci/
+#              (under the repo root), or directly under the repo root.
+#              Library files under functions/ are listed by
 #              collect_library_files instead, since they follow a different
 #              annotation rule.
 # @noargs
@@ -36,11 +39,14 @@ args::check_no_args "$@"
 function collect_in_scope_scripts() {
   args::check_no_args "$@"
   local subdir
-  for subdir in main wrapper install set_up misc .ci; do
+  for subdir in non-interactive interactive install set_up misc; do
     if dirs::exists "${SCRIPTS_DIR}/${subdir}"; then
       shell_scripts::find "${SCRIPTS_DIR}/${subdir}"
     fi
   done
+  if dirs::exists "${REPO_DIR}/.ci"; then
+    shell_scripts::find "${REPO_DIR}/.ci"
+  fi
   shell_scripts::find_root_only
 }
 

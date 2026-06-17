@@ -29,7 +29,7 @@ in
   };
 
   settings.global.excludes = [
-    "other/**"
+    "scripts/other/**"
     "test/bats/**"
     "test/test_helper/bats-support/**"
     "test/test_helper/bats-assert/**"

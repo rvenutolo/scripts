@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-# @description Bootstrap a fresh Ubuntu 22.04 work machine: validates pre-conditions, sets hostname, installs apt + flatpak packages (including the nvidia-detector driver), runs the run-install-scripts and run-set-up-scripts driver scripts, applies dconf settings, installs GNOME extensions, and (when not in a VM) installs system76-power and updates firmware.
+# @description Bootstrap a fresh Pop!_OS work machine: validates pre-conditions, sets hostname/timezone, installs apt + flatpak packages, runs the run-install-scripts and run-set-up-scripts driver scripts, applies dconf settings, installs GNOME extensions, and (when not in a VM) fetches encrypted secrets and configures the fingerprint scanner, recovery partition, hybrid graphics, and firmware.
 # @noargs
 # @exitcode 1 Pre-condition failure (run as root, pending package updates, reboot required, or any non-zero exit from the invoked apt/sudo/dconf/etc. commands).
 
-# $ bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-work-ubuntu-22.04.sh')"
-# $ bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/misc/set-up-work-ubuntu-22.04.sh')"
+# $ bash -c "$(wget -qO- 'https://raw.githubusercontent.com/rvenutolo/scripts/main/scripts/misc/set-up-work-pop-os.sh')"
+# $ bash -c "$(curl -fsLS 'https://raw.githubusercontent.com/rvenutolo/scripts/main/scripts/misc/set-up-work-pop-os.sh')"
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -92,26 +92,26 @@ function main() {
     die "Reboot before running this script"
   fi
 
+  log 'Setting timezone'
+  sudo timedatectl set-timezone 'America/New_York'
+
   log 'Setting hostname'
   sudo hostnamectl set-hostname 'silverstar'
 
   log 'Removing apt packages'
-  sudo apt-get remove --yes firefox
+  sudo apt-get remove --yes geary firefox libreoffice-*
 
   log 'Running apt autoremove'
   sudo apt-get autoremove --yes
 
   log 'Installing apt packages'
-  sudo add-apt-repository 'ppa:aslatter/ppa' --yes
   sudo apt-get install --yes \
-    "$(nvidia-detector)" \
     age \
     alacritty \
     apt-transport-https \
     bridge-utils \
     ca-certificates \
     caffeine \
-    chrome-gnome-shell \
     clamav \
     cpu-checker \
     curl \
@@ -119,6 +119,7 @@ function main() {
     fail2ban \
     flatpak \
     git \
+    gir1.2-nautilus-3.0 gir1.2-ebook-1.2 gir1.2-ebookcontacts-1.2 gir1.2-edataserver-1.2 \
     gnome-shell-extensions \
     gnome-shell-extension-gsconnect-browsers \
     gnome-software-plugin-flatpak gnome-tweaks \
@@ -136,10 +137,13 @@ function main() {
     openssh-client openssh-server \
     ovmf \
     plocate \
+    podman \
+    preload \
     python3-nautilus \
     qemu qemu-kvm qemu-utils \
     software-properties-common \
     synaptic \
+    uidmap \
     ufw \
     wget \
     virtinst \
@@ -154,57 +158,48 @@ function main() {
     /tmp/chezmoi init --apply 'rvenutolo'
   fi
 
-  # shellcheck disable=SC1091 # .bash_profile is sourced from HOME, not a relative path
-  source "${HOME}/.bash_profile"
+  # shellcheck disable=SC1091 # .profile is sourced from HOME, not a relative path
+  source "${HOME}/.profile"
 
   log 'Running install scripts'
-  "${SCRIPTS_DIR}/run-install-scripts"
+  SCRIPTS_AUTO_ANSWER='y' "$(dirname "${SCRIPTS_DIR}")/run-install-scripts"
 
   log 'Running set up scripts'
-  "${SCRIPTS_DIR}/run-set-up-scripts"
+  SCRIPTS_AUTO_ANSWER='y' "$(dirname "${SCRIPTS_DIR}")/run-set-up-scripts"
+
+  log 'Getting de-400 connection file'
+  dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' |
+    sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' >'/dev/null'
+  sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
 
   log 'Setting dconf settings'
   local gsettings=(
-    'org.gnome.desktop.background picture-uri-dark file:///usr/share/backgrounds/Optical_Fibers_in_Dark_by_Elena_Stravoravdi.jpg'
-    'org.gnome.desktop.background primary-color #000000'
-    'org.gnome.desktop.background secondary-color #000000'
     'org.gnome.desktop.datetime automatic-timezone false'
     "org.gnome.desktop.input-sources xkb-options ['caps:super']"
-    'org.gnome.desktop.interface clock-format 12h'
-    'org.gnome.desktop.interface clock-show-weekday true'
     'org.gnome.desktop.interface color-scheme prefer-dark'
-    'org.gnome.desktop.interface gtk-theme Yaru-blue-dark'
-    'org.gnome.desktop.interface icon-theme Yaru-blue'
+    'org.gnome.desktop.interface clock-show-weekday true'
     'org.gnome.desktop.interface locate-pointer true'
     'org.gnome.desktop.interface show-battery-percentage true'
-    'org.gnome.desktop.media-handling autorun-never true'
-    "org.gnome.desktop.notifications application-children ['org-gnome-software', 'gnome-power-panel']"
-    'org.gnome.desktop.peripherals.touchpad natural-scroll false'
-    'org.gnome.desktop.peripherals.touchpad speed 0.2'
     'org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true'
     'org.gnome.desktop.screensaver lock-delay uint32 30'
-    'org.gnome.desktop.screensaver picture-uri file:///usr/share/backgrounds/Optical_Fibers_in_Dark_by_Elena_Stravoravdi.jpg'
-    'org.gnome.desktop.screensaver primary-color #000000'
-    'org.gnome.desktop.screensaver secondary-color #000000'
     'org.gnome.desktop.session idle-delay uint32 900'
     'org.gnome.desktop.wm.preferences action-middle-click-titlebar toggle-shade'
     'org.gnome.desktop.wm.preferences button-layout appmenu:minimize,maximize,close'
-    'org.gnome.gedit.preferences.editor scheme Yaru-dark'
     'org.gnome.mutter center-new-windows true'
     'org.gnome.settings-daemon.plugins.color night-light-enabled true'
-    'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 7200'
+    'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 1800'
     'org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type suspend'
     'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800'
     'org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type suspend'
+    "org.gnome.shell disabled-extensions ['apps-menu@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'window-list@gnome-shell-extensions.gcampax.github.com']"
+    "org.gnome.shell enabled-extensions ['cosmic-dock@system76.com', 'pop-shell@system76.com', 'popx11gestures@system76.com', 'system-monitor@paradoxxx.zero.gmail.com', 'ubuntu-appindicators@ubuntu.com', 'Vitals@CoreCoding.com', 'cosmic-workspaces@system76.com', 'clipboard-indicator@tudmotu.com', 'system76-power@system76.com', 'pop-cosmic@system76.com', 'gsconnect@andyholmes.github.io', 'auto-move-windows@gnome-shell-extensions.gcampax.github.com', 'places-menu@gnome-shell-extensions.gcampax.github.com', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'workspace-indicator@gnome-shell-extensions.gcampax.github.com']"
+    "org.gnome.shell favorite-apps ['pop-cosmic-launcher.desktop', 'pop-cosmic-workspaces.desktop', 'pop-cosmic-applications.desktop', 'org.gnome.Nautilus.desktop', 'org.kde.krusader.desktop', 'com.alacritty.Alacritty.desktop', 'kitty.desktop', 'io.github.shiftey.Desktop.desktop', 'com.axosoft.GitKraken.desktop', 'awsvpnclient.desktop', 'com.brave.Browser.desktop', 'com.google.Chrome.desktop', 'com.slack.Slack.desktop', 'gnome-control-center.desktop']"
     'org.gnome.shell.extensions.dash-to-dock click-action minimize'
     'org.gnome.shell.extensions.dash-to-dock intellihide false'
-    'org.gnome.shell.extensions.ding show-home false'
-    'org.gnome.shell.extensions.ding show-trash false'
-    "org.gnome.shell favorite-apps ['org.gnome.Nautilus.desktop', 'com.alacritty.Alacritty.desktop', 'kitty.desktop', 'com.google.Chrome.desktop', 'com.slack.Slack.desktop', 'org.kde.kate.desktop', 'jetbrains-idea-999b9024-908d-49d8-9161-20fb056d49b6.desktop', 'jetbrains-datagrip-207e01d1-8176-441d-ba23-0f1702bc4b2f.desktop', 'io.github.shiftey.Desktop.desktop', 'com.axosoft.GitKraken.desktop', 'org.gnome.tweaks.desktop', 'gnome-control-center.desktop']"
+    'org.gnome.shell.extensions.pop-shell active-hint true'
     'org.gnome.shell.weather automatic-location true'
     "org.gnome.shell.weather locations [<(uint32 2, <('Atlanta', 'KATL', true, [(0.58713361238621309, -1.4735281501968716)], [(0.5890310819891037, -1.4728481350137095)])>)>]"
     'org.gnome.system.location enabled true'
-    'org.gtk.Settings.FileChooser clock-format 12h'
   )
   for line in "${gsettings[@]}"; do
     IFS=' ' read -r schema key value <<<"${line}"
@@ -216,13 +211,24 @@ function main() {
     'https://extensions.gnome.org/extension/779/clipboard-indicator/'
     'https://extensions.gnome.org/extension/1319/gsconnect/'
     'https://extensions.gnome.org/extension/1460/vitals/'
-    'https://extensions.gnome.org/extension/750/openweather/'
   )
   local url package_num
   for url in "${gnome_extensions[@]}"; do
     package_num="$(cut --delimiter='/' --fields=5 <<<"${url}")"
     log "Installing extension from URL: ${url}"
     gext --filesystem install "${package_num}"
+  done
+
+  log 'Adding autostart applications'
+  mkdir --parents "${HOME}/.config/autostart"
+  local autostart_files=(
+    '/usr/share/applications/caffeine-indicator.desktop'
+  )
+  local autostart_file
+  for autostart_file in "${autostart_files[@]}"; do
+    if [[ -f ${autostart_file} ]]; then
+      ln --symbolic --force "${autostart_file}" "${HOME}/.config/autostart/"
+    fi
   done
 
   log 'Setting Chrome as default web browser'
@@ -232,9 +238,35 @@ function main() {
   # Skip these if running in vm for testing.
   if [[ ! -e '/dev/sr0' ]]; then
 
-    log 'Installing system76-power'
-    sudo add-apt-repository 'ppa:system76-dev/stable' --yes
-    sudo apt-get install --yes system76-power gnome-shell-extension-system76-power gnome-shell-extension-prefs
+    log 'Copying files from backup'
+    local home_dir_files_to_copy=(
+      '.application-deployment'
+      '.bin/create-emr-test-cluster'
+      '.config/AWSVPNClient'
+      '.de'
+      '.var/app/com.slack.Slack'
+      'carbonblack'
+    )
+    printf '%s\n' "${home_dir_files_to_copy[@]}" >'/tmp/home_dir_files_to_copy'
+    rsync --archive --executability --recursive \
+      --files-from='/tmp/home_dir_files_to_copy' \
+      '172.16.0.157:/backup/work/home' "${HOME}"
+
+    log 'Installing fingerprint scanner packages'
+    sudo apt-get install --yes fprintd libpam-fprintd
+    sudo pam-auth-update --enable fprintd
+    if [[ ! -f '/etc/pam.d/common-auth.orig' ]]; then
+      sudo cp '/etc/pam.d/common-auth' '/etc/pam.d/common-auth.orig'
+    fi
+    sudo sed --in-place "s/ max-tries=[0-9]\+ / max-tries=10 /g" '/etc/pam.d/common-auth'
+    if ! fprintd-list "${USER}" | grep --quiet --fixed-strings 'right-index-finger'; then
+      fprintd-enroll
+    fi
+
+    log 'Updating recovery partition'
+    pop-upgrade recovery upgrade from-release
+
+    log 'Setting hybrid graphics'
     sudo system76-power graphics 'hybrid'
 
     log 'Updating firmware'
@@ -246,7 +278,7 @@ function main() {
   # shellcheck disable=SC2016 # single quotes intentional, multi-line literal text
   log 'Finished
 You may want to do any of the following:
-- source ~/.bash_profile
+- source ~/.bashrc
 - jetbrains-toolbox
 - reboot'
 }

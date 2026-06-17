@@ -5,7 +5,7 @@ bats_require_minimum_version 1.5.0
 setup() {
   load '../test_helper/common'
   # shellcheck disable=SC1091
-  source "${SCRIPTS_DIR}/test/test_helper/path_shim.bash"
+  source "${REPO_DIR}/test/test_helper/path_shim.bash"
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/args.bash"
   # shellcheck disable=SC1091
@@ -14,10 +14,10 @@ setup() {
   source "${SCRIPTS_DIR}/functions/commands.bash"
 
   # Redirect SCRIPTS_DIR to a tmpdir so commands::* strips tmpdir wrappers
-  # rather than the real repo's main/ and other/.
+  # rather than the real repo's interactive/, non-interactive/, and other/.
   export REAL_SCRIPTS_DIR="${SCRIPTS_DIR}"
   SCRIPTS_DIR="${BATS_TEST_TMPDIR}"
-  mkdir --parents "${SCRIPTS_DIR}/main" "${SCRIPTS_DIR}/other"
+  mkdir --parents "${SCRIPTS_DIR}/interactive" "${SCRIPTS_DIR}/non-interactive" "${SCRIPTS_DIR}/other"
 }
 
 # ---------- commands::executable_exists ----------
@@ -34,25 +34,35 @@ echo real'
   assert_failure
 }
 
-@test "executable_exists: wrapper in main/ ignored, real in PATH -> true" {
-  printf '%s\n' '#!/usr/bin/env bash' 'echo wrapper' > "${SCRIPTS_DIR}/main/foo_wrapper_xyz"
-  chmod +x "${SCRIPTS_DIR}/main/foo_wrapper_xyz"
+@test "executable_exists: wrapper in interactive/ ignored, real in PATH -> true" {
+  printf '%s\n' '#!/usr/bin/env bash' 'echo wrapper' > "${SCRIPTS_DIR}/interactive/foo_wrapper_xyz"
+  chmod +x "${SCRIPTS_DIR}/interactive/foo_wrapper_xyz"
   path_shim::add 'foo_wrapper_xyz' '#!/usr/bin/env bash
 echo real'
   # PATH mutation is intentional: BATS subshell isolates it; run inherits the updated PATH
   # shellcheck disable=SC2030,SC2031
-  PATH="${SCRIPTS_DIR}/main:${PATH}"
+  PATH="${SCRIPTS_DIR}/interactive:${PATH}"
   run commands::executable_exists 'foo_wrapper_xyz'
   assert_success
 }
 
-@test "executable_exists: only wrapper in main/, no real -> false" {
-  printf '%s\n' '#!/usr/bin/env bash' 'echo wrapper' > "${SCRIPTS_DIR}/main/only_wrapper_xyz"
-  chmod +x "${SCRIPTS_DIR}/main/only_wrapper_xyz"
+@test "executable_exists: only wrapper in interactive/, no real -> false" {
+  printf '%s\n' '#!/usr/bin/env bash' 'echo wrapper' > "${SCRIPTS_DIR}/interactive/only_wrapper_xyz"
+  chmod +x "${SCRIPTS_DIR}/interactive/only_wrapper_xyz"
   # PATH mutation is intentional: BATS subshell isolates it; run inherits the updated PATH
   # shellcheck disable=SC2030,SC2031
-  PATH="${SCRIPTS_DIR}/main:${PATH}"
+  PATH="${SCRIPTS_DIR}/interactive:${PATH}"
   run commands::executable_exists 'only_wrapper_xyz'
+  assert_failure
+}
+
+@test "executable_exists: only wrapper in non-interactive/, no real -> false" {
+  printf '%s\n' '#!/usr/bin/env bash' 'echo wrapper' > "${SCRIPTS_DIR}/non-interactive/noninteractive_wrapper_xyz"
+  chmod +x "${SCRIPTS_DIR}/non-interactive/noninteractive_wrapper_xyz"
+  # PATH mutation is intentional: BATS subshell isolates it; run inherits the updated PATH
+  # shellcheck disable=SC2030,SC2031
+  PATH="${SCRIPTS_DIR}/non-interactive:${PATH}"
+  run commands::executable_exists 'noninteractive_wrapper_xyz'
   assert_failure
 }
 
@@ -94,14 +104,14 @@ echo real'
   assert_output ''
 }
 
-@test "executable_path: wrapper in main/ skipped, returns real" {
-  printf '%s\n' '#!/usr/bin/env bash' 'echo wrapper' > "${SCRIPTS_DIR}/main/path_wrapper_xyz"
-  chmod +x "${SCRIPTS_DIR}/main/path_wrapper_xyz"
+@test "executable_path: wrapper in interactive/ skipped, returns real" {
+  printf '%s\n' '#!/usr/bin/env bash' 'echo wrapper' > "${SCRIPTS_DIR}/interactive/path_wrapper_xyz"
+  chmod +x "${SCRIPTS_DIR}/interactive/path_wrapper_xyz"
   path_shim::add 'path_wrapper_xyz' '#!/usr/bin/env bash
 echo real'
   # PATH mutation is intentional: BATS subshell isolates it; run inherits the updated PATH
   # shellcheck disable=SC2031
-  PATH="${SCRIPTS_DIR}/main:${PATH}"
+  PATH="${SCRIPTS_DIR}/interactive:${PATH}"
   run commands::executable_path 'path_wrapper_xyz'
   assert_success
   assert_output "${BATS_TEST_TMPDIR}/bin/path_wrapper_xyz"

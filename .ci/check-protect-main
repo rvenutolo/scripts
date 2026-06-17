@@ -20,7 +20,9 @@ log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
 
-readonly RULESET_PATH="${RULESET_JSON_OVERRIDE:-${SCRIPTS_DIR}/.github/rulesets/protect-main.json}"
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly RULESET_PATH="${RULESET_JSON_OVERRIDE:-${REPO_DIR}/.github/rulesets/protect-main.json}"
 
 function main() {
   args::check_no_args "$@"

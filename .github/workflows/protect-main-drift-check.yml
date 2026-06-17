@@ -31,7 +31,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: Fetch live ruleset and diff against in-tree mirror
         env:
-          SCRIPTS_DIR: ${{ github.workspace }}
+          SCRIPTS_DIR: ${{ github.workspace }}/scripts
           GH_TOKEN: ${{ secrets.RULESET_READ_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |

@@ -23,6 +23,8 @@ commands::assert_executable_exists 'check-jsonschema'
 # renovate: datasource=git-refs depName=SchemaStore/schemastore packageName=https://github.com/SchemaStore/schemastore currentValue=master
 readonly SCHEMASTORE_SHA='0c09eaee518187f3ed6885467cccb67026835394'
 readonly MARKDOWNLINT_SCHEMA_URL="https://raw.githubusercontent.com/SchemaStore/schemastore/${SCHEMASTORE_SHA}/src/schemas/json/markdownlint.json"
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
 
 failed=0
 
@@ -44,7 +46,7 @@ function run_check() {
 
 function main() {
   args::check_no_args "$@"
-  local -r root="${SCRIPTS_DIR}"
+  local -r root="${REPO_DIR}"
 
   if files::exists "${root}/.github/renovate.json"; then
     run_check 'renovate.json' --builtin-schema vendor.renovate "${root}/.github/renovate.json"

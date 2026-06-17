@@ -4,27 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-Personal collection of bash scripts for system setup, package install, and day-to-day utilities on the user's Linux machines. Pure shell, no build system; helper functions in `functions/*.bash` are covered by a BATS test suite under `test/`.
+Personal collection of bash scripts for system setup, package install, and day-to-day utilities on the user's Linux machines. Pure shell, no build system; helper functions in `functions/*.bash` are covered by a BATS test suite under `test/` (at the repo root).
 
 ## Layout
 
-- `main/` — primary utility scripts (on `PATH`).
+All script directories live under a top-level `scripts/` dir, and `SCRIPTS_DIR` points at `repo-root/scripts`. Repo-tooling and config stay at the repo root (see the end of this section).
 
-- `other/` — third-party scripts copied verbatim from elsewhere. **Never modify anything under `other/` unless explicitly told to touch a specific file in there.** This applies to formatting, shellcheck fixes, refactors, renames, or any other automated cleanup. On `PATH`; excluded from treefmt formatting (via `.treefmt.nix` excludes) and from `shellcheck-scripts`.
+- `scripts/non-interactive/` — automation-safe utility scripts. These must be callable by cron, `topgrade`, or any other program: **no interactive prompts, no GUI launches, no `fzf`/picker UI, and no assumptions about a TTY or stdin-TTY.** **Always on `PATH`.**
 
-- `wrapper/` — small pass-through wrappers that forward all args to an underlying tool (flatpak app, `nix run` target, or a same-name binary). Currently contains `batfetch`, `xdg-ninja`, `kate`, `mvn`, `gradle`, `claude`, `claude-personal`, `claude-work`, `claude-yolo`, and 21 flatpak wrappers. NOT yet on `PATH` (user wires this in manually via `~/.profile`). Same shellcheck / shdoc-header / formatting rules and same `./check-scripts` gate as `main/`.
+- `scripts/interactive/` — everything else: utility scripts that prompt, launch a GUI, drive a picker, or otherwise assume a terminal, **plus every wrapper** (the former `wrapper/` scripts — `mvn`, `gradle`, `kate`, `claude`, the flatpak wrappers, etc.). On `PATH` only in interactive shells (the user wires this into `~/.bashrc` behind a `case $- in *i*)` guard).
 
-- `install/` — numbered scripts run in order by `run-install-scripts` to provision a new machine. Files starting with all-caps names (e.g. `00_DISTRO_PACKAGES`, `70_WORK_ONLY`) are markers/data with executable bit off — the runner skips non-executable files. `90_REMOVE` etc. follow same pattern.
+- `scripts/other/` — third-party scripts copied verbatim from elsewhere. **Never modify anything under `scripts/other/` unless explicitly told to touch a specific file in there.** This applies to formatting, shellcheck fixes, refactors, renames, or any other automated cleanup. Always on `PATH`; excluded from treefmt formatting (via `.treefmt.nix` excludes) and from `shellcheck-scripts`.
 
-- `set_up/` — idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script must self-check whether it should run.
+- `scripts/install/` — numbered scripts run in order by `run-install-scripts` to provision a new machine. Files starting with all-caps names (e.g. `00_DISTRO_PACKAGES`, `70_WORK_ONLY`) are markers/data with executable bit off — the runner skips non-executable files. `90_REMOVE` etc. follow same pattern.
 
-- `misc/` — one-off setup scripts (not on `PATH`, not auto-run). Scripts here are expected to be **standalone** — runnable on a fresh machine by someone without access to this repo's function library. Do NOT source `.functions.bash` from `misc/` scripts; inline anything they need (including the `ERR` trap — see Script Conventions).
+- `scripts/set_up/` — idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script must self-check whether it should run.
 
-- `functions/` — bash function library, all sourced via `.functions.bash` (loops `functions/*.bash`).
+- `scripts/misc/` — one-off setup scripts (not on `PATH`, not auto-run). Scripts here are expected to be **standalone** — runnable on a fresh machine by someone without access to this repo's function library. Do NOT source `.functions.bash` from `scripts/misc/` scripts; inline anything they need (including the `ERR` trap — see Script Conventions).
 
-- `lib/` — vendored Groovy jars (used by some scripts).
+- `scripts/functions/` — bash function library, all sourced via `scripts/.functions.bash` (loops `scripts/functions/*.bash`).
 
-- `.ci/` — repo-tooling scripts invoked by CI and `just` (e.g. `build-docs`, `check-shdoc-headers`). Not on `PATH`.
+Stays at the **repo root** (NOT under `scripts/`): `lib/` (vendored Groovy jars, used by some scripts), `.ci/` (repo-tooling scripts invoked by CI and `just`, e.g. `build-docs`, `check-shdoc-headers`; not on `PATH`), `test/` (BATS suite), `.github/`, `.shdoc/`, `.docs/`, the root runner executables (`check-scripts`, `shellcheck-scripts`, `run-install-scripts`, `run-set-up-scripts`, `run-tests`), and all config/dotfiles (`flake.nix`, `.treefmt.nix`, `CLAUDE.md`, `README.md`, etc.). Repo-tooling scripts that need the repo root (`.ci/*`, the root runners, `test/test_helper`) derive it via `git rev-parse --show-toplevel` (a local `REPO_DIR`), not a dedicated env var.
 
 ## Required Environment
 
@@ -40,13 +40,13 @@ The user's `~/.profile` exports a fixed set of env vars (`SCRIPTS_DIR`, `XDG_*`,
 
 - **Ignore conditional exports.** `EDITOR`, `VISUAL`, `PAGER`, `MANPAGER`, `FILE_MANAGER`, `TAILNET_IP`, `TAILNET_CIDR`, `TERM`, etc. are gated on `__executable_exists` / `case` / runtime probes in `~/.profile`; they're not meant for cross-file reuse and are not guaranteed to be set.
 
-- **`PATH` membership.** `main/` and `other/` are always on `PATH`. `install/`, `set_up/`, `misc/`, `.ci/`, `wrapper/` are not. `wrapper/` is intentionally absent — the user wires it into `PATH` separately via `~/.profile` so wrapper scripts can shadow same-named binaries (`mvn`, `kate`, `code`, …) only when the user opts in.
+- **`PATH` membership.** `SCRIPTS_DIR` now points at `repo-root/scripts`. `scripts/non-interactive/` and `scripts/other/` are always on `PATH`. `scripts/interactive/` is on `PATH` only in interactive shells — the user wires it into `~/.bashrc` behind a `case $- in *i*)` guard so the wrapper scripts in there can shadow same-named binaries (`mvn`, `kate`, `claude`, …) only when a human is at the keyboard, never in cron/`topgrade`/scripted contexts. `scripts/install/`, `scripts/set_up/`, `scripts/misc/`, and `.ci/` are not on `PATH`. Repo-tooling scripts (`.ci/*`, the root runners, `test/test_helper`) derive the repo root via `git rev-parse --show-toplevel`, not a dedicated env var.
 
 - **`misc/` exemption.** Scripts under `misc/` are explicitly standalone — they must NOT depend on this repo's env or functions. Hardcoded paths are acceptable there.
 
 ### Sourcing `.functions.bash`
 
-Every non-`misc/` script sources `"${SCRIPTS_DIR}/.functions.bash"`. Exception: a small number of Docker-related scripts (e.g. `main/docker-grype-scan`, `main/docker-trivy-scan`) source `${DOCKER_COMPOSE_DIR}/functions.bash` from a separate Docker repo instead. That file transitively sources `${SCRIPTS_DIR}/.functions.bash`, so all helpers from this repo (`log::enable_err_trap`, `log::log`, `log::die`, etc.) ARE available — no need to inline equivalents in those scripts.
+Every non-`misc/` script sources `"${SCRIPTS_DIR}/.functions.bash"`. Exception: a small number of Docker-related scripts (e.g. `scripts/non-interactive/docker-grype-scan`, `scripts/non-interactive/docker-trivy-scan`) source `${DOCKER_COMPOSE_DIR}/functions.bash` from a separate Docker repo instead. That file transitively sources `${SCRIPTS_DIR}/.functions.bash`, so all helpers from this repo (`log::enable_err_trap`, `log::log`, `log::die`, etc.) ARE available — no need to inline equivalents in those scripts.
 
 ## Common Commands
 
@@ -64,7 +64,7 @@ Tooling is provided by a **Nix flake devShell** (see [Required Environment](#req
 
 - `./run-set-up-scripts` — same pattern, recursive over `set_up/**/*`.
 
-- `main/new-script <path>` — scaffolds a new script with the standard header + exec bit.
+- `scripts/non-interactive/new-script <path>` — scaffolds a new script with the standard header + exec bit.
 
 - `./run-tests [<bats-args>...]` — runs BATS tests under `test/functions/` recursively when called with no args, or forwards args to the vendored bats binary. Default invocation uses `bats --jobs $(nproc)` for parallel execution.
 
@@ -88,7 +88,7 @@ The generic shell-script rules in `.claude/rules/shell-scripts.md` apply to this
 
 ### Shdoc annotations for top-level scripts
 
-Every top-level executable shell script (any file with a bash/sh shebang under `main/`, `install/`, `set_up/`, `misc/`, `.ci/`, or the project root) must carry a file-level shdoc header block immediately after the shebang line and before the `set -Eeuo pipefail` pragma.
+Every top-level executable shell script (any file with a bash/sh shebang under `scripts/non-interactive/`, `scripts/interactive/`, `scripts/install/`, `scripts/set_up/`, `scripts/misc/`, `.ci/`, or the project root) must carry a file-level shdoc header block immediately after the shebang line and before the `set -Eeuo pipefail` pragma.
 
 Required tags (each used where applicable):
 
@@ -122,7 +122,7 @@ Helper functions defined inside top-level scripts get the same full shdoc annota
 
 `misc/` standalone scripts (those that do not source `.functions.bash`) follow the same rule. Shdoc tags are plain comments and do not depend on the function library.
 
-Files excluded from `shell_scripts::find` (`.shdoc/`, `other/`, vendored bats submodules under `test/`) are excluded from this rule.
+Files excluded from `shell_scripts::find` (`.shdoc/`, `scripts/other/`, vendored bats submodules under `test/`) are excluded from this rule.
 
 Library files under `functions/*.bash` follow a related but distinct rule: every function must have a preceding shdoc annotation block, but the file-level `@description` is intentionally not required because library files are documented function-by-function. `.ci/check-shdoc-headers` enforces both rules in a single audit pass (top-level scripts get the file-level + per-helper check; library files get the per-function check only). Both contribute to the audit's exit code, and the audit is wired into `check-scripts` so any regression fails the aggregate gate.
 
@@ -150,13 +150,13 @@ args::check_no_args "$@"   # or check_exactly_N_args / check_at_least_N_args / c
 
 - `args::handle_help_flag "$@"` (from `functions/args.bash`) scans `"$@"` for `-h`/`--help` and, if present, prints help text derived from the script's file-level shdoc header (via `args::print_help`) and exits 0. Call it directly after `log::enable_err_trap` and before any arg-count guard — otherwise `--help` would be rejected as an unexpected argument. Pass-through scripts (those forwarding `"$@"` verbatim to an underlying tool) and standalone scripts under `misc/` are exempt: pass-throughs let the wrapped tool handle its own `--help`; standalones cannot source `.functions.bash`.
 
-- Create new scripts via `main/new-script <path>` (handles header + exec bit + `args::handle_help_flag` line).
+- Create new scripts via `scripts/non-interactive/new-script <path>` (handles header + exec bit + `args::handle_help_flag` line).
 
 ### Arg-count guards
 
 - Use `args::check_no_args "$@"` / `check_exactly_N_args` / `check_at_least_N_args` / `check_at_most_N_args` from `functions/args.bash` at the top of every top-level script and library function with a fixed arity.
 
-- **Pass-through scripts and variadic library functions are exempt.** A pass-through script forwards `"$@"` to an underlying tool (e.g. `main/claude` wraps the real `claude` binary, `main/sync-flatpaks` accepts optional filter args) and has no fixed arity. A variadic library function takes 0+ items of the same kind. In both cases, omit the `args::check_*_args "$@"` guard and add a same-line comment explaining why: `# pass-through: any arg count valid` (or similar). The comment is mandatory — silent omission is not allowed.
+- **Pass-through scripts and variadic library functions are exempt.** A pass-through script forwards `"$@"` to an underlying tool (e.g. `scripts/interactive/claude` wraps the real `claude` binary, `scripts/non-interactive/sync-flatpaks` accepts optional filter args) and has no fixed arity. A variadic library function takes 0+ items of the same kind. In both cases, omit the `args::check_*_args "$@"` guard and add a same-line comment explaining why: `# pass-through: any arg count valid` (or similar). The comment is mandatory — silent omission is not allowed.
 
 - Library functions in `functions/*.bash` use the same `check_*_args "$@"` guards as top-level scripts.
 
@@ -190,13 +190,13 @@ Library files under `functions/` get only the shebang — do NOT add `set -euo p
 
 - Executable bit: library files must NOT be executable (top-level scripts must be executable)
 
-- Creation via `main/new-script`: library files are hand-created (the helper is for top-level executables)
+- Creation via `scripts/non-interactive/new-script`: library files are hand-created (the helper is for top-level executables)
 
 All other rules (helper-function usage, quoting, `[[ ]]` over `[ ]`, `(( ))` arithmetic, comment block above non-trivial functions, `local`/`local -r` inside every function, predicate-function return-via-exit-status, namespaced `::` function names, etc.) apply equally to library files.
 
 ### File extensions and filename conventions
 
-- Top-level executables (everything under `main/`, `install/`, `set_up/`, `misc/`, `.ci/`) have no extension; library files under `functions/` use the `.bash` extension and are NOT executable.
+- Top-level executables (everything under `scripts/non-interactive/`, `scripts/interactive/`, `scripts/install/`, `scripts/set_up/`, `scripts/misc/`, `.ci/`) have no extension; library files under `scripts/functions/` use the `.bash` extension and are NOT executable.
 
 - Executables use kebab-case (`new-script`, `check-scripts`, `run-install-scripts`); library files use snake_case with the `.bash` extension (`functions/files.bash`, `functions/log.bash`).
 
@@ -246,9 +246,9 @@ Helpers `prompt::yn` / `prompt::ny` / `prompt::for_value` from `functions/prompt
 
 ### Tool availability
 
-**Overrides** the generic `command -v tool >/dev/null 2>&1` rule in `.claude/rules/shell-scripts.md`. Use `commands::executable_exists` from `functions/commands.bash` (uses `type -aPf`, excludes builtins/aliases/functions, and strips `main/` and `other/` from `PATH` so wrappers in those dirs don't mask the real binary). `command -v` would return scripts in `main/` that mask command names (e.g. `mvn`, `gradle`).
+**Overrides** the generic `command -v tool >/dev/null 2>&1` rule in `.claude/rules/shell-scripts.md`. Use `commands::executable_exists` from `functions/commands.bash` (uses `type -aPf`, excludes builtins/aliases/functions, and strips `scripts/non-interactive`, `scripts/interactive`, and `scripts/other` from `PATH` so wrappers in those dirs don't mask the real binary). `command -v` would return scripts in those dirs that mask command names (e.g. `mvn`, `gradle`).
 
-For absolute-path resolution (when you need the path, not just a yes/no): helper `commands::executable_path` from `functions/commands.bash`. Same PATH-stripping as `commands::executable_exists`. No inline `command -v BIN` or `which BIN` — those would return wrappers in `main/`/`other/` instead of the real binary.
+For absolute-path resolution (when you need the path, not just a yes/no): helper `commands::executable_path` from `functions/commands.bash`. Same PATH-stripping as `commands::executable_exists`. No inline `command -v BIN` or `which BIN` — those would return wrappers in `scripts/non-interactive`/`scripts/interactive`/`scripts/other` instead of the real binary.
 
 ### Tempfiles
 

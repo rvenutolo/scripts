@@ -18,7 +18,9 @@ args::handle_help_flag "$@"
 args::check_no_args "$@"
 commands::assert_executable_exists 'yq'
 
-readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${SCRIPTS_DIR}/.github/workflows}"
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
 
 # @description Audit harden-runner-first for every job in one workflow.
 #              Prints violations to stderr; echoes the violation count.

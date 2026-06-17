@@ -19,9 +19,12 @@ log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
 
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+
 function main() {
   args::check_no_args "$@"
-  local -r ci="${SCRIPTS_DIR}/.ci"
+  local -r ci="${REPO_DIR}/.ci"
   local rc=0
   local check
   for check in \

@@ -10,6 +10,9 @@ IFS=$'\n\t'
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/.functions.bash"
+# .ci/ lives at the repo root, not under SCRIPTS_DIR (= repo-root/scripts).
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
 log::enable_err_trap
 args::handle_help_flag "$@"
 system::require_bash_version 4 3
@@ -33,5 +36,5 @@ fi
 rc=0
 shellcheck "${files[@]}" || rc=1
 # Always audit the full in-scope set — partial runs would let regressions slip in.
-"${SCRIPTS_DIR}/.ci/check-shdoc-headers" || rc=1
+"${REPO_DIR}/.ci/check-shdoc-headers" || rc=1
 exit "${rc}"
