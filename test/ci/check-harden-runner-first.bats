@@ -1,6 +1,6 @@
 setup() {
   load '../test_helper/common'
-  CHECK="${SCRIPTS_DIR}/.ci/check-harden-runner-first"
+  CHECK="${REPO_DIR}/.ci/check-harden-runner-first"
   WF="${BATS_TEST_TMPDIR}/wf"
   mkdir -p "${WF}"
   HR='step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5'

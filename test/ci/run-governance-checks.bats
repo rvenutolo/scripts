@@ -1,6 +1,6 @@
 setup() {
   load '../test_helper/common'
-  AGG="${SCRIPTS_DIR}/.ci/run-governance-checks"
+  AGG="${REPO_DIR}/.ci/run-governance-checks"
 }
 
 @test "runs clean against the real repo" {

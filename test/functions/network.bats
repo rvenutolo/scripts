@@ -6,7 +6,7 @@ setup() {
   load '../test_helper/common'
   load '../test_helper/path_shim'
   # shellcheck disable=SC1091
-  source "${SCRIPTS_DIR}/test/test_helper/cli_shim.bash"
+  source "${REPO_DIR}/test/test_helper/cli_shim.bash"
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/args.bash"
   # shellcheck disable=SC1091

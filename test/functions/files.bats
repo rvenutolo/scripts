@@ -17,7 +17,7 @@ setup() {
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/files.bash"
   # shellcheck disable=SC1091
-  source "${SCRIPTS_DIR}/test/test_helper/dual_mode.bash"
+  source "${REPO_DIR}/test/test_helper/dual_mode.bash"
 }
 
 # ---------- files::exists ----------
@@ -800,7 +800,7 @@ setup() {
 setup_files_root_helpers() {
   load '../test_helper/path_shim'
   # shellcheck disable=SC1091
-  source "${SCRIPTS_DIR}/test/test_helper/cli_shim.bash"
+  source "${REPO_DIR}/test/test_helper/cli_shim.bash"
   cli_shim::install_passthrough_sudo
 }
 

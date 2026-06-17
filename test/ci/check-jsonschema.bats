@@ -3,7 +3,7 @@
 setup() {
   load '../test_helper/common'
   load '../test_helper/path_shim'
-  CHECK="${SCRIPTS_DIR}/.ci/check-jsonschema"
+  CHECK="${REPO_DIR}/.ci/check-jsonschema"
 }
 
 @test "passes when shimmed check-jsonschema exits 0 for all targets" {

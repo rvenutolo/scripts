@@ -2,7 +2,7 @@
 
 setup() {
   load '../test_helper/common'
-  CHECK="${SCRIPTS_DIR}/.ci/check-renovate-invariants"
+  CHECK="${REPO_DIR}/.ci/check-renovate-invariants"
   CFG="${BATS_TEST_TMPDIR}/renovate.json"
 }
 

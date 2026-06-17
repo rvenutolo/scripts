@@ -1,6 +1,6 @@
 setup() {
   load '../test_helper/common'
-  CHECK="${SCRIPTS_DIR}/.ci/check-protect-main"
+  CHECK="${REPO_DIR}/.ci/check-protect-main"
   RS="${BATS_TEST_TMPDIR}/rs.json"
 }
 

@@ -5,7 +5,7 @@ bats_require_minimum_version 1.5.0
 setup() {
   load '../test_helper/common'
   # shellcheck disable=SC1091
-  source "${SCRIPTS_DIR}/test/test_helper/path_shim.bash"
+  source "${REPO_DIR}/test/test_helper/path_shim.bash"
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/args.bash"
   # shellcheck disable=SC1091

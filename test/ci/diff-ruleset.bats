@@ -1,6 +1,6 @@
 setup() {
   load '../test_helper/common'
-  DIFF="${SCRIPTS_DIR}/.ci/diff-ruleset"
+  DIFF="${REPO_DIR}/.ci/diff-ruleset"
   A="${BATS_TEST_TMPDIR}/a.json"
   B="${BATS_TEST_TMPDIR}/b.json"
 }

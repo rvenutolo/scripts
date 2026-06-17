@@ -1,6 +1,6 @@
 setup() {
   load '../test_helper/common'
-  CHECK="${SCRIPTS_DIR}/.ci/check-min-permissions"
+  CHECK="${REPO_DIR}/.ci/check-min-permissions"
   WF="${BATS_TEST_TMPDIR}/wf"
   mkdir -p "${WF}"
 }

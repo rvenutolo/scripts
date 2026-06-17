@@ -1,6 +1,6 @@
 setup() {
   load '../test_helper/common'
-  CHECK="${SCRIPTS_DIR}/.ci/check-pr-workflows-no-secrets"
+  CHECK="${REPO_DIR}/.ci/check-pr-workflows-no-secrets"
   WF="${BATS_TEST_TMPDIR}/wf"
   mkdir -p "${WF}"
 }
