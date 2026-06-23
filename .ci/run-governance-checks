@@ -35,7 +35,8 @@ function main() {
     check-renovate-invariants \
     check-required-checks-no-paths \
     check-protect-main \
-    check-jsonschema; do
+    check-jsonschema \
+    check-job-timeout-minutes; do
     log::log "running ${check}"
     "${ci}/${check}" || rc=1
   done
