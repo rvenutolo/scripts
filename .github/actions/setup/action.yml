@@ -1,0 +1,25 @@
+name: setup
+description: >-
+  Checkout, install Nix, and restore the Nix store cache. Step 0 (step-security/harden-runner) stays in the calling job so check-harden-runner-first keeps passing.
+inputs:
+  submodules:
+    description: Value passed to actions/checkout submodules.
+    required: false
+    default: 'false'
+  fetch-depth:
+    description: Value passed to actions/checkout fetch-depth.
+    required: false
+    default: '1'
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        submodules: ${{ inputs.submodules }}
+        fetch-depth: ${{ inputs.fetch-depth }}
+        persist-credentials: false
+    - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+    - uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7
+      with:
+        primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock') }}
+        restore-prefixes-first-match: nix-${{ runner.os }}-
