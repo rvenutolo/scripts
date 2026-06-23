@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+
+# @description Run every config/markup lint (actionlint, yamllint, JSON parse,
+#              markdownlint-cli2, typos, editorconfig-checker) in sequence and
+#              aggregate exit codes. The local equivalent of the former
+#              per-tool CI lint jobs; invoked by `just lint`, the pre-push
+#              hook, and the CI `lint` job. Does NOT run shellcheck/shdoc (that
+#              is check-scripts) or formatting (that is treefmt via
+#              `nix flake check`).
+# @noargs
+# @stderr Output from each failing lint.
+# @exitcode 0 every lint passed.
+# @exitcode 1 one or more lints failed.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+
+# @description Validate that every JSON file under .github parses cleanly.
+#              Mirrors the JSON half of the former "yaml + json lint" CI job.
+# @noargs
+# @exitcode 0 all JSON parses; non-zero otherwise.
+# shellcheck disable=SC2120 # args::check_no_args "$@" is the repo's no-args guard; SC2120 is a false positive
+function lint_json() {
+  args::check_no_args "$@"
+  local json_tmp
+  files::create_temp json_tmp
+  find "${REPO_DIR}/.github" -name '*.json' -print0 > "${json_tmp}"
+  xargs --null --no-run-if-empty --max-args=1 jq empty < "${json_tmp}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  local rc=0
+  # Aggregate rather than fail-fast so one run surfaces every category. Each
+  # tool runs from the repo root; `|| rc=1` keeps set -e from aborting early.
+  log::log 'running actionlint'
+  (cd "${REPO_DIR}" && actionlint) || rc=1
+  log::log 'running yamllint'
+  (cd "${REPO_DIR}" && yamllint .) || rc=1
+  log::log 'running json lint'
+  # shellcheck disable=SC2119 # no args passed; args::check_no_args "$@" is the repo's no-args guard
+  lint_json || rc=1
+  log::log 'running markdownlint-cli2'
+  # Lint the tracked markdown set — exactly what CI's clean, submodule-less
+  # checkout sees. Globbing the working tree would pull in gitignored scratch
+  # and .direnv, which markdownlint-cli2 does not skip; git ls-files avoids
+  # that and omits submodules natively.
+  local md_tmp
+  files::create_temp md_tmp
+  (cd "${REPO_DIR}" && git ls-files -z -- '*.md') > "${md_tmp}"
+  (cd "${REPO_DIR}" && xargs --null --no-run-if-empty markdownlint-cli2 < "${md_tmp}") || rc=1
+  log::log 'running typos'
+  (cd "${REPO_DIR}" && typos) || rc=1
+  log::log 'running editorconfig-checker'
+  (cd "${REPO_DIR}" && editorconfig-checker) || rc=1
+  if ((rc != 0)); then
+    log::warn 'one or more lint checks failed'
+  fi
+  exit "${rc}"
+}
+
+main "$@"

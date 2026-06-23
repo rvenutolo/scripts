@@ -37,16 +37,7 @@
         "strict_required_status_checks_policy": true,
         "required_status_checks": [
           {
-            "context": "actionlint"
-          },
-          {
             "context": "bats"
-          },
-          {
-            "context": "check-jsonschema"
-          },
-          {
-            "context": "check-protect-main"
           },
           {
             "context": "check-scripts"
@@ -58,43 +49,19 @@
             "context": "dependency-review"
           },
           {
-            "context": "editorconfig"
-          },
-          {
             "context": "gitleaks"
           },
           {
-            "context": "harden-runner-first"
+            "context": "governance"
+          },
+          {
+            "context": "lint"
           },
           {
             "context": "lint-pr-title"
           },
           {
-            "context": "markdownlint"
-          },
-          {
-            "context": "min-permissions"
-          },
-          {
             "context": "nix-flake-check"
-          },
-          {
-            "context": "pr-workflows-no-secrets"
-          },
-          {
-            "context": "renovate-invariants"
-          },
-          {
-            "context": "required-checks-no-paths"
-          },
-          {
-            "context": "typos"
-          },
-          {
-            "context": "uses-sha-pinned"
-          },
-          {
-            "context": "yaml + json lint"
           },
           {
             "context": "zizmor"

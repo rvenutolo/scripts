@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 # @description Assert every `uses:` reference in the repo's GitHub Actions
-#              workflows ends with a full 40-hex commit SHA, or is a local
-#              path-relative (`./...`) reference that the checkout content-
-#              addresses intrinsically. Belt-and-braces backup to the
-#              GitHub-side sha-pinning ruleset.
+#              workflows and composite actions ends with a full 40-hex commit
+#              SHA, or is a local path-relative (`./...`) reference that the
+#              checkout content-addresses intrinsically. Belt-and-braces backup
+#              to the GitHub-side sha-pinning ruleset.
 # @noargs
 # @stderr One line per unpinned reference, plus a final count.
 # @exitcode 0 every uses: reference is SHA-pinned or local.
@@ -22,6 +22,7 @@ args::check_no_args "$@"
 REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
 readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
+readonly ACTIONS_DIR="${ACTIONS_DIR_OVERRIDE:-${REPO_DIR}/.github/actions}"
 
 # @description Check one workflow file for unpinned uses: refs. Prints a line
 #              per violation to stderr and echoes the violation count to stdout.
@@ -56,12 +57,13 @@ function count_unpinned_in_file() {
 
 function main() {
   args::check_no_args "$@"
-  if ! dirs::exists "${WORKFLOWS_DIR}"; then
-    exit 0
-  fi
   local files_tmp
   files::create_temp files_tmp
-  find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
+  local dir
+  for dir in "${WORKFLOWS_DIR}" "${ACTIONS_DIR}"; do
+    dirs::exists "${dir}" || continue
+    find "${dir}" -type f \( -name '*.yml' -o -name '*.yaml' \) >> "${files_tmp}"
+  done
   local total=0
   local file file_count
   while IFS= read -r file; do

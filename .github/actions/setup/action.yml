@@ -1,0 +1,13 @@
+name: setup
+# Caller must run harden-runner (step 0) and actions/checkout (step 1) before
+# this composite: a local action cannot perform its own initial checkout (the
+# runner needs the repo on disk to load this file).
+description: Install Nix and restore the Nix store cache.
+runs:
+  using: composite
+  steps:
+    - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+    - uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7
+      with:
+        primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock') }}
+        restore-prefixes-first-match: nix-${{ runner.os }}-
