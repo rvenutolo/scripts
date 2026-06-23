@@ -20,6 +20,11 @@ readonly DEFAULT_TARGETS=("${REPO_DIR}/test/functions" "${REPO_DIR}/test/ci")
 # @description Run bats with default parallel settings or forward all args to bats verbatim.
 # @arg $@ args Optional bats arguments forwarded verbatim, or empty to run all tests in parallel.
 function main() {
+  # Unset BASH_ENV so bats' per-test subshells don't re-source the user's
+  # interactive ~/.bashrc. That re-source fires for every test subshell —
+  # making the full suite ~40x slower (≈20 min vs ≈30 s) — and clobbers
+  # exported vars like SCRIPTS_DIR in child shells, breaking hermeticity.
+  unset BASH_ENV
   if ! files::exists "${BATS_BIN}"; then
     log::die "bats not found at ${BATS_BIN} — run: git submodule update --init --recursive"
   fi
