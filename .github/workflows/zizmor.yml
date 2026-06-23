@@ -8,6 +8,9 @@ on:
     - cron: '0 14 * * 1'
   workflow_dispatch:
 permissions: {}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   zizmor:
     runs-on: ubuntu-latest

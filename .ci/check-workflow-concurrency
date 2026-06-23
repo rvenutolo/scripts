@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+# @description Assert every GitHub Actions workflow declares a top-level
+#              `concurrency` block with a non-empty `group`. Without one,
+#              redundant runs (e.g. rapid pushes to a PR) pile up and waste
+#              runner minutes. Does not inspect `cancel-in-progress`, whose
+#              value legitimately varies per workflow.
+# @noargs
+# @stderr One line per violation, plus a final count.
+# @exitcode 0 every workflow declares a non-empty concurrency.group.
+# @exitcode 1 one or more workflows do not.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'yq'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
+
+# @description Audit the concurrency.group of one workflow file.
+#              Prints a violation to stderr; echoes the violation count (0 or 1).
+# @arg $1 file path to a workflow YAML
+# @stdout integer violation count
+function audit_file() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local group
+  group="$(yq eval '.concurrency.group // "null"' "${file}")"
+  if [[ "${group}" == 'null' ]] || strings::is_blank "${group}"; then
+    printf '%s: no concurrency.group declared\n' "${file}" >&2
+    printf '1\n'
+    return
+  fi
+  printf '0\n'
+}
+
+function main() {
+  args::check_no_args "$@"
+  if ! dirs::exists "${WORKFLOWS_DIR}"; then
+    exit 0
+  fi
+  local files_tmp
+  files::create_temp files_tmp
+  find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
+  local total=0
+  local file n
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    n="$(audit_file "${file}")"
+    total=$((total + n))
+  done < "${files_tmp}"
+  if ((total > 0)); then
+    printf '%d workflow(s) missing a concurrency.group\n' "${total}" >&2
+    exit 1
+  fi
+  exit 0
+}
+
+main "$@"

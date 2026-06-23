@@ -36,7 +36,8 @@ function main() {
     check-required-checks-no-paths \
     check-protect-main \
     check-jsonschema \
-    check-job-timeout-minutes; do
+    check-job-timeout-minutes \
+    check-workflow-concurrency; do
     log::log "running ${check}"
     "${ci}/${check}" || rc=1
   done
