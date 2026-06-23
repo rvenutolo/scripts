@@ -11,6 +11,7 @@ jobs:
   lint-pr-title:
     name: lint-pr-title
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
