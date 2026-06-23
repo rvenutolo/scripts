@@ -1,0 +1,47 @@
+name: changed-tests
+# Caller must run actions/checkout (with fetch-depth: 0) before this composite:
+# a local action cannot perform its own initial checkout, and the change
+# detection diffs the PR range, which needs full history.
+description: "Decide whether the BATS suite must run: always for push/dispatch, and for PRs only when test-relevant files changed. Fails safe so uncertainty runs it."
+outputs:
+  run:
+    description: "true if the BATS suite should run, false if it can be skipped"
+    value: ${{ steps.decide.outputs.run }}
+runs:
+  using: composite
+  steps:
+    - id: decide
+      shell: bash
+      env:
+        EVENT: ${{ github.event_name }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        set -Eeuo pipefail
+        # Default to running. Only a clean, successful PR diff that matches none
+        # of the relevant paths flips this to false — every other path (push,
+        # dispatch, diff failure, missing base) keeps the suite running.
+        run=true
+        reason="non-pull_request event"
+        if [[ "${EVENT}" == "pull_request" ]]; then
+          if changed="$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}")"; then
+            run=false
+            reason="no test-relevant paths changed"
+            while IFS= read -r f; do
+              [[ -z "${f}" ]] && continue
+              case "${f}" in
+                scripts/functions/* | scripts/.functions.bash | test/* | \
+                  flake.nix | flake.lock | .github/actions/* | \
+                  .github/workflows/ci.yml)
+                  run=true
+                  reason="changed ${f}"
+                  break
+                  ;;
+              esac
+            done <<< "${changed}"
+          else
+            reason="git diff failed — running to be safe"
+          fi
+        fi
+        echo "run=${run}" >> "${GITHUB_OUTPUT}"
+        echo "changed-tests: run=${run} (event=${EVENT}; ${reason})"
