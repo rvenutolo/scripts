@@ -104,4 +104,4 @@ Workflows under `.github/workflows/`.
 
 ## License
 
-[GPL-3.0](LICENSE).
+[GPL-3.0](LICENSE) license.
