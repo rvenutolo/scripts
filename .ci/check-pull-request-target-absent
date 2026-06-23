@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+# @description Assert that no GitHub Actions workflow declares the
+#              `pull_request_target` trigger. That trigger runs with a
+#              read/write token and repo secrets in the base-repo context
+#              while checking out untrusted PR head code — a privilege-
+#              escalation footgun. This lint locks in its absence so it
+#              cannot be added later without a deliberate override.
+# @noargs
+# @stderr One line per offending workflow, plus a final count.
+# @exitcode 0 no workflow declares the pull_request_target trigger.
+# @exitcode 1 one or more workflows declare it.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'yq'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
+
+# @description Determine whether a workflow declares the `pull_request_target`
+#              trigger. Enumerates `.on` triggers across all three shapes —
+#              scalar (`on: pull_request_target`), sequence
+#              (`on: [push, pull_request_target]`), and map
+#              (`on:\n  pull_request_target:`) — via yq, so a commented-out or
+#              string-literal mention is ignored. The exact-line match avoids a
+#              false positive on the `pull_request` trigger.
+# @arg $1 file path to a workflow YAML
+# @exitcode 0 workflow declares pull_request_target.
+# @exitcode 1 workflow does not.
+function declares_pull_request_target() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local triggers_tmp
+  files::create_temp triggers_tmp
+  # Emit every trigger name regardless of `.on` shape: map keys, sequence
+  # members, and a bare scalar. Each branch is guarded by select(type) so the
+  # other two shapes contribute nothing instead of erroring.
+  yq eval '
+    (.on | select(type == "!!map") | keys | .[]),
+    (.on | select(type == "!!seq") | .[]),
+    (.on | select(type == "!!str"))
+  ' "${file}" > "${triggers_tmp}"
+  grep --line-regexp --quiet 'pull_request_target' "${triggers_tmp}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  if ! dirs::exists "${WORKFLOWS_DIR}"; then
+    exit 0
+  fi
+  local files_tmp
+  files::create_temp files_tmp
+  find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
+  local total=0
+  local file
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    if declares_pull_request_target "${file}"; then
+      printf '%s: declares the pull_request_target trigger\n' "${file}" >&2
+      total=$((total + 1))
+    fi
+  done < "${files_tmp}"
+  if ((total > 0)); then
+    printf '%d workflow(s) declare the pull_request_target trigger\n' "${total}" >&2
+    exit 1
+  fi
+  exit 0
+}
+
+main "$@"
