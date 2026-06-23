@@ -11,6 +11,9 @@ on:
     - cron: '0 15 * * 1'
   workflow_dispatch:
 permissions: {}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   protect-main-drift-check:
     name: protect-main-drift-check

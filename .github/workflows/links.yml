@@ -4,6 +4,9 @@ on:
     - cron: '0 12 * * 1'
   workflow_dispatch:
 permissions: {}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   lychee:
     runs-on: ubuntu-latest

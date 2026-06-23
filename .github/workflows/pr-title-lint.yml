@@ -7,6 +7,9 @@ on:
     types: [opened, edited, reopened, synchronize]
     branches: [main]
 permissions: {}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   lint-pr-title:
     name: lint-pr-title
