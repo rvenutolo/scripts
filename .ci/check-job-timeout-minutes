@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+
+# @description Assert every job in every GitHub Actions workflow sets an explicit
+#              `timeout-minutes` whose value is a positive integer. Jobs without
+#              one inherit GitHub's 6-hour default, so a hung step burns runner
+#              minutes for hours before it is killed.
+# @noargs
+# @stderr One line per violation, plus a final count.
+# @exitcode 0 every job sets a positive-integer timeout-minutes.
+# @exitcode 1 one or more jobs do not.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'yq'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
+
+# @description Audit timeout-minutes for every job in one workflow.
+#              Prints violations to stderr; echoes the violation count.
+# @arg $1 file path to a workflow YAML
+# @stdout integer violation count
+function audit_file() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local jobs_tmp
+  files::create_temp jobs_tmp
+  yq eval '.jobs | to_entries[] | .key + "\t" + (.value."timeout-minutes" // "null")' "${file}" > "${jobs_tmp}"
+  local count=0
+  local job val
+  while IFS=$'\t' read -r job val; do
+    strings::is_empty "${job}" && continue
+    if [[ "${val}" == 'null' ]] || strings::is_empty "${val}"; then
+      printf '%s: job %q has no timeout-minutes\n' "${file}" "${job}" >&2
+      count=$((count + 1))
+      continue
+    fi
+    if [[ ! "${val}" =~ ^[1-9][0-9]*$ ]]; then
+      printf '%s: job %q timeout-minutes %q is not a positive integer\n' "${file}" "${job}" "${val}" >&2
+      count=$((count + 1))
+    fi
+  done < "${jobs_tmp}"
+  printf '%s\n' "${count}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  if ! dirs::exists "${WORKFLOWS_DIR}"; then
+    exit 0
+  fi
+  local files_tmp
+  files::create_temp files_tmp
+  find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
+  local total=0
+  local file n
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    n="$(audit_file "${file}")"
+    total=$((total + n))
+  done < "${files_tmp}"
+  if ((total > 0)); then
+    printf '%d job(s) missing a valid timeout-minutes\n' "${total}" >&2
+    exit 1
+  fi
+  exit 0
+}
+
+main "$@"
