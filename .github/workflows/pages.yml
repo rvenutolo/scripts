@@ -29,7 +29,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
           # Authenticate the API call: unauthenticated requests share a 60/hr
           # per-IP limit on shared runners and intermittently 403, which left
           # SHFMT_VERSION empty and produced a broken download URL.
@@ -48,10 +48,12 @@ jobs:
         env:
           SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: |
+          set -Eeuo pipefail
           ./.ci/build-docs
           mkdocs build --strict --config-file .mkdocs.yml
       - name: Generate BATS test count badge
         run: |
+          set -Eeuo pipefail
           count=$(./test/bats/bin/bats --count --recursive test/functions)
           jq --null-input --arg count "${count}" \
             '{schemaVersion: 1, label: "tests", message: $count, color: "blue"}' \
