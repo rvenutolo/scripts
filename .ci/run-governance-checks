@@ -29,6 +29,7 @@ function main() {
   local check
   for check in \
     check-uses-sha-pinned \
+    check-patch-tag-pins \
     check-min-permissions \
     check-harden-runner-first \
     check-pr-workflows-no-secrets \
