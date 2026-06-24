@@ -38,7 +38,8 @@ function main() {
     check-jsonschema \
     check-job-timeout-minutes \
     check-workflow-concurrency \
-    check-pull-request-target-absent; do
+    check-pull-request-target-absent \
+    check-checkout-persist-credentials; do
     log::log "running ${check}"
     "${ci}/${check}" || rc=1
   done
