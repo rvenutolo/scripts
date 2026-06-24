@@ -22,6 +22,7 @@ theme:
     - content.code.copy
 nav:
   - Home: index.md
+  - Required checks: required-checks.md
   - Functions: functions/index.md
   - Scripts:
       - Overview: scripts/index.md
