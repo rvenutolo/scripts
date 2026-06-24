@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+
+# @description Enforce three-way agreement between the required-checks table
+#              (.docs/required-checks.md), the enforced required-check contexts
+#              in protect-main.json, and the actual workflow job contexts: the
+#              table set must equal the ruleset required set, every required
+#              check must resolve to a real job context in some workflow, and
+#              every table row must have a non-empty Category and Protects cell.
+# @noargs
+# @stderr One line per violation.
+# @exitcode 0 the table, ruleset, and workflow jobs all agree.
+# @exitcode 1 a parity violation, an empty table cell, or a missing input file.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'jq'
+commands::assert_executable_exists 'yq'
+commands::assert_executable_exists 'gawk'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly SUMMARY_MD="${SUMMARY_MD_OVERRIDE:-${REPO_DIR}/.docs/required-checks.md}"
+readonly RULESET_JSON="${RULESET_JSON_OVERRIDE:-${REPO_DIR}/.github/rulesets/protect-main.json}"
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
+
+# @description Print the required status-check contexts from a protect-main
+#              ruleset JSON file, one per line.
+# @arg $1 ruleset path to the ruleset JSON
+# @stdout One required-check context per line.
+function required_contexts() {
+  args::check_exactly_1_arg "$@"
+  local -r ruleset="$1"
+  jq -r '
+    .rules[] | select(.type == "required_status_checks")
+    | .parameters.required_status_checks[].context
+  ' "${ruleset}"
+}
+
+# @description Emit one tab-separated `name<TAB>category<TAB>protects` line per
+#              data row of the marker-delimited table in the given markdown file.
+#              Header and separator rows are skipped; backticks are stripped from
+#              the name cell; every cell is whitespace-trimmed.
+# @arg $1 md path to the summary markdown file
+# @stdout One `name\tcategory\tprotects` line per table data row.
+function extract_table_rows() {
+  args::check_exactly_1_arg "$@"
+  local -r md="$1"
+  gawk '
+    function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+    /<!-- required-checks:begin -->/ { inblock = 1; next }
+    /<!-- required-checks:end -->/   { inblock = 0; next }
+    !inblock { next }
+    $0 !~ /\|/ { next }
+    /^[[:space:]]*\|[[:space:]:|-]*$/ { next }
+    {
+      split($0, cells, "|")
+      name = trim(cells[2]); cat = trim(cells[3]); prot = trim(cells[4])
+      if (name == "Check") next
+      gsub(/`/, "", name)
+      printf("%s\t%s\t%s\n", name, cat, prot)
+    }
+  ' "${md}"
+}
+
+# @description Print the status-check context of every job across all workflow
+#              files in the given directory, one per line. A job's context is its
+#              `name:` when set, else its job key.
+# @arg $1 workflows_dir path to the .github/workflows directory
+# @stdout One job context per line (unsorted, may contain duplicates).
+function job_contexts() {
+  args::check_exactly_1_arg "$@"
+  local -r workflows_dir="$1"
+  local files_tmp
+  files::create_temp files_tmp
+  # -name globs have no long-form equivalent in find.
+  find "${workflows_dir}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
+  local file
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    yq -r '.jobs | to_entries[] | (.value.name // .key)' "${file}"
+  done < "${files_tmp}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  files::assert_exists "${SUMMARY_MD}"
+  files::assert_exists "${RULESET_JSON}"
+  dirs::assert_exists "${WORKFLOWS_DIR}"
+
+  local required_tmp table_rows_tmp table_names_tmp jobs_tmp
+  files::create_temp required_tmp
+  files::create_temp table_rows_tmp
+  files::create_temp table_names_tmp
+  files::create_temp jobs_tmp
+  required_contexts "${RULESET_JSON}" | sort --unique > "${required_tmp}"
+  extract_table_rows "${SUMMARY_MD}" > "${table_rows_tmp}"
+  cut --fields=1 "${table_rows_tmp}" | sort --unique > "${table_names_tmp}"
+  job_contexts "${WORKFLOWS_DIR}" | sort --unique > "${jobs_tmp}"
+
+  local failed=0
+  local missing_tmp extra_tmp unresolved_tmp
+  files::create_temp missing_tmp
+  files::create_temp extra_tmp
+  files::create_temp unresolved_tmp
+  comm -23 "${required_tmp}" "${table_names_tmp}" > "${missing_tmp}" # no long-form equivalent
+  comm -13 "${required_tmp}" "${table_names_tmp}" > "${extra_tmp}" # no long-form equivalent
+  comm -23 "${required_tmp}" "${jobs_tmp}" > "${unresolved_tmp}" # no long-form equivalent
+
+  local ctx
+  while IFS= read -r ctx; do
+    strings::is_empty "${ctx}" && continue
+    printf 'required check missing from table: %s\n' "${ctx}" >&2
+    failed=1
+  done < "${missing_tmp}"
+  while IFS= read -r ctx; do
+    strings::is_empty "${ctx}" && continue
+    printf 'table row is not a required check: %s\n' "${ctx}" >&2
+    failed=1
+  done < "${extra_tmp}"
+  while IFS= read -r ctx; do
+    strings::is_empty "${ctx}" && continue
+    printf 'required check has no matching workflow job: %s\n' "${ctx}" >&2
+    failed=1
+  done < "${unresolved_tmp}"
+
+  local name cat prot
+  while IFS=$'\t' read -r name cat prot; do
+    strings::is_empty "${name}" && continue
+    if strings::is_blank "${cat}" || strings::is_blank "${prot}"; then
+      printf 'table row has empty Category or Protects: %s\n' "${name}" >&2
+      failed=1
+    fi
+  done < "${table_rows_tmp}"
+
+  exit "${failed}"
+}
+
+main "$@"
