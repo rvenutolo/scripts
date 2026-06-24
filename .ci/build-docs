@@ -20,8 +20,13 @@ args::check_no_args "$@"
 REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
 readonly SHDOC="${REPO_DIR}/.shdoc/shdoc"
-readonly DOCS_FUNCTIONS_DIR="${REPO_DIR}/.docs/functions"
-readonly DOCS_SCRIPTS_DIR="${REPO_DIR}/.docs/scripts"
+# The output base is overridable so the bats suite can redirect generated docs
+# to a per-test tmpdir — the real .docs/ is shared mutable state that
+# reset_output_dirs wipes on every build, so parallel test runs would race on
+# it. Default remains the real .docs/ for normal CI/local doc generation.
+readonly DOCS_DIR="${DOCS_DIR_OVERRIDE:-${REPO_DIR}/.docs}"
+readonly DOCS_FUNCTIONS_DIR="${DOCS_DIR}/functions"
+readonly DOCS_SCRIPTS_DIR="${DOCS_DIR}/scripts"
 
 # @description Wipe and recreate output directories so each build is clean.
 function reset_output_dirs() {
@@ -251,7 +256,7 @@ function write_scripts_top_index() {
 #              landing page. MkDocs adds the chrome around it.
 # @noargs
 function write_home_index() {
-  cp -- "${REPO_DIR}/README.md" "${REPO_DIR}/.docs/index.md"
+  cp -- "${REPO_DIR}/README.md" "${DOCS_DIR}/index.md"
 }
 
 function main() {
@@ -264,7 +269,7 @@ function main() {
   fi
 
   reset_output_dirs
-  dirs::create "${REPO_DIR}/.docs"
+  dirs::create "${DOCS_DIR}"
 
   log::log "Generating function reference"
   local file base
@@ -287,7 +292,7 @@ function main() {
   log::log "Generating home page from README.md"
   write_home_index
 
-  log::log "Doc generation complete: ${REPO_DIR}/.docs/"
+  log::log "Doc generation complete: ${DOCS_DIR}/"
 }
 
 main "$@"
