@@ -56,6 +56,7 @@ jobs:
         env:
           SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: |
+          set -Eeuo pipefail
           mkdir -p bats-junit
           nix develop --command ./test/bats/bin/bats --jobs "$(nproc)" --recursive \
             --print-output-on-failure \

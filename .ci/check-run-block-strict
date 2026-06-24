@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+
+# @description Assert that every multi-line bash `run:` block — in a workflow or
+#              a composite action — begins with a `set -Eeuo pipefail` strict-mode
+#              prelude. Without it a command that fails mid-block can be masked and
+#              the step still reports success. Exempt: single-statement blocks,
+#              non-bash shells, and `nix develop …` wrappers (whose strict mode
+#              lives in the inner shell).
+# @noargs
+# @stderr One line per offending run block, plus a final count.
+# @exitcode 0 every multi-line bash run block has the strict-mode prelude.
+# @exitcode 1 one or more run blocks lack the prelude.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'yq'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
+readonly ACTIONS_DIR="${ACTIONS_DIR_OVERRIDE:-${REPO_DIR}/.github/actions}"
+
+# @description Emit one record per step that defines a `run`, for both workflow
+#              (`.jobs[].steps[]`) and composite-action (`.runs.steps[]`) shapes.
+#              Each record is `job|name|shell|run_base64`; the run body is base64
+#              so its newlines survive the single-line record. Absent name/shell
+#              default to empty.
+# @arg $1 file path to a workflow or action YAML
+# @stdout One `job|name|shell|run_base64` line per run step.
+function extract_steps() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  # shellcheck disable=SC2016 # yq program literal; $job/@base64 are yq syntax, not shell
+  yq eval '
+    [
+      (.jobs // {} | to_entries | .[] | .key as $job
+         | (.value.steps // [])[]
+         | {"j": $job, "n": (.name // ""), "s": (.shell // ""), "r": (.run // "")}),
+      ((.runs.steps // [])[]
+         | {"j": "runs", "n": (.name // ""), "s": (.shell // ""), "r": (.run // "")})
+    ]
+    | .[]
+    | select(.r != "")
+    | .j + "|" + .n + "|" + .s + "|" + (.r | @base64)
+  ' "${file}"
+}
+
+# @description Read a raw run block on stdin and print its meaningful logical
+#              lines, one per output line: backslash-continued physical lines are
+#              joined (with a space) into one logical line, then blank and
+#              full-line-comment lines are dropped and leading whitespace trimmed.
+# @noargs
+# @stdout meaningful logical lines
+function reduce_run_block() {
+  local line acc='' cont=0 trimmed
+  while IFS= read -r line || strings::is_not_empty "${line}"; do
+    if ((cont)); then
+      acc+=" ${line}"
+    else
+      acc="${line}"
+    fi
+    if [[ "${acc}" == *\\ ]]; then
+      acc="${acc%\\}"
+      cont=1
+      continue
+    fi
+    cont=0
+    trimmed="${acc#"${acc%%[![:space:]]*}"}"
+    acc=''
+    strings::is_empty "${trimmed}" && continue
+    [[ "${trimmed}" == '#'* ]] && continue
+    printf '%s\n' "${trimmed}"
+  done
+}
+
+# @description Whether a logical line is a strict-mode prelude enabling all of
+#              errexit (-e), errtrace (-E), nounset (-u), and pipefail. Flag
+#              letter order and grouping are tolerated; `pipefail` must appear as
+#              the argument token following an `-o`.
+# @arg $1 line logical line to test
+# @exitcode 0 line is a complete strict-mode prelude.
+# @exitcode 1 line is not.
+function is_strict_prelude() {
+  args::check_exactly_1_arg "$@"
+  local -r line="$1"
+  [[ "${line}" == 'set '* ]] || return 1
+  local -a toks
+  # Split on whitespace: the script's strict IFS ($'\n\t') excludes spaces, so a
+  # bare `read -r -a` would not break `-Eeuo pipefail` into separate tokens.
+  IFS=' ' read -r -a toks <<< "${line#set }"
+  local letters='' has_pipefail=0 tok
+  for tok in "${toks[@]}"; do
+    case "${tok}" in
+      pipefail)
+        has_pipefail=1
+        ;;
+      -*)
+        letters+="${tok#-}"
+        ;;
+      *)
+        :
+        ;;
+    esac
+  done
+  [[ "${letters}" == *E* && "${letters}" == *e* && "${letters}" == *u* \
+    && "${letters}" == *o* && "${has_pipefail}" -eq 1 ]]
+}
+
+function main() {
+  args::check_no_args "$@"
+  local files_tmp
+  files::create_temp files_tmp
+  local dir
+  for dir in "${WORKFLOWS_DIR}" "${ACTIONS_DIR}"; do
+    if dirs::exists "${dir}"; then
+      find "${dir}" -type f \( -name '*.yml' -o -name '*.yaml' \) >> "${files_tmp}"
+    fi
+  done
+
+  local total=0
+  local file steps_tmp job name shell run_b64 run_tmp reduced_tmp first
+  local -a mlines
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    files::create_temp steps_tmp
+    extract_steps "${file}" > "${steps_tmp}"
+    while IFS='|' read -r job name shell run_b64; do
+      strings::is_empty "${run_b64}" && continue
+      case "${shell}" in
+        '' | bash)
+          :
+          ;;
+        *)
+          continue
+          ;;
+      esac
+      files::create_temp run_tmp
+      printf '%s' "${run_b64}" | base64 --decode > "${run_tmp}"
+      files::create_temp reduced_tmp
+      reduce_run_block < "${run_tmp}" > "${reduced_tmp}"
+      mapfile -t mlines < "${reduced_tmp}"
+      ((${#mlines[@]} < 2)) && continue
+      first="${mlines[0]}"
+      [[ "${first}" =~ ^nix\ develop($|[[:space:]]) ]] && continue
+      if ! is_strict_prelude "${first}"; then
+        printf '%s: %s/%s run block missing strict-mode prelude (set -Eeuo pipefail)\n' \
+          "${file}" "${job}" "${name:-<unnamed>}" >&2
+        total=$((total + 1))
+      fi
+    done < "${steps_tmp}"
+  done < "${files_tmp}"
+
+  if ((total > 0)); then
+    printf '%d run block(s) missing the strict-mode prelude\n' "${total}" >&2
+    exit 1
+  fi
+  exit 0
+}
+
+main "$@"
