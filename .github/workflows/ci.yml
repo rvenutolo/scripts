@@ -201,4 +201,7 @@ jobs:
         with:
           name: coverage-report
           path: coverage/
+          # coverage runs under `if: always()` as a best-effort debug
+          # artifact; warn is correct here (allowlisted in
+          # .ci/check-upload-artifact-strict).
           if-no-files-found: warn

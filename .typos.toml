@@ -17,3 +17,6 @@ gir = "gir"
 ba = "ba"
 # BRE = POSIX Basic Regular Expression (sed); not a typo of "BE"/"BRIE".
 bre = "bre"
+# eror = intentional invalid value used in check-upload-artifact-strict.bats to
+# verify the checker rejects unknown if-no-files-found values; not a typo.
+eror = "eror"
