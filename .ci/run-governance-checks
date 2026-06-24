@@ -41,7 +41,8 @@ function main() {
     check-workflow-concurrency \
     check-pull-request-target-absent \
     check-checkout-persist-credentials \
-    check-upload-artifact-strict; do
+    check-upload-artifact-strict \
+    check-run-block-strict; do
     log::log "running ${check}"
     "${ci}/${check}" || rc=1
   done
