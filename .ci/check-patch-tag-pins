@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+
+# @description Assert every SHA-pinned `uses:` reference in the repo's GitHub
+#              Actions workflows and composite actions carries a trailing
+#              `# vX[.Y[.Z]]` version comment mapping the opaque pin to a
+#              human-readable version. Bare or junk-commented pins are flagged.
+#              Non-SHA-pinned and local (`./...`) refs are this check's
+#              non-concern and stay silent (sibling check-uses-sha-pinned owns
+#              the pinning requirement itself).
+# @noargs
+# @stderr One line per SHA pin lacking a valid version comment, plus a final count.
+# @exitcode 0 every SHA-pinned uses: reference carries a valid version comment.
+# @exitcode 1 one or more SHA-pinned references lack or mismatch the comment.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
+readonly ACTIONS_DIR="${ACTIONS_DIR_OVERRIDE:-${REPO_DIR}/.github/actions}"
+readonly VERSION_COMMENT_RE='^v[0-9]+(\.[0-9]+)*$'
+
+# @description Check one workflow file for SHA-pinned uses: refs that lack a
+#              valid `# vX[.Y[.Z]]` version comment. Prints a line per violation
+#              to stderr and echoes the violation count to stdout.
+# @arg $1 file path to a workflow YAML
+# @stdout integer count of violations in this file
+function count_violations_in_file() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local uses_tmp
+  files::create_temp uses_tmp
+  grep --extended-regexp '^\s*-?\s*uses:\s*[^[:space:]]+' "${file}" > "${uses_tmp}" || true
+  local count=0
+  local line rest ref comment has_comment
+  while IFS= read -r line; do
+    rest="${line#*uses:}"
+    rest="${rest#"${rest%%[![:space:]]*}"}"
+    rest="${rest%"${rest##*[![:space:]]}"}"
+    if strings::is_empty "${rest}"; then
+      continue
+    fi
+    if [[ "${rest}" == *#* ]]; then
+      has_comment=1
+      comment="${rest#*#}"
+      comment="${comment#"${comment%%[![:space:]]*}"}"
+      comment="${comment%"${comment##*[![:space:]]}"}"
+    else
+      has_comment=0
+      comment=''
+    fi
+    ref="${rest%%#*}"
+    ref="${ref%"${ref##*[![:space:]]}"}"
+    if [[ "${ref}" == ./* ]]; then
+      continue
+    fi
+    if [[ ! "${ref}" =~ @[0-9a-f]{40}$ ]]; then
+      continue
+    fi
+    if ((has_comment == 0)) || [[ ! "${comment}" =~ ${VERSION_COMMENT_RE} ]]; then
+      printf '%s: %q SHA pin missing/!matching version comment (need # vX[.Y[.Z]])\n' \
+        "${file}" "${ref}" >&2
+      count=$((count + 1))
+    fi
+  done < "${uses_tmp}"
+  printf '%s\n' "${count}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  local files_tmp
+  files::create_temp files_tmp
+  local dir
+  for dir in "${WORKFLOWS_DIR}" "${ACTIONS_DIR}"; do
+    dirs::exists "${dir}" || continue
+    find "${dir}" -type f \( -name '*.yml' -o -name '*.yaml' \) >> "${files_tmp}"
+  done
+  local total=0
+  local file file_count
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    file_count="$(count_violations_in_file "${file}")"
+    total=$((total + file_count))
+  done < "${files_tmp}"
+  if ((total > 0)); then
+    printf '%d SHA pin(s) without a valid version comment found\n' "${total}" >&2
+    exit 1
+  fi
+  exit 0
+}
+
+main "$@"
