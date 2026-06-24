@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+
+# @description Assert that every `actions/upload-artifact` step — in a
+#              workflow or a composite action — sets `if-no-files-found`
+#              explicitly, and that the value is `error` unless the artifact
+#              name is allowlisted. The action defaults to `warn`, which
+#              silently uploads an empty artifact when `path:` matches
+#              nothing — a green run that quietly lost its output. This lint
+#              turns a path/glob bug into a hard failure at upload time.
+#              Allowlisted names are best-effort `if: always()` uploads that
+#              legitimately produce no files when an upstream step fails.
+# @noargs
+# @stderr One line per offending upload step, plus a final count.
+# @exitcode 0 every upload-artifact step satisfies the policy.
+# @exitcode 1 one or more steps omit or misconfigure if-no-files-found.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'yq'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
+readonly ACTIONS_DIR="${ACTIONS_DIR_OVERRIDE:-${REPO_DIR}/.github/actions}"
+
+# Artifact names exempt from the must-be-error rule. These run under
+# `if: always()` as best-effort debug uploads that legitimately produce no
+# files when an upstream step fails — `warn` is semantically correct there
+# (error would conflate a path bug with an upstream failure).
+readonly ALLOWLISTED_NAMES=('coverage-report')
+
+# @description Emit a `name|tag|value` descriptor line for every
+#              `actions/upload-artifact` step in the given YAML file. Handles
+#              both workflow shape (`.jobs[].steps[]`) and composite-action
+#              shape (`.runs.steps[]`) in one pass; a missing path contributes
+#              nothing. `name` is the artifact name (empty if unset); `tag` is
+#              the yq type tag of `if-no-files-found` (`!!null` when omitted);
+#              `value` is its string form.
+# @arg $1 file path to a workflow or action YAML
+# @stdout One `name|tag|value` line per upload-artifact step.
+function upload_artifact_steps() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  yq eval '
+    [ .jobs[]?.steps[]?, .runs.steps[]? ] | .[]
+      | select(.uses // "" | test("^actions/upload-artifact@"))
+      | [(.with.name // ""),
+         (.with."if-no-files-found" | tag | . // "!!null"),
+         (.with."if-no-files-found" | tostring | . // "null")]
+      | join("|")
+  ' "${file}"
+}
+
+# @description Whether the given artifact name is on the allowlist of names
+#              exempt from the must-be-error rule.
+# @arg $1 name artifact name to test
+# @exitcode 0 name is allowlisted.
+# @exitcode 1 name is not allowlisted.
+function name_is_allowlisted() {
+  args::check_exactly_1_arg "$@"
+  local -r name="$1"
+  local allowed
+  for allowed in "${ALLOWLISTED_NAMES[@]}"; do
+    [[ "${name}" == "${allowed}" ]] && return 0
+  done
+  return 1
+}
+
+function main() {
+  args::check_no_args "$@"
+  local files_tmp
+  files::create_temp files_tmp
+  local dir
+  for dir in "${WORKFLOWS_DIR}" "${ACTIONS_DIR}"; do
+    if dirs::exists "${dir}"; then
+      find "${dir}" -type f \( -name '*.yml' -o -name '*.yaml' \) >> "${files_tmp}"
+    fi
+  done
+  local total=0
+  local file steps_tmp name tag value
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    files::create_temp steps_tmp
+    upload_artifact_steps "${file}" > "${steps_tmp}"
+    while IFS='|' read -r name tag value; do
+      strings::is_empty "${tag}" && continue
+      case "${tag}" in
+        '!!null')
+          printf '%s: upload-artifact step (name=%s) must set if-no-files-found\n' \
+            "${file}" "${name:-<unset>}" >&2
+          total=$((total + 1))
+          ;;
+        '!!str')
+          case "${value}" in
+            error)
+              : # compliant
+              ;;
+            warn | ignore)
+              if ! name_is_allowlisted "${name}"; then
+                printf '%s: upload-artifact step (name=%s) has if-no-files-found: %s; must be error\n' \
+                  "${file}" "${name:-<unset>}" "${value}" >&2
+                total=$((total + 1))
+              fi
+              ;;
+            *)
+              printf '%s: upload-artifact step (name=%s) has invalid if-no-files-found: %s\n' \
+                "${file}" "${name:-<unset>}" "${value}" >&2
+              total=$((total + 1))
+              ;;
+          esac
+          ;;
+        *)
+          printf '%s: upload-artifact step (name=%s) if-no-files-found has unexpected shape (tag=%s)\n' \
+            "${file}" "${name:-<unset>}" "${tag}" >&2
+          total=$((total + 1))
+          ;;
+      esac
+    done < "${steps_tmp}"
+  done < "${files_tmp}"
+  if ((total > 0)); then
+    printf '%d upload-artifact step(s) violate the if-no-files-found policy\n' "${total}" >&2
+    exit 1
+  fi
+  exit 0
+}
+
+main "$@"
