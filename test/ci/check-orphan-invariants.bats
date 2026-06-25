@@ -222,3 +222,23 @@ baseline() {
   run "${CHECK}" bogus
   [ "${status}" -ne 0 ]
 }
+
+@test "passes when CI-job and Required-check cells are backtick-wrapped" {
+  make_ci check-foo check-bar
+  write_runner check-foo
+  write_workflow ci.yml governance check-scripts
+  write_ruleset governance check-scripts
+  # Emit index rows with backtick-wrapped job and required cells to match the
+  # actual .docs/invariant-index.md convention; the parser must strip them.
+  {
+    echo "<!-- invariant-index:begin -->"
+    echo "| Invariant | Enforcer | CI job | Required check |"
+    echo "|-----------|----------|--------|----------------|"
+    echo "| foo invariant | \`check-foo\` | \`governance\` | \`governance\` |"
+    echo "| bar invariant | \`check-bar\` | \`check-scripts\` | \`check-scripts\` |"
+    echo "<!-- invariant-index:end -->"
+  } > "${INDEX}"
+  run "${CHECK}"
+  [ "${status}" -eq 0 ]
+  [ -z "${output}" ]
+}

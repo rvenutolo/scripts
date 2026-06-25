@@ -76,7 +76,8 @@ function job_contexts() {
 # @description Emit one SOH-delimited (\\x01) line per data row of the
 #              marker-delimited table in the given markdown file.
 #              Header/separator rows are skipped; backticks are stripped from the
-#              enforcer cell; every cell is whitespace-trimmed.
+#              enforcer, CI-job, and Required-check cells; every cell is
+#              whitespace-trimmed.
 # @arg $1 md path to the invariant-index markdown file
 # @stdout One SOH-delimited (\\x01) line per table data row.
 function extract_index_rows() {
@@ -95,6 +96,8 @@ function extract_index_rows() {
       job = trim(cells[4]); req = trim(cells[5])
       if (inv == "Invariant") next
       gsub(/`/, "", enf)
+      gsub(/`/, "", job)
+      gsub(/`/, "", req)
       printf("%s\x01%s\x01%s\x01%s\n", inv, enf, job, req)
     }
   ' "${md}"
