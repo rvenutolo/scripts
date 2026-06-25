@@ -1,0 +1,244 @@
+#!/usr/bin/env bash
+
+# @description Enforce parity between the invariant index
+#              (.docs/invariant-index.md), the real .ci/ enforcer scripts, the
+#              workflow job contexts, the protect-main required-check contexts,
+#              and the run-governance-checks list. Every non-exempt .ci enforcer
+#              must have an index row; every Enforcer/CI-job/Required-check cell
+#              must resolve to a real artifact; no Invariant/Enforcer/CI-job cell
+#              may be empty; and rows whose CI job is `governance` must agree
+#              bidirectionally with the governance runner's check list.
+# @noargs
+# @stderr One line per violation.
+# @exitcode 0 the index, enforcers, jobs, ruleset, and runner all agree.
+# @exitcode 1 a parity violation, an empty cell, or a missing input file.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'jq'
+commands::assert_executable_exists 'yq'
+commands::assert_executable_exists 'gawk'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly INDEX_MD="${INDEX_MD_OVERRIDE:-${REPO_DIR}/.docs/invariant-index.md}"
+readonly RULESET_JSON="${RULESET_JSON_OVERRIDE:-${REPO_DIR}/.github/rulesets/protect-main.json}"
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
+readonly CI_DIR="${CI_DIR_OVERRIDE:-${REPO_DIR}/.ci}"
+readonly GOVERNANCE_RUNNER="${GOVERNANCE_RUNNER_OVERRIDE:-${REPO_DIR}/.ci/run-governance-checks}"
+
+# Scripts under .ci/ that are utilities/runners, not invariant enforcers, and so
+# are exempt from the "must have an index row" rule:
+# - apply-repo-settings: mutates the live GitHub repo via gh; not an enforcer.
+# - build-docs: generates reference docs; not an enforcer.
+# - diff-ruleset: prints a ruleset diff; not an enforcer.
+# - run-governance-checks / run-lint-checks: aggregate runners, not enforcers.
+readonly EXEMPT=(apply-repo-settings build-docs diff-ruleset run-governance-checks run-lint-checks)
+
+# @description Print the required status-check contexts from a protect-main
+#              ruleset JSON file, one per line.
+# @arg $1 ruleset path to the ruleset JSON
+# @stdout One required-check context per line.
+function required_contexts() {
+  args::check_exactly_1_arg "$@"
+  local -r ruleset="$1"
+  jq -r '
+    .rules[] | select(.type == "required_status_checks")
+    | .parameters.required_status_checks[].context
+  ' "${ruleset}"
+}
+
+# @description Print the status-check context of every job across all workflow
+#              files in the given directory, one per line. A job's context is its
+#              `name:` when set, else its job key.
+# @arg $1 workflows_dir path to the .github/workflows directory
+# @stdout One job context per line (unsorted, may contain duplicates).
+function job_contexts() {
+  args::check_exactly_1_arg "$@"
+  local -r workflows_dir="$1"
+  local files_tmp
+  files::create_temp files_tmp
+  # -name globs have no long-form equivalent in find.
+  find "${workflows_dir}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
+  local file
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    yq -r '.jobs | to_entries[] | (.value.name // .key)' "${file}"
+  done < "${files_tmp}"
+}
+
+# @description Emit one `invariant<TAB>enforcer<TAB>cijob<TAB>required` line per
+#              data row of the marker-delimited table in the given markdown file.
+#              Header/separator rows are skipped; backticks are stripped from the
+#              enforcer cell; every cell is whitespace-trimmed.
+# @arg $1 md path to the invariant-index markdown file
+# @stdout One SOH-delimited (\\x01) line per table data row.
+function extract_index_rows() {
+  args::check_exactly_1_arg "$@"
+  local -r md="$1"
+  gawk '
+    function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+    /<!-- invariant-index:begin -->/ { inblock = 1; next }
+    /<!-- invariant-index:end -->/   { inblock = 0; next }
+    !inblock { next }
+    $0 !~ /\|/ { next }
+    /^[[:space:]]*\|[[:space:]:|-]*$/ { next }
+    {
+      split($0, cells, "|")
+      inv = trim(cells[2]); enf = trim(cells[3])
+      job = trim(cells[4]); req = trim(cells[5])
+      if (inv == "Invariant") next
+      gsub(/`/, "", enf)
+      printf("%s\x01%s\x01%s\x01%s\n", inv, enf, job, req)
+    }
+  ' "${md}"
+}
+
+# @description Emit the check names listed in the `for check in ... ; do` block
+#              of a run-governance-checks-shaped file, one per line.
+# @arg $1 runner path to the governance runner script
+# @stdout One check name per line.
+function governance_runner_checks() {
+  args::check_exactly_1_arg "$@"
+  local -r runner="$1"
+  gawk '
+    /for[[:space:]]+check[[:space:]]+in/ { inblock = 1; sub(/.*for[[:space:]]+check[[:space:]]+in/, "") }
+    inblock {
+      stop = 0
+      if ($0 ~ /;[[:space:]]*do/) { sub(/;[[:space:]]*do.*/, ""); stop = 1 }
+      gsub(/\\/, "")
+      n = split($0, toks, /[[:space:]]+/)
+      for (i = 1; i <= n; i++) if (toks[i] != "") print toks[i]
+      if (stop) inblock = 0
+    }
+  ' "${runner}"
+}
+
+# @description Return true if the given basename is in the EXEMPT list.
+# @arg $1 name basename of a .ci/ script
+# @exitcode 0 name is exempt
+# @exitcode 1 name is not exempt
+function is_exempt() {
+  args::check_exactly_1_arg "$@"
+  local -r name="$1"
+  local exempt
+  for exempt in "${EXEMPT[@]}"; do
+    if [[ "${name}" == "${exempt}" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+function main() {
+  args::check_no_args "$@"
+  files::assert_exists "${INDEX_MD}"
+  files::assert_exists "${RULESET_JSON}"
+  files::assert_exists "${GOVERNANCE_RUNNER}"
+  dirs::assert_exists "${WORKFLOWS_DIR}"
+  dirs::assert_exists "${CI_DIR}"
+
+  local rows_tmp jobs_tmp required_tmp runner_tmp
+  files::create_temp rows_tmp
+  files::create_temp jobs_tmp
+  files::create_temp required_tmp
+  files::create_temp runner_tmp
+  extract_index_rows "${INDEX_MD}" > "${rows_tmp}"
+  job_contexts "${WORKFLOWS_DIR}" | sort --unique > "${jobs_tmp}"
+  required_contexts "${RULESET_JSON}" | sort --unique > "${required_tmp}"
+  governance_runner_checks "${GOVERNANCE_RUNNER}" | sort --unique > "${runner_tmp}"
+
+  # Index enforcer column (sorted-unique) and governance-job enforcer subset.
+  local index_enf_tmp gov_rows_tmp
+  files::create_temp index_enf_tmp
+  files::create_temp gov_rows_tmp
+  cut --delimiter=$'\x01' --fields=2 "${rows_tmp}" | sort --unique > "${index_enf_tmp}"
+
+  local failed=0
+  local inv enf job req
+  while IFS=$'\x01' read -r inv enf job req; do
+    strings::is_empty "${enf}" && strings::is_empty "${inv}" && strings::is_empty "${job}" && continue
+    # Rule 5: no empty Invariant/Enforcer/CI-job cells.
+    if strings::is_blank "${inv}"; then
+      printf 'index row has empty Invariant: %s\n' "${enf}" >&2
+      failed=1
+    fi
+    if strings::is_blank "${enf}"; then
+      printf 'index row has empty Enforcer\n' >&2
+      failed=1
+      continue
+    fi
+    if strings::is_blank "${job}"; then
+      printf 'index row has empty CI job: %s\n' "${enf}" >&2
+      failed=1
+    fi
+    # Rule 2: Enforcer resolves to a real .ci executable.
+    if [[ ! -x "${CI_DIR}/${enf}" ]]; then
+      printf 'enforcer does not resolve to a .ci executable: %s\n' "${enf}" >&2
+      failed=1
+    fi
+    # Rule 3: CI job resolves to a workflow job context.
+    if strings::is_not_empty "${job}" && ! grep --quiet --line-regexp --fixed-strings "${job}" "${jobs_tmp}"; then
+      printf 'CI job does not resolve to a workflow job: %s (row %s)\n' "${job}" "${enf}" >&2
+      failed=1
+    fi
+    # Rule 4: non-blank Required check resolves to a ruleset context.
+    if strings::is_not_empty "${req}" && ! grep --quiet --line-regexp --fixed-strings "${req}" "${required_tmp}"; then
+      printf 'required check does not resolve to a ruleset context: %s (row %s)\n' "${req}" "${enf}" >&2
+      failed=1
+    fi
+    # Rule 6 (forward): governance-job row's enforcer must be in the runner.
+    if [[ "${job}" == "governance" ]]; then
+      printf '%s\n' "${enf}" >> "${gov_rows_tmp}"
+      if ! grep --quiet --line-regexp --fixed-strings "${enf}" "${runner_tmp}"; then
+        printf 'governance-job row enforcer not in run-governance-checks: %s\n' "${enf}" >&2
+        failed=1
+      fi
+    fi
+  done < "${rows_tmp}"
+
+  # Rule 1: every non-exempt .ci enforcer has an index row.
+  local ci_scripts_tmp ci_basenames_tmp orphans_tmp
+  files::create_temp ci_scripts_tmp
+  files::create_temp ci_basenames_tmp
+  files::create_temp orphans_tmp
+  shell_scripts::find "${CI_DIR}" > "${ci_scripts_tmp}"
+  local script name
+  while IFS= read -r script; do
+    strings::is_empty "${script}" && continue
+    name="$(basename "${script}")"
+    if is_exempt "${name}"; then
+      continue
+    fi
+    printf '%s\n' "${name}" >> "${ci_basenames_tmp}"
+  done < "${ci_scripts_tmp}"
+  sort --unique --output="${ci_basenames_tmp}" "${ci_basenames_tmp}"
+  comm -23 "${ci_basenames_tmp}" "${index_enf_tmp}" > "${orphans_tmp}" # no long-form equivalent
+  while IFS= read -r name; do
+    strings::is_empty "${name}" && continue
+    printf 'orphan enforcer: .ci/%s has no invariant-index row\n' "${name}" >&2
+    failed=1
+  done < "${orphans_tmp}"
+
+  # Rule 6 (reverse): every runner entry has a governance-job index row.
+  local gov_sorted_tmp runner_orphans_tmp
+  files::create_temp gov_sorted_tmp
+  files::create_temp runner_orphans_tmp
+  sort --unique "${gov_rows_tmp}" > "${gov_sorted_tmp}"
+  comm -23 "${runner_tmp}" "${gov_sorted_tmp}" > "${runner_orphans_tmp}" # no long-form equivalent
+  while IFS= read -r name; do
+    strings::is_empty "${name}" && continue
+    printf 'run-governance-checks entry has no governance-job index row: %s\n' "${name}" >&2
+    failed=1
+  done < "${runner_orphans_tmp}"
+
+  exit "${failed}"
+}
+
+main "$@"
