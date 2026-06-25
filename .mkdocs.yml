@@ -23,6 +23,7 @@ theme:
 nav:
   - Home: index.md
   - Required checks: required-checks.md
+  - Invariant index: invariant-index.md
   - Functions: functions/index.md
   - Scripts:
       - Overview: scripts/index.md
