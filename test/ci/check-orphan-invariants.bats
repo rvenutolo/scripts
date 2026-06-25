@@ -162,6 +162,34 @@ baseline() {
   [[ "${output}" == *"empty"* ]]
 }
 
+@test "fails on an empty Enforcer cell" {
+  make_ci check-foo
+  write_runner check-foo
+  write_workflow ci.yml governance
+  write_ruleset governance
+  write_index \
+    "foo invariant|check-foo|governance|governance" \
+    "bad invariant||governance|governance"
+  run "${CHECK}"
+  [ "${status}" -eq 1 ]
+  [[ "${output}" == *"empty"* ]]
+  [[ "${output}" == *"Enforcer"* ]]
+}
+
+@test "fails on an empty CI job cell" {
+  make_ci check-foo check-bar
+  write_runner check-foo
+  write_workflow ci.yml governance check-scripts
+  write_ruleset governance check-scripts
+  write_index \
+    "foo invariant|check-foo|governance|governance" \
+    "bar invariant|check-bar||check-scripts"
+  run "${CHECK}"
+  [ "${status}" -eq 1 ]
+  [[ "${output}" == *"empty"* ]]
+  [[ "${output}" == *"CI job"* ]]
+}
+
 @test "fails when a governance-job row's enforcer is not in the runner" {
   baseline
   write_runner   # empty runner

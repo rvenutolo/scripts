@@ -73,8 +73,8 @@ function job_contexts() {
   done < "${files_tmp}"
 }
 
-# @description Emit one `invariant<TAB>enforcer<TAB>cijob<TAB>required` line per
-#              data row of the marker-delimited table in the given markdown file.
+# @description Emit one SOH-delimited (\\x01) line per data row of the
+#              marker-delimited table in the given markdown file.
 #              Header/separator rows are skipped; backticks are stripped from the
 #              enforcer cell; every cell is whitespace-trimmed.
 # @arg $1 md path to the invariant-index markdown file
@@ -163,6 +163,7 @@ function main() {
   local failed=0
   local inv enf job req
   while IFS=$'\x01' read -r inv enf job req; do
+    # Skip stray blank lines that gawk may emit (all three key cells empty); not a legitimate partial-blank row.
     strings::is_empty "${enf}" && strings::is_empty "${inv}" && strings::is_empty "${job}" && continue
     # Rule 5: no empty Invariant/Enforcer/CI-job cells.
     if strings::is_blank "${inv}"; then
