@@ -44,7 +44,8 @@ function main() {
     check-upload-artifact-strict \
     check-run-block-strict \
     check-script-has-test \
-    check-ci-job-in-summary; do
+    check-ci-job-in-summary \
+    check-orphan-invariants; do
     log::log "running ${check}"
     "${ci}/${check}" || rc=1
   done
