@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-# @description Enable the nix-setcap user path and service units that reapply file capabilities after Nix store updates.
+# @description Install and enable the root nix-setcap system units and the
+#   /usr/local/bin/nix-setcap wrapper generator that re-caps out-of-store copies
+#   of network tools after Nix store updates.
 # @noargs
 
 set -Eeuo pipefail
@@ -12,5 +14,9 @@ log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
 
-systemctl::enable_user_service_unit 'nix-setcap.path'
-systemctl::enable_user_service_unit 'nix-setcap.service'
+sudo mkdir --parents '/usr/local/lib/netcaps'
+sudo ln --symbolic --force "${HOME}/.etc/nix-setcap" '/usr/local/bin/nix-setcap'
+sudo ln --symbolic --force "${HOME}/.etc/nix-setcap.service" '/etc/systemd/system/nix-setcap.service'
+sudo ln --symbolic --force "${HOME}/.etc/nix-setcap.path" '/etc/systemd/system/nix-setcap.path'
+sudo systemctl daemon-reload
+sudo systemctl enable --now 'nix-setcap.path'
