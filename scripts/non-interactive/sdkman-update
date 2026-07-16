@@ -22,6 +22,7 @@ args::check_no_args "$@"
   # which calls the `complete` builtin at source time. Under topgrade's non-interactive
   # shell `complete` can be unavailable, exiting 127 and aborting the whole update via
   # inherited errexit. Stub it as a no-op — completion is useless in this script anyway.
+  # shellcheck disable=SC2329 # invoked indirectly by the sourced sdkman-init.sh
   function complete() { :; }
 
   # shellcheck disable=SC1091 # sdkman-init.sh path is dynamic via SDKMAN_DIR env var
