@@ -1,2 +1,8 @@
 extends:
   - '@commitlint/config-conventional'
+rules:
+  # Merge commits use the PR body as their message (merge_commit_message=PR_BODY).
+  # PR bodies routinely contain long paths, URLs, and code fences that cannot be
+  # wrapped at 100 chars, so disable body line-length enforcement. Subject-length
+  # checks remain in effect.
+  body-max-line-length: [0, always, Infinity]
