@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# @description Interactively install Nix (single-user) and then Nix home-manager with the configured package set.
+# @description Interactively install Determinate Nix (multi-user) and then Nix home-manager with the configured package set.
 # @noargs
 
 set -Eeuo pipefail
@@ -12,21 +12,21 @@ log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
 
-if ! commands::executable_exists 'nix' && prompt::yn 'Install Nix?'; then
-  log::log 'Installing Nix'
-  if ! dirs::exists '/nix'; then
-    dirs::root_create '/nix'
-  fi
-  sudo chmod 755 '/nix'
-  sudo chown --recursive "${USER}:" '/nix'
-  downloads::download_and_run_script 'https://nixos.org/nix/install' --no-daemon --no-modify-profile
-  log::log 'Installed Nix'
+if ! commands::executable_exists 'nix' && prompt::yn 'Install Nix (Determinate, multi-user)?'; then
+  log::log 'Installing Determinate Nix'
+  # Determinate multi-user installer: root-owned store, nix-daemon, flakes on.
+  # No manual /nix create/chown — the daemon install owns /nix as root.
+  downloads::download_and_run_script \
+    'https://install.determinate.systems/nix' \
+    install --determinate --no-confirm
+  log::log 'Installed Determinate Nix'
 fi
 
 if ! commands::executable_exists 'home-manager' && prompt::yn 'Install Nix home-manager and packages?'; then
   log::log 'Installing Nix home-manager and packages'
+  # Multi-user: nix env comes from the daemon profile script.
   # shellcheck disable=SC1091
-  source "${NIX_USER_PROFILE}/etc/profile.d/nix.sh"
+  source '/etc/profile.d/nix-daemon.sh'
   write-home-manager-packages
   home_manager_release="$(
     grep --only-matching --perl-regexp \
