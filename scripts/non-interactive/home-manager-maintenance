@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# @description Run periodic Nix store maintenance: garbage-collect generations older than 10 days and optimise the store.
+# @description Run periodic Nix store maintenance: garbage-collect generations older than 10 days. Store dedup is handled by the daemon (auto-optimise-store).
 # @noargs
 
 set -Eeuo pipefail
@@ -13,4 +13,3 @@ args::handle_help_flag "$@"
 args::check_no_args "$@"
 
 nix-collect-garbage --delete-older-than 10d
-nix-store --optimise
