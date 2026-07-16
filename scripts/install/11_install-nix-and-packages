@@ -24,9 +24,10 @@ fi
 
 if ! commands::executable_exists 'home-manager' && prompt::yn 'Install Nix home-manager and packages?'; then
   log::log 'Installing Nix home-manager and packages'
-  # Multi-user: nix env comes from the daemon profile script.
+  # Multi-user: nix env comes from Determinate's system profile script, which
+  # sources the daemon profile.d from the default profile.
   # shellcheck disable=SC1091
-  source '/etc/profile.d/nix-daemon.sh'
+  source '/etc/profile.d/nix.sh'
   write-home-manager-packages
   home_manager_release="$(
     grep --only-matching --perl-regexp \
