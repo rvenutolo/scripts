@@ -18,7 +18,7 @@ if ! files::exists "${bashrc_file}"; then
   exit 0
 fi
 
-if ! grep::file_contains_regex "${bashrc_file}" 'if.*\.sudo_as_admin_successful'; then
+if ! grep::contains_regex "${bashrc_file}" 'if.*\.sudo_as_admin_successful'; then
   exit 0
 fi
 
