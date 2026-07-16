@@ -20,7 +20,7 @@ if ! prompt::yn 'Set locale to en_US.UTF8?'; then
 fi
 
 log::log 'Setting locale to en_US.UTF-8'
-if ! grep::file_contains_regex '/etc/locale.gen' '^en_US.UTF-8 UTF-8'; then
+if ! grep::contains_regex '/etc/locale.gen' '^en_US.UTF-8 UTF-8'; then
   files::root_append_to '/etc/locale.gen' 'en_US.UTF-8 UTF-8'
 fi
 sudo locale-gen
