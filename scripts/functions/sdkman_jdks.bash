@@ -179,47 +179,57 @@ function sdkman_jdks::check_available_tem_jdk_major_version() {
 
 ### INSTALLED JDKS
 
-# @description Print all installed Temurin JDK entries in semicolon-delimited format.
-# Output: stdout — lines with fields: major;version;artifact-id;installed('y'/'n')
+# @description Print all installed Temurin JDK entries in semicolon-delimited format, newest first.
+#   Reads the SDKMAN candidates directory rather than `sdk list java`, so it performs no network I/O
+#   — `sdk list java` issues an uncached HTTPS request to the SDKMAN API on every invocation, which
+#   dominated the runtime of every caller that looped over installed JDKs.
+# Output: stdout — lines with fields: major;version;artifact-id;installed('y')
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
 function sdkman_jdks::get_formatted_installed_tem_jdks() {
   args::check_no_args "$@"
-  sdkman_jdks::get_formatted_all_tem_jdks |
-    sdkman_jdks::filter_for_installed
+  local -r java_candidates_dir="${SDKMAN_CANDIDATES_DIR}/java"
+  local candidate_dir artifact_id version major_version
+  # An unmatched glob stays literal, so the dir check doubles as the missing/empty-dir guard.
+  # The `current` symlink is excluded by the `*-tem` pattern, not by the dir check.
+  for candidate_dir in "${java_candidates_dir}"/*-tem; do
+    dirs::exists "${candidate_dir}" || continue
+    artifact_id="${candidate_dir##*/}"
+    version="${artifact_id%-tem}"
+    major_version="$(sdkman_jdks::get_jdk_major_version "${version}")"
+    printf '%s;%s;%s;y\n' "${major_version}" "${version}" "${artifact_id}"
+  done |
+    sort --version-sort --reverse
 }
 
 # @description Print installed Temurin JDK entries for the given major version in semicolon-delimited format.
-# Output: stdout — lines with fields: major;version;artifact-id;installed('y'/'n')
+# Output: stdout — lines with fields: major;version;artifact-id;installed('y')
 # @arg $1 major version
 function sdkman_jdks::get_formatted_installed_tem_jdks_for_major_version() {
   args::check_exactly_1_arg "$@"
   local -r major_version="$1"
-  sdkman_jdks::get_formatted_all_tem_jdks |
-    sdkman_jdks::filter_for_installed |
+  sdkman_jdks::get_formatted_installed_tem_jdks |
     sdkman_jdks::filter_for_major_version "${major_version}"
 }
 
 # @description Print the latest installed Temurin JDK entry per major version in semicolon-delimited format.
-# Output: stdout — one line per major version: major;version;artifact-id;installed('y'/'n')
+# Output: stdout — one line per major version: major;version;artifact-id;installed('y')
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
 function sdkman_jdks::get_formatted_latest_installed_tem_jdk_major_versions() {
   args::check_no_args "$@"
-  sdkman_jdks::get_formatted_all_tem_jdks |
-    sdkman_jdks::filter_for_installed |
+  sdkman_jdks::get_formatted_installed_tem_jdks |
     sdkman_jdks::filter_for_latest_per_major_version
 }
 
 # @description Print the latest installed Temurin JDK entry for the given major version in semicolon-delimited format.
-# Output: stdout — one line: major;version;artifact-id;installed('y'/'n')
+# Output: stdout — one line: major;version;artifact-id;installed('y')
 # @arg $1 major java version
 function sdkman_jdks::get_formatted_latest_installed_tem_jdk_for_major_version() {
   args::check_exactly_1_arg "$@"
   local -r major_version="$1"
   sdkman_jdks::check_installed_tem_jdk_major_version "${major_version}"
-  sdkman_jdks::get_formatted_all_tem_jdks |
-    sdkman_jdks::filter_for_installed |
+  sdkman_jdks::get_formatted_installed_tem_jdks |
     sdkman_jdks::filter_for_latest_per_major_version |
     sdkman_jdks::filter_for_major_version "${major_version}"
 }
@@ -230,8 +240,7 @@ function sdkman_jdks::get_formatted_latest_installed_tem_jdk_for_major_version()
 # @noargs
 function sdkman_jdks::get_installed_tem_jdk_major_versions() {
   args::check_no_args "$@"
-  sdkman_jdks::get_formatted_all_tem_jdks |
-    sdkman_jdks::filter_for_installed |
+  sdkman_jdks::get_formatted_installed_tem_jdks |
     sdkman_jdks::get_formatted_tem_jdk_major_version_field |
     sort --numeric-sort |
     uniq
