@@ -40,22 +40,96 @@ function sdkman_jdks::set_default_jdk_by_id() {
 
 ### FORMATTED JDK INFO
 
-# @description Print all available Temurin JDKs in semicolon-delimited format.
+# @description Fetch the remote Temurin JDK catalog, newest first. Always performs a network
+#   round-trip: `sdk list java` issues an uncached HTTPS request to the SDKMAN API (~0.4s).
+#   Callers want sdkman_jdks::get_tem_jdk_catalog, which memoizes this per process.
+#   The installed status column of `sdk list java` is deliberately discarded — installed state is
+#   owned by the candidates dir (see sdkman_jdks::get_formatted_installed_tem_jdks).
+# Output: stdout — lines with fields: major;version;artifact-id
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+# @noargs
+function sdkman_jdks::fetch_tem_jdk_catalog() {
+  args::check_no_args "$@"
+  sdk list java |
+    awk --field-separator '|' '$4 ~ /^[[:space:]]*tem[[:space:]]*$/ {
+      gsub(/^[ \t]+|[ \t]+$/, "", $3)
+      gsub(/^[ \t]+|[ \t]+$/, "", $6)
+      match($3, /^[0-9]+/)
+      major = substr($3, RSTART, RLENGTH)
+      print major ";" $3 ";" $6
+    }'
+}
+
+# @description Print the path of this process's Temurin catalog memo file.
+#   Keyed on $$, which — unlike BASHPID — is stable inside subshells and pipeline segments, so
+#   every caller in a pipeline resolves the same path. Lives under XDG_RUNTIME_DIR because that
+#   directory is per-user and mode 0700, so a predictable filename there carries none of the
+#   symlink-hijack risk the same name would carry in a world-writable /tmp.
+# Output: stdout — absolute path to this process's memo file
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+# @noargs
+function sdkman_jdks::catalog_cache_file() {
+  args::check_no_args "$@"
+  printf '%s/sdkman-tem-jdk-catalog.%s' "${XDG_RUNTIME_DIR}" "$$"
+}
+
+# @description Print the Temurin JDK catalog, fetching it at most once per process.
+#   The memo is a file rather than a variable because callers invoke this from inside pipelines,
+#   and a pipeline segment runs in a subshell whose variable writes are discarded — a variable
+#   memo would never register a single hit.
+# Output: stdout — lines with fields: major;version;artifact-id
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+# @noargs
+function sdkman_jdks::get_tem_jdk_catalog() {
+  args::check_no_args "$@"
+  local cache_file
+  cache_file="$(sdkman_jdks::catalog_cache_file)"
+  readonly cache_file
+  # PIDs get recycled and XDG_RUNTIME_DIR survives until the user's last session ends, so a memo
+  # left by an earlier same-PID process can outlive it. /proc/$$ is stamped at process start and
+  # does not change, so a memo not newer than it belongs to a dead namesake and must be refetched.
+  if [[ ! ${cache_file} -nt "/proc/$$" ]]; then
+    local catalog_tmp
+    files::create_temp catalog_tmp
+    # Fetch to a temp file and promote it only on success, so a failed or partial response is
+    # never cached for the rest of the process. The check must be explicit rather than left to
+    # errexit: callers reach this from `if`/`||` contexts (e.g.
+    # sdkman_jdks::check_available_tem_jdk_major_version), and errexit is disabled inside a
+    # function invoked that way. Partial output is still emitted, matching what the bare
+    # `sdk list java | awk` pipeline did before the memo existed.
+    if ! sdkman_jdks::fetch_tem_jdk_catalog >"${catalog_tmp}"; then
+      cat "${catalog_tmp}"
+      return 1
+    fi
+    files::move_no_prompt_quiet "${catalog_tmp}" "${cache_file}"
+  fi
+  cat "${cache_file}"
+}
+
+# @description Print all available Temurin JDKs in semicolon-delimited format, newest first.
+#   The catalog half is memoized per process, so this costs at most one `sdk list java` round-trip
+#   per run no matter how many times it is called. The installed column is re-derived from the
+#   candidates dir on every call, so it stays correct across installs and uninstalls within a run
+#   and the memo never needs invalidating.
 # Output: stdout — lines with fields: major;version;artifact-id;installed('y'/'n')
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
 function sdkman_jdks::get_formatted_all_tem_jdks() {
   args::check_no_args "$@"
-  sdk list java |
-    awk --field-separator '|' '$4 ~ /^[[:space:]]*tem[[:space:]]*$/ {
-      gsub(/^[ \t]+|[ \t]+$/, "", $3)
-      gsub(/^[ \t]+|[ \t]+$/, "", $5)
-      gsub(/^[ \t]+|[ \t]+$/, "", $6)
-      match($3, /^[0-9]+/)
-      major = substr($3, RSTART, RLENGTH)
-      status = ($5 == "") ? "n" : "y"
-      print major ";" $3 ";" $6 ";" status
-    }'
+  local -a catalog_lines
+  local catalog_tmp
+  files::create_temp catalog_tmp
+  sdkman_jdks::get_tem_jdk_catalog >"${catalog_tmp}"
+  mapfile -t catalog_lines <"${catalog_tmp}"
+  local catalog_line artifact_id
+  for catalog_line in "${catalog_lines[@]}"; do
+    artifact_id="${catalog_line##*;}"
+    if sdkman_jdks::is_tem_jdk_artifact_installed "${artifact_id}"; then
+      printf '%s;y\n' "${catalog_line}"
+    else
+      printf '%s;n\n' "${catalog_line}"
+    fi
+  done
 }
 
 ### FILTERING
@@ -267,14 +341,16 @@ function sdkman_jdks::check_installed_tem_jdk_major_version() {
 }
 
 # @description Return true if a Temurin JDK with the given artifact ID is currently installed.
+#   A direct candidate-dir test rather than a scan of the formatted installed list: this is called
+#   once per catalog line while annotating sdkman_jdks::get_formatted_all_tem_jdks, where the
+#   pipeline form would fork several processes per line.
 # @arg $1 artifact ID (e.g. "21.0.3-tem")
 # @exitcode 0 if true
 # @exitcode 1 if false
 function sdkman_jdks::is_tem_jdk_artifact_installed() {
   args::check_exactly_1_arg "$@"
-  sdkman_jdks::get_formatted_installed_tem_jdks |
-    sdkman_jdks::get_formatted_tem_jdk_artifact_id_field |
-    grep::contains_word "$1"
+  local -r artifact_id="$1"
+  [[ ${artifact_id} == *-tem ]] && dirs::exists "${SDKMAN_CANDIDATES_DIR}/java/${artifact_id}"
 }
 
 # @description Print the artifact ID of the latest installed Temurin JDK for the given major version.

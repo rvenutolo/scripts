@@ -30,6 +30,29 @@ setup() {
   source "${SCRIPTS_DIR}/functions/sdkman_jdks.bash"
   export SDKMAN_CANDIDATES_DIR="${BATS_TEST_TMPDIR}/candidates"
   mkdir --parents "${SDKMAN_CANDIDATES_DIR}/java"
+  # The catalog memo is keyed on $$, which is identical for every test in this file, so isolation
+  # comes from XDG_RUNTIME_DIR pointing at the per-test tmpdir.
+  export XDG_RUNTIME_DIR="${BATS_TEST_TMPDIR}"
+}
+
+# Serve a canned `sdk list java` payload and record every sdk invocation, so tests can assert how
+# many network round-trips a code path would make.
+stub_sdk_catalog() {
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() {
+    printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"
+    if [[ "$1" == 'list' ]]; then
+      cat << 'EOF'
+ Vendor        | Use | Version      | Dist    | Status     | Identifier
+--------------------------------------------------------------------------------
+ Temurin       |     | 21.0.5       | tem     |            | 21.0.5-tem
+ Temurin       | >>> | 21.0.3       | tem     | installed  | 21.0.3-tem
+ Temurin       |     | 17.0.10      | tem     | installed  | 17.0.10-tem
+ Eclipse       |     | 21.0.5       | sapmchn |            | 21.0.5-sapmchn
+EOF
+    fi
+  }
+  export -f sdk
 }
 
 # ---------- get_jdk_major_version ----------
@@ -199,30 +222,179 @@ fixture_default_symlink() {
   ln --symbolic "${SDKMAN_CANDIDATES_DIR}/java/$1" "${SDKMAN_CANDIDATES_DIR}/java/current"
 }
 
-# ---------- get_formatted_all_tem_jdks (parser test) ----------
+# ---------- fetch_tem_jdk_catalog (parser test) ----------
 
-@test "get_formatted_all_tem_jdks: parses pipe-delimited sdk list java output" {
-  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+@test "fetch_tem_jdk_catalog: parses pipe-delimited sdk list java output" {
+  stub_sdk_catalog
+  run sdkman_jdks::fetch_tem_jdk_catalog
+  assert_success
+  assert_line --index 0 '21;21.0.5;21.0.5-tem'
+  assert_line --index 1 '21;21.0.3;21.0.3-tem'
+  assert_line --index 2 '17;17.0.10;17.0.10-tem'
+  refute_output --partial 'sapmchn'
+}
+
+@test "fetch_tem_jdk_catalog: discards the sdk-reported installed status" {
+  # Installed state is owned by the candidates dir, so no 'y'/'n' column here even though the
+  # canned payload marks 21.0.3 and 17.0.10 as installed.
+  stub_sdk_catalog
+  run sdkman_jdks::fetch_tem_jdk_catalog
+  assert_success
+  refute_output --partial ';y'
+  refute_output --partial ';n'
+}
+
+@test "fetch_tem_jdk_catalog: dies with args" {
+  run sdkman_jdks::fetch_tem_jdk_catalog extra
+  assert_failure
+}
+
+# ---------- catalog_cache_file ----------
+
+@test "catalog_cache_file: lives under XDG_RUNTIME_DIR and is keyed on the pid" {
+  run sdkman_jdks::catalog_cache_file
+  assert_success
+  assert_output "${XDG_RUNTIME_DIR}/sdkman-tem-jdk-catalog.$$"
+}
+
+@test "catalog_cache_file: dies with args" {
+  run sdkman_jdks::catalog_cache_file extra
+  assert_failure
+}
+
+# ---------- get_tem_jdk_catalog (memoization) ----------
+
+@test "get_tem_jdk_catalog: returns the catalog" {
+  stub_sdk_catalog
+  run sdkman_jdks::get_tem_jdk_catalog
+  assert_success
+  assert_line --index 0 '21;21.0.5;21.0.5-tem'
+  assert_line --index 2 '17;17.0.10;17.0.10-tem'
+}
+
+@test "get_tem_jdk_catalog: fetches once even when called from inside pipelines" {
+  # A pipeline segment runs in a subshell, so a variable-based memo would be discarded and every
+  # one of these calls would hit the network. This is the regression this design exists to prevent.
+  stub_sdk_catalog
+  sdkman_jdks::get_tem_jdk_catalog | cat > /dev/null
+  sdkman_jdks::get_tem_jdk_catalog | cat > /dev/null
+  sdkman_jdks::get_tem_jdk_catalog > /dev/null
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  assert_output 'list java'
+}
+
+@test "get_tem_jdk_catalog: memoized output matches the freshly fetched output" {
+  stub_sdk_catalog
+  sdkman_jdks::get_tem_jdk_catalog > "${BATS_TEST_TMPDIR}/first"
+  sdkman_jdks::get_tem_jdk_catalog > "${BATS_TEST_TMPDIR}/second"
+  run diff "${BATS_TEST_TMPDIR}/first" "${BATS_TEST_TMPDIR}/second"
+  assert_success
+}
+
+@test "get_tem_jdk_catalog: refetches when the memo predates this process" {
+  # Simulates a recycled pid finding a dead namesake's memo still sitting in XDG_RUNTIME_DIR.
+  stub_sdk_catalog
+  sdkman_jdks::get_tem_jdk_catalog > /dev/null
+  touch --date='2000-01-01' "$(sdkman_jdks::catalog_cache_file)"
+  sdkman_jdks::get_tem_jdk_catalog > /dev/null
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  assert_line --index 0 'list java'
+  assert_line --index 1 'list java'
+  assert_equal "${#lines[@]}" 2
+}
+
+@test "get_tem_jdk_catalog: reports failure when the fetch fails" {
+  # Every script that sources this library runs under `set -Eeuo pipefail`; bats does not. Without
+  # pipefail a failing `sdk` inside `sdk list java | awk ...` is masked by awk's success, so the
+  # test would not model production. bats isolates each @test in its own subshell, so this cannot
+  # leak into other tests.
+  set -o pipefail
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by the function under test
+  function sdk() { return 1; }
+  export -f sdk
+  run sdkman_jdks::get_tem_jdk_catalog
+  assert_failure
+}
+
+@test "get_tem_jdk_catalog: a failed fetch is never cached" {
+  # Guarding this with errexit alone is not enough: callers reach get_tem_jdk_catalog from `if`
+  # and `||` contexts (check_available_tem_jdk_major_version does), and errexit is disabled inside
+  # a function invoked that way — so a partial response would be promoted to the memo and served
+  # for the rest of the process. Exercise exactly that shape, under production's pipefail.
+  set -o pipefail
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by the function under test
   function sdk() {
-    cat << 'EOF'
-================================================================================
-Available Java Versions for Linux 64bit
-================================================================================
- Vendor        | Use | Version      | Dist    | Status     | Identifier
---------------------------------------------------------------------------------
- Temurin       |     | 21.0.5       | tem     |            | 21.0.5-tem
- Temurin       | >>> | 21.0.3       | tem     | installed  | 21.0.3-tem
- Temurin       |     | 17.0.10      | tem     | installed  | 17.0.10-tem
- Eclipse       |     | 21.0.5       | sapmchn |            | 21.0.5-sapmchn
-EOF
+    printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"
+    printf ' Temurin       |     | 21.0.5       | tem     |            | 21.0.5-tem\n'
+    return 1
   }
   export -f sdk
+  if sdkman_jdks::get_tem_jdk_catalog > /dev/null 2>&1; then :; fi
+  refute [ -e "$(sdkman_jdks::catalog_cache_file)" ]
+
+  # A later call must retry rather than serve the truncated response.
+  stub_sdk_catalog
+  run sdkman_jdks::get_tem_jdk_catalog
+  assert_success
+  assert_line --index 0 '21;21.0.5;21.0.5-tem'
+  assert_line --index 2 '17;17.0.10;17.0.10-tem'
+}
+
+@test "get_tem_jdk_catalog: dies with args" {
+  run sdkman_jdks::get_tem_jdk_catalog extra
+  assert_failure
+}
+
+# ---------- get_formatted_all_tem_jdks (installed annotation) ----------
+
+@test "get_formatted_all_tem_jdks: annotates installed status from the candidates dir" {
+  stub_sdk_catalog
+  fixture_installed_jdks '21.0.3-tem' '17.0.10-tem'
   run sdkman_jdks::get_formatted_all_tem_jdks
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem;n'
   assert_line --index 1 '21;21.0.3;21.0.3-tem;y'
   assert_line --index 2 '17;17.0.10;17.0.10-tem;y'
   refute_output --partial 'sapmchn'
+}
+
+@test "get_formatted_all_tem_jdks: all n when nothing is installed" {
+  stub_sdk_catalog
+  run sdkman_jdks::get_formatted_all_tem_jdks
+  assert_success
+  assert_line --index 0 '21;21.0.5;21.0.5-tem;n'
+  assert_line --index 1 '21;21.0.3;21.0.3-tem;n'
+  assert_line --index 2 '17;17.0.10;17.0.10-tem;n'
+}
+
+@test "get_formatted_all_tem_jdks: installed column tracks installs made after the memo was filled" {
+  # The memo holds only the catalog, never the installed column, so an install performed mid-run
+  # is reflected immediately without any cache invalidation.
+  stub_sdk_catalog
+  run sdkman_jdks::get_formatted_all_tem_jdks
+  assert_success
+  assert_line --index 0 '21;21.0.5;21.0.5-tem;n'
+  fixture_installed_jdks '21.0.5-tem'
+  run sdkman_jdks::get_formatted_all_tem_jdks
+  assert_success
+  assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
+  # ...and still only one round-trip across both calls.
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  assert_output 'list java'
+}
+
+@test "get_formatted_all_tem_jdks: empty catalog yields empty output" {
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by the function under test
+  function sdk() { :; }
+  export -f sdk
+  run sdkman_jdks::get_formatted_all_tem_jdks
+  assert_success
+  assert_output ''
+}
+
+@test "get_formatted_all_tem_jdks: dies with args" {
+  run sdkman_jdks::get_formatted_all_tem_jdks extra
+  assert_failure
 }
 
 # ---------- install_jdk / uninstall_jdk / set_default_jdk_by_id ----------
