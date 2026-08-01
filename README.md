@@ -74,7 +74,7 @@ Bypass any hook with `--no-verify` on the corresponding git command.
 git submodule update --init --recursive   # one-time, on fresh clones
 ./run-tests                                # everything under test/functions/
 ./run-tests test/functions/strings.bats    # single file
-./run-tests --filter-regex 'is_blank' test/functions/strings.bats   # subset by name
+./run-tests --filter 'is_blank' test/functions/strings.bats   # subset by name
 ```
 
 BATS plus `bats-support` and `bats-assert` are vendored as git submodules under `test/`. Every helper in `functions/*.bash` has a matching `test/functions/<topic>.bats` (or topic-prefixed group) — coverage is mandatory for new helpers. Shared fixtures live under `test/test_helper/` (CLI shims, env-file fixtures, `os-release` overrides, prompt mocks, etc.).

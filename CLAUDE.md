@@ -334,7 +334,7 @@ test/
 
 - `./run-tests test/functions/strings.bats` — single file.
 
-- `./run-tests --filter-regex 'is_blank' test/functions/strings.bats` — subset by name.
+- `./run-tests --filter 'is_blank' test/functions/strings.bats` — subset by name.
 
 ### Bootstrap on a fresh clone
 
