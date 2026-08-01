@@ -175,10 +175,21 @@ readonly CANNED_JDKS='21;21.0.5;21.0.5-tem;y
 17;17.0.8;17.0.8-tem;n
 11;11.0.22;11.0.22-tem;n'
 
+# Create candidate dirs for the given artifact ids. The installed-* helpers read the SDKMAN
+# candidates dir rather than `sdk list java`, so installed state must exist on disk.
+fixture_installed_jdks() {
+  local artifact_id
+  for artifact_id in "$@"; do
+    mkdir --parents "${SDKMAN_CANDIDATES_DIR}/java/${artifact_id}"
+  done
+}
+
 stub_jdks_and_sdk() {
   function sdkman_jdks::get_formatted_all_tem_jdks() { printf '%s\n' "${CANNED_JDKS}"; }
   function sdk() { printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"; }
   export -f sdkman_jdks::get_formatted_all_tem_jdks sdk
+  # Mirror the 'y' rows of CANNED_JDKS on disk so the two sources of truth agree.
+  fixture_installed_jdks '21.0.5-tem' '21.0.3-tem' '17.0.10-tem'
 }
 
 # SDKMAN_CANDIDATES_DIR is exported once in setup(); this only creates the symlink.
@@ -296,9 +307,85 @@ EOF
   assert_output --partial 'Java version 99 is not available'
 }
 
+# ---------- get_formatted_installed_tem_jdks (candidates-dir source) ----------
+
+@test "get_formatted_installed_tem_jdks: formats every candidate dir, newest first" {
+  fixture_installed_jdks '8.0.492-tem' '11.0.32-tem' '21.0.9-tem' '21.0.12-tem'
+  run sdkman_jdks::get_formatted_installed_tem_jdks
+  assert_success
+  # Ordering must be version-aware, not lexicographic: 21 before 11 before 8 across majors,
+  # and 21.0.12 before 21.0.9 within a major.
+  assert_line --index 0 '21;21.0.12;21.0.12-tem;y'
+  assert_line --index 1 '21;21.0.9;21.0.9-tem;y'
+  assert_line --index 2 '11;11.0.32;11.0.32-tem;y'
+  assert_line --index 3 '8;8.0.492;8.0.492-tem;y'
+}
+
+@test "get_formatted_installed_tem_jdks: single installed jdk" {
+  fixture_installed_jdks '21.0.5-tem'
+  run sdkman_jdks::get_formatted_installed_tem_jdks
+  assert_success
+  assert_output '21;21.0.5;21.0.5-tem;y'
+}
+
+@test "get_formatted_installed_tem_jdks: ignores non-temurin candidates" {
+  fixture_installed_jdks '21.0.5-tem' '21.0.5-oracle' '21.0.5-graalce' '21.0.5-amzn'
+  run sdkman_jdks::get_formatted_installed_tem_jdks
+  assert_success
+  assert_output '21;21.0.5;21.0.5-tem;y'
+}
+
+@test "get_formatted_installed_tem_jdks: ignores the current symlink" {
+  fixture_default_symlink '21.0.5-tem'
+  run sdkman_jdks::get_formatted_installed_tem_jdks
+  assert_success
+  assert_output '21;21.0.5;21.0.5-tem;y'
+  refute_output --partial 'current'
+}
+
+@test "get_formatted_installed_tem_jdks: ignores plain files named like an artifact" {
+  fixture_installed_jdks '21.0.5-tem'
+  touch "${SDKMAN_CANDIDATES_DIR}/java/17.0.10-tem"
+  run sdkman_jdks::get_formatted_installed_tem_jdks
+  assert_success
+  assert_output '21;21.0.5;21.0.5-tem;y'
+}
+
+@test "get_formatted_installed_tem_jdks: empty when no candidates installed" {
+  # setup() creates an empty candidates/java dir
+  run sdkman_jdks::get_formatted_installed_tem_jdks
+  assert_success
+  assert_output ''
+}
+
+@test "get_formatted_installed_tem_jdks: empty when candidates dir does not exist" {
+  rm --recursive --force -- "${SDKMAN_CANDIDATES_DIR}/java"
+  run sdkman_jdks::get_formatted_installed_tem_jdks
+  assert_success
+  assert_output ''
+}
+
+@test "get_formatted_installed_tem_jdks: makes no sdk call" {
+  # The whole point of reading the candidates dir is avoiding the network round-trip that
+  # `sdk list java` performs on every invocation.
+  # shellcheck disable=SC2329 # deliberately never invoked; the test asserts it is not called
+  function sdk() { printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"; }
+  export -f sdk
+  fixture_installed_jdks '21.0.5-tem'
+  run sdkman_jdks::get_formatted_installed_tem_jdks
+  assert_success
+  assert_output '21;21.0.5;21.0.5-tem;y'
+  refute [ -e "${BATS_TEST_TMPDIR}/sdk.calls" ]
+}
+
+@test "get_formatted_installed_tem_jdks: dies with args" {
+  run sdkman_jdks::get_formatted_installed_tem_jdks extra
+  assert_failure
+}
+
 # ---------- installed-jdk family ----------
 
-@test "get_formatted_installed_tem_jdks: returns only y rows" {
+@test "get_formatted_installed_tem_jdks: reflects the canned installed set" {
   stub_jdks_and_sdk
   run sdkman_jdks::get_formatted_installed_tem_jdks
   assert_success
@@ -462,11 +549,14 @@ EOF
 
 @test "set_default_jdk_to_latest_patch_of_current_major: uses current major when a default is set" {
   stub_jdks_and_sdk
-  fixture_default_symlink '17.0.19-tem'
+  # Current default is an older 17 patch while 21 is the highest installed major, so this asserts
+  # both halves of the contract: major 17 is kept, and its latest installed patch is selected.
+  fixture_installed_jdks '17.0.11-tem'
+  fixture_default_symlink '17.0.10-tem'
   run sdkman_jdks::set_default_jdk_to_latest_patch_of_current_major
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output 'default java 17.0.10-tem'
+  assert_output 'default java 17.0.11-tem'
 }
 
 @test "set_default_jdk_to_latest_patch_of_current_major: falls back to highest installed major when no default set" {
