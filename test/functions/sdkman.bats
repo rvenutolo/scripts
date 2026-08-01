@@ -242,3 +242,89 @@ setup() {
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
+
+# ---------- init ----------
+
+# Write a fake ${SDKMAN_DIR}/bin/sdkman-init.sh that exercises the two workarounds sdkman::init
+# exists for: it calls `complete` at source time, and it reads an unbound variable. Both would
+# abort a strict-mode script if sdkman::init had not relaxed things first.
+fake_sdkman_dir() {
+  local -r sdkman_dir="${BATS_TEST_TMPDIR}/sdkman"
+  mkdir --parents "${sdkman_dir}/bin"
+  cat > "${sdkman_dir}/bin/sdkman-init.sh" << 'INIT_EOF'
+if [[ "$(type -t complete)" == 'function' ]]; then
+  printf 'COMPLETE_STUBBED\n'
+fi
+complete -F _sdk sdk
+printf 'UNBOUND_READ_OK:%s\n' "${DEFINITELY_NOT_SET_ANYWHERE}"
+printf 'INIT_SOURCED\n'
+function sdk() { printf 'sdk %s\n' "$*"; }
+INIT_EOF
+  printf '%s' "${sdkman_dir}"
+}
+
+# Run a snippet in a real strict-mode shell, the way production scripts invoke sdkman::init.
+# A child shell is required because the behaviour under test *is* strict-mode state, which bats
+# does not set. BASH_ENV is unset so a re-sourced ~/.bashrc cannot clobber SCRIPTS_DIR.
+run_strict() {
+  local -r snippet="$1"
+  local -r script="${BATS_TEST_TMPDIR}/strict.bash"
+  {
+    printf '%s\n' 'set -Eeuo pipefail'
+    printf '%s\n' "IFS=\$'\\n\\t'"
+    # shellcheck disable=SC2016 # single quotes are deliberate: the snippet is evaluated by the child shell, not here
+    printf '%s\n' 'source "${SCRIPTS_DIR}/.functions.bash"'
+    printf '%s\n' 'log::enable_err_trap'
+    printf '%s\n' "${snippet}"
+  } > "${script}"
+  run env --unset=BASH_ENV "SCRIPTS_DIR=${SCRIPTS_DIR}" "SDKMAN_DIR=$(fake_sdkman_dir)" bash "${script}"
+}
+
+@test "init: sources sdkman-init.sh and defines sdk" {
+  run_strict '( sdkman::init; sdk hello )'
+  assert_success
+  assert_line --index 2 'INIT_SOURCED'
+  assert_line --index 3 'sdk hello'
+}
+
+@test "init: stubs the complete builtin before sourcing" {
+  run_strict '( sdkman::init )'
+  assert_success
+  assert_line --index 0 'COMPLETE_STUBBED'
+}
+
+@test "init: relaxes set -u for the calling subshell" {
+  # The fake init reads an unbound variable; under set -u that would abort.
+  run_strict '( sdkman::init )'
+  assert_success
+  assert_line --index 1 'UNBOUND_READ_OK:'
+}
+
+@test "init: detaches the ERR trap in the calling subshell" {
+  # shellcheck disable=SC2016 # single quotes are deliberate: the snippet is evaluated by the child shell, not here
+  run_strict '( sdkman::init; if [[ -z "$(trap -p ERR)" ]]; then printf "NO_ERR_TRAP\n"; else printf "ERR_TRAP_PRESENT\n"; fi )'
+  assert_success
+  assert_output --partial 'NO_ERR_TRAP'
+}
+
+@test "init: leaves the parent shell's strict mode untouched" {
+  # shellcheck disable=SC2016 # single quotes are deliberate: the snippet is evaluated by the child shell, not here
+  run_strict '( sdkman::init ) > /dev/null
+case $- in *u*) printf "PARENT_STILL_U\n" ;; *) printf "PARENT_LOST_U\n" ;; esac
+if [[ -n "$(trap -p ERR)" ]]; then printf "PARENT_KEPT_TRAP\n"; else printf "PARENT_LOST_TRAP\n"; fi'
+  assert_success
+  assert_line --index 0 'PARENT_STILL_U'
+  assert_line --index 1 'PARENT_KEPT_TRAP'
+}
+
+@test "init: dies when called outside a subshell" {
+  run_strict 'sdkman::init'
+  assert_failure
+  assert_output --partial 'must be called from inside a subshell'
+}
+
+@test "init: dies with args" {
+  run sdkman::init extra
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
