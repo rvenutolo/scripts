@@ -15,7 +15,10 @@ function flatpak::assert_installed() {
 
 # @description Launch a flatpak GUI app detached from the terminal so the shell
 #              prompt returns immediately. Asserts the app is installed, then
-#              execs via misc::exec_gui (setsid --fork). Does not return.
+#              execs via misc::exec_gui (setsid --fork). When any argument is
+#              `--version` or `--help`, misc::exec_gui runs `flatpak run` attached
+#              instead, so the app's output and exit status reach the caller.
+#              Does not return.
 # @arg $1 id flatpak application id
 # @arg $@ args Arguments forwarded verbatim to flatpak run.
 # @exitcode 1 application is not installed

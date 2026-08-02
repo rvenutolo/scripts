@@ -264,3 +264,24 @@ function args::handle_help_flag() {
     esac
   done
 }
+
+# @description Return true if any argument is a CLI probe flag (`--version` or `--help`).
+#              Such flags never launch a GUI, so callers can run the command attached to the
+#              terminal instead of detaching it, letting output and exit status reach the caller.
+#              Short forms `-v`/`-h` are deliberately excluded: `-v` means verbose in some tools,
+#              and running a verbose GUI launch attached would hold the terminal.
+# @arg $@ args Arguments to scan; may be empty.
+# @exitcode 0 at least one argument is exactly `--version` or `--help`
+# @exitcode 1 no argument is a CLI probe flag
+function args::has_cli_probe_flag() { # variadic: scans 0+ args, no fixed arity to guard
+  local found='n'
+  local arg
+  for arg in "$@"; do
+    case "${arg}" in
+    --version | --help)
+      found='y'
+      ;;
+    esac
+  done
+  [[ ${found} == 'y' ]]
+}

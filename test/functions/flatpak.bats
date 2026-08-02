@@ -98,6 +98,35 @@ setup() {
   assert_output '--fork flatpak run org.example.App'
 }
 
+@test "exec_gui: --version runs attached, no setsid" {
+  cli_shim::record_with_output 'flatpak' '' 0
+  cli_shim::record 'setsid'
+  run flatpak::exec_gui 'org.example.App' '--version'
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/flatpak.calls"
+  assert_output --partial 'run org.example.App --version'
+  [[ ! -f "${BATS_TEST_TMPDIR}/setsid.calls" ]]
+}
+
+@test "exec_gui: --help runs attached, no setsid" {
+  cli_shim::record_with_output 'flatpak' '' 0
+  cli_shim::record 'setsid'
+  run flatpak::exec_gui 'org.example.App' '--help'
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/flatpak.calls"
+  assert_output --partial 'run org.example.App --help'
+  [[ ! -f "${BATS_TEST_TMPDIR}/setsid.calls" ]]
+}
+
+@test "exec_gui: probe flag still requires the app to be installed" {
+  cli_shim::record_with_output 'flatpak' '' 1
+  cli_shim::record 'setsid'
+  run flatpak::exec_gui 'org.example.App' '--version'
+  assert_failure
+  assert_output --partial 'Flatpak application not installed: org.example.App'
+  [[ ! -f "${BATS_TEST_TMPDIR}/setsid.calls" ]]
+}
+
 # ---------- flatpak::exec ----------
 
 @test "exec: 0 args dies" {
