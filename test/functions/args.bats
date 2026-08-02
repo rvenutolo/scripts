@@ -577,3 +577,85 @@ write_fixture() {
   assert_output --partial 'Sample.'
   refute_output --partial 'did-not-exit'
 }
+
+# ---------- args::has_cli_probe_flag ----------
+
+@test "has_cli_probe_flag: true for --version" {
+  run args::has_cli_probe_flag '--version'
+  assert_success
+}
+
+@test "has_cli_probe_flag: true for --help" {
+  run args::has_cli_probe_flag '--help'
+  assert_success
+}
+
+@test "has_cli_probe_flag: true when flag is first" {
+  run args::has_cli_probe_flag '--version' 'foo' 'bar'
+  assert_success
+}
+
+@test "has_cli_probe_flag: true when flag is in the middle" {
+  run args::has_cli_probe_flag 'foo' '--help' 'bar'
+  assert_success
+}
+
+@test "has_cli_probe_flag: true when flag is last" {
+  run args::has_cli_probe_flag 'foo' 'bar' '--version'
+  assert_success
+}
+
+@test "has_cli_probe_flag: true for the delegated flatpak shape" {
+  run args::has_cli_probe_flag 'flatpak' 'run' 'org.example.App' '--version'
+  assert_success
+}
+
+@test "has_cli_probe_flag: false with no arguments" {
+  run args::has_cli_probe_flag
+  assert_failure 1
+}
+
+@test "has_cli_probe_flag: false when no argument matches" {
+  run args::has_cli_probe_flag 'foo' 'bar' '--flag'
+  assert_failure 1
+}
+
+@test "has_cli_probe_flag: false for an empty-string argument" {
+  run args::has_cli_probe_flag ''
+  assert_failure 1
+}
+
+@test "has_cli_probe_flag: false for a whitespace-only argument" {
+  run args::has_cli_probe_flag '   '
+  assert_failure 1
+}
+
+@test "has_cli_probe_flag: false for -v (excluded short form)" {
+  run args::has_cli_probe_flag '-v'
+  assert_failure 1
+}
+
+@test "has_cli_probe_flag: false for -h (excluded short form)" {
+  run args::has_cli_probe_flag '-h'
+  assert_failure 1
+}
+
+@test "has_cli_probe_flag: false for --verbose" {
+  run args::has_cli_probe_flag '--verbose'
+  assert_failure 1
+}
+
+@test "has_cli_probe_flag: false for --versionfoo" {
+  run args::has_cli_probe_flag '--versionfoo'
+  assert_failure 1
+}
+
+@test "has_cli_probe_flag: false for --help-me" {
+  run args::has_cli_probe_flag '--help-me'
+  assert_failure 1
+}
+
+@test "has_cli_probe_flag: false for the value-attached form --version=1.0" {
+  run args::has_cli_probe_flag '--version=1.0'
+  assert_failure 1
+}
