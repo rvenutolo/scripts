@@ -20,14 +20,20 @@ function misc::auto_answer() {
   [[ ${SCRIPTS_AUTO_ANSWER:-} == [Yy] ]]
 }
 
-# @description Launch a GUI app detached from the terminal. Replaces the calling shell
-# via exec; the launched process runs in a new session (via setsid --fork) with stdout
-# and stderr discarded. Must be the last statement in the calling script — exec does
-# not return. Use this instead of `cmd "$@" > '/dev/null' 2>&1 &` + `disown` (backgrounded
-# commands are banned because their exit status does not propagate to the parent).
+# @description Launch a GUI app detached from the terminal, except for CLI probe flags.
+# Replaces the calling shell via exec; the launched process runs in a new session (via
+# setsid --fork) with stdout and stderr discarded. When any argument is `--version` or
+# `--help` (see args::has_cli_probe_flag) the command runs attached instead, with no
+# redirection, so its output and exit status reach the caller — those flags never launch
+# a GUI. Must be the last statement in the calling script — exec does not return. Use this
+# instead of `cmd "$@" > '/dev/null' 2>&1 &` + `disown` (backgrounded commands are banned
+# because their exit status does not propagate to the parent).
 # @arg $1 GUI executable name or path
 # @arg $@ remaining args passed verbatim to the GUI executable
 function misc::exec_gui() {
   args::check_at_least_1_arg "$@"
+  if args::has_cli_probe_flag "$@"; then
+    exec "$@"
+  fi
   exec setsid --fork "$@" >'/dev/null' 2>&1
 }

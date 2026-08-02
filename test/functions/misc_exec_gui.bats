@@ -92,3 +92,92 @@ setup() {
   assert_failure
   assert_output --partial 'Expected at least 1 argument'
 }
+
+@test "exec_gui: --version runs attached, without setsid" {
+  local calls_file="${BATS_TEST_TMPDIR}/setsid_calls"
+  path_shim::add setsid "printf '%s\n' \"\$*\" > '${calls_file}'"
+  path_shim::add some-gui-app "printf 'REAL-OUTPUT\n'"
+  run bash -c "
+    PATH='${BATS_TEST_TMPDIR}/bin:${PATH}'
+    source '${SCRIPTS_DIR}/functions/args.bash'
+    source '${SCRIPTS_DIR}/functions/log.bash'
+    source '${SCRIPTS_DIR}/functions/misc.bash'
+    misc::exec_gui some-gui-app --version
+  "
+  assert_success
+  assert_output --partial 'REAL-OUTPUT'
+  [[ ! -f "${calls_file}" ]]
+}
+
+@test "exec_gui: --help runs attached, without setsid" {
+  local calls_file="${BATS_TEST_TMPDIR}/setsid_calls"
+  path_shim::add setsid "printf '%s\n' \"\$*\" > '${calls_file}'"
+  path_shim::add some-gui-app "printf 'HELP-TEXT\n'"
+  run bash -c "
+    PATH='${BATS_TEST_TMPDIR}/bin:${PATH}'
+    source '${SCRIPTS_DIR}/functions/args.bash'
+    source '${SCRIPTS_DIR}/functions/log.bash'
+    source '${SCRIPTS_DIR}/functions/misc.bash'
+    misc::exec_gui some-gui-app --help
+  "
+  assert_success
+  assert_output --partial 'HELP-TEXT'
+  [[ ! -f "${calls_file}" ]]
+}
+
+@test "exec_gui: probe branch does not redirect stdout or stderr" {
+  path_shim::add some-gui-app "
+    printf 'STDOUT-VISIBLE\n'
+    printf 'STDERR-VISIBLE\n' >&2
+  "
+  run bash -c "
+    PATH='${BATS_TEST_TMPDIR}/bin:${PATH}'
+    source '${SCRIPTS_DIR}/functions/args.bash'
+    source '${SCRIPTS_DIR}/functions/log.bash'
+    source '${SCRIPTS_DIR}/functions/misc.bash'
+    misc::exec_gui some-gui-app --version
+  "
+  assert_success
+  assert_output --partial 'STDOUT-VISIBLE'
+  assert_output --partial 'STDERR-VISIBLE'
+}
+
+@test "exec_gui: probe branch propagates the command's exit code" {
+  path_shim::add some-gui-app 'exit 3'
+  run bash -c "
+    PATH='${BATS_TEST_TMPDIR}/bin:${PATH}'
+    source '${SCRIPTS_DIR}/functions/args.bash'
+    source '${SCRIPTS_DIR}/functions/log.bash'
+    source '${SCRIPTS_DIR}/functions/misc.bash'
+    misc::exec_gui some-gui-app --version
+  "
+  assert_failure 3
+}
+
+@test "exec_gui: probe branch forwards all args verbatim" {
+  path_shim::add some-gui-app "printf 'ARGS:%s\n' \"\$*\""
+  run bash -c "
+    PATH='${BATS_TEST_TMPDIR}/bin:${PATH}'
+    source '${SCRIPTS_DIR}/functions/args.bash'
+    source '${SCRIPTS_DIR}/functions/log.bash'
+    source '${SCRIPTS_DIR}/functions/misc.bash'
+    misc::exec_gui some-gui-app --version --extra foo
+  "
+  assert_success
+  assert_output --partial 'ARGS:--version --extra foo'
+}
+
+@test "exec_gui: non-probe args still detach through setsid --fork" {
+  local calls_file="${BATS_TEST_TMPDIR}/setsid_calls"
+  path_shim::add setsid "printf '%s\n' \"\$*\" > '${calls_file}'"
+  run bash -c "
+    PATH='${BATS_TEST_TMPDIR}/bin:${PATH}'
+    source '${SCRIPTS_DIR}/functions/args.bash'
+    source '${SCRIPTS_DIR}/functions/log.bash'
+    source '${SCRIPTS_DIR}/functions/misc.bash'
+    misc::exec_gui some-gui-app --verbose file.txt
+  "
+  assert_success
+  run cat "${calls_file}"
+  assert_output '--fork some-gui-app --verbose file.txt'
+}
