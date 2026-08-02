@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # @description Launch the real `mpv` detached from the terminal, forwarding all arguments.
+#              `--version` and `--help` run attached so their output reaches the caller.
 # @arg $@ args Arguments forwarded verbatim to the underlying `mpv` binary.
 
 set -Eeuo pipefail

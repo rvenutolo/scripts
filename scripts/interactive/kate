@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # @description Launch the Kate editor detached from the current terminal so the shell prompt returns immediately.
+#              `--version` and `--help` run attached so their output reaches the caller.
 # @arg $@ args Arguments forwarded verbatim to the real `kate` binary.
 
 set -Eeuo pipefail

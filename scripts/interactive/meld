@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# @description Launch the Meld flatpak (id: org.gnome.meld) attached to the terminal, forwarding all args.
+# @description Launch the Meld flatpak (id: org.gnome.meld), forwarding all args.
+#              Runs detached so the shell prompt returns immediately; `--version` and `--help` run attached.
 # @arg $@ args Arguments forwarded verbatim to the flatpak app.
 # @exitcode 1 flatpak application is not installed
 
