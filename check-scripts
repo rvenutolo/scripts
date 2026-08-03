@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# @description Run the combined shellcheck, check-shdoc-headers, and check-executable-bit gate over shell scripts in the repo. When invoked with no paths, checks every in-scope script. The shdoc-header audit and the executable-bit audit always run over the full in-scope set regardless of per-file args, since header presence and file modes are whole-repo properties. Aggregates exit codes so a failure in any tool fails the whole run.
+# @description Run the combined shfmt, shellcheck, check-shdoc-headers, and check-executable-bit gate over shell scripts in the repo. When invoked with no paths, checks every in-scope script. The shdoc-header audit and the executable-bit audit always run over the full in-scope set regardless of per-file args, since header presence and file modes are whole-repo properties. The shfmt step verifies formatting without rewriting anything; it covers the extensionless top-level executables and *.bats files that `nix fmt` cannot see, because treefmt matches formatters by file extension. Aggregates exit codes so a failure in any tool fails the whole run.
 # @arg $@ paths Optional file or directory paths to check; omit to check the full in-scope set.
-# @exitcode 0 All files pass shellcheck, and the shdoc header and executable-bit audits are clean.
-# @exitcode 1 One or more files failed shellcheck, check-shdoc-headers, or check-executable-bit.
+# @exitcode 0 All files are correctly formatted and pass shellcheck, and the shdoc header and executable-bit audits are clean.
+# @exitcode 1 One or more files are misformatted or failed shellcheck, check-shdoc-headers, or check-executable-bit.
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -30,6 +30,36 @@ shell_scripts::find "$@" > "${candidates_tmp}"
 mapfile -t candidates < "${candidates_tmp}"
 if [[ "${#candidates[@]}" -eq 0 ]]; then
   exit "${rc}"
+fi
+
+# shfmt formatting gate. Deliberately runs over `candidates` rather than the
+# post-filter `files` list used for shellcheck, so *.bats files are covered too: they
+# begin with `@test` rather than a shebang, so shell_scripts::filter drops them, but
+# shfmt detects the bats dialect from the extension and formats them like any other
+# script.
+#
+# This gate exists because `nix fmt` cannot replace it. treefmt matches formatters to
+# files by EXTENSION, and this repo's top-level executables have none by convention, so
+# treefmt's shfmt only ever sees *.sh/*.bash — leaving the ~306 extensionless
+# executables and ~68 .bats files with no formatting gate at all.
+#
+# The style flags are spelled out rather than left to .editorconfig for the same
+# reason: its shell settings live under [*.{sh,bash}], which never matches an
+# extensionless script, so relying on it would silently apply a different style here
+# than under scripts/functions/. Keep these in sync with the shfmt options in
+# .treefmt.nix and the [*.{sh,bash}] section of .editorconfig.
+shfmt_targets=()
+for candidate in "${candidates[@]}"; do
+  # Never format-check third-party scripts. shell_scripts::find already excludes
+  # other/ on its no-arg scan; this also covers an explicitly passed path under it.
+  if [[ "${candidate}" == */other/* ]]; then
+    continue
+  fi
+  shfmt_targets+=("${candidate}")
+done
+if [[ "${#shfmt_targets[@]}" -gt 0 ]]; then
+  shfmt --list --indent 2 --case-indent --binary-next-line --space-redirects --diff \
+    -- "${shfmt_targets[@]}" || rc=1
 fi
 
 files=()
