@@ -56,11 +56,11 @@ sed -n 's/^checkout: moving from .* to //p' "${reflog_file}" | awk '!seen[$0]++'
 
 shown=0
 while read -r branch; do
-  if (( shown >= COUNT )); then
+  if ((shown >= COUNT)); then
     break
   fi
   if git -C "${DIR}" rev-parse --verify --quiet "refs/heads/${branch}" > '/dev/null'; then
     printf '%s\n' "${branch}"
-    shown=$(( shown + 1 ))
+    shown=$((shown + 1))
   fi
 done < "${targets_file}"

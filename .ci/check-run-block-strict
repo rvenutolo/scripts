@@ -108,8 +108,8 @@ function is_strict_prelude() {
         ;;
     esac
   done
-  [[ "${letters}" == *E* && "${letters}" == *e* && "${letters}" == *u* \
-    && "${letters}" == *o* && "${has_pipefail}" -eq 1 ]]
+  [[ "${letters}" == *E* && "${letters}" == *e* && "${letters}" == *u* &&
+    "${letters}" == *o* && "${has_pipefail}" -eq 1 ]]
 }
 
 function main() {

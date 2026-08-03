@@ -19,7 +19,7 @@ write_ruleset() {
   printf '%s\n' "$@" \
     | jq -R . \
     | jq -s '{name:"protect-main", rules:[{type:"required_status_checks", parameters:{required_status_checks: map({context: .})}}]}' \
-    > "${RULESET}"
+      > "${RULESET}"
 }
 
 # write_workflow <filename> <jobkey...> — each job key becomes a job context.
@@ -192,7 +192,7 @@ baseline() {
 
 @test "fails when a governance-job row's enforcer is not in the runner" {
   baseline
-  write_runner   # empty runner
+  write_runner # empty runner
   run "${CHECK}"
   [ "${status}" -eq 1 ]
   [[ "${output}" == *"check-foo"* ]]
@@ -200,7 +200,7 @@ baseline() {
 
 @test "fails when a runner entry has no governance-job row" {
   baseline
-  write_runner check-foo check-bar   # check-bar is a check-scripts row
+  write_runner check-foo check-bar # check-bar is a check-scripts row
   run "${CHECK}"
   [ "${status}" -eq 1 ]
   [[ "${output}" == *"check-bar"* ]]
