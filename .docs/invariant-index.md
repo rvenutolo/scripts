@@ -27,5 +27,6 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | every .ci/ script has a paired bats test file | `check-script-has-test` | `governance` | `governance` |
 | required-checks table, protect-main ruleset, and workflow jobs agree | `check-ci-job-in-summary` | `governance` | `governance` |
 | every top-level script and library function has a shdoc annotation | `check-shdoc-headers` | `check-scripts` | `check-scripts` |
+| script file modes match the executable-bit convention | `check-executable-bit` | `check-scripts` | `check-scripts` |
 | invariant index, .ci/ enforcers, workflow jobs, ruleset contexts, and governance runner agree | `check-orphan-invariants` | `governance` | `governance` |
 <!-- invariant-index:end -->
