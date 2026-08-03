@@ -123,22 +123,6 @@ function governance_runner_checks() {
   ' "${runner}"
 }
 
-# @description Return true if the given basename is in the EXEMPT list.
-# @arg $1 name basename of a .ci/ script
-# @exitcode 0 name is exempt
-# @exitcode 1 name is not exempt
-function is_exempt() {
-  args::check_exactly_1_arg "$@"
-  local -r name="$1"
-  local exempt
-  for exempt in "${EXEMPT[@]}"; do
-    if [[ "${name}" == "${exempt}" ]]; then
-      return 0
-    fi
-  done
-  return 1
-}
-
 function main() {
   args::check_no_args "$@"
   files::assert_exists "${INDEX_MD}"
@@ -217,7 +201,7 @@ function main() {
   while IFS= read -r script; do
     strings::is_empty "${script}" && continue
     name="$(basename "${script}")"
-    if is_exempt "${name}"; then
+    if arrays::contains "${name}" "${EXEMPT[@]}"; then
       continue
     fi
     printf '%s\n' "${name}" >> "${ci_basenames_tmp}"
