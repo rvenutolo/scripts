@@ -57,21 +57,6 @@ function upload_artifact_steps() {
   ' "${file}"
 }
 
-# @description Whether the given artifact name is on the allowlist of names
-#              exempt from the must-be-error rule.
-# @arg $1 name artifact name to test
-# @exitcode 0 name is allowlisted.
-# @exitcode 1 name is not allowlisted.
-function name_is_allowlisted() {
-  args::check_exactly_1_arg "$@"
-  local -r name="$1"
-  local allowed
-  for allowed in "${ALLOWLISTED_NAMES[@]}"; do
-    [[ "${name}" == "${allowed}" ]] && return 0
-  done
-  return 1
-}
-
 function main() {
   args::check_no_args "$@"
   local files_tmp
@@ -102,7 +87,7 @@ function main() {
               : # compliant
               ;;
             warn | ignore)
-              if ! name_is_allowlisted "${name}"; then
+              if ! arrays::contains "${name}" "${ALLOWLISTED_NAMES[@]}"; then
                 printf '%s: upload-artifact step (name=%s) has if-no-files-found: %s; must be error\n' \
                   "${file}" "${name:-<unset>}" "${value}" >&2
                 total=$((total + 1))

@@ -29,22 +29,6 @@ readonly TEST_CI_DIR="${TEST_CI_DIR_OVERRIDE:-${REPO_DIR}/test/ci}"
 #   side-effecting, not CI-run, and has nothing deterministic to assert.
 readonly EXEMPT=(apply-repo-settings)
 
-# @description Return true if the given basename is in the EXEMPT list.
-# @arg $1 name basename of a .ci/ script
-# @exitcode 0 name is exempt
-# @exitcode 1 name is not exempt
-function is_exempt() {
-  args::check_exactly_1_arg "$@"
-  local -r name="$1"
-  local exempt
-  for exempt in "${EXEMPT[@]}"; do
-    if [[ "${name}" == "${exempt}" ]]; then
-      return 0
-    fi
-  done
-  return 1
-}
-
 function main() {
   args::check_no_args "$@"
   local scripts_file
@@ -55,7 +39,7 @@ function main() {
   while IFS= read -r script; do
     strings::is_empty "${script}" && continue
     name="$(basename "${script}")"
-    if is_exempt "${name}"; then
+    if arrays::contains "${name}" "${EXEMPT[@]}"; then
       continue
     fi
     if ! files::exists "${TEST_CI_DIR}/${name}.bats"; then
