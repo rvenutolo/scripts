@@ -258,8 +258,9 @@ For absolute-path resolution (when you need the path, not just a yes/no): helper
 
 The `files::create_temp` → edit → `files::move_no_prompt_quiet` idiom **replaces** the destination
 file rather than editing it in place, so the destination inherits `mktemp`'s restrictive `0600` mode
-and silently loses its executable bit. This has already broken 23 `PATH` scripts once (#171): every
-gate — `check-scripts`, `nix flake check`, `./run-tests`, all of CI — passed on the broken tree.
+and silently loses its executable bit. This has already broken 23 `PATH` scripts once (surfaced
+in #168, tracked as #171): every gate — `check-scripts`, `nix flake check`, `./run-tests`, all of
+CI — passed on the broken tree.
 
 Any bulk rewrite of top-level scripts must therefore either edit in place (`sed --in-place`) or
 re-`chmod +x` afterwards, and must confirm with `git diff --summary` before committing — a stripped
@@ -267,8 +268,9 @@ bit shows up there as `mode change 100755 => 100644` and nowhere else in a norma
 
 `.ci/check-executable-bit` now enforces this: shebang-bearing scripts under
 `scripts/non-interactive/`, `scripts/interactive/`, `scripts/misc/`, `.ci/`, `.githooks/`, and the
-repo root must be executable, and every `*.bash` / `*.bats` file must not be. `scripts/install/` and
-`scripts/set_up/` are exempt — the exec bit is the documented gate for those runners.
+repo root must be executable, and every in-scope `*.bash` / `*.bats` file must not be.
+`scripts/install/` and `scripts/set_up/` are exempt — the exec bit is the documented gate for those
+runners.
 
 ### Network retry
 
