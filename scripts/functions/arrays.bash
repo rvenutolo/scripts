@@ -7,6 +7,28 @@ function arrays::to_lines() { # variadic: any arg count valid
   printf '%s\n' "$@"
 }
 
+# @description Return true if the given value equals any of the remaining
+# arguments. Comparison is literal: glob metacharacters in the needle match
+# themselves. An empty haystack (needle only) always returns false.
+# @arg $1 needle value to search for
+# @arg $@ haystack candidate values to compare against
+# @exitcode 0 needle matches one of the haystack values
+# @exitcode 1 needle matches none of them
+function arrays::contains() {
+  args::check_at_least_1_arg "$@"
+  local -r needle="$1"
+  shift
+  local item
+  # Explicit returns rather than a trailing [[ ]] test: a search loop cannot be
+  # expressed as a single test. Matches the shape of the call sites it replaces.
+  for item in "$@"; do
+    if [[ ${item} == "${needle}" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 # @description Set difference: elements in first sorted array missing from second sorted array.
 # Both arrays must already be sorted in ascending order; results are undefined for unsorted input.
 # Empty arrays are handled correctly: an empty first array yields no output; an empty second array

@@ -137,3 +137,77 @@ setup() {
   mapfile -t result < <(arrays::diff a b)
   assert_equal "${#result[@]}" 0
 }
+
+@test "contains: needle is the first element -> success" {
+  run arrays::contains 'apple' 'apple' 'banana' 'cherry'
+  assert_success
+}
+
+@test "contains: needle is a middle element -> success" {
+  run arrays::contains 'banana' 'apple' 'banana' 'cherry'
+  assert_success
+}
+
+@test "contains: needle is the last element -> success" {
+  run arrays::contains 'cherry' 'apple' 'banana' 'cherry'
+  assert_success
+}
+
+@test "contains: needle absent from a multi-element haystack -> failure" {
+  run arrays::contains 'durian' 'apple' 'banana' 'cherry'
+  assert_failure
+}
+
+@test "contains: empty haystack -> failure" {
+  run arrays::contains 'apple'
+  assert_failure
+}
+
+@test "contains: single-element haystack, matching -> success" {
+  run arrays::contains 'apple' 'apple'
+  assert_success
+}
+
+@test "contains: single-element haystack, non-matching -> failure" {
+  run arrays::contains 'apple' 'banana'
+  assert_failure
+}
+
+@test "contains: needle containing whitespace matches an identical element" {
+  run arrays::contains 'red apple' 'green pear' 'red apple'
+  assert_success
+}
+
+@test "contains: needle containing whitespace does not match a prefix" {
+  run arrays::contains 'red apple' 'red' 'apple'
+  assert_failure
+}
+
+@test "contains: glob metacharacter in the needle is compared literally" {
+  # Pins the quoted right-hand side of the [[ ]] test. If the implementation
+  # wrote [[ "${item}" == ${needle} ]] the '*' would pattern-match 'apple'
+  # and this would wrongly succeed.
+  run arrays::contains '*' 'apple' 'banana'
+  assert_failure
+}
+
+@test "contains: glob metacharacter matches an identical element" {
+  run arrays::contains '*' 'apple' '*'
+  assert_success
+}
+
+@test "contains: empty-string needle matches an empty-string element" {
+  run arrays::contains '' 'apple' ''
+  assert_success
+}
+
+@test "contains: empty-string needle with no empty element -> failure" {
+  run arrays::contains '' 'apple' 'banana'
+  assert_failure
+}
+
+@test "contains: dies with no args" {
+  run arrays::contains
+  assert_failure
+  assert_output --partial 'Expected at least 1 argument'
+}
