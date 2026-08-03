@@ -113,7 +113,7 @@ function args::has_num_args() {
   args::check_at_least_1_arg "$@"
   local -r expected="$1"
   shift
-  [[ $# -eq ${expected} ]]
+  [[ $# -eq "${expected}" ]]
 }
 
 # @description Return true if called with no arguments.
@@ -133,7 +133,7 @@ function args::has_at_least_num_args() {
   args::check_at_least_1_arg "$@"
   local -r minimum="$1"
   shift
-  [[ $# -ge ${minimum} ]]
+  [[ $# -ge "${minimum}" ]]
 }
 
 # @description Die if stdin has no data available (i.e., a terminal is attached).
@@ -181,7 +181,7 @@ function args::print_help() {
   local content
 
   while IFS= read -r line; do
-    if [[ ${line} == '#!'* ]]; then
+    if [[ "${line}" == '#!'* ]]; then
       in_header=1
       continue
     fi
@@ -191,10 +191,10 @@ function args::print_help() {
     if strings::is_empty "${line}"; then
       continue
     fi
-    if [[ ${line} != '#'* ]]; then
+    if [[ "${line}" != '#'* ]]; then
       break
     fi
-    if [[ ${line} =~ ^#[[:space:]]*@([a-z]+)[[:space:]]*(.*)$ ]]; then
+    if [[ "${line}" =~ ^#[[:space:]]*@([a-z]+)[[:space:]]*(.*)$ ]]; then
       current_tag="${BASH_REMATCH[1]}"
       content="${BASH_REMATCH[2]}"
       case "${current_tag}" in
@@ -206,7 +206,7 @@ function args::print_help() {
         example) example_lines=() ;;
         noargs) args_list=() ;;
       esac
-    elif [[ ${line} =~ ^#[[:space:]]+(.+)$ ]]; then
+    elif [[ "${line}" =~ ^#[[:space:]]+(.+)$ ]]; then
       content="${BASH_REMATCH[1]}"
       case "${current_tag}" in
         description) description+=$'\n  '"${content}" ;;
@@ -283,5 +283,5 @@ function args::has_cli_probe_flag() { # variadic: scans 0+ args, no fixed arity 
         ;;
     esac
   done
-  [[ ${found} == 'y' ]]
+  [[ "${found}" == 'y' ]]
 }

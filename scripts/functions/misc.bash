@@ -17,7 +17,7 @@ function misc::this_script_dir() {
 # @noargs
 function misc::auto_answer() {
   args::check_no_args "$@"
-  [[ ${SCRIPTS_AUTO_ANSWER:-} == [Yy] ]]
+  [[ "${SCRIPTS_AUTO_ANSWER:-}" == [Yy] ]]
 }
 
 # @description Launch a GUI app detached from the terminal, except for CLI probe flags.

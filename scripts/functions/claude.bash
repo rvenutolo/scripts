@@ -92,7 +92,7 @@ function claude::session_recent_prompts() {
   local -r jsonl="$1"
   local -r n="$2"
   files::assert_exists "${jsonl}"
-  if [[ ! ${n} =~ ^[1-9][0-9]*$ ]]; then
+  if [[ ! "${n}" =~ ^[1-9][0-9]*$ ]]; then
     log::die "count must be a positive integer: ${n}"
   fi
   local tmp

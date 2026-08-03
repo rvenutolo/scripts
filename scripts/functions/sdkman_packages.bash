@@ -74,7 +74,7 @@ function sdkman_packages::prune_sdkman_package() {
   sdkman_packages::get_installed_packages_versions "${package}" > "${versions_tmp}"
   mapfile -t versions < "${versions_tmp}"
   for version in "${versions[@]}"; do
-    if [[ ${version} != "${current_version}" ]]; then
+    if [[ "${version}" != "${current_version}" ]]; then
       sdkman_packages::uninstall_package_version "${package}" "${version}"
     fi
   done

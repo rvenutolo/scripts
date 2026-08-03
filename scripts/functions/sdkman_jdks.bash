@@ -8,7 +8,7 @@
 function sdkman_jdks::get_jdk_major_version() {
   args::check_exactly_1_arg "$@"
   local -r version="$1"
-  if [[ ${version} =~ ^([0-9]+) ]]; then
+  if [[ "${version}" =~ ^([0-9]+) ]]; then
     printf '%s' "${BASH_REMATCH[1]}"
   else
     log::die "Unexpected version: ${version}"
@@ -88,7 +88,7 @@ function sdkman_jdks::get_tem_jdk_catalog() {
   # PIDs get recycled and XDG_RUNTIME_DIR survives until the user's last session ends, so a memo
   # left by an earlier same-PID process can outlive it. /proc/$$ is stamped at process start and
   # does not change, so a memo not newer than it belongs to a dead namesake and must be refetched.
-  if [[ ! ${cache_file} -nt "/proc/$$" ]]; then
+  if [[ ! "${cache_file}" -nt "/proc/$$" ]]; then
     local catalog_tmp
     files::create_temp catalog_tmp
     # Fetch to a temp file and promote it only on success, so a failed or partial response is
@@ -350,7 +350,7 @@ function sdkman_jdks::check_installed_tem_jdk_major_version() {
 function sdkman_jdks::is_tem_jdk_artifact_installed() {
   args::check_exactly_1_arg "$@"
   local -r artifact_id="$1"
-  [[ ${artifact_id} == *-tem ]] && dirs::exists "${SDKMAN_CANDIDATES_DIR}/java/${artifact_id}"
+  [[ "${artifact_id}" == *-tem ]] && dirs::exists "${SDKMAN_CANDIDATES_DIR}/java/${artifact_id}"
 }
 
 # @description Print the artifact ID of the latest installed Temurin JDK for the given major version.
@@ -473,7 +473,7 @@ function sdkman_jdks::prune_tem_jdks_for_major_version() {
       > "${artifact_ids_tmp}"
   mapfile -t artifact_ids < "${artifact_ids_tmp}"
   for artifact_id in "${artifact_ids[@]}"; do
-    if [[ ${artifact_id} != "${latest_artifact_id}" ]]; then
+    if [[ "${artifact_id}" != "${latest_artifact_id}" ]]; then
       sdkman_jdks::uninstall_jdk "${artifact_id}"
     fi
   done

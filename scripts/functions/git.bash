@@ -71,7 +71,7 @@ function git::write_distinct_identities() {
   files::create_temp _gwdi_raw
   # shellcheck disable=SC2154 # _gwdi_raw assigned by files::create_temp via nameref
   git -C "${repo}" log --all --format='%aN%x09%aE%x0A%cN%x09%cE' > "${_gwdi_raw}"
-  if [[ ! -s ${_gwdi_raw} ]]; then
+  if [[ ! -s "${_gwdi_raw}" ]]; then
     log::die "No commits found in ${repo}"
   fi
   sort --unique "${_gwdi_raw}" > "${out_file}"
@@ -119,7 +119,7 @@ function git::prompt_select_identities() {
     prompt_fn='prompt::ny'
     for tok in "${canon_tokens[@]}"; do
       strings::is_empty "${tok}" && continue
-      if [[ ${name_words} == *" ${tok} "* ]]; then
+      if [[ "${name_words}" == *" ${tok} "* ]]; then
         prompt_fn='prompt::yn'
         break
       fi

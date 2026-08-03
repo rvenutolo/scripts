@@ -4,7 +4,7 @@
 # @arg $1 file path
 function files::exists() {
   args::check_exactly_1_arg "$@"
-  [[ -f $1 ]]
+  [[ -f "$1" ]]
 }
 
 # @description Die if the given file does not exist.
@@ -25,7 +25,7 @@ function files::assert_exists() {
 # @exitcode 1 if false
 function files::any_exists() {
   args::check_exactly_1_arg "$@"
-  [[ -e $1 ]]
+  [[ -e "$1" ]]
 }
 
 # @description Return true if the given path is executable and is not a directory.
@@ -36,7 +36,7 @@ function files::any_exists() {
 # @exitcode 1 if false
 function files::is_executable() {
   args::check_exactly_1_arg "$@"
-  [[ ! -d $1 && -x $1 ]]
+  [[ ! -d "$1" && -x "$1" ]]
 }
 
 # @description Die if the given path is not executable or is a directory.
@@ -55,7 +55,7 @@ function files::assert_executable() {
 # @exitcode 1 if false
 function files::is_empty() {
   args::check_exactly_1_arg "$@"
-  [[ -f $1 && ! -s $1 ]]
+  [[ -f "$1" && ! -s "$1" ]]
 }
 
 # @description Return true if the given path exists, is a regular file, and has size greater than zero.
@@ -64,7 +64,7 @@ function files::is_empty() {
 # @exitcode 1 if false
 function files::is_non_empty() {
   args::check_exactly_1_arg "$@"
-  [[ -f $1 && -s $1 ]]
+  [[ -f "$1" && -s "$1" ]]
 }
 
 # @description Die if the given file does not exist or is not empty.
@@ -93,7 +93,7 @@ function files::assert_non_empty() {
 # @exitcode 1 if false
 function files::is_readable() {
   args::check_exactly_1_arg "$@"
-  [[ -r $1 ]]
+  [[ -r "$1" ]]
 }
 
 # @description Print the size of a file in gigabytes (two decimal places).
@@ -124,7 +124,7 @@ function files::move() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ ${src} == "${dest}" ]]; then
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if files::exists "${dest}"; then
@@ -157,7 +157,7 @@ function files::move_quiet() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ ${src} == "${dest}" ]]; then
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if files::exists "${dest}"; then
@@ -188,7 +188,7 @@ function files::move_no_prompt() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ ${src} == "${dest}" ]]; then
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   log::log "Moving: ${src} -> ${dest}"
@@ -206,7 +206,7 @@ function files::move_no_prompt_quiet() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ ${src} == "${dest}" ]]; then
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   dirs::create "$(dirname "${dest}")"
@@ -221,7 +221,7 @@ function files::root_move() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ ${src} == "${dest}" ]]; then
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if sudo test -f "${dest}"; then
@@ -254,7 +254,7 @@ function files::root_move_quiet() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ ${src} == "${dest}" ]]; then
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if sudo test -f "${dest}"; then
@@ -284,7 +284,7 @@ function files::copy() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ ${src} == "${dest}" ]]; then
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if files::exists "${dest}"; then
@@ -316,7 +316,7 @@ function files::copy_quiet() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ ${src} == "${dest}" ]]; then
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if files::exists "${dest}"; then
@@ -345,7 +345,7 @@ function files::root_copy() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ ${src} == "${dest}" ]]; then
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if sudo test -f "${dest}"; then
@@ -377,7 +377,7 @@ function files::root_copy_quiet() {
   local -r src="$1"
   local -r dest="$2"
   files::assert_exists "${src}"
-  if [[ ${src} == "${dest}" ]]; then
+  if [[ "${src}" == "${dest}" ]]; then
     log::die "File paths are the same"
   fi
   if sudo test -f "${dest}"; then
@@ -726,7 +726,7 @@ function files::plan_renames() {
   args::check_at_least_3_args "$@"
   local -r pattern="$1"
   local -r replacement="$2"
-  if [[ ${pattern} == *'/'* || ${replacement} == *'/'* ]]; then
+  if [[ "${pattern}" == *'/'* || "${replacement}" == *'/'* ]]; then
     log::die "pattern and replacement must not contain '/' (sed s/// delimiter)"
   fi
   shift 2
@@ -743,12 +743,12 @@ function files::plan_renames() {
     base="$(basename "${file}")"
     # shellcheck disable=SC2001 # pattern is a BRE variable; ${//} only supports globs, not regex
     new_base="$(sed "s/${pattern}/${replacement}/" <<< "${base}")"
-    if [[ ${dir} == '.' ]]; then
+    if [[ "${dir}" == '.' ]]; then
       new="${new_base}"
     else
       new="${dir}/${new_base}"
     fi
-    if [[ ${new} == "${file}" ]]; then
+    if [[ "${new}" == "${file}" ]]; then
       # Silent skip — pattern produced no change; no warning needed
       continue
     fi

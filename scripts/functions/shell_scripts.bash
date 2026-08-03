@@ -11,7 +11,7 @@ function shell_scripts::has_shell_shebang() {
   local -r file="$1"
   local first_line
   first_line="$(head --lines=1 -- "${file}")"
-  [[ ${first_line} =~ ^#!.*[/\ ](((ba)?sh)|bats)([[:space:]]|$) ]]
+  [[ "${first_line}" =~ ^#!.*[/\ ](((ba)?sh)|bats)([[:space:]]|$) ]]
 }
 
 # @description Die if any of the given paths does not exist on disk.
@@ -75,7 +75,7 @@ function shell_scripts::filter() {
       log::log "Skipping (no bash/sh shebang): ${file}"
       continue
     fi
-    if [[ ${file} == */other/* ]]; then
+    if [[ "${file}" == */other/* ]]; then
       if ! prompt::ny "Process file under other/: ${file}?"; then
         continue
       fi

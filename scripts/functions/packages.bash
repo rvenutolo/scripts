@@ -35,7 +35,7 @@ function packages::get_universal() {
           log::die '--ignore requires at least one argument'
         fi
         shift
-        while [[ $# -gt 0 ]] && [[ ! $1 =~ ^- ]]; do
+        while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
           packages_to_ignore+=("$1")
           shift
         done
@@ -125,7 +125,7 @@ function packages::get_distro() {
           log::die '--ignore requires at least one argument'
         fi
         shift
-        while [[ $# -gt 0 ]] && [[ ! $1 =~ ^- ]]; do
+        while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
           packages_to_ignore+=("$1")
           shift
         done
@@ -208,7 +208,7 @@ function packages::get_sdkman() {
           log::die '--ignore requires at least one argument'
         fi
         shift
-        while [[ $# -gt 0 ]] && [[ ! $1 =~ ^- ]]; do
+        while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
           packages_to_ignore+=("$1")
           shift
         done

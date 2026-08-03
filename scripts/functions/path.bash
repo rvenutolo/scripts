@@ -11,7 +11,7 @@
 function path::remove() {
   args::check_exactly_1_arg "$@"
   local -r dir="$1"
-  if [[ ${PATH} == "${dir}" ]]; then
+  if [[ "${PATH}" == "${dir}" ]]; then
     # Intentional: clearing PATH is this function's explicit purpose.
     # shellcheck disable=SC2123
     PATH=''
