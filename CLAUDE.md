@@ -14,7 +14,7 @@ All script directories live under a top-level `scripts/` dir, and `SCRIPTS_DIR` 
 
 - `scripts/interactive/` — everything else: utility scripts that prompt, launch a GUI, drive a picker, or otherwise assume a terminal, **plus every wrapper** (the former `wrapper/` scripts — `mvn`, `gradle`, `kate`, `claude`, the flatpak wrappers, etc.). On `PATH` only in interactive shells (the user wires this into `~/.bashrc` behind a `case $- in *i*)` guard).
 
-- `scripts/other/` — third-party scripts copied verbatim from elsewhere. **Never modify anything under `scripts/other/` unless explicitly told to touch a specific file in there.** This applies to formatting, shellcheck fixes, refactors, renames, or any other automated cleanup. Always on `PATH`; excluded from treefmt formatting (via `.treefmt.nix` excludes) and from `shellcheck-scripts`.
+- `scripts/other/` — third-party scripts copied verbatim from elsewhere. **Never modify anything under `scripts/other/` unless explicitly told to touch a specific file in there.** This applies to formatting, shellcheck fixes, refactors, renames, or any other automated cleanup. Always on `PATH`; excluded from treefmt formatting (via `.treefmt.nix` excludes) and from `shellcheck-scripts`. The one linter that does inspect `other/` is `.ci/check-executable-bit`: the directory is always on `PATH`, so a stripped exec bit breaks a script there, and restoring a file mode is not a content modification.
 
 - `scripts/install/` — numbered scripts run in order by `run-install-scripts` to provision a new machine. Files starting with all-caps names (e.g. `00_DISTRO_PACKAGES`, `70_WORK_ONLY`) are markers/data with executable bit off — the runner skips non-executable files. `90_REMOVE` etc. follow same pattern.
 
@@ -267,10 +267,17 @@ re-`chmod +x` afterwards, and must confirm with `git diff --summary` before comm
 bit shows up there as `mode change 100755 => 100644` and nowhere else in a normal diff.
 
 `.ci/check-executable-bit` now enforces this: shebang-bearing scripts under
-`scripts/non-interactive/`, `scripts/interactive/`, `scripts/misc/`, `.ci/`, `.githooks/`, and the
-repo root must be executable, and every in-scope `*.bash` / `*.bats` file must not be.
-`scripts/install/` and `scripts/set_up/` are exempt — the exec bit is the documented gate for those
-runners.
+`scripts/non-interactive/`, `scripts/interactive/`, `scripts/misc/`, `scripts/other/`, `.ci/`,
+`.githooks/`, and the repo root must be executable, and every in-scope `*.bash` / `*.bats` file must
+not be. Scripts under `scripts/install/` and `scripts/set_up/` must also be executable unless they
+appear in the lint's `GATED` allowlist. Removing the exec bit is still how a script is gated off from
+those runners, but the exceptions are now enumerated instead of the directories being skipped — the
+blanket skip left 78 of 81 in-scope files unenforced to protect 3 (#173). Each `GATED` entry must
+itself exist and be non-executable, so a stale line cannot silently disarm the lint. `scripts/other/`
+is included because it is always on `PATH`; the standing "never modify `other/`" rule governs
+content, not file mode (#175). A `*.bash` file under `scripts/other/` is held to the
+must-be-executable rule rather than the library-file rule — the `scripts/other/` arm is matched
+first on purpose, because we impose no naming conventions on third-party content.
 
 ### Network retry
 
