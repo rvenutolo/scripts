@@ -26,6 +26,17 @@ args::check_no_args "$@"
 REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
 
+# Scripts intentionally gated off from the install/set_up runners by having their
+# executable bit removed. Re-enable one by chmod +x AND removing it from here.
+# Kept central rather than as in-file markers so "what is currently disabled?"
+# is answerable from one place, following the EXEMPT array precedent in
+# .ci/check-script-has-test and .ci/check-orphan-invariants.
+readonly GATED=(
+  scripts/set_up/docker/enable-rootless-docker
+  scripts/set_up/sysctl/copy-sysctl-rootless-docker-file
+  scripts/set_up/tailscale/set-tailscale-netfilter-mode
+)
+
 # @description Report a violation when a file that must be executable is not.
 #              Files with no shell shebang are exempt: shfmt --find also matches
 #              by extension, so a .sh file with no shebang can reach the
@@ -84,12 +95,18 @@ function main() {
     # First match wins; see issue #171 and the "Preserving the executable bit"
     # section of CLAUDE.md for why each arm is ordered where it is.
     case "${relative}" in
-      scripts/install/* | scripts/set_up/*)
-        # The exec bit gates these runners, so both states are legitimate here.
-        continue
-        ;;
       *.bash | *.bats)
         assert_not_executable "${file}" 'library or test file' || rc=1
+        ;;
+      scripts/install/* | scripts/set_up/*)
+        # Must be executable unless explicitly gated. Deliberately AFTER the
+        # library rule: a *.bash under install/ is a library file and must stay
+        # non-executable, so this arm must not claim it. See issue #173 for the
+        # measurement behind enforcing here at all.
+        if arrays::contains "${relative}" "${GATED[@]}"; then
+          continue
+        fi
+        assert_executable "${file}" 'install/set_up runner script' || rc=1
         ;;
       scripts/non-interactive/* | scripts/interactive/* | scripts/misc/* | .ci/* | .githooks/*)
         assert_executable "${file}" "script under ${relative%/*}/" || rc=1

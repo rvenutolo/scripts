@@ -12,6 +12,7 @@ setup() {
   # library: the check sources it, but classifies purely on paths relative to
   # the repo root, so nothing has to be staged into the fixture.
   mkdir --parents "${REPO}"/scripts/{non-interactive,interactive,misc,functions,install,set_up}
+  mkdir --parents "${REPO}"/scripts/set_up/{docker,sysctl,tailscale}
   mkdir --parents "${REPO}/.ci" "${REPO}/.githooks" "${REPO}/test/ci" "${REPO}/lib"
   git init --quiet "${REPO}"
 
@@ -25,6 +26,15 @@ setup() {
   make_script 'run-tests' exec
   make_script 'scripts/functions/topic.bash'
   make_bats 'test/ci/thing.bats'
+
+  # The GATED entries in .ci/check-executable-bit must each exist and be
+  # non-executable, or its drift pass fails on the default tree. These mirror
+  # the real array; change both together. Same approach as
+  # test/ci/check-script-has-test.bats, which creates a fixture script at the
+  # real exempt name apply-repo-settings.
+  make_script 'scripts/set_up/docker/enable-rootless-docker'
+  make_script 'scripts/set_up/sysctl/copy-sysctl-rootless-docker-file'
+  make_script 'scripts/set_up/tailscale/set-tailscale-netfilter-mode'
 }
 
 # Apply the requested mode to a fixture file: `exec` makes it executable,
@@ -135,31 +145,60 @@ run_check() {
   assert_output --partial 'must not be executable'
 }
 
-@test "passes when a non-executable script sits under scripts/install/" {
-  make_script 'scripts/install/00_MARKER'
+@test "fails when a non-executable, non-gated script sits under scripts/install/" {
+  # Renamed from the old 00_MARKER fixture: make_script writes a shebang, so
+  # unlike the real all-caps marker files this one DOES reach the classifier,
+  # and the old name asserted the opposite of what the fixture is.
+  make_script 'scripts/install/50_thing'
   run_check
-  assert_success
+  assert_failure
+  assert_output --partial 'scripts/install/50_thing'
+  assert_output --partial 'must be executable'
 }
 
-@test "passes when a non-executable script sits under scripts/set_up/" {
+@test "fails when a non-executable, non-gated script sits under scripts/set_up/" {
   make_script 'scripts/set_up/disabled-thing'
   run_check
-  assert_success
+  assert_failure
+  assert_output --partial 'scripts/set_up/disabled-thing'
+  assert_output --partial 'must be executable'
 }
 
-@test "rule 1 precedes rule 2: an executable .bash under install/ passes" {
-  # The install/set_up skip is checked before the *.bash rule, so a library
-  # file there is exempt from the must-not-be-executable rule. Swapping the
-  # two case arms would make this fail.
+@test "rule order: the library rule precedes the install/set_up rule" {
+  # *.bash | *.bats is now matched BEFORE the install/set_up arm, so a library
+  # file there is still must-not-be-executable. Swapping the two arms back would
+  # make the install/set_up arm demand the exec bit on a library file instead.
   make_script 'scripts/install/helper.bash' exec
   run_check
-  assert_success
+  assert_failure
+  assert_output --partial 'scripts/install/helper.bash'
+  assert_output --partial 'must not be executable'
 }
 
 @test "an executable script under scripts/set_up/ passes" {
-  # Rule 1 is a skip in both directions — set_up/ scripts may be executable
-  # (enabled) or not (gated), and neither is a violation.
+  # set_up/ scripts must be executable unless listed in GATED. This one is not
+  # gated, so the exec bit is exactly what the rule requires.
   make_script 'scripts/set_up/enabled-thing' exec
+  run_check
+  assert_success
+}
+
+@test "passes when a gated script under scripts/set_up/ is not executable" {
+  # The three GATED entries are created non-executable in setup(); assert it
+  # explicitly rather than leaning on the clean-tree test.
+  run_check
+  assert_success
+}
+
+@test "passes when a script under scripts/install/ is executable" {
+  make_script 'scripts/install/60_thing' exec
+  run_check
+  assert_success
+}
+
+@test "passes when a non-executable .bash sits under scripts/install/" {
+  # The flipped-order companion to the rule-order test above.
+  make_script 'scripts/install/helper.bash'
   run_check
   assert_success
 }
