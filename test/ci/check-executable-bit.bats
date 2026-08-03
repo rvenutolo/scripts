@@ -27,12 +27,11 @@ setup() {
   make_bats 'test/ci/thing.bats'
 }
 
-# Write a shebang-bearing file at ${REPO}/<path>. Pass `exec` as $2 to make it
-# executable; omit $2 for a non-executable one.
-make_script() {
+# Apply the requested mode to a fixture file: `exec` makes it executable,
+# anything else (including empty) makes it non-executable.
+set_fixture_mode() {
   local -r path="$1"
-  local -r mode="${2:-}"
-  printf '#!/usr/bin/env bash\ntrue\n' > "${REPO}/${path}"
+  local -r mode="$2"
   if [[ "${mode}" == 'exec' ]]; then
     chmod +x "${REPO}/${path}"
   else
@@ -40,17 +39,18 @@ make_script() {
   fi
 }
 
+# Write a shebang-bearing file at ${REPO}/<path>. Pass `exec` as $2 to make it
+# executable; omit $2 for a non-executable one.
+make_script() {
+  printf '#!/usr/bin/env bash\ntrue\n' > "${REPO}/$1"
+  set_fixture_mode "$1" "${2:-}"
+}
+
 # Write a .bats file (no shebang — bats files start with a function) at
 # ${REPO}/<path>. Pass `exec` as $2 to make it executable.
 make_bats() {
-  local -r path="$1"
-  local -r mode="${2:-}"
-  printf '@test "x" { true; }\n' > "${REPO}/${path}"
-  if [[ "${mode}" == 'exec' ]]; then
-    chmod +x "${REPO}/${path}"
-  else
-    chmod -x "${REPO}/${path}"
-  fi
+  printf '@test "x" { true; }\n' > "${REPO}/$1"
+  set_fixture_mode "$1" "${2:-}"
 }
 
 # Run the check against the fixture repo. Must cd first so the check's
