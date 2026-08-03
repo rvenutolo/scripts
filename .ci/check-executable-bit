@@ -2,12 +2,15 @@
 
 # @description Audit file modes against the repo's executable-bit convention.
 #              Shebang-bearing scripts under scripts/non-interactive/,
-#              scripts/interactive/, scripts/misc/, .ci/, .githooks/, and the
-#              repo root must be executable. Library and test files (*.bash,
-#              *.bats) must not be. scripts/install/ and scripts/set_up/ are
-#              skipped entirely: removing the executable bit is the documented
-#              way to gate a script from those runners. Every other directory
-#              is out of scope.
+#              scripts/interactive/, scripts/misc/, scripts/other/, .ci/,
+#              .githooks/, and the repo root must be executable. So must scripts
+#              under scripts/install/ and scripts/set_up/, unless listed in the
+#              GATED allowlist — removing the exec bit is how a script is gated
+#              off from those runners, so the exceptions are enumerated rather
+#              than the directories skipped. Every GATED entry must itself exist
+#              and be non-executable, so a stale line cannot silently disarm the
+#              lint. Library and test files (*.bash, *.bats) must not be
+#              executable. Every other directory is out of scope.
 # @noargs
 # @stderr One line per violation, plus a summary warning when any are found.
 # @exitcode 0 every in-scope file's mode matches the convention.
