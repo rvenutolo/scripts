@@ -20,7 +20,7 @@ function sdkman::init() {
   args::check_no_args "$@"
   # BASHPID tracks the current subshell; $$ stays the top-level shell's pid. Equal means the
   # caller is at top level, where relaxing strict mode would silently apply to the whole script.
-  if [[ ${BASHPID} == "$$" ]]; then
+  if [[ "${BASHPID}" == "$$" ]]; then
     log::die 'sdkman::init must be called from inside a subshell'
   fi
   # SDKMAN's own code references unbound variables (SDKMAN_OFFLINE_MODE among them) and uses
@@ -118,8 +118,8 @@ function sdkman::rewrite_sdkmanrc_file_java_versions() {
   local -a sdkmanrc_files
   local sdkmanrc_files_tmp
   files::create_temp sdkmanrc_files_tmp
-  sdkman::list_all_sdkmanrc_files >"${sdkmanrc_files_tmp}"
-  mapfile -t sdkmanrc_files <"${sdkmanrc_files_tmp}"
+  sdkman::list_all_sdkmanrc_files > "${sdkmanrc_files_tmp}"
+  mapfile -t sdkmanrc_files < "${sdkmanrc_files_tmp}"
   for file in "${sdkmanrc_files[@]}"; do
     sdkman::rewrite_sdkmanrc_file_java_version "${file}"
   done

@@ -207,7 +207,7 @@ function main() {
     'org.gtk.Settings.FileChooser clock-format 12h'
   )
   for line in "${gsettings[@]}"; do
-    IFS=' ' read -r schema key value <<<"${line}"
+    IFS=' ' read -r schema key value <<< "${line}"
     gsettings set "${schema}" "${key}" "${value}"
   done
 
@@ -220,7 +220,7 @@ function main() {
   )
   local url package_num
   for url in "${gnome_extensions[@]}"; do
-    package_num="$(cut --delimiter='/' --fields=5 <<<"${url}")"
+    package_num="$(cut --delimiter='/' --fields=5 <<< "${url}")"
     log "Installing extension from URL: ${url}"
     gext --filesystem install "${package_num}"
   done

@@ -8,7 +8,7 @@
 # @noargs
 function misc::this_script_dir() {
   args::check_no_args "$@"
-  cd -- "$(dirname -- "${BASH_SOURCE[1]}")" &>'/dev/null' && pwd
+  cd -- "$(dirname -- "${BASH_SOURCE[1]}")" &> '/dev/null' && pwd
 }
 
 # @description Return true if the SCRIPTS_AUTO_ANSWER env var is set to 'y' or 'Y'.
@@ -17,7 +17,7 @@ function misc::this_script_dir() {
 # @noargs
 function misc::auto_answer() {
   args::check_no_args "$@"
-  [[ ${SCRIPTS_AUTO_ANSWER:-} == [Yy] ]]
+  [[ "${SCRIPTS_AUTO_ANSWER:-}" == [Yy] ]]
 }
 
 # @description Launch a GUI app detached from the terminal, except for CLI probe flags.
@@ -35,5 +35,5 @@ function misc::exec_gui() {
   if args::has_cli_probe_flag "$@"; then
     exec "$@"
   fi
-  exec setsid --fork "$@" >'/dev/null' 2>&1
+  exec setsid --fork "$@" > '/dev/null' 2>&1
 }

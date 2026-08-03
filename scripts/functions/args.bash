@@ -113,7 +113,7 @@ function args::has_num_args() {
   args::check_at_least_1_arg "$@"
   local -r expected="$1"
   shift
-  [[ $# -eq ${expected} ]]
+  [[ $# -eq "${expected}" ]]
 }
 
 # @description Return true if called with no arguments.
@@ -133,7 +133,7 @@ function args::has_at_least_num_args() {
   args::check_at_least_1_arg "$@"
   local -r minimum="$1"
   shift
-  [[ $# -ge ${minimum} ]]
+  [[ $# -ge "${minimum}" ]]
 }
 
 # @description Die if stdin has no data available (i.e., a terminal is attached).
@@ -181,7 +181,7 @@ function args::print_help() {
   local content
 
   while IFS= read -r line; do
-    if [[ ${line} == '#!'* ]]; then
+    if [[ "${line}" == '#!'* ]]; then
       in_header=1
       continue
     fi
@@ -191,29 +191,29 @@ function args::print_help() {
     if strings::is_empty "${line}"; then
       continue
     fi
-    if [[ ${line} != '#'* ]]; then
+    if [[ "${line}" != '#'* ]]; then
       break
     fi
-    if [[ ${line} =~ ^#[[:space:]]*@([a-z]+)[[:space:]]*(.*)$ ]]; then
+    if [[ "${line}" =~ ^#[[:space:]]*@([a-z]+)[[:space:]]*(.*)$ ]]; then
       current_tag="${BASH_REMATCH[1]}"
       content="${BASH_REMATCH[2]}"
       case "${current_tag}" in
-      description) description="${content}" ;;
-      arg) args_list+=("${content}") ;;
-      exitcode) exitcodes+=("${content}") ;;
-      stdout) stdout_text="${content}" ;;
-      stderr) stderr_text="${content}" ;;
-      example) example_lines=() ;;
-      noargs) args_list=() ;;
+        description) description="${content}" ;;
+        arg) args_list+=("${content}") ;;
+        exitcode) exitcodes+=("${content}") ;;
+        stdout) stdout_text="${content}" ;;
+        stderr) stderr_text="${content}" ;;
+        example) example_lines=() ;;
+        noargs) args_list=() ;;
       esac
-    elif [[ ${line} =~ ^#[[:space:]]+(.+)$ ]]; then
+    elif [[ "${line}" =~ ^#[[:space:]]+(.+)$ ]]; then
       content="${BASH_REMATCH[1]}"
       case "${current_tag}" in
-      description) description+=$'\n  '"${content}" ;;
-      example) example_lines+=("${content}") ;;
+        description) description+=$'\n  '"${content}" ;;
+        example) example_lines+=("${content}") ;;
       esac
     fi
-  done <"${script_path}"
+  done < "${script_path}"
 
   printf '%s\n' "${script_name}"
   if strings::is_not_empty "${description}"; then
@@ -256,11 +256,11 @@ function args::handle_help_flag() {
   local arg
   for arg in "$@"; do
     case "${arg}" in
-    -h | --help)
-      # shellcheck disable=SC2119 # intentional no-arg call; print_help defaults to $0
-      args::print_help
-      exit 0
-      ;;
+      -h | --help)
+        # shellcheck disable=SC2119 # intentional no-arg call; print_help defaults to $0
+        args::print_help
+        exit 0
+        ;;
     esac
   done
 }
@@ -278,10 +278,10 @@ function args::has_cli_probe_flag() { # variadic: scans 0+ args, no fixed arity 
   local arg
   for arg in "$@"; do
     case "${arg}" in
-    --version | --help)
-      found='y'
-      ;;
+      --version | --help)
+        found='y'
+        ;;
     esac
   done
-  [[ ${found} == 'y' ]]
+  [[ "${found}" == 'y' ]]
 }

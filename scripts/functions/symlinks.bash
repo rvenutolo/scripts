@@ -10,14 +10,14 @@ function symlinks::points_at() {
   args::check_exactly_2_args "$@"
   local -r link="$1"
   local -r target="$2"
-  [[ -L ${link} && "$(readlink --canonicalize "${link}")" == "$(readlink --canonicalize "${target}")" ]]
+  [[ -L "${link}" && "$(readlink --canonicalize "${link}")" == "$(readlink --canonicalize "${target}")" ]]
 }
 
 # @description Return true if the given path exists and is a symbolic link.
 # @arg $1 symlink path
 function symlinks::exists() {
   args::check_exactly_1_arg "$@"
-  [[ -L $1 ]]
+  [[ -L "$1" ]]
 }
 
 # @description Print the target of a symbolic link; dies if the symlink does not exist.
@@ -46,7 +46,7 @@ function symlinks::find_broken() {
     dir="$1"
   fi
   # -L: no long-form equivalent; -L + -type l is the canonical broken-symlink idiom
-  find -L "${dir}" -type l 2>'/dev/null' || true
+  find -L "${dir}" -type l 2> '/dev/null' || true
 }
 
 # @description Create a symbolic link from a file to a link path, prompting if the destination already exists.

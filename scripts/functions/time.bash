@@ -19,10 +19,10 @@ function time::calc_elapsed() {
   readonly mins
   local secs=$((elapsed - hrs * 3600 - mins * 60))
   readonly secs
-  if [[ ${hrs} -gt 0 ]]; then
+  if [[ "${hrs}" -gt 0 ]]; then
     printf '%s' "${hrs}h "
   fi
-  if [[ ${mins} -gt 0 ]]; then
+  if [[ "${mins}" -gt 0 ]]; then
     printf '%s' "${mins}m "
   fi
   printf '%s\n' "${secs}s"

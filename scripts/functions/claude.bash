@@ -32,7 +32,7 @@ function claude::session_cwd() {
   local tmp
   files::create_temp tmp
   # shellcheck disable=SC2154 # tmp assigned by files::create_temp via nameref
-  jq -rc 'select(.cwd != null)|.cwd' "${jsonl}" >"${tmp}"
+  jq -rc 'select(.cwd != null)|.cwd' "${jsonl}" > "${tmp}"
   head -1 "${tmp}"
 }
 
@@ -46,7 +46,7 @@ function claude::session_branch() {
   local tmp
   files::create_temp tmp
   # shellcheck disable=SC2154 # tmp assigned by files::create_temp via nameref
-  jq -rc 'select(.gitBranch != null)|.gitBranch' "${jsonl}" >"${tmp}"
+  jq -rc 'select(.gitBranch != null)|.gitBranch' "${jsonl}" > "${tmp}"
   head -1 "${tmp}"
 }
 
@@ -61,7 +61,7 @@ function claude::session_first_prompt() {
   local tmp
   files::create_temp tmp
   # shellcheck disable=SC2154 # tmp assigned by files::create_temp via nameref
-  jq -rc 'select(.type=="last-prompt" and .lastPrompt != null)|.lastPrompt|gsub("\n";" ")' "${jsonl}" >"${tmp}"
+  jq -rc 'select(.type=="last-prompt" and .lastPrompt != null)|.lastPrompt|gsub("\n";" ")' "${jsonl}" > "${tmp}"
   head -1 "${tmp}"
 }
 
@@ -76,7 +76,7 @@ function claude::session_last_prompt() {
   local tmp
   files::create_temp tmp
   # shellcheck disable=SC2154 # tmp assigned by files::create_temp via nameref
-  jq -rc 'select(.type=="last-prompt" and .lastPrompt != null)|.lastPrompt|gsub("\n";" ")' "${jsonl}" >"${tmp}"
+  jq -rc 'select(.type=="last-prompt" and .lastPrompt != null)|.lastPrompt|gsub("\n";" ")' "${jsonl}" > "${tmp}"
   tail -1 "${tmp}"
 }
 
@@ -92,13 +92,13 @@ function claude::session_recent_prompts() {
   local -r jsonl="$1"
   local -r n="$2"
   files::assert_exists "${jsonl}"
-  if [[ ! ${n} =~ ^[1-9][0-9]*$ ]]; then
+  if [[ ! "${n}" =~ ^[1-9][0-9]*$ ]]; then
     log::die "count must be a positive integer: ${n}"
   fi
   local tmp
   files::create_temp tmp
   # shellcheck disable=SC2154 # tmp assigned by files::create_temp via nameref
-  jq -rc 'select(.type=="last-prompt" and .lastPrompt != null)|.lastPrompt|gsub("\n";" ")' "${jsonl}" >"${tmp}"
+  jq -rc 'select(.type=="last-prompt" and .lastPrompt != null)|.lastPrompt|gsub("\n";" ")' "${jsonl}" > "${tmp}"
   tail -n "${n}" "${tmp}"
 }
 
@@ -123,9 +123,9 @@ function claude::session_preview() {
   local recent_tmp
   files::create_temp recent_tmp
   # shellcheck disable=SC2154 # recent_tmp assigned by files::create_temp via nameref
-  claude::session_recent_prompts "${jsonl}" "${n}" >"${recent_tmp}"
+  claude::session_recent_prompts "${jsonl}" "${n}" > "${recent_tmp}"
   local line
   while read -r line; do
     printf '  - %s\n' "${line}"
-  done <"${recent_tmp}"
+  done < "${recent_tmp}"
 }

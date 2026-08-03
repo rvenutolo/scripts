@@ -8,7 +8,7 @@ function flatpak::assert_installed() {
   args::check_exactly_1_arg "$@"
   local -r id="$1"
   commands::assert_executable_exists 'flatpak'
-  if ! flatpak info "${id}" &>'/dev/null'; then
+  if ! flatpak info "${id}" &> '/dev/null'; then
     log::die "Flatpak application not installed: ${id}"
   fi
 }

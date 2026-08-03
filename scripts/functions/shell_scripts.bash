@@ -11,7 +11,7 @@ function shell_scripts::has_shell_shebang() {
   local -r file="$1"
   local first_line
   first_line="$(head --lines=1 -- "${file}")"
-  [[ ${first_line} =~ ^#!.*[/\ ](((ba)?sh)|bats)([[:space:]]|$) ]]
+  [[ "${first_line}" =~ ^#!.*[/\ ](((ba)?sh)|bats)([[:space:]]|$) ]]
 }
 
 # @description Die if any of the given paths does not exist on disk.
@@ -41,8 +41,8 @@ function shell_scripts::find() {
     # derived via git; tests set REPO_DIR to point the scan at a fixture tree.
     local repo_dir
     repo_dir="${REPO_DIR:-$(git rev-parse --show-toplevel)}"
-    shfmt --find "${repo_dir}" |
-      grep --invert-match --extended-regexp '/(\.shdoc|\.direnv|other|test/bats|test/test_helper/bats-(support|assert))/'
+    shfmt --find "${repo_dir}" \
+      | grep --invert-match --extended-regexp '/(\.shdoc|\.direnv|other|test/bats|test/test_helper/bats-(support|assert))/'
     return
   fi
   local arg
@@ -75,7 +75,7 @@ function shell_scripts::filter() {
       log::log "Skipping (no bash/sh shebang): ${file}"
       continue
     fi
-    if [[ ${file} == */other/* ]]; then
+    if [[ "${file}" == */other/* ]]; then
       if ! prompt::ny "Process file under other/: ${file}?"; then
         continue
       fi

@@ -4,8 +4,8 @@
 # @arg $1 package name
 function packages::dpkg_package_installed() {
   args::check_exactly_1_arg "$@"
-  dpkg-query --show --showformat='${Package};${Status}\n' "$1" 2>'/dev/null' |
-    grep::contains_regex_ignore_case "^$1;.*ok installed\$"
+  dpkg-query --show --showformat='${Package};${Status}\n' "$1" 2> '/dev/null' \
+    | grep::contains_regex_ignore_case "^$1;.*ok installed\$"
 }
 
 # @description Print the list of universal packages (appimage/flatpak/nixpkgs) that should be installed on this machine.
@@ -18,39 +18,39 @@ function packages::get_universal() {
   args::check_at_least_1_arg "$@"
   local package_type
   case "$1" in
-  appimage | flatpak | nixpkgs | nixpkgs-unstable)
-    readonly package_type="$1"
-    ;;
-  *)
-    log::die "Unexpected package list type: $1"
-    ;;
+    appimage | flatpak | nixpkgs | nixpkgs-unstable)
+      readonly package_type="$1"
+      ;;
+    *)
+      log::die "Unexpected package list type: $1"
+      ;;
   esac
   shift
   local packages_to_ignore=()
   local quiet=''
   while [[ $# -gt 0 ]]; do
     case "$1" in
-    --ignore)
-      if [[ $# -lt 2 ]]; then
-        log::die '--ignore requires at least one argument'
-      fi
-      shift
-      while [[ $# -gt 0 ]] && [[ ! $1 =~ ^- ]]; do
-        packages_to_ignore+=("$1")
+      --ignore)
+        if [[ $# -lt 2 ]]; then
+          log::die '--ignore requires at least one argument'
+        fi
         shift
-      done
-      ;;
-    --quiet)
-      quiet=1
-      shift
-      ;;
-    -*)
-      log::die "Unexpected flag '$1'"
-      ;;
-    *)
-      # Any remaining non-flag args can be treated as extra inputs or error
-      log::die "Unexpected argument '$1'"
-      ;;
+        while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
+          packages_to_ignore+=("$1")
+          shift
+        done
+        ;;
+      --quiet)
+        quiet=1
+        shift
+        ;;
+      -*)
+        log::die "Unexpected flag '$1'"
+        ;;
+      *)
+        # Any remaining non-flag args can be treated as extra inputs or error
+        log::die "Unexpected argument '$1'"
+        ;;
     esac
   done
   readonly packages_to_ignore
@@ -74,14 +74,14 @@ function packages::get_universal() {
     local -a pkg_infos
     local pkg_infos_tmp
     files::create_temp pkg_infos_tmp
-    downloads::download_and_cat "${package_list_url}" |
-      awk \
+    downloads::download_and_cat "${package_list_url}" \
+      | awk \
         --field-separator ',' \
         --assign "type=${package_type}" \
         --assign "col=${package_list_column}" \
         '$2 == type && $col == "y" && $8 != "" { print "Disabled package: " $3 " (" $8 ")" }' \
-        >"${pkg_infos_tmp}"
-    mapfile -t pkg_infos <"${pkg_infos_tmp}"
+        > "${pkg_infos_tmp}"
+    mapfile -t pkg_infos < "${pkg_infos_tmp}"
     for pkg_info in "${pkg_infos[@]}"; do
       log::log "${pkg_info}"
     done
@@ -89,15 +89,15 @@ function packages::get_universal() {
   local packages_tmp ignore_tmp
   files::create_temp packages_tmp
   files::create_temp ignore_tmp
-  downloads::download_and_cat "${package_list_url}" |
-    awk \
+  downloads::download_and_cat "${package_list_url}" \
+    | awk \
       --field-separator ',' \
       --assign "type=${package_type}" \
       --assign "col=${package_list_column}" \
-      '$2 == type && $col == "y" && $8 == "" { print $3 }' |
-    sort \
-      >"${packages_tmp}"
-  printf '%s\n' "${packages_to_ignore[@]}" | sort >"${ignore_tmp}"
+      '$2 == type && $col == "y" && $8 == "" { print $3 }' \
+    | sort \
+      > "${packages_tmp}"
+  printf '%s\n' "${packages_to_ignore[@]}" | sort > "${ignore_tmp}"
   comm -23 "${packages_tmp}" "${ignore_tmp}"
 }
 
@@ -120,27 +120,27 @@ function packages::get_distro() {
   local quiet=''
   while [[ $# -gt 0 ]]; do
     case "$1" in
-    --ignore)
-      if [[ $# -lt 2 ]]; then
-        log::die '--ignore requires at least one argument'
-      fi
-      shift
-      while [[ $# -gt 0 ]] && [[ ! $1 =~ ^- ]]; do
-        packages_to_ignore+=("$1")
+      --ignore)
+        if [[ $# -lt 2 ]]; then
+          log::die '--ignore requires at least one argument'
+        fi
         shift
-      done
-      ;;
-    --quiet)
-      quiet=1
-      shift
-      ;;
-    -*)
-      log::die "Unexpected flag '$1'"
-      ;;
-    *)
-      # Any remaining non-flag args can be treated as extra inputs or error
-      log::die "Unexpected argument '$1'"
-      ;;
+        while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
+          packages_to_ignore+=("$1")
+          shift
+        done
+        ;;
+      --quiet)
+        quiet=1
+        shift
+        ;;
+      -*)
+        log::die "Unexpected flag '$1'"
+        ;;
+      *)
+        # Any remaining non-flag args can be treated as extra inputs or error
+        log::die "Unexpected argument '$1'"
+        ;;
     esac
   done
   readonly packages_to_ignore
@@ -167,13 +167,13 @@ function packages::get_distro() {
     local -a pkg_infos
     local pkg_infos_tmp
     files::create_temp pkg_infos_tmp
-    downloads::download_and_cat "${package_list_url}" |
-      awk \
+    downloads::download_and_cat "${package_list_url}" \
+      | awk \
         --field-separator ',' \
         --assign "col=${package_list_column}" \
         '$col == "y" && $6 != "" { print "Disabled package: " $1 " (" $6 ")" }' \
-        >"${pkg_infos_tmp}"
-    mapfile -t pkg_infos <"${pkg_infos_tmp}"
+        > "${pkg_infos_tmp}"
+    mapfile -t pkg_infos < "${pkg_infos_tmp}"
     for pkg_info in "${pkg_infos[@]}"; do
       log::log "${pkg_info}"
     done
@@ -181,14 +181,14 @@ function packages::get_distro() {
   local packages_tmp ignore_tmp
   files::create_temp packages_tmp
   files::create_temp ignore_tmp
-  downloads::download_and_cat "${package_list_url}" |
-    awk \
+  downloads::download_and_cat "${package_list_url}" \
+    | awk \
       --field-separator ',' \
       --assign "col=${package_list_column}" \
-      '$col == "y" && $6 == "" { print $1 }' |
-    sort \
-      >"${packages_tmp}"
-  printf '%s\n' "${packages_to_ignore[@]}" | sort >"${ignore_tmp}"
+      '$col == "y" && $6 == "" { print $1 }' \
+    | sort \
+      > "${packages_tmp}"
+  printf '%s\n' "${packages_to_ignore[@]}" | sort > "${ignore_tmp}"
   comm -23 "${packages_tmp}" "${ignore_tmp}"
 }
 
@@ -203,27 +203,27 @@ function packages::get_sdkman() {
   local quiet=''
   while [[ $# -gt 0 ]]; do
     case "$1" in
-    --ignore)
-      if [[ $# -lt 2 ]]; then
-        log::die '--ignore requires at least one argument'
-      fi
-      shift
-      while [[ $# -gt 0 ]] && [[ ! $1 =~ ^- ]]; do
-        packages_to_ignore+=("$1")
+      --ignore)
+        if [[ $# -lt 2 ]]; then
+          log::die '--ignore requires at least one argument'
+        fi
         shift
-      done
-      ;;
-    --quiet)
-      quiet=1
-      shift
-      ;;
-    -*)
-      log::die "Unexpected flag '$1'"
-      ;;
-    *)
-      # Any remaining non-flag args can be treated as extra inputs or error
-      log::die "Unexpected argument '$1'"
-      ;;
+        while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
+          packages_to_ignore+=("$1")
+          shift
+        done
+        ;;
+      --quiet)
+        quiet=1
+        shift
+        ;;
+      -*)
+        log::die "Unexpected flag '$1'"
+        ;;
+      *)
+        # Any remaining non-flag args can be treated as extra inputs or error
+        log::die "Unexpected argument '$1'"
+        ;;
     esac
   done
   readonly packages_to_ignore
@@ -247,13 +247,13 @@ function packages::get_sdkman() {
     local -a pkg_infos
     local pkg_infos_tmp
     files::create_temp pkg_infos_tmp
-    downloads::download_and_cat "${package_list_url}" |
-      awk \
+    downloads::download_and_cat "${package_list_url}" \
+      | awk \
         --field-separator ',' \
         --assign "col=${package_list_column}" \
         '$col == "y" && $7 != "" { print "Disabled package: " $2 " (" $7 ")" }' \
-        >"${pkg_infos_tmp}"
-    mapfile -t pkg_infos <"${pkg_infos_tmp}"
+        > "${pkg_infos_tmp}"
+    mapfile -t pkg_infos < "${pkg_infos_tmp}"
     for pkg_info in "${pkg_infos[@]}"; do
       log::log "${pkg_info}"
     done
@@ -261,13 +261,13 @@ function packages::get_sdkman() {
   local packages_tmp ignore_tmp
   files::create_temp packages_tmp
   files::create_temp ignore_tmp
-  downloads::download_and_cat "${package_list_url}" |
-    awk \
+  downloads::download_and_cat "${package_list_url}" \
+    | awk \
       --field-separator ',' \
       --assign "col=${package_list_column}" \
-      '$col == "y" && $7 == "" { print $2 }' |
-    sort \
-      >"${packages_tmp}"
-  printf '%s\n' "${packages_to_ignore[@]}" | sort >"${ignore_tmp}"
+      '$col == "y" && $7 == "" { print $2 }' \
+    | sort \
+      > "${packages_tmp}"
+  printf '%s\n' "${packages_to_ignore[@]}" | sort > "${ignore_tmp}"
   comm -23 "${packages_tmp}" "${ignore_tmp}"
 }

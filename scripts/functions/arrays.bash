@@ -22,7 +22,7 @@ function arrays::contains() {
   # Explicit returns rather than a trailing [[ ]] test: a search loop cannot be
   # expressed as a single test. Matches the shape of the call sites it replaces.
   for item in "$@"; do
-    if [[ ${item} == "${needle}" ]]; then
+    if [[ "${item}" == "${needle}" ]]; then
       return 0
     fi
   done
@@ -45,7 +45,7 @@ function arrays::diff() {
   local first_tmp second_tmp
   files::create_temp first_tmp
   files::create_temp second_tmp
-  [[ ${#first_array[@]} -gt 0 ]] && arrays::to_lines "${first_array[@]}" >"${first_tmp}" || true
-  [[ ${#second_array[@]} -gt 0 ]] && arrays::to_lines "${second_array[@]}" >"${second_tmp}" || true
+  [[ "${#first_array[@]}" -gt 0 ]] && arrays::to_lines "${first_array[@]}" > "${first_tmp}" || true
+  [[ "${#second_array[@]}" -gt 0 ]] && arrays::to_lines "${second_array[@]}" > "${second_tmp}" || true
   comm -23 "${first_tmp}" "${second_tmp}"
 }

@@ -168,8 +168,8 @@ function main() {
   SCRIPTS_AUTO_ANSWER='y' "$(dirname "${SCRIPTS_DIR}")/run-set-up-scripts"
 
   log 'Getting de-400 connection file'
-  dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' |
-    sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' >'/dev/null'
+  dl_decrypt 'https://raw.githubusercontent.com/rvenutolo/crypt/main/misc/de-400.nmconnection' \
+    | sudo tee '/etc/NetworkManager/system-connections/de-400.nmconnection' > '/dev/null'
   sudo chmod 600 '/etc/NetworkManager/system-connections/de-400.nmconnection'
 
   log 'Setting dconf settings'
@@ -202,7 +202,7 @@ function main() {
     'org.gnome.system.location enabled true'
   )
   for line in "${gsettings[@]}"; do
-    IFS=' ' read -r schema key value <<<"${line}"
+    IFS=' ' read -r schema key value <<< "${line}"
     gsettings set "${schema}" "${key}" "${value}"
   done
 
@@ -214,7 +214,7 @@ function main() {
   )
   local url package_num
   for url in "${gnome_extensions[@]}"; do
-    package_num="$(cut --delimiter='/' --fields=5 <<<"${url}")"
+    package_num="$(cut --delimiter='/' --fields=5 <<< "${url}")"
     log "Installing extension from URL: ${url}"
     gext --filesystem install "${package_num}"
   done
@@ -247,7 +247,7 @@ function main() {
       '.var/app/com.slack.Slack'
       'carbonblack'
     )
-    printf '%s\n' "${home_dir_files_to_copy[@]}" >'/tmp/home_dir_files_to_copy'
+    printf '%s\n' "${home_dir_files_to_copy[@]}" > '/tmp/home_dir_files_to_copy'
     rsync --archive --executability --recursive \
       --files-from='/tmp/home_dir_files_to_copy' \
       '172.16.0.157:/backup/work/home' "${HOME}"
