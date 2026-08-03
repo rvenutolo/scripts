@@ -81,8 +81,8 @@ function main() {
       continue
     fi
     relative="${file#"${REPO_DIR}/"}"
-    # First match wins; see .claude/specs/2026-08-03-check-executable-bit-design.md
-    # for why each arm is ordered where it is.
+    # First match wins; see issue #171 and the "Preserving the executable bit"
+    # section of CLAUDE.md for why each arm is ordered where it is.
     case "${relative}" in
       scripts/install/* | scripts/set_up/*)
         # The exec bit gates these runners, so both states are legitimate here.
