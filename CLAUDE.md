@@ -254,6 +254,22 @@ For absolute-path resolution (when you need the path, not just a yes/no): helper
 
 **Overrides** the generic `tmp="$(mktemp)"` rule in `.claude/rules/shell-scripts.md`. Use the `files::create_temp tmp_var_name` helper from `functions/files.bash`. Do NOT install an EXIT trap or otherwise manually `rm` the temp file at end of script. Temporary files created under `/tmp` are managed by the OS (tmpfs reboot wipe + systemd-tmpfiles age-based cleanup), so process-level cleanup adds complexity (EXIT-trap clobbering between multiple temp files, accounting for early exits) without buying anything. Standalone scripts under `misc/` that cannot source `.functions.bash` should call `mktemp` directly and similarly omit any cleanup trap.
 
+### Preserving the executable bit
+
+The `files::create_temp` → edit → `files::move_no_prompt_quiet` idiom **replaces** the destination
+file rather than editing it in place, so the destination inherits `mktemp`'s restrictive `0600` mode
+and silently loses its executable bit. This has already broken 23 `PATH` scripts once (#171): every
+gate — `check-scripts`, `nix flake check`, `./run-tests`, all of CI — passed on the broken tree.
+
+Any bulk rewrite of top-level scripts must therefore either edit in place (`sed --in-place`) or
+re-`chmod +x` afterwards, and must confirm with `git diff --summary` before committing — a stripped
+bit shows up there as `mode change 100755 => 100644` and nowhere else in a normal diff.
+
+`.ci/check-executable-bit` now enforces this: shebang-bearing scripts under
+`scripts/non-interactive/`, `scripts/interactive/`, `scripts/misc/`, `.ci/`, `.githooks/`, and the
+repo root must be executable, and every `*.bash` / `*.bats` file must not be. `scripts/install/` and
+`scripts/set_up/` are exempt — the exec bit is the documented gate for those runners.
+
 ### Network retry
 
 Use `retry::with_linear_backoff <max_tries> <base_sleep> <cmd...>` from `functions/retry.bash`. Prefer linear backoff unless there is a specific reason to grow the wait exponentially (in which case use `retry::with_exponential_backoff`). Do NOT hand-roll `until cmd; do ...; sleep N; done` loops.

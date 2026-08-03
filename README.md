@@ -36,7 +36,7 @@ Most repo-level operations have both a shell script and a `just` recipe (see [`.
 | --------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------- |
 | `./.ci/build-docs && mkdocs build --strict --config-file .mkdocs.yml` | `just docs`              | Build the docs site locally (requires `mkdocs`).                                |
 | `./.ci/check-shdoc-headers`                                           | `just shdoc-check`       | Audit shdoc header coverage on scripts and library helpers.                     |
-| `./check-scripts [<paths>...]`                                        | `just check` (default)   | Combined `shellcheck` and shdoc-header audit; non-zero exit on failure.         |
+| `./check-scripts [<paths>...]`                                        | `just check` (default)   | Combined `shellcheck`, shdoc-header, and executable-bit audit; non-zero exit on failure. |
 | `nix fmt`                                                             | `just format`            | Format every file via treefmt (shfmt for shell).                                |
 | `nix flake check`                                                     | `just format-check`      | Verify formatting (treefmt) and run flake checks.                               |
 | `./run-install-scripts`                                               | `just install`           | Provision a new machine — runs every executable file under `install/` in order. |
