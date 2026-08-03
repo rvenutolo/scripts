@@ -18,9 +18,9 @@ function path::remove() {
     return
   fi
   PATH="$(
-    printf '%s' "${PATH}" |
-      awk -v 'RS=:' -v 'ORS=:' -v "path=${dir}" '$0 != path' |
-      sed 's/:$//'
+    printf '%s' "${PATH}" \
+      | awk -v 'RS=:' -v 'ORS=:' -v "path=${dir}" '$0 != path' \
+      | sed 's/:$//'
   )"
 }
 

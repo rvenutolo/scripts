@@ -41,8 +41,8 @@ function shell_scripts::find() {
     # derived via git; tests set REPO_DIR to point the scan at a fixture tree.
     local repo_dir
     repo_dir="${REPO_DIR:-$(git rev-parse --show-toplevel)}"
-    shfmt --find "${repo_dir}" |
-      grep --invert-match --extended-regexp '/(\.shdoc|\.direnv|other|test/bats|test/test_helper/bats-(support|assert))/'
+    shfmt --find "${repo_dir}" \
+      | grep --invert-match --extended-regexp '/(\.shdoc|\.direnv|other|test/bats|test/test_helper/bats-(support|assert))/'
     return
   fi
   local arg

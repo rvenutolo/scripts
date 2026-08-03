@@ -12,9 +12,9 @@
 # Output: stdout — fixture path
 function os_release_fixture::create() {
   local -r fixture="${BATS_TEST_TMPDIR}/os-release"
-  : >"${fixture}"
+  : > "${fixture}"
   for line in "$@"; do
-    printf '%s\n' "${line}" >>"${fixture}"
+    printf '%s\n' "${line}" >> "${fixture}"
   done
   printf '%s\n' "${fixture}"
 }

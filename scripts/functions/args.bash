@@ -198,22 +198,22 @@ function args::print_help() {
       current_tag="${BASH_REMATCH[1]}"
       content="${BASH_REMATCH[2]}"
       case "${current_tag}" in
-      description) description="${content}" ;;
-      arg) args_list+=("${content}") ;;
-      exitcode) exitcodes+=("${content}") ;;
-      stdout) stdout_text="${content}" ;;
-      stderr) stderr_text="${content}" ;;
-      example) example_lines=() ;;
-      noargs) args_list=() ;;
+        description) description="${content}" ;;
+        arg) args_list+=("${content}") ;;
+        exitcode) exitcodes+=("${content}") ;;
+        stdout) stdout_text="${content}" ;;
+        stderr) stderr_text="${content}" ;;
+        example) example_lines=() ;;
+        noargs) args_list=() ;;
       esac
     elif [[ ${line} =~ ^#[[:space:]]+(.+)$ ]]; then
       content="${BASH_REMATCH[1]}"
       case "${current_tag}" in
-      description) description+=$'\n  '"${content}" ;;
-      example) example_lines+=("${content}") ;;
+        description) description+=$'\n  '"${content}" ;;
+        example) example_lines+=("${content}") ;;
       esac
     fi
-  done <"${script_path}"
+  done < "${script_path}"
 
   printf '%s\n' "${script_name}"
   if strings::is_not_empty "${description}"; then
@@ -256,11 +256,11 @@ function args::handle_help_flag() {
   local arg
   for arg in "$@"; do
     case "${arg}" in
-    -h | --help)
-      # shellcheck disable=SC2119 # intentional no-arg call; print_help defaults to $0
-      args::print_help
-      exit 0
-      ;;
+      -h | --help)
+        # shellcheck disable=SC2119 # intentional no-arg call; print_help defaults to $0
+        args::print_help
+        exit 0
+        ;;
     esac
   done
 }
@@ -278,9 +278,9 @@ function args::has_cli_probe_flag() { # variadic: scans 0+ args, no fixed arity 
   local arg
   for arg in "$@"; do
     case "${arg}" in
-    --version | --help)
-      found='y'
-      ;;
+      --version | --help)
+        found='y'
+        ;;
     esac
   done
   [[ ${found} == 'y' ]]

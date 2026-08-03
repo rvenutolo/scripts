@@ -91,8 +91,8 @@ function strings::ensure_trailing_slash() {
   local -r str="$1"
   if strings::is_not_empty "${str}"; then
     case "${str}" in
-    */) printf '%s\n' "${str}" ;;
-    *) printf '%s\n' "${str}/" ;;
+      */) printf '%s\n' "${str}" ;;
+      *) printf '%s\n' "${str}/" ;;
     esac
   else
     printf '%s\n' "${str}"

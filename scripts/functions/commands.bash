@@ -13,7 +13,7 @@ function commands::executable_exists() {
     path::remove "${SCRIPTS_DIR}/interactive"
     path::remove "${SCRIPTS_DIR}/other"
     # executables / no builtins, aliases, or functions
-    type -aPf "$1" >'/dev/null' 2>&1
+    type -aPf "$1" > '/dev/null' 2>&1
   )
 }
 
@@ -26,7 +26,7 @@ function commands::executable_path() {
     path::remove "${SCRIPTS_DIR}/non-interactive"
     path::remove "${SCRIPTS_DIR}/interactive"
     path::remove "${SCRIPTS_DIR}/other"
-    type -Pf "$1" 2>'/dev/null'
+    type -Pf "$1" 2> '/dev/null'
   )
 }
 
@@ -48,5 +48,5 @@ function commands::assert_executable_exists() {
 # @exitcode 1 if false
 function commands::function_exists() {
   args::check_exactly_1_arg "$@"
-  declare -f "$1" >'/dev/null' 2>&1
+  declare -f "$1" > '/dev/null' 2>&1
 }
