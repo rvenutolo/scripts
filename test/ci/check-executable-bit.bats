@@ -147,6 +147,23 @@ run_check() {
   assert_success
 }
 
+@test "rule 1 precedes rule 2: an executable .bash under install/ passes" {
+  # The install/set_up skip is checked before the *.bash rule, so a library
+  # file there is exempt from the must-not-be-executable rule. Swapping the
+  # two case arms would make this fail.
+  make_script 'scripts/install/helper.bash' exec
+  run_check
+  assert_success
+}
+
+@test "an executable script under scripts/set_up/ passes" {
+  # Rule 1 is a skip in both directions — set_up/ scripts may be executable
+  # (enabled) or not (gated), and neither is a violation.
+  make_script 'scripts/set_up/enabled-thing' exec
+  run_check
+  assert_success
+}
+
 @test "passes on a shell-extension file with no shebang" {
   # shfmt --find matches by extension as well as by shebang, so this file DOES
   # reach rule 3 — only assert_executable's shebang gate lets it through.
@@ -175,6 +192,7 @@ run_check() {
 @test "prints help and exits 0 for --help" {
   run_check --help
   assert_success
+  assert_output --partial 'executable-bit convention'
 }
 
 @test "dies when given an unexpected argument" {
