@@ -79,6 +79,32 @@ function assert_not_executable() {
   return 1
 }
 
+# @description Report violations for stale GATED entries. An entry whose file no
+#              longer exists, or one that has been re-enabled with chmod +x but
+#              left in the array, silently shrinks the enforced set — the drift
+#              failure mode the central allowlist trades for centralization.
+# @noargs
+# @stderr One line per stale entry, naming it and the reason.
+# @exitcode 0 every GATED entry exists and is non-executable
+# @exitcode 1 one or more entries are stale
+# shellcheck disable=SC2120,SC2119 # function takes no args; args::check_no_args enforces that
+function assert_gated_entries_current() {
+  args::check_no_args "$@"
+  local gated_rc=0
+  local entry path
+  for entry in "${GATED[@]}"; do
+    path="${REPO_DIR}/${entry}"
+    if ! files::exists "${path}"; then
+      printf '%s: gated entry does not exist (remove it from GATED)\n' "${entry}" >&2
+      gated_rc=1
+    elif files::is_executable "${path}"; then
+      printf '%s: gated entry is executable (remove it from GATED)\n' "${entry}" >&2
+      gated_rc=1
+    fi
+  done
+  return "${gated_rc}"
+}
+
 function main() {
   args::check_no_args "$@"
   local candidates_file
@@ -120,6 +146,9 @@ function main() {
         ;;
     esac
   done < "${candidates_file}"
+  # Runs outside the loop: a stale GATED entry is a property of the array, not
+  # of any file the classifier visited — a deleted entry is never visited at all.
+  assert_gated_entries_current || rc=1
   if ((rc != 0)); then
     log::warn 'executable-bit audit failed — see above for details.'
   fi

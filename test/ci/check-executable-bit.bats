@@ -240,6 +240,22 @@ run_check() {
   assert_output --partial 'Expected no arguments'
 }
 
+@test "fails when a gated entry has been re-enabled with chmod +x" {
+  chmod +x "${REPO}/scripts/set_up/docker/enable-rootless-docker"
+  run_check
+  assert_failure
+  assert_output --partial 'scripts/set_up/docker/enable-rootless-docker'
+  assert_output --partial 'gated entry is executable'
+}
+
+@test "fails when a gated entry no longer exists on disk" {
+  rm "${REPO}/scripts/set_up/tailscale/set-tailscale-netfilter-mode"
+  run_check
+  assert_failure
+  assert_output --partial 'scripts/set_up/tailscale/set-tailscale-netfilter-mode'
+  assert_output --partial 'gated entry does not exist'
+}
+
 @test "exits 0 against the real repo" {
   cd "${REAL_REPO_DIR}"
   run "${CHECK}"
