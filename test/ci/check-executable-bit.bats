@@ -252,6 +252,18 @@ run_check() {
   assert_success
 }
 
+@test "fails when a .bash under scripts/other/ is not executable" {
+  # Pins the scripts/other/ arm's placement AHEAD of the *.bash | *.bats rule.
+  # Under the current order this file is held to the must-be-executable rule, so a
+  # non-executable one is a violation. Move the other/ arm after the library rule
+  # and it would instead be required NOT to be executable, flipping this assertion.
+  make_script 'scripts/other/vendored.bash'
+  run_check
+  assert_failure
+  assert_output --partial 'scripts/other/vendored.bash'
+  assert_output --partial 'must be executable'
+}
+
 @test "reports every stale gated entry in a single run" {
   # Pins aggregation: an implementation that returned on the first stale entry
   # would pass the two single-violation tests but fail this one.
