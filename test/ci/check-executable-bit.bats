@@ -11,7 +11,7 @@ setup() {
   # tmpdir is all the isolation needed. SCRIPTS_DIR keeps pointing at the real
   # library: the check sources it, but classifies purely on paths relative to
   # the repo root, so nothing has to be staged into the fixture.
-  mkdir --parents "${REPO}"/scripts/{non-interactive,interactive,misc,functions,install,set_up}
+  mkdir --parents "${REPO}"/scripts/{non-interactive,interactive,misc,functions,install,set_up,other}
   mkdir --parents "${REPO}"/scripts/set_up/{docker,sysctl,tailscale}
   mkdir --parents "${REPO}/.ci" "${REPO}/.githooks" "${REPO}/test/ci" "${REPO}/lib"
   git init --quiet "${REPO}"
@@ -24,6 +24,7 @@ setup() {
   make_script '.ci/check-good' exec
   make_script '.githooks/good-hook' exec
   make_script 'run-tests' exec
+  make_script 'scripts/other/vendored' exec
   make_script 'scripts/functions/topic.bash'
   make_bats 'test/ci/thing.bats'
 
@@ -226,6 +227,40 @@ run_check() {
   assert_failure
   assert_output --partial 'scripts/non-interactive/bad-one'
   assert_output --partial 'scripts/functions/bad-two.bash'
+}
+
+@test "fails when a script under scripts/other/ is not executable" {
+  make_script 'scripts/other/stripped'
+  run_check
+  assert_failure
+  assert_output --partial 'scripts/other/stripped'
+  assert_output --partial 'must be executable'
+}
+
+@test "passes when a script under scripts/other/ is executable" {
+  make_script 'scripts/other/vendored-two' exec
+  run_check
+  assert_success
+}
+
+@test "passes on a file under scripts/other/ with no shebang" {
+  # scripts/other/README in the real tree. No shebang and no shell extension, so
+  # shfmt --find never emits it and it does not reach the classifier at all;
+  # assert_executable's shebang gate is the second line of defense.
+  printf 'not a script\n' > "${REPO}/scripts/other/README"
+  run_check
+  assert_success
+}
+
+@test "reports every stale gated entry in a single run" {
+  # Pins aggregation: an implementation that returned on the first stale entry
+  # would pass the two single-violation tests but fail this one.
+  chmod +x "${REPO}/scripts/set_up/docker/enable-rootless-docker"
+  rm "${REPO}/scripts/set_up/tailscale/set-tailscale-netfilter-mode"
+  run_check
+  assert_failure
+  assert_output --partial 'scripts/set_up/docker/enable-rootless-docker'
+  assert_output --partial 'scripts/set_up/tailscale/set-tailscale-netfilter-mode'
 }
 
 @test "prints help and exits 0 for --help" {
