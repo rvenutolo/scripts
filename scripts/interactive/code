@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# @description Launch the Visual Studio Code flatpak (id: com.visualstudio.code) attached to the terminal, forwarding all args.
+# @description Launch the Visual Studio Code flatpak (id: com.visualstudio.code), forwarding all args.
+#              Runs attached to the terminal, so output and exit status reach the caller.
 # @arg $@ args Arguments forwarded verbatim to the flatpak app.
 # @exitcode 1 flatpak application is not installed
 

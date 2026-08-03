@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # @description Launch the Vivaldi flatpak (id: com.vivaldi.Vivaldi), forwarding all args.
+#              Runs detached so the shell prompt returns immediately; `--version` and `--help` run attached.
 # @arg $@ args Arguments forwarded verbatim to the flatpak app.
 # @exitcode 1 flatpak application is not installed
 
