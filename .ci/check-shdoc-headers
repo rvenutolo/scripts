@@ -10,7 +10,7 @@
 #              description is intentionally not required because library files
 #              are documented function-by-function.
 # @noargs
-# @stdout Empty on success. On failure: one block per failing file with the
+# @stderr Empty on success. On failure: one block per failing file with the
 #         missing-header reason and any unannotated function names.
 # @exitcode 0 every in-scope file passes the appropriate annotation rule.
 # @exitcode 1 one or more files are missing required shdoc annotations.

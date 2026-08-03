@@ -184,3 +184,14 @@ EOF
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
+
+@test "prints help under a Stderr heading and exits 0 for --help" {
+  # The violation output goes to stderr (audit_one / audit_library_one both end
+  # in >&2), and args::handle_help_flag renders the file-level shdoc tags into
+  # --help. A 'Stdout:' heading here would mean the header tag is mislabelled.
+  cd "${REPO}"
+  run_check --help
+  assert_success
+  assert_output --partial 'Stderr:'
+  refute_output --partial 'Stdout:'
+}
