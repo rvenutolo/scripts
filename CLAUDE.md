@@ -275,7 +275,9 @@ those runners, but the exceptions are now enumerated instead of the directories 
 blanket skip left 78 of 81 in-scope files unenforced to protect 3 (#173). Each `GATED` entry must
 itself exist and be non-executable, so a stale line cannot silently disarm the lint. `scripts/other/`
 is included because it is always on `PATH`; the standing "never modify `other/`" rule governs
-content, not file mode (#175).
+content, not file mode (#175). A `*.bash` file under `scripts/other/` is held to the
+must-be-executable rule rather than the library-file rule — the `scripts/other/` arm is matched
+first on purpose, because we impose no naming conventions on third-party content.
 
 ### Network retry
 
