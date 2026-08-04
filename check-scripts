@@ -43,11 +43,11 @@ fi
 # treefmt's shfmt only ever sees *.sh/*.bash — leaving the ~306 extensionless
 # executables and ~68 .bats files with no formatting gate at all.
 #
-# The style flags are spelled out rather than left to .editorconfig for the same
-# reason: its shell settings live under [*.{sh,bash}], which never matches an
-# extensionless script, so relying on it would silently apply a different style here
-# than under scripts/functions/. Keep these in sync with the shfmt options in
-# .treefmt.nix and the [*.{sh,bash}] section of .editorconfig.
+# No style flags are passed on purpose. shfmt reads .editorconfig for style, but ONLY
+# when it is given no parser or printer flag — adding -i/-ci/-bn/-sr here would
+# silently disable that and fork the style definition between this gate and
+# .treefmt.nix. --list and --diff are top-level flags and do not disable it. The single
+# source of truth for shell style is .editorconfig.
 shfmt_targets=()
 for candidate in "${candidates[@]}"; do
   # Never format-check third-party scripts. shell_scripts::find already excludes
@@ -58,8 +58,7 @@ for candidate in "${candidates[@]}"; do
   shfmt_targets+=("${candidate}")
 done
 if [[ "${#shfmt_targets[@]}" -gt 0 ]]; then
-  shfmt --list --indent 2 --case-indent --binary-next-line --space-redirects --diff \
-    -- "${shfmt_targets[@]}" || rc=1
+  shfmt --list --diff -- "${shfmt_targets[@]}" || rc=1
 fi
 
 files=()

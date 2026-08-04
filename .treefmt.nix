@@ -22,20 +22,14 @@ in
   # quotes inside `[[ ]]`, which contradicts the repo's quote-every-expansion rule and,
   # for `=~`, silently turns a literal match into a regex match.
   #
-  # Flags are spelled out rather than left to .editorconfig: shfmt ignores EditorConfig
-  # entirely once any parser or printer flag is passed, and a formatter entry must pass
-  # at least --write. Keep these in sync with the [*.{sh,bash}] section of
-  # .editorconfig and the documented style in CLAUDE.md.
+  # Style is NOT set here — see .editorconfig, which shfmt reads directly.
   settings.formatter.shfmt = {
     command = "${pkgs.shfmt}/bin/shfmt";
-    options = [
-      "--write"
-      "--indent"
-      "2"
-      "--case-indent"
-      "--binary-next-line"
-      "--space-redirects"
-    ];
+    # Only --write: shfmt reads .editorconfig for style, but ONLY when given no parser
+    # or printer flag. Passing -i/-ci/-bn/-sr here would silently disable that and
+    # fork the style definition. --write/--list/--diff are top-level flags and do not
+    # disable it. Style lives in .editorconfig; keep it there.
+    options = [ "--write" ];
     includes = [
       "*.sh"
       "*.bash"
