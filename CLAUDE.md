@@ -60,7 +60,17 @@ Tooling is provided by a **Nix flake devShell** (see [Required Environment](#req
 
 - `./check-scripts [<file-or-dir>...]` — combined check: runs `shfmt` (verify only, never rewrites), `shellcheck`, the shdoc-header audit (`.ci/check-shdoc-headers`), and the executable-bit audit (`.ci/check-executable-bit`), aggregating exit codes so a failure in any of them fails the run. Use this for CI/pre-commit-style verification.
 
-  The shfmt step is not redundant with `nix fmt`: treefmt matches by file extension, so it never sees the extensionless top-level executables or `*.bats` files. This step covers them, running over the pre-filter candidate list so `*.bats` files are included (they start with `@test` rather than a shebang, so `shell_scripts::filter` drops them from the shellcheck list). Its style flags are spelled out in the script rather than read from `.editorconfig`, because `.editorconfig`'s shell settings live under `[*.{sh,bash}]` and never match an extensionless script — keep them in sync with `.treefmt.nix`.
+  The shfmt step is not redundant with `nix fmt`: treefmt matches by file extension, so it never sees the extensionless top-level executables or `*.bats` files. This step covers them, running over the pre-filter candidate list so `*.bats` files are included (they start with `@test` rather than a shebang, so `shell_scripts::filter` drops them from the shellcheck list). It passes no style flags — see [Shell style lives in `.editorconfig`](#shell-style-lives-in-editorconfig).
+
+### Shell style lives in `.editorconfig`
+
+`.editorconfig` is the single source of truth for shell formatting. Both shfmt call sites — treefmt's formatter entry in `.treefmt.nix` and the shfmt step in `check-scripts` — deliberately pass **no** parser or printer flags, because shfmt reads `.editorconfig` only when given none. `--write`, `--list`, and `--diff` are top-level flags and do not disable it; `-i`, `-ci`, `-bn`, `-sr`, and `-s` do.
+
+Change shell style in `.editorconfig` and nowhere else. Adding a style flag at either call site silently overrides this file and forks the definition.
+
+Because this repo's top-level executables have **no extension** by convention, `[*.{sh,bash,bats}]` alone would miss roughly 306 of them, so `.editorconfig` also carries path-based sections for `.ci/`, `.githooks/`, `scripts/{non-interactive,interactive,install,misc,set_up}/`, and the repo-root runners. `scripts/other/` is deliberately absent — third-party scripts are never reformatted. A new directory of executables needs a matching section, or its scripts silently fall back to the `[*]` defaults.
+
+Note that `switch_case_indent`, `binary_next_line`, and `space_redirects` are shfmt-specific properties. Editors and `editorconfig-checker` ignore them; only shfmt acts on them.
 
 - `./run-install-scripts` — provision new machine. Sources `~/.profile`, validates sudo, runs every executable file under `install/` in `LC_COLLATE=C` order.
 

@@ -8,7 +8,36 @@ indent_size = 2
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-[*.{sh,bash}]
+# Shell style, consumed by shfmt. switch_case_indent / binary_next_line /
+# space_redirects are shfmt-specific properties; editors and editorconfig-checker
+# ignore them. shfmt only reads this file when it is invoked with no parser or printer
+# flags, so .treefmt.nix and check-scripts must pass none.
+#
+# The path list exists because this repo's top-level executables have NO extension by
+# convention, so *.sh/*.bash alone would miss ~306 of them. scripts/other/ is
+# deliberately absent: third-party scripts are never reformatted.
+[*.{sh,bash,bats}]
+indent_style = space
+indent_size = 2
+switch_case_indent = true
+binary_next_line = true
+space_redirects = true
+
+[{.ci,.githooks}/**]
+indent_style = space
+indent_size = 2
+switch_case_indent = true
+binary_next_line = true
+space_redirects = true
+
+[scripts/{non-interactive,interactive,install,misc,set_up}/**]
+indent_style = space
+indent_size = 2
+switch_case_indent = true
+binary_next_line = true
+space_redirects = true
+
+[{check-scripts,shellcheck-scripts,run-install-scripts,run-set-up-scripts,run-tests}]
 indent_style = space
 indent_size = 2
 switch_case_indent = true
