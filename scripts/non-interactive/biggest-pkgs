@@ -31,8 +31,8 @@ function installed_sizes() {
       /^Installed Size +:/ { printf "%d\t%s\n", $4 * mult[$5], name }
     '
   elif os::is_debian || os::is_ubuntu; then
-    dpkg-query --show --showformat='${Installed-Size}\t${Package}\n' |
-      awk --field-separator '\t' '{ printf "%d\t%s\n", $1 * 1024, $2 }'
+    dpkg-query --show --showformat='${Installed-Size}\t${Package}\n' \
+      | awk --field-separator '\t' '{ printf "%d\t%s\n", $1 * 1024, $2 }'
   elif os::is_fedora || os::is_leap || os::is_tumbleweed; then
     rpm --query --all --queryformat='%{SIZE}\t%{NAME}\n'
   else

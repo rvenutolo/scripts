@@ -29,9 +29,9 @@ function port_pids() {
   # shellcheck disable=SC2154 # out_tmp assigned by files::create_temp via nameref
   "${ss_cmd[@]}" > "${out_tmp}"
   # grep exits 1 on no match; that is the empty case, not an error
-  { grep --only-matching 'pid=[0-9]\+' "${out_tmp}" || true; } |
-    cut --delimiter='=' --fields=2 |
-    sort --unique
+  { grep --only-matching 'pid=[0-9]\+' "${out_tmp}" || true; } \
+    | cut --delimiter='=' --fields=2 \
+    | sort --unique
 }
 
 # @description Resolve pids on the port and kill each after per-pid confirmation.

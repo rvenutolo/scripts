@@ -36,7 +36,7 @@ diff --color=always --report-identical-files --unified --text \
   > "${diff_output}" && diff_status=0 || diff_status=$?
 # diff exits 0 when identical and 1 when the files differ; both are expected, non-error
 # outcomes. Only a status greater than 1 means diff itself failed.
-if (( diff_status > 1 )); then
+if ((diff_status > 1)); then
   log::die 'diff failed to compare the files'
 fi
 text::skip_first_lines "${diff_output}" 3

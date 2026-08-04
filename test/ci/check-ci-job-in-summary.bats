@@ -12,7 +12,7 @@ write_ruleset() {
   printf '%s\n' "$@" \
     | jq -R . \
     | jq -s '{name:"protect-main", rules:[{type:"required_status_checks", parameters:{required_status_checks: map({context: .})}}]}' \
-    > "${RULESET}"
+      > "${RULESET}"
 }
 
 # write_workflow <filename> <jobspec...>  where jobspec = "key" or "key:name".

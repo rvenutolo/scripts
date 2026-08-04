@@ -52,13 +52,15 @@ Every non-`misc/` script sources `"${SCRIPTS_DIR}/.functions.bash"`. Exception: 
 
 Tooling is provided by a **Nix flake devShell** (see [Required Environment](#required-environment)). Run `nix fmt` / `nix flake check` from the repo; the repo scripts below run inside the flake devShell (`nix develop --command ...` or via direnv).
 
-- `nix fmt` — formats every file in the repo via treefmt (shfmt for shell, plus the other configured formatters). Replaces the now-retired in-place formatter script.
+- `nix fmt` — formats files via treefmt (shfmt for shell, plus the other configured formatters). Replaces the now-retired in-place formatter script. **It does not cover every shell file:** treefmt matches formatters by file extension, so its shfmt only sees `*.sh` / `*.bash` / `*.envrc`. The extensionless top-level executables and `*.bats` files are outside its reach — `./check-scripts` carries the shfmt gate for those (see below).
 
 - `nix flake check` — verifies formatting (treefmt) and runs the flake's checks. This is the formatting gate.
 
 - `./shellcheck-scripts [<file-or-dir>...]` — runs `shellcheck` over the given files/dirs, or over all shell files except `other/` when no args. All scripts must pass.
 
-- `./check-scripts [<file-or-dir>...]` — combined check: runs `shellcheck` and the shdoc-header audit (`.ci/check-shdoc-headers`) over the same set, aggregates exit codes (exits non-zero if either fails). It no longer runs shfmt — formatting is handled by `nix fmt` / `nix flake check`. Use this for CI/pre-commit-style verification.
+- `./check-scripts [<file-or-dir>...]` — combined check: runs `shfmt` (verify only, never rewrites), `shellcheck`, the shdoc-header audit (`.ci/check-shdoc-headers`), and the executable-bit audit (`.ci/check-executable-bit`), aggregating exit codes so a failure in any of them fails the run. Use this for CI/pre-commit-style verification.
+
+  The shfmt step is not redundant with `nix fmt`: treefmt matches by file extension, so it never sees the extensionless top-level executables or `*.bats` files. This step covers them, running over the pre-filter candidate list so `*.bats` files are included (they start with `@test` rather than a shebang, so `shell_scripts::filter` drops them from the shellcheck list). Its style flags are spelled out in the script rather than read from `.editorconfig`, because `.editorconfig`'s shell settings live under `[*.{sh,bash}]` and never match an extensionless script — keep them in sync with `.treefmt.nix`.
 
 - `./run-install-scripts` — provision new machine. Sources `~/.profile`, validates sudo, runs every executable file under `install/` in `LC_COLLATE=C` order.
 

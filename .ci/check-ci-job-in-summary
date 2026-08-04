@@ -109,8 +109,8 @@ function main() {
   files::create_temp extra_tmp
   files::create_temp unresolved_tmp
   comm -23 "${required_tmp}" "${table_names_tmp}" > "${missing_tmp}" # no long-form equivalent
-  comm -13 "${required_tmp}" "${table_names_tmp}" > "${extra_tmp}" # no long-form equivalent
-  comm -23 "${required_tmp}" "${jobs_tmp}" > "${unresolved_tmp}" # no long-form equivalent
+  comm -13 "${required_tmp}" "${table_names_tmp}" > "${extra_tmp}"   # no long-form equivalent
+  comm -23 "${required_tmp}" "${jobs_tmp}" > "${unresolved_tmp}"     # no long-form equivalent
 
   local ctx
   while IFS= read -r ctx; do
