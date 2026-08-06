@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
-# @description Pass-through to the real `claude` binary with --dangerously-skip-permissions.
-#              Fails if CLAUDE_CONFIG_DIR is not set (no ~/.claude fallback).
+# @description Launch `claude` (via the config-dir-resolving wrapper in
+#              non-interactive/) with --dangerously-skip-permissions.
 # @arg $@ args Optional arguments forwarded verbatim to claude.
-# @exitcode 1 CLAUDE_CONFIG_DIR is not set
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -13,8 +12,6 @@ source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 # pass-through: any arg count valid (forwarded to claude)
 
-# remove this dir from the path so executing `claude` doesn't run this script
-path::remove "$(misc::this_script_dir)"
-
-env::assert_var_set 'CLAUDE_CONFIG_DIR'
+# `claude` resolves to scripts/non-interactive/claude, which handles
+# CLAUDE_CONFIG_DIR honor-or-derive selection
 exec claude --dangerously-skip-permissions "$@"

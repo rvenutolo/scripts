@@ -440,6 +440,79 @@ make_multiline_session() {
   assert_output --partial 'Expected exactly 2 arguments'
 }
 
+# ---------- claude::config_dir ----------
+
+@test "config_dir: honors a set CLAUDE_CONFIG_DIR even under the work tree" {
+  export WORK_PROJECTS_DIR="${BATS_TEST_TMPDIR}/Work"
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${WORK_PROJECTS_DIR}/repo"
+  cd "${WORK_PROJECTS_DIR}/repo"
+  export CLAUDE_CONFIG_DIR='/custom/dir'
+  run claude::config_dir
+  assert_success
+  assert_output '/custom/dir'
+}
+
+@test "config_dir: empty CLAUDE_CONFIG_DIR derives instead" {
+  export WORK_PROJECTS_DIR="${BATS_TEST_TMPDIR}/Work"
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${WORK_PROJECTS_DIR}/repo"
+  cd "${WORK_PROJECTS_DIR}/repo"
+  CLAUDE_CONFIG_DIR='' run claude::config_dir
+  assert_success
+  assert_output "${XDG_CONFIG_HOME}/claude/work"
+}
+
+@test "config_dir: work projects dir itself derives work" {
+  unset CLAUDE_CONFIG_DIR
+  export WORK_PROJECTS_DIR="${BATS_TEST_TMPDIR}/Work"
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${WORK_PROJECTS_DIR}"
+  cd "${WORK_PROJECTS_DIR}"
+  run claude::config_dir
+  assert_success
+  assert_output "${XDG_CONFIG_HOME}/claude/work"
+}
+
+@test "config_dir: nested dir under work projects derives work" {
+  unset CLAUDE_CONFIG_DIR
+  export WORK_PROJECTS_DIR="${BATS_TEST_TMPDIR}/Work"
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${WORK_PROJECTS_DIR}/repo/src/main"
+  cd "${WORK_PROJECTS_DIR}/repo/src/main"
+  run claude::config_dir
+  assert_success
+  assert_output "${XDG_CONFIG_HOME}/claude/work"
+}
+
+@test "config_dir: dir outside work projects derives personal" {
+  unset CLAUDE_CONFIG_DIR
+  export WORK_PROJECTS_DIR="${BATS_TEST_TMPDIR}/Work"
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${BATS_TEST_TMPDIR}/elsewhere"
+  cd "${BATS_TEST_TMPDIR}/elsewhere"
+  run claude::config_dir
+  assert_success
+  assert_output "${XDG_CONFIG_HOME}/claude/personal"
+}
+
+@test "config_dir: sibling dir sharing the work prefix derives personal" {
+  unset CLAUDE_CONFIG_DIR
+  export WORK_PROJECTS_DIR="${BATS_TEST_TMPDIR}/Work"
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${BATS_TEST_TMPDIR}/Workspace"
+  cd "${BATS_TEST_TMPDIR}/Workspace"
+  run claude::config_dir
+  assert_success
+  assert_output "${XDG_CONFIG_HOME}/claude/personal"
+}
+
+@test "config_dir: dies with 1 arg" {
+  run claude::config_dir extra
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
 # ---------- claude::projects_dir ----------
 
 @test "projects_dir: prints CLAUDE_CONFIG_DIR/projects" {
@@ -449,10 +522,14 @@ make_multiline_session() {
   assert_output '/tmp/whatever/projects'
 }
 
-@test "projects_dir: dies when CLAUDE_CONFIG_DIR empty" {
+@test "projects_dir: derives when CLAUDE_CONFIG_DIR empty" {
+  export WORK_PROJECTS_DIR="${BATS_TEST_TMPDIR}/Work"
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${BATS_TEST_TMPDIR}/elsewhere"
+  cd "${BATS_TEST_TMPDIR}/elsewhere"
   CLAUDE_CONFIG_DIR='' run claude::projects_dir
-  assert_failure
-  assert_output --partial 'CLAUDE_CONFIG_DIR not set'
+  assert_success
+  assert_output "${XDG_CONFIG_HOME}/claude/personal/projects"
 }
 
 @test "projects_dir: dies with 1 arg" {

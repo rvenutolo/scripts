@@ -1,13 +1,36 @@
 #!/usr/bin/env bash
 
-# @description Print the Claude Code projects directory: `${CLAUDE_CONFIG_DIR}/projects`.
-#   Dies if CLAUDE_CONFIG_DIR is unset or empty.
+# @description Print the effective Claude Code config dir. An already-set
+#   (non-empty) CLAUDE_CONFIG_DIR is an explicit user override and is honored
+#   verbatim. Otherwise the value is derived from PWD: at or under
+#   ${WORK_PROJECTS_DIR} -> ${XDG_CONFIG_HOME}/claude/work, anywhere else ->
+#   ${XDG_CONFIG_HOME}/claude/personal.
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+# @noargs
+# @stdout the config dir path
+function claude::config_dir() {
+  args::check_no_args "$@"
+  # ${CLAUDE_CONFIG_DIR:-} is not a defensive default for a guaranteed env
+  # var: unset is a valid state meaning "no manual override" — the var is
+  # intentionally never ambient-set by the profile.
+  if strings::is_not_empty "${CLAUDE_CONFIG_DIR:-}"; then
+    printf '%s\n' "${CLAUDE_CONFIG_DIR}"
+    return
+  fi
+  if [[ "${PWD}" == "${WORK_PROJECTS_DIR}" || "${PWD}" == "${WORK_PROJECTS_DIR}/"* ]]; then
+    printf '%s\n' "${XDG_CONFIG_HOME}/claude/work"
+  else
+    printf '%s\n' "${XDG_CONFIG_HOME}/claude/personal"
+  fi
+}
+
+# @description Print the Claude Code projects directory:
+#   `$(claude::config_dir)/projects`.
 # @noargs
 # @stdout the projects directory path
 function claude::projects_dir() {
   args::check_no_args "$@"
-  env::assert_var_set 'CLAUDE_CONFIG_DIR'
-  printf '%s\n' "${CLAUDE_CONFIG_DIR}/projects"
+  printf '%s/projects\n' "$(claude::config_dir)"
 }
 
 # @description Encode an absolute path into a Claude Code project-dir name by replacing
