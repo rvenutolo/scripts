@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# @description Launch the real `claude` binary with CLAUDE_CONFIG_DIR resolved:
+#              an already-set (non-empty) value is an explicit override and is
+#              honored verbatim; otherwise the profile is derived from PWD (at
+#              or under ${WORK_PROJECTS_DIR} -> work profile, else personal).
+#              Lives in non-interactive/ (not interactive/ like other wrappers)
+#              because profile selection must also cover cron, `ssh host
+#              claude ...`, and other non-interactive launches.
+# @arg $@ args Optional arguments forwarded verbatim to claude.
+# @exitcode 1 real claude executable not found
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is not statically followable
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+# pass-through: any arg count valid (forwarded to claude)
+
+CLAUDE_CONFIG_DIR="$(claude::config_dir)"
+export CLAUDE_CONFIG_DIR
+
+# resolve the real binary instead of path::remove so the exec'd session
+# inherits an unmodified PATH
+claude_bin="$(commands::executable_path claude)" || log::die 'claude executable not found'
+exec "${claude_bin}" "$@"
