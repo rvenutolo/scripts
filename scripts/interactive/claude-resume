@@ -8,7 +8,7 @@
 # @arg $@ args Optional `--all` and/or `--recent <n>`, then `--`, then claude flags.
 # @stdout none (execs `claude`, which takes over the terminal)
 # @exitcode 0 success, or the user aborted the picker
-# @exitcode 1 CLAUDE_CONFIG_DIR unset, no sessions found, a bad `--recent` value, or an
+# @exitcode 1 no sessions found, a bad `--recent` value, or an
 #             unexpected flag before `--`
 # @example
 #   claude-resume
@@ -24,9 +24,10 @@ IFS=$'\n\t'
 source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
-# remove this dir from PATH so `exec claude` resolves the real binary, not a wrapper
-path::remove "$(misc::this_script_dir)"
-env::assert_var_set 'CLAUDE_CONFIG_DIR'
+# resolve once and export so the session list and the final `exec claude`
+# use the same profile, even after --all cd's into the picked session's cwd
+CLAUDE_CONFIG_DIR="$(claude::config_dir)"
+export CLAUDE_CONFIG_DIR
 # pass-through: variadic (`--all` plus forwarded claude flags), no fixed arity
 
 # @description Normalize a raw session prompt for single-line display: collapse newlines/tabs
