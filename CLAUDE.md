@@ -168,7 +168,7 @@ args::check_no_args "$@"   # or check_exactly_N_args / check_at_least_N_args / c
 
 - Use `args::check_no_args "$@"` / `check_exactly_N_args` / `check_at_least_N_args` / `check_at_most_N_args` from `functions/args.bash` at the top of every top-level script and library function with a fixed arity.
 
-- **Pass-through scripts and variadic library functions are exempt.** A pass-through script forwards `"$@"` to an underlying tool (e.g. `scripts/interactive/claude` wraps the real `claude` binary, `scripts/non-interactive/sync-flatpaks` accepts optional filter args) and has no fixed arity. A variadic library function takes 0+ items of the same kind. In both cases, omit the `args::check_*_args "$@"` guard and add a same-line comment explaining why: `# pass-through: any arg count valid` (or similar). The comment is mandatory — silent omission is not allowed.
+- **Pass-through scripts and variadic library functions are exempt.** A pass-through script forwards `"$@"` to an underlying tool (e.g. `scripts/non-interactive/claude` wraps the real `claude` binary, `scripts/non-interactive/sync-flatpaks` accepts optional filter args) and has no fixed arity. A variadic library function takes 0+ items of the same kind. In both cases, omit the `args::check_*_args "$@"` guard and add a same-line comment explaining why: `# pass-through: any arg count valid` (or similar). The comment is mandatory — silent omission is not allowed.
 
 - Library functions in `functions/*.bash` use the same `check_*_args "$@"` guards as top-level scripts.
 
