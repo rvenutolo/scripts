@@ -5,6 +5,7 @@
 #   verbatim. Otherwise the value is derived from PWD: at or under
 #   ${WORK_PROJECTS_DIR} -> ${XDG_CONFIG_HOME}/claude/work, anywhere else ->
 #   ${XDG_CONFIG_HOME}/claude/personal.
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
 # @stdout the config dir path
 function claude::config_dir() {
