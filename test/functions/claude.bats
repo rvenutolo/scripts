@@ -522,10 +522,14 @@ make_multiline_session() {
   assert_output '/tmp/whatever/projects'
 }
 
-@test "projects_dir: dies when CLAUDE_CONFIG_DIR empty" {
+@test "projects_dir: derives when CLAUDE_CONFIG_DIR empty" {
+  export WORK_PROJECTS_DIR="${BATS_TEST_TMPDIR}/Work"
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${BATS_TEST_TMPDIR}/elsewhere"
+  cd "${BATS_TEST_TMPDIR}/elsewhere"
   CLAUDE_CONFIG_DIR='' run claude::projects_dir
-  assert_failure
-  assert_output --partial 'CLAUDE_CONFIG_DIR not set'
+  assert_success
+  assert_output "${XDG_CONFIG_HOME}/claude/personal/projects"
 }
 
 @test "projects_dir: dies with 1 arg" {

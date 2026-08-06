@@ -23,14 +23,13 @@ function claude::config_dir() {
   fi
 }
 
-# @description Print the Claude Code projects directory: `${CLAUDE_CONFIG_DIR}/projects`.
-#   Dies if CLAUDE_CONFIG_DIR is unset or empty.
+# @description Print the Claude Code projects directory:
+#   `$(claude::config_dir)/projects`.
 # @noargs
 # @stdout the projects directory path
 function claude::projects_dir() {
   args::check_no_args "$@"
-  env::assert_var_set 'CLAUDE_CONFIG_DIR'
-  printf '%s\n' "${CLAUDE_CONFIG_DIR}/projects"
+  printf '%s/projects\n' "$(claude::config_dir)"
 }
 
 # @description Encode an absolute path into a Claude Code project-dir name by replacing
