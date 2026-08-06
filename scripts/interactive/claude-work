@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-# @description Run the `claude` CLI with CLAUDE_CONFIG_DIR forced to the work profile, overriding any existing value.
+# @description Run `claude` with CLAUDE_CONFIG_DIR forced to the work profile,
+#              overriding derivation and any inherited value (the wrapper in
+#              non-interactive/ honors a set value verbatim).
 # @arg $@ args Optional arguments forwarded verbatim to claude.
 
 set -Eeuo pipefail
@@ -10,8 +12,5 @@ IFS=$'\n\t'
 source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 # pass-through: any arg count valid (forwarded to claude)
-
-# remove this dir from the path so executing `claude` doesn't run the `claude` script
-path::remove "$(misc::this_script_dir)"
 
 CLAUDE_CONFIG_DIR="${XDG_CONFIG_HOME}/claude/work" exec claude "$@"
