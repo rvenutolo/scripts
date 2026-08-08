@@ -17,7 +17,11 @@ jobs:
     steps:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
-          egress-policy: audit
+          egress-policy: block
+          # lychee crawls every external URL in the repo's markdown, so this
+          # list must cover those hosts plus anything they redirect to.
+          allowed-endpoints: >-
+            api.github.com:443 app.codecov.io:443 codecov.io:443 codeload.github.com:443 direnv.net:443 github.com:443 img.shields.io:443 nixos.org:443 objects.githubusercontent.com:443 release-assets.githubusercontent.com:443 rvenutolo.github.io:443 www.conventionalcommits.org:443
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
