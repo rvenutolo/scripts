@@ -9,8 +9,15 @@ ignore: |
   site/
 rules:
   document-start: disable
+  # harden-runner's `allowed-endpoints` lists have to be one space-separated
+  # line and cannot be wrapped: treefmt's yamlfmt collapses a folded (`>-`)
+  # scalar back onto a single line, and harden-runner splits the value on
+  # spaces only — a literal (`|-`) block is parsed as one giant endpoint, so
+  # every host but the first is silently dropped. The old 200-char cap was
+  # therefore unsatisfiable for those lines, and 400 is still short of the
+  # coverage job's list (Nix substituters plus the codecov upload hosts).
   line-length:
-    max: 200
+    max: 600
   truthy:
     check-keys: false
   comments:
