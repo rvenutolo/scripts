@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
 
-# @description Assert every external host linked from the repo's markdown
-#              appears in the allowed-endpoints list of the Links workflow's
-#              harden-runner step. lychee's egress set is the set of URLs it
-#              crawls, so a new link to an unlisted host would otherwise break
-#              the weekly scheduled run days after the PR that added it. The
-#              comparison is one-way: allowlist entries with no matching link
-#              are fine, because redirect targets belong there without ever
-#              appearing in a link. Paths excluded in .lycheerc are skipped,
+# @description Assert every external host linked from the repo's git-tracked
+#              markdown appears in the allowed-endpoints list of the Links
+#              workflow's harden-runner step. lychee's egress set is the set of
+#              URLs it crawls, so a new link to an unlisted host would otherwise
+#              break the weekly scheduled run days after the PR that added it.
+#              The comparison is one-way: allowlist entries with no matching
+#              link are fine, because redirect targets belong there without ever
+#              appearing in a link. Only tracked files are scanned, because CI
+#              checks out nothing else. Paths excluded in .lycheerc are skipped,
 #              as are URLs inside fenced code blocks, which lychee ignores
 #              (include_verbatim = false).
 # @noargs
 # @stderr One line per markdown host missing from the allowlist.
 # @exitcode 0 every linked host is allowlisted.
-# @exitcode 1 one or more hosts are missing, or an input file is absent.
+# @exitcode 1 one or more hosts are missing, an input file is absent, or the
+#             markdown root is not inside a git work tree.
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -50,27 +52,38 @@ function excluded_paths() {
   ' "${lycheerc}"
 }
 
-# @description Print every external host linked from markdown under the given
-#              root, one per line, sorted and deduplicated. Fenced code blocks
-#              are dropped, ports and paths are stripped, and trailing sentence
-#              punctuation is removed.
-# @arg $1 root directory to scan
+# @description Print every external host linked from git-tracked markdown under
+#              the given root, one per line, sorted and deduplicated. Files are
+#              enumerated with git ls-files rather than find so the scan models
+#              a fresh CI checkout exactly: untracked and gitignored markdown
+#              (local plans, scratch notes) is never checked out for the Links
+#              workflow, so lychee never crawls it and it must not force an
+#              allowlist entry. Fenced code blocks are dropped, ports and paths
+#              are stripped, and trailing sentence punctuation is removed.
+# @arg $1 root directory to scan; must be inside a git work tree
 # @arg $2 excludes_file file holding one excluded path per line
 # @stdout One host per line.
+# @exitcode 1 the root is not inside a git work tree.
 function markdown_hosts() {
   args::check_exactly_2_args "$@"
   local -r root="$1"
   local -r excludes_file="$2"
+  # An empty file list would make the whole lint vacuously pass, so a non-repo
+  # root has to be a loud failure rather than a silent zero-host scan.
+  # git -C has no long-form equivalent.
+  git -C "${root}" rev-parse --is-inside-work-tree > '/dev/null' 2>&1 \
+    || log::die "not inside a git work tree: ${root}"
   local files_tmp prose_tmp urls_tmp
   files::create_temp files_tmp
   files::create_temp prose_tmp
   files::create_temp urls_tmp
-  # -name has no long-form equivalent in find.
-  find "${root}" -type f -name '*.md' > "${files_tmp}"
-  local file rel excluded prefix
-  while IFS= read -r file; do
-    strings::is_empty "${file}" && continue
-    rel="${file#"${root}"/}"
+  # git ls-files restricts to the cwd subtree and prints paths relative to it,
+  # so the listed paths are already the exclude-prefix form used below.
+  # git -C has no long-form equivalent.
+  git -C "${root}" ls-files -- '*.md' > "${files_tmp}"
+  local rel excluded prefix
+  while IFS= read -r rel; do
+    strings::is_empty "${rel}" && continue
     excluded='false'
     while IFS= read -r prefix; do
       strings::is_empty "${prefix}" && continue
@@ -82,7 +95,7 @@ function markdown_hosts() {
     [[ "${excluded}" == 'true' ]] && continue
     # Drop fenced code blocks: lychee sets include_verbatim = false, so a URL
     # in a code fence is never crawled and must not force an allowlist entry.
-    gawk '/^[[:space:]]*`{3}/ { fence = !fence; next } !fence' "${file}" >> "${prose_tmp}"
+    gawk '/^[[:space:]]*`{3}/ { fence = !fence; next } !fence' "${root}/${rel}" >> "${prose_tmp}"
   done < "${files_tmp}"
   grep --only-matching --extended-regexp 'https?://[^][()<>"'"'"'`[:space:]]+' "${prose_tmp}" \
     > "${urls_tmp}" || true
