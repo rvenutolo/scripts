@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+
+# @description Assert every job in every GitHub Actions workflow sets
+#              `egress-policy: block` with a non-empty `allowed-endpoints` on
+#              its harden-runner step. Audit mode logs egress but permits it,
+#              so only block mode actually contains a compromised dependency.
+#              Jobs listed in EXEMPT are skipped, and each EXEMPT entry must
+#              name a real job that is genuinely not blocking — a stale entry
+#              fails the lint rather than silently disarming it. This check
+#              verifies that a policy is declared, not that its endpoint list
+#              is correct: whether a host belongs in a job's list is answered
+#              by the job passing or failing, not by a lint.
+# @noargs
+# @stderr One line per violation, plus a final count.
+# @exitcode 0 every job blocks egress with a non-empty allowed-endpoints list.
+# @exitcode 1 one or more jobs do not, or an EXEMPT entry is stale.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'yq'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
+
+# Jobs exempt from the block mandate, as `<workflow-file>:<job-id>`. Keyed per
+# job rather than per file so a multi-job workflow cannot be exempted wholesale
+# by accident. Deliberately empty: no job is exempt. The array exists so that a
+# future exemption is a reviewed, centrally visible edit, following the EXEMPT
+# precedent in .ci/check-script-has-test and .ci/check-orphan-invariants.
+readonly EXEMPT=()
+
+# @description Print the harden-runner `with:` value of the given key for one
+#              job, or the empty string when the job has no harden-runner step.
+# @arg $1 file path to a workflow YAML
+# @arg $2 job the job key
+# @arg $3 key the `with:` key to read
+# @stdout The value, or the empty string.
+function harden_runner_with() {
+  args::check_exactly_3_args "$@"
+  local -r file="$1"
+  local -r job_name="$2"
+  local -r with_key="$3"
+  # The env vars feeding strenv() must not share a name with a readonly local:
+  # a command-prefix assignment to a readonly variable aborts the command.
+  job="${job_name}" key="${with_key}" yq eval '
+    [.jobs[strenv(job)].steps[]
+      | select((.uses // "") | test("^step-security/harden-runner@"))]
+    | .[0].with[strenv(key)] // ""
+  ' "${file}"
+}
+
+# @description Print whether the given job has a harden-runner step.
+# @arg $1 file path to a workflow YAML
+# @arg $2 job the job key
+# @exitcode 0 the job has a harden-runner step
+# @exitcode 1 it does not
+function has_harden_runner() {
+  args::check_exactly_2_args "$@"
+  local -r file="$1"
+  local -r job_name="$2"
+  local count
+  count="$(job="${job_name}" yq eval '
+    [.jobs[strenv(job)].steps[]
+      | select((.uses // "") | test("^step-security/harden-runner@"))]
+    | length
+  ' "${file}")"
+  ((count > 0))
+}
+
+function main() {
+  args::check_no_args "$@"
+  if ! dirs::exists "${WORKFLOWS_DIR}"; then
+    exit 0
+  fi
+
+  local -a exempt_entries=()
+  if strings::is_not_empty "${EXEMPT_OVERRIDE:-}"; then
+    # Scoped IFS: the strict global IFS has no space, which would stop read -a
+    # from splitting a space-separated override into elements.
+    IFS=' ' read -r -a exempt_entries <<< "${EXEMPT_OVERRIDE}"
+  else
+    exempt_entries=("${EXEMPT[@]}")
+  fi
+
+  local files_tmp jobs_tmp seen_tmp
+  files::create_temp files_tmp
+  files::create_temp seen_tmp
+  # -name globs have no long-form equivalent in find.
+  find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
+
+  local total=0
+  local file name job entry policy endpoints
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    name="$(basename "${file}")"
+    files::create_temp jobs_tmp
+    yq eval '.jobs | keys | .[]' "${file}" > "${jobs_tmp}"
+    while IFS= read -r job; do
+      strings::is_empty "${job}" && continue
+      entry="${name}:${job}"
+      if ! has_harden_runner "${file}" "${job}"; then
+        if arrays::contains "${entry}" "${exempt_entries[@]}"; then
+          printf '%s\n' "${entry}" >> "${seen_tmp}"
+          continue
+        fi
+        printf '%s: job %q has no harden-runner step\n' "${name}" "${job}" >&2
+        total=$((total + 1))
+        continue
+      fi
+      policy="$(harden_runner_with "${file}" "${job}" 'egress-policy')"
+      if arrays::contains "${entry}" "${exempt_entries[@]}"; then
+        printf '%s\n' "${entry}" >> "${seen_tmp}"
+        if [[ "${policy}" == 'block' ]]; then
+          printf 'stale EXEMPT entry: %s already sets egress-policy: block\n' "${entry}" >&2
+          total=$((total + 1))
+        fi
+        continue
+      fi
+      if [[ "${policy}" != 'block' ]]; then
+        printf '%s: job %q sets egress-policy %q, want block\n' "${name}" "${job}" "${policy}" >&2
+        total=$((total + 1))
+        continue
+      fi
+      endpoints="$(harden_runner_with "${file}" "${job}" 'allowed-endpoints')"
+      if strings::is_blank "${endpoints}"; then
+        printf '%s: job %q blocks egress with no allowed-endpoints\n' "${name}" "${job}" >&2
+        total=$((total + 1))
+      fi
+    done < "${jobs_tmp}"
+  done < "${files_tmp}"
+
+  local exempt_entry
+  for exempt_entry in ${exempt_entries[@]+"${exempt_entries[@]}"}; do
+    if ! grep --quiet --line-regexp --fixed-strings "${exempt_entry}" "${seen_tmp}"; then
+      printf 'stale EXEMPT entry: %s matches no job\n' "${exempt_entry}" >&2
+      total=$((total + 1))
+    fi
+  done
+
+  if ((total > 0)); then
+    printf '%d job(s) not blocking egress\n' "${total}" >&2
+    exit 1
+  fi
+  exit 0
+}
+
+main "$@"

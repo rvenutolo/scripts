@@ -13,6 +13,7 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | every SHA-pinned `uses:` reference carries a version-tag comment | `check-patch-tag-pins` | `governance` | `governance` |
 | every workflow sets empty top-level permissions and per-job permissions blocks | `check-min-permissions` | `governance` | `governance` |
 | every workflow job begins with a SHA-pinned harden-runner step | `check-harden-runner-first` | `governance` | `governance` |
+| every workflow job blocks egress with an explicit allowed-endpoints list | `check-harden-runner-egress` | `governance` | `governance` |
 | no PR-triggered workflow references secrets other than GITHUB_TOKEN | `check-pr-workflows-no-secrets` | `governance` | `governance` |
 | renovate.json carries all security-critical invariants | `check-renovate-invariants` | `governance` | `governance` |
 | no required-check workflow declares path filters under pull_request | `check-required-checks-no-paths` | `governance` | `governance` |
