@@ -2,6 +2,10 @@ name: Pages
 on:
   push:
     branches: [main]
+  # Manual trigger: lets the docs site be rebuilt on demand, and lets this
+  # workflow be exercised from a branch (a dispatched run publishes that
+  # branch's docs, so dispatch deliberately).
+  workflow_dispatch:
 permissions: {}
 concurrency:
   group: pages
