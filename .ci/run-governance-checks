@@ -33,6 +33,7 @@ function main() {
     check-min-permissions \
     check-harden-runner-first \
     check-harden-runner-egress \
+    check-links-allowed-endpoints \
     check-pr-workflows-no-secrets \
     check-renovate-invariants \
     check-required-checks-no-paths \

@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+
+# @description Assert every external host linked from the repo's markdown
+#              appears in the allowed-endpoints list of the Links workflow's
+#              harden-runner step. lychee's egress set is the set of URLs it
+#              crawls, so a new link to an unlisted host would otherwise break
+#              the weekly scheduled run days after the PR that added it. The
+#              comparison is one-way: allowlist entries with no matching link
+#              are fine, because redirect targets belong there without ever
+#              appearing in a link. Paths excluded in .lycheerc are skipped,
+#              as are URLs inside fenced code blocks, which lychee ignores
+#              (include_verbatim = false).
+# @noargs
+# @stderr One line per markdown host missing from the allowlist.
+# @exitcode 0 every linked host is allowlisted.
+# @exitcode 1 one or more hosts are missing, or an input file is absent.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'yq'
+commands::assert_executable_exists 'gawk'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly LINKS_WORKFLOW="${LINKS_WORKFLOW_OVERRIDE:-${REPO_DIR}/.github/workflows/links.yml}"
+readonly LYCHEERC="${LYCHEERC_OVERRIDE:-${REPO_DIR}/.lycheerc}"
+readonly MARKDOWN_ROOT="${MARKDOWN_ROOT_OVERRIDE:-${REPO_DIR}}"
+
+# @description Print each path listed in the .lycheerc exclude_path array, one
+#              per line, quotes and commas stripped.
+# @arg $1 lycheerc path to the lychee config
+# @stdout One excluded path per line.
+function excluded_paths() {
+  args::check_exactly_1_arg "$@"
+  local -r lycheerc="$1"
+  gawk '
+    /^exclude_path[[:space:]]*=[[:space:]]*\[/ { inblock = 1; next }
+    inblock && /\]/ { inblock = 0; next }
+    inblock {
+      gsub(/[",]/, "")
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+      if (length($0) > 0) { print }
+    }
+  ' "${lycheerc}"
+}
+
+# @description Print every external host linked from markdown under the given
+#              root, one per line, sorted and deduplicated. Fenced code blocks
+#              are dropped, ports and paths are stripped, and trailing sentence
+#              punctuation is removed.
+# @arg $1 root directory to scan
+# @arg $2 excludes_file file holding one excluded path per line
+# @stdout One host per line.
+function markdown_hosts() {
+  args::check_exactly_2_args "$@"
+  local -r root="$1"
+  local -r excludes_file="$2"
+  local files_tmp prose_tmp urls_tmp
+  files::create_temp files_tmp
+  files::create_temp prose_tmp
+  files::create_temp urls_tmp
+  # -name has no long-form equivalent in find.
+  find "${root}" -type f -name '*.md' > "${files_tmp}"
+  local file rel excluded prefix
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    rel="${file#"${root}"/}"
+    excluded='false'
+    while IFS= read -r prefix; do
+      strings::is_empty "${prefix}" && continue
+      if [[ "${rel}" == "${prefix}" || "${rel}" == "${prefix}"/* ]]; then
+        excluded='true'
+        break
+      fi
+    done < "${excludes_file}"
+    [[ "${excluded}" == 'true' ]] && continue
+    # Drop fenced code blocks: lychee sets include_verbatim = false, so a URL
+    # in a code fence is never crawled and must not force an allowlist entry.
+    gawk '/^[[:space:]]*`{3}/ { fence = !fence; next } !fence' "${file}" >> "${prose_tmp}"
+  done < "${files_tmp}"
+  grep --only-matching --extended-regexp 'https?://[^][()<>"'"'"'`[:space:]]+' "${prose_tmp}" \
+    > "${urls_tmp}" || true
+  sed --regexp-extended \
+    --expression='s#^https?://##' \
+    --expression='s#[/?\#].*$##' \
+    --expression='s#:[0-9]+$##' \
+    --expression='s#[.,;:]+$##' \
+    "${urls_tmp}" | sort --unique
+}
+
+# @description Print each host in the Links workflow's allowed-endpoints list,
+#              one per line, with the port stripped.
+# @arg $1 workflow path to links.yml
+# @stdout One allowlisted host per line, sorted and deduplicated.
+function allowlisted_hosts() {
+  args::check_exactly_1_arg "$@"
+  local -r workflow="$1"
+  yq eval '
+    [.jobs[].steps[]
+      | select((.uses // "") | test("^step-security/harden-runner@"))
+      | .with."allowed-endpoints" // ""]
+    | join(" ")
+  ' "${workflow}" \
+    | tr ' ' '\n' \
+    | sed --regexp-extended --expression='s#:[0-9]+$##' --expression='/^$/d' \
+    | sort --unique
+}
+
+function main() {
+  args::check_no_args "$@"
+  files::assert_exists "${LINKS_WORKFLOW}"
+  files::assert_exists "${LYCHEERC}"
+  dirs::assert_exists "${MARKDOWN_ROOT}"
+
+  local excludes_tmp hosts_tmp allowed_tmp missing_tmp
+  files::create_temp excludes_tmp
+  files::create_temp hosts_tmp
+  files::create_temp allowed_tmp
+  files::create_temp missing_tmp
+  excluded_paths "${LYCHEERC}" > "${excludes_tmp}"
+  markdown_hosts "${MARKDOWN_ROOT}" "${excludes_tmp}" > "${hosts_tmp}"
+  allowlisted_hosts "${LINKS_WORKFLOW}" > "${allowed_tmp}"
+  comm -23 "${hosts_tmp}" "${allowed_tmp}" > "${missing_tmp}" # no long-form equivalent
+
+  local failed=0
+  local host
+  while IFS= read -r host; do
+    strings::is_empty "${host}" && continue
+    printf 'markdown links %s but it is not in links.yml allowed-endpoints\n' "${host}" >&2
+    failed=1
+  done < "${missing_tmp}"
+  exit "${failed}"
+}
+
+main "$@"
