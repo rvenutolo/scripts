@@ -94,18 +94,7 @@ function main() {
   fi
 
   local -a exempt_entries=()
-  # Presence, not emptiness: a set-but-empty EXEMPT_OVERRIDE means "no
-  # exemptions", which is distinct from an unset one meaning "use EXEMPT".
-  # Unlike the egress lint's empty EXEMPT, this one is non-empty, so a test
-  # pointing WORKFLOWS_DIR_OVERRIDE at a synthetic corpus needs a way to clear
-  # it — otherwise every real entry reads as stale against that corpus.
-  if strings::is_not_empty "${EXEMPT_OVERRIDE+x}"; then
-    # Scoped IFS: the strict global IFS has no space, which would stop read -a
-    # from splitting a space-separated override into elements.
-    IFS=' ' read -r -a exempt_entries <<< "${EXEMPT_OVERRIDE}"
-  else
-    exempt_entries=("${EXEMPT[@]}")
-  fi
+  arrays::from_env_override exempt_entries EXEMPT_OVERRIDE "${EXEMPT[@]}"
 
   local files_tmp jobs_tmp seen_tmp
   files::create_temp files_tmp

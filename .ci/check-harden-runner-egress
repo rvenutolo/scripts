@@ -81,13 +81,7 @@ function main() {
   fi
 
   local -a exempt_entries=()
-  if strings::is_not_empty "${EXEMPT_OVERRIDE:-}"; then
-    # Scoped IFS: the strict global IFS has no space, which would stop read -a
-    # from splitting a space-separated override into elements.
-    IFS=' ' read -r -a exempt_entries <<< "${EXEMPT_OVERRIDE}"
-  else
-    exempt_entries=("${EXEMPT[@]}")
-  fi
+  arrays::from_env_override exempt_entries EXEMPT_OVERRIDE "${EXEMPT[@]}"
 
   local files_tmp jobs_tmp seen_tmp
   files::create_temp files_tmp
