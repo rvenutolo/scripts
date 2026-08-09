@@ -50,6 +50,13 @@ fi
 # source of truth for shell style is .editorconfig.
 shfmt_targets=()
 for candidate in "${candidates[@]}"; do
+  # shell_scripts::find echoes an explicitly-passed file verbatim, so a non-shell
+  # path (a .md, say) reaches here and shfmt parses it as shell and fails. The
+  # no-arg path never hits this: `shfmt --find` only ever emits shell files. The
+  # skip is silent because the shellcheck step below reports it. See issue #206.
+  if ! shell_scripts::is_shell_file "${candidate}"; then
+    continue
+  fi
   # Never format-check third-party scripts. shell_scripts::find already excludes
   # other/ on its no-arg scan; this also covers an explicitly passed path under it.
   if [[ "${candidate}" == */other/* ]]; then

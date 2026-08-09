@@ -15,7 +15,7 @@ log::enable_err_trap
 REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
 readonly BATS_BIN="${REPO_DIR}/test/bats/bin/bats"
-readonly DEFAULT_TARGETS=("${REPO_DIR}/test/functions" "${REPO_DIR}/test/ci")
+readonly DEFAULT_TARGETS=("${REPO_DIR}/test/functions" "${REPO_DIR}/test/ci" "${REPO_DIR}/test/root")
 
 # @description Run bats with default parallel settings or forward all args to bats verbatim.
 # @arg $@ args Optional bats arguments forwarded verbatim, or empty to run all tests in parallel.
