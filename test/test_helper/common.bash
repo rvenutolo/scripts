@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# Shared test setup loader for all *.bats files under test/functions/.
+# Shared test setup loader for all *.bats files under test/functions/, test/ci/,
+# and test/root/.
 # Each .bats file's setup() loads this, then sources the file under test.
 #
 # Globals exported:

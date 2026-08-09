@@ -60,7 +60,7 @@ Tooling is provided by a **Nix flake devShell** (see [Required Environment](#req
 
 - `./check-scripts [<file-or-dir>...]` — combined check: runs `shfmt` (verify only, never rewrites), `shellcheck`, the shdoc-header audit (`.ci/check-shdoc-headers`), and the executable-bit audit (`.ci/check-executable-bit`), aggregating exit codes so a failure in any of them fails the run. Use this for CI/pre-commit-style verification.
 
-  The shfmt step is not redundant with `nix fmt`: treefmt matches by file extension, so it never sees the extensionless top-level executables or `*.bats` files. This step covers them, running over the pre-filter candidate list so `*.bats` files are included (they start with `@test` rather than a shebang, so `shell_scripts::filter` drops them from the shellcheck list). It passes no style flags — see [Shell style lives in `.editorconfig`](#shell-style-lives-in-editorconfig).
+  The shfmt step is not redundant with `nix fmt`: treefmt matches by file extension, so it never sees the extensionless top-level executables or `*.bats` files. This step covers them, running over the pre-filter candidate list so `*.bats` files are included (they start with `@test` rather than a shebang, so `shell_scripts::filter` drops them from the shellcheck list). That pre-filter list is gated on `shell_scripts::is_shell_file` — extension-or-shebang, mirroring `shfmt --find` — because `shell_scripts::find` echoes an explicitly-passed file verbatim, so without the gate a `./check-scripts CLAUDE.md` would hand markdown to shfmt and fail on a bogus parse error (#206). `*.bats` files survive the gate by extension. It passes no style flags — see [Shell style lives in `.editorconfig`](#shell-style-lives-in-editorconfig).
 
 ### Shell style lives in `.editorconfig`
 
@@ -78,7 +78,7 @@ Note that `switch_case_indent`, `binary_next_line`, and `space_redirects` are sh
 
 - `scripts/non-interactive/new-script <path>` — scaffolds a new script with the standard header + exec bit.
 
-- `./run-tests [<bats-args>...]` — runs BATS tests under `test/functions/` recursively when called with no args, or forwards args to the vendored bats binary. Default invocation uses `bats --jobs $(nproc)` for parallel execution.
+- `./run-tests [<bats-args>...]` — runs BATS tests under `test/functions/`, `test/ci/`, and `test/root/` recursively when called with no args, or forwards args to the vendored bats binary. Default invocation uses `bats --jobs $(nproc)` for parallel execution.
 
 To gate a script from the `install`/`set_up runners`, remove its executable bit (`chmod -x`).
 
@@ -363,11 +363,15 @@ test/
     strings.bats              # tests for functions/strings.bash
     args.bats                 # tests for functions/args.bash
     path.bats                 # tests for functions/path.bash
+  ci/
+    check-executable-bit.bats # tests for .ci/check-executable-bit
+  root/
+    check-scripts.bats        # tests for the repo-root runner check-scripts
 ```
 
 ### Running
 
-- `./run-tests` — runs everything under `test/functions/`.
+- `./run-tests` — runs everything under `test/functions/`, `test/ci/`, and `test/root/`.
 
 - `./run-tests test/functions/strings.bats` — single file.
 
