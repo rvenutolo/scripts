@@ -47,9 +47,15 @@ jobs:
             echo "Failed to resolve latest shfmt version" >&2
             exit 1
           fi
-          sudo curl --disable --fail --silent --location --output /usr/local/bin/shfmt \
+          # Install into a user-writable dir rather than /usr/local/bin so the
+          # step needs no sudo, which lets this job run under disable-sudo.
+          # shfmt is required because .ci/build-docs calls shell_scripts::find,
+          # which shells out to `shfmt --find`.
+          mkdir --parents "${RUNNER_TEMP}/bin"
+          curl --disable --fail --silent --location --output "${RUNNER_TEMP}/bin/shfmt" \
             "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64"
-          sudo chmod +x /usr/local/bin/shfmt
+          chmod +x "${RUNNER_TEMP}/bin/shfmt"
+          printf '%s\n' "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
       - name: Build docs
         env:
           SCRIPTS_DIR: ${{ github.workspace }}/scripts
