@@ -211,3 +211,88 @@ setup() {
   assert_failure
   assert_output --partial 'Expected at least 1 argument'
 }
+
+# ---------- from_env_override ----------
+
+@test "from_env_override: unset override -> defaults" {
+  unset OVERRIDE_VAR
+  local -a out=()
+  arrays::from_env_override out OVERRIDE_VAR 'alpha' 'beta'
+  assert_equal "${#out[@]}" 2
+  assert_equal "${out[0]}" 'alpha'
+  assert_equal "${out[1]}" 'beta'
+}
+
+@test "from_env_override: unset override with no defaults -> empty array" {
+  unset OVERRIDE_VAR
+  local -a out=('stale')
+  arrays::from_env_override out OVERRIDE_VAR
+  assert_equal "${#out[@]}" 0
+}
+
+@test "from_env_override: set-but-empty override -> empty array, not defaults" {
+  # The case the helper exists for. ${VAR:-} cannot distinguish this from unset,
+  # which is the divergence issue #205 is about.
+  OVERRIDE_VAR=''
+  local -a out=()
+  arrays::from_env_override out OVERRIDE_VAR 'alpha' 'beta'
+  assert_equal "${#out[@]}" 0
+}
+
+@test "from_env_override: single-token override -> one element" {
+  OVERRIDE_VAR='solo'
+  local -a out=()
+  arrays::from_env_override out OVERRIDE_VAR 'alpha'
+  assert_equal "${#out[@]}" 1
+  assert_equal "${out[0]}" 'solo'
+}
+
+@test "from_env_override: multi-token override splits on spaces" {
+  # The strict global IFS has no space; the helper's scoped IFS is what makes
+  # this work.
+  OVERRIDE_VAR='a.yml:build b.yml:test'
+  local -a out=()
+  arrays::from_env_override out OVERRIDE_VAR 'alpha'
+  assert_equal "${#out[@]}" 2
+  assert_equal "${out[0]}" 'a.yml:build'
+  assert_equal "${out[1]}" 'b.yml:test'
+}
+
+@test "from_env_override: runs of spaces collapse" {
+  OVERRIDE_VAR='a   b'
+  local -a out=()
+  arrays::from_env_override out OVERRIDE_VAR
+  assert_equal "${#out[@]}" 2
+  assert_equal "${out[0]}" 'a'
+  assert_equal "${out[1]}" 'b'
+}
+
+@test "from_env_override: leading and trailing spaces produce no empty elements" {
+  OVERRIDE_VAR='  a b  '
+  local -a out=()
+  arrays::from_env_override out OVERRIDE_VAR
+  assert_equal "${#out[@]}" 2
+  assert_equal "${out[0]}" 'a'
+  assert_equal "${out[1]}" 'b'
+}
+
+@test "from_env_override: a pre-populated output array is cleared, not appended to" {
+  # shellcheck disable=SC2034  # read indirectly by name inside arrays::from_env_override
+  OVERRIDE_VAR='fresh'
+  local -a out=('stale1' 'stale2')
+  arrays::from_env_override out OVERRIDE_VAR
+  assert_equal "${#out[@]}" 1
+  assert_equal "${out[0]}" 'fresh'
+}
+
+@test "from_env_override: dies with no args" {
+  run arrays::from_env_override
+  assert_failure
+  assert_output --partial 'Expected at least 2 arguments'
+}
+
+@test "from_env_override: dies with 1 arg" {
+  run arrays::from_env_override 'out'
+  assert_failure
+  assert_output --partial 'Expected at least 2 arguments'
+}

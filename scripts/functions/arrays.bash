@@ -49,3 +49,26 @@ function arrays::diff() {
   [[ "${#second_array[@]}" -gt 0 ]] && arrays::to_lines "${second_array[@]}" > "${second_tmp}" || true
   comm -23 "${first_tmp}" "${second_tmp}"
 }
+
+# @description Populate an array from a space-separated environment-variable override when that
+# variable is SET — even to the empty string — and from the given default elements when it is unset.
+# The distinction is the point: a set-but-empty override means "no elements", which a test needs in
+# order to clear a non-empty default, whereas an unset one means "use the defaults". `${VAR:-}`
+# collapses the two cases and cannot express it. See issue #205.
+# @arg $1 name of the output array (variable name passed as a name-ref; cleared and repopulated)
+# @arg $2 name of the override environment variable
+# @arg $@ default elements to use when the override is unset
+function arrays::from_env_override() {
+  args::check_at_least_2_args "$@"
+  local -r out_name="$1"
+  local -r var_name="$2"
+  local -n _out_ref="${out_name}"
+  shift 2
+  if [[ -v "${var_name}" ]]; then
+    # Scoped IFS: the strict global IFS has no space, which would stop read -a
+    # from splitting a space-separated override into elements.
+    IFS=' ' read -r -a _out_ref <<< "${!var_name}"
+  else
+    _out_ref=("$@")
+  fi
+}
