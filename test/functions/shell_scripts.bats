@@ -34,6 +34,18 @@ setup() {
   chmod +x "${TREE}"/{a.sh,b.bash,c.bats,e,f} "${TREE}/sub/g.sh" "${TREE}/other/h.sh"
 }
 
+# Write a per-test fixture under BATS_TEST_TMPDIR and echo its path. Kept out of
+# setup()'s TREE on purpose: the shell_scripts::find tests assert on TREE's exact
+# contents, so adding files there would break them.
+make_fixture() {
+  local -r name="$1"
+  local -r contents="${2:-}"
+  local -r path="${BATS_TEST_TMPDIR}/fixtures/${name}"
+  mkdir --parents "$(dirname "${path}")"
+  printf '%s' "${contents}" > "${path}"
+  printf '%s\n' "${path}"
+}
+
 # ---------- has_shell_shebang ----------
 
 @test "has_shell_shebang: bash shebang -> true" {
@@ -215,4 +227,97 @@ setup() {
   run shell_scripts::find_root_only foo
   assert_failure
   assert_output --partial 'Expected no arguments'
+}
+
+# ---------- is_shell_file ----------
+
+@test "is_shell_file: .sh extension -> true" {
+  run shell_scripts::is_shell_file "$(make_fixture 'plain.sh' 'echo hi')"
+  assert_success
+}
+
+@test "is_shell_file: .bash extension -> true" {
+  run shell_scripts::is_shell_file "$(make_fixture 'plain.bash' 'echo hi')"
+  assert_success
+}
+
+@test "is_shell_file: .bats extension with no shebang -> true" {
+  # The binding case for the whole design: .bats files open with @test, not a
+  # shebang, and must still reach shfmt. See issue #206.
+  run shell_scripts::is_shell_file "$(make_fixture 'suite.bats' '@test "x" { true; }')"
+  assert_success
+}
+
+@test "is_shell_file: extensionless with bash shebang -> true" {
+  run shell_scripts::is_shell_file "${TREE}/f"
+  assert_success
+}
+
+@test "is_shell_file: extensionless with sh shebang -> true" {
+  run shell_scripts::is_shell_file "$(make_fixture 'shrunner' '#!/bin/sh
+echo hi')"
+  assert_success
+}
+
+@test "is_shell_file: extensionless with bats shebang -> true" {
+  run shell_scripts::is_shell_file "$(make_fixture 'batsrunner' '#!/usr/bin/env bats
+@test "x" { true; }')"
+  assert_success
+}
+
+@test "is_shell_file: markdown -> false" {
+  run shell_scripts::is_shell_file "$(make_fixture 'README.md' '# Title
+
+Some (parenthesized) prose.')"
+  assert_failure
+}
+
+@test "is_shell_file: yaml -> false" {
+  run shell_scripts::is_shell_file "$(make_fixture 'conf.yml' 'key: value')"
+  assert_failure
+}
+
+@test "is_shell_file: json -> false" {
+  run shell_scripts::is_shell_file "$(make_fixture 'data.json' '{"key": "value"}')"
+  assert_failure
+}
+
+@test "is_shell_file: extensionless with no shebang -> false" {
+  run shell_scripts::is_shell_file "${TREE}/d.txt"
+  assert_failure
+}
+
+@test "is_shell_file: extensionless with non-shell shebang -> false" {
+  run shell_scripts::is_shell_file "${TREE}/e"
+  assert_failure
+}
+
+@test "is_shell_file: empty file -> false" {
+  # head on zero bytes must not explode under the parent's strict mode.
+  run shell_scripts::is_shell_file "$(make_fixture 'empty' '')"
+  assert_failure
+}
+
+@test "is_shell_file: uppercase .SH is not a shell file" {
+  # Case-sensitive on purpose: shfmt --find is case-sensitive, and this
+  # predicate exists to mirror it. Asserted so the choice is recorded.
+  run shell_scripts::is_shell_file "$(make_fixture 'LOUD.SH' 'echo hi')"
+  assert_failure
+}
+
+@test "is_shell_file: judges the filename, not a directory ending in .sh" {
+  run shell_scripts::is_shell_file "$(make_fixture 'dir.sh/runner' 'no shebang')"
+  assert_failure
+}
+
+@test "is_shell_file: dies with no args" {
+  run shell_scripts::is_shell_file
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "is_shell_file: dies with 2 args" {
+  run shell_scripts::is_shell_file 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
