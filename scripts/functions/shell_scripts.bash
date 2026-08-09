@@ -14,6 +14,23 @@ function shell_scripts::has_shell_shebang() {
   [[ "${first_line}" =~ ^#!.*[/\ ](((ba)?sh)|bats)([[:space:]]|$) ]]
 }
 
+# @description Return true if the given path is a shell file: either it carries a shell
+# extension (.sh/.bash/.bats) or its first line is a shell shebang. Mirrors how
+# `shfmt --find` classifies files when scanning a directory, so an explicitly
+# passed file is judged by the same rule a discovered one is. .bats is matched by
+# extension because those files open with `@test`, not a shebang.
+# @arg $1 file path
+# @exitcode 0 if true
+# @exitcode 1 if false
+function shell_scripts::is_shell_file() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  case "${file}" in
+    *.sh | *.bash | *.bats) return 0 ;;
+  esac
+  shell_scripts::has_shell_shebang "${file}"
+}
+
 # @description Die if any of the given paths does not exist on disk.
 # @arg $@ paths to validate
 function shell_scripts::assert_paths_exist() {
