@@ -435,3 +435,63 @@ The tracked `.githooks/pre-push` hook runs `./check-scripts` automatically on pu
 - Before merging, clean the branch with `git rebase --interactive` so WIP / "fix review" / typo commits do not leak onto `main` under the merge commit.
 - All commits must be signed — the ruleset enforces `required_signatures`.
 - The ruleset carries no bypass actors (`bypass_actors: []`): there is no admin override. A red required check blocks the merge for everyone, including the owner.
+
+## GitHub Actions Egress Posture
+
+Every job in every workflow runs `step-security/harden-runner` with `egress-policy: block` and an
+explicit `allowed-endpoints` list. Audit mode only logs egress; block mode is what actually contains a
+compromised dependency.
+
+- **The mandate is enforced.** `.ci/check-harden-runner-egress` fails any job that omits
+  `egress-policy: block` or ships a blank `allowed-endpoints`. Its `EXEMPT` array is deliberately empty,
+  so a new workflow fails the governance gate until it declares a list. `.ci/check-harden-runner-first`
+  separately requires harden-runner to be the job's first step.
+
+- **`allowed-endpoints` must be a `>-` folded scalar on a single space-separated line.** Two independent
+  reasons: treefmt's yamlfmt collapses a multi-line folded scalar back onto one line, so a hand-wrapped
+  list does not survive formatting; and harden-runner splits the value on spaces only, so a `|-` literal
+  block is parsed as **one giant endpoint** and every host but the first is silently dropped. A `|-`
+  block is worse than a syntax error — it looks correct and disarms the policy.
+
+- **`.yamllint.yml` sets `line-length.max: 600`** as a direct consequence of the rule above. Do not
+  lower it to "fix" a long endpoint line.
+
+- **Deriving a list.** Set `block`, run the job, then read the blocked hosts out of the harden-runner
+  **Post Run** step:
+
+  ```bash
+  gh run view --job "${JOB_ID}" --log | grep -E 'domain not allowed: [^[:space:]]+'
+  ```
+
+  The host is printed with a trailing dot. Strip it and append `:443`.
+
+- **A blocked call is a silent packet drop.** It does not fail the step, emits no annotation, and
+  produces no warning — the calling command just reports a connection error, or worse, degrades
+  quietly. **A green job may still have had calls blocked.** Two consequences: always harvest from
+  green runs rather than waiting for a red one, and verify a job's real work actually happened
+  (artifact uploaded, check published, cache saved) instead of trusting its conclusion.
+
+- **Some hosts are only observable on a cold Nix cache.** `rubygems.org` and `tarballs.nixos.org` are
+  reached only when the devShell is rebuilt, via the bashcov bundlerEnv. Delete the `nix-Linux-*`
+  caches and force one cold round before trusting a Nix job's list.
+
+- **Prefer exact hosts over wildcards.** A wildcard entry permits every subdomain. Use one only when the
+  host name genuinely rotates between runs (for example an Azure storage-account number), and then
+  narrow it as far as the observed family allows and comment why.
+
+- **`links.yml` carries a second, stricter gate.** `.ci/check-links-allowed-endpoints` requires every
+  host linked from tracked markdown to appear in that workflow's allowlist. The comparison is one-way:
+  extra entries are fine, missing ones fail. Adding an external link to any tracked markdown file —
+  including this one — means adding its host there.
+
+### Renovate action bumps can break an allowlist
+
+A third-party action version bump can change that action's upstream hosts, turning an otherwise routine
+Renovate PR red. This is the intended failure mode: loud, with a one-line fix.
+
+When a version-bump PR fails and the error is a connection failure rather than a real test failure,
+suspect the allowlist first and read the harden-runner Post Run step for `domain not allowed:` lines.
+
+Worked example: GitHub moved release-asset downloads from `objects.githubusercontent.com` to
+`release-assets.githubusercontent.com`. Four jobs download a release binary — reviewdog, gitleaks,
+lychee, and shfmt — so all four broke at once and all four needed the new host added.
