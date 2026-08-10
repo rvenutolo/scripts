@@ -218,6 +218,12 @@ All other rules (helper-function usage, quoting, `[[ ]]` over `[ ]`, `(( ))` ari
 
 Scripts under `set_up/` must be idempotent and self-gate — check current state before mutating, and exit cleanly when there is nothing to do.
 
+### Provisioning-runner test seams
+
+`run-install-scripts` and `run-set-up-scripts` read their script directory through `INSTALL_DIR_OVERRIDE` / `SET_UP_DIR_OVERRIDE`, defaulting to `${SCRIPTS_DIR}/install` and `${SCRIPTS_DIR}/set_up`. Production leaves both unset; `test/root/` uses them to drive the runners against fixture trees, with `sudo` stubbed via `cli_shim::record` and `HOME` pointed at an empty tmpdir so the `~/.profile` branch is skipped.
+
+**Never run these two runners without a seam in order to observe a "failure" — they execute the real provisioning scripts against the live machine.** Stubbing `sudo` does not prevent that; the scripts under `install/` and `set_up/` run for real. To exercise the fallback path, copy the repo to a tmpdir and empty those directories there.
+
 ### Standalone `misc/` ERR trap
 
 Standalone scripts that do NOT source this repo's `.functions.bash` (everything in `misc/`) cannot call `log::enable_err_trap`. Inline the trap directly after the `IFS=` line. (Note: scripts that source `${DOCKER_COMPOSE_DIR}/functions.bash` DO have access to this repo's helpers — that file transitively sources `${SCRIPTS_DIR}/.functions.bash` — so use `log::enable_err_trap` there, not the inline form.)
@@ -336,6 +342,8 @@ The generic rule requires a comment on any `PATH` modification. The repo's PATH-
 
 When adding a helper to an existing topic file that already has a `.bats` file, extend that file. When adding a new topic file, create the matching `.bats` file in the same PR. The PR is not complete until `./run-tests` is green and coverage matches the bullets above. If a helper genuinely cannot be tested without mocking a side effect that has no existing test-helper for it (sudo, network, package manager), add the helper and the new test-helper together — do not ship the helper untested.
 
+`.ci/check-script-has-test` enforces the same paired-test mandate over **two scopes**: every shebang-bearing executable under `.ci/` needs `test/ci/<name>.bats`, and every executable shell file at the repo root needs `test/root/<name>.bats`. Both scopes carry an `EXEMPT` array with bidirectional stale-entry detection — an entry naming no script, or naming one that *does* have a paired test, fails the lint rather than silently disarming it. The repo-root array ships empty. Both arrays go through `arrays::from_env_override`, so `EXEMPT_OVERRIDE` / `ROOT_EXEMPT_OVERRIDE` let the tests drive them; `test/ci/check-script-has-test.bats` sets both to the empty string in `setup()`, because the shipped defaults name real repo scripts that do not exist in a fixture dir and would otherwise read as stale.
+
 ### Process substitution and background commands
 
 The generic ban on `<(...)` and `cmd &` from `.claude/rules/shell-scripts.md` applies here. Project-specific replacements:
@@ -366,7 +374,11 @@ test/
   ci/
     check-executable-bit.bats # tests for .ci/check-executable-bit
   root/
-    check-scripts.bats        # tests for the repo-root runner check-scripts
+    check-scripts.bats          # tests for the repo-root runner check-scripts
+    run-install-scripts.bats    # driven via INSTALL_DIR_OVERRIDE
+    run-set-up-scripts.bats     # driven via SET_UP_DIR_OVERRIDE
+    run-tests.bats              # driven in a throwaway git repo + recording bats stub
+    shellcheck-scripts.bats
 ```
 
 ### Running
