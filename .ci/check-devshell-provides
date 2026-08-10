@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+
+# @description Assert every tool the repo's own tooling invokes is provided by
+#              the flake devShell rather than the caller's home directory.
+#              `nix develop` inherits the ambient PATH, so a tool the maintainer
+#              installed globally silently becomes a hidden dependency that a
+#              fresh contributor does not have. That is exactly how `just` came
+#              to resolve only from ~/.nix-profile while every doc claimed the
+#              devShell provided it (#219). Run this from inside the devShell —
+#              it deliberately does not spawn a nested `nix develop`, since the
+#              governance suite already runs in one.
+# @noargs
+# @stderr One line per tool that is missing or resolves from under $HOME.
+# @exitcode 0 every required tool resolves from outside $HOME.
+# @exitcode 1 a required tool is missing, or is provided by the caller's home directory.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+# Tools the repo's own tooling shells out to. Every entry is justified by a real
+# call site, so the list stays reviewable rather than a guess:
+# - actionlint, editorconfig-checker, markdownlint-cli2, typos, yamllint:
+#   invoked directly by .ci/run-lint-checks.
+# - check-jsonschema: invoked by .ci/check-jsonschema.
+# - gawk, jq, yq: asserted by the .ci/check-* workflow lints.
+# - gh: asserted by .ci/apply-repo-settings.
+# - git: every repo-tooling script derives REPO_DIR via `git rev-parse`.
+# - just: the task runner the .justfile and README document.
+# - mkdocs: the .justfile `docs` recipe and the Pages workflow.
+# - parallel: run-tests' default `bats --jobs` path needs GNU parallel.
+# - shellcheck, shfmt: the check-scripts / shellcheck-scripts gate, and
+#   shell_scripts::find shells out to `shfmt --find`.
+#
+# Deliberately absent:
+# - nix: it provides the devShell and so cannot be provided by it.
+# - bats: run-tests invokes the vendored ./test/bats/bin/bats submodule, not a
+#   PATH binary.
+# - prettier, yamlfmt, taplo, nixfmt, mdformat: treefmt resolves these from the
+#   Nix store directly, never through PATH.
+# - commitlint, lychee, zizmor, kcov, bashcov: invoked by CI actions, not by any
+#   script in this repo.
+# - flatpak, appman, apt, dnf, pacman, pwgen and friends: invoked by scripts/,
+#   which is the repo's payload rather than its tooling. Those are expected to
+#   come from the machine.
+readonly REQUIRED_TOOLS=(
+  actionlint
+  check-jsonschema
+  editorconfig-checker
+  gawk
+  gh
+  git
+  jq
+  just
+  markdownlint-cli2
+  mkdocs
+  parallel
+  shellcheck
+  shfmt
+  typos
+  yamllint
+  yq
+)
+
+function main() {
+  args::check_no_args "$@"
+  local -a required=()
+  arrays::from_env_override required REQUIRED_TOOLS_OVERRIDE "${REQUIRED_TOOLS[@]}"
+  local failed=0
+  local tool resolved
+  for tool in ${required[@]+"${required[@]}"}; do
+    strings::is_empty "${tool}" && continue
+    if ! resolved="$(commands::executable_path "${tool}")" \
+      || strings::is_empty "${resolved}"; then
+      printf '%s: not found on PATH — add it to flake.nix devShells.default.packages\n' \
+        "${tool}" >&2
+      failed=1
+      continue
+    fi
+    if [[ "${resolved}" == "${HOME}/"* ]]; then
+      # shellcheck disable=SC2016 # the literal string $HOME is the message text; expanding it would be wrong
+      printf '%s: resolves to %s (under $HOME), not the devShell — add it to flake.nix\n' \
+        "${tool}" "${resolved}" >&2
+      failed=1
+    fi
+  done
+  exit "${failed}"
+}
+
+main "$@"
