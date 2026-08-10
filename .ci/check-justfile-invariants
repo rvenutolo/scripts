@@ -1,0 +1,219 @@
+#!/usr/bin/env bash
+
+# @description Assert the repo has exactly one justfile, that it is the hidden
+#              .justfile, that its recipe set and README's command table agree
+#              bidirectionally, and that the full-gate entry points still name
+#              ./run-all-checks. Two tracked justfiles made `just` refuse to run
+#              at all, taking out every documented invocation (#218); README's
+#              table had meanwhile drifted into a union matching neither file.
+#              The gate assertions cover the machine-readable copies of the gate
+#              description (#222) — CLAUDE.md's prose list is deliberately out of
+#              scope, since string-matching prose fails on rewording.
+# @noargs
+# @stderr One line per violation.
+# @exitcode 0 the justfile is unique, canonical, and agrees with the docs.
+# @exitcode 1 a duplicate or missing justfile, a recipe/README mismatch, or gate-name drift.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'gawk'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly ROOT_DIR="${ROOT_DIR_OVERRIDE:-${REPO_DIR}}"
+readonly JUSTFILE="${JUSTFILE_OVERRIDE:-${ROOT_DIR}/.justfile}"
+readonly README_MD="${README_OVERRIDE:-${ROOT_DIR}/README.md}"
+readonly PR_TEMPLATE="${PR_TEMPLATE_OVERRIDE:-${ROOT_DIR}/.github/PULL_REQUEST_TEMPLATE.md}"
+
+# The canonical basename. Hidden, matching the repo's other hidden root config
+# (.mkdocs.yml, .treefmt.nix); 7691c69 renamed it deliberately, and 517b0c6
+# re-created an unhidden copy by accident.
+readonly CANONICAL_JUSTFILE='.justfile'
+
+# Every basename `just` treats as a candidate. More than one at the repo root
+# makes `just` refuse to run rather than pick one.
+readonly CANDIDATES=(justfile Justfile JUSTFILE .justfile .JUSTFILE)
+
+# The recipe that must invoke the full local gate, and the command it must run.
+readonly GATE_RECIPE='all'
+readonly GATE_COMMAND='./run-all-checks'
+
+# `default` aliases another recipe rather than naming a distinct command, and
+# README documents it as an annotation on the aliased row ("`just check`
+# (default)"). Requiring a `just default` row would be wrong.
+readonly PARITY_EXEMPT_RECIPES=(default)
+
+# @description Print the basenames of justfile candidates present in a directory.
+# @arg $1 root_dir directory to scan
+# @stdout One candidate basename per line; nothing when none are present.
+function justfile_candidates() {
+  args::check_exactly_1_arg "$@"
+  local -r root_dir="$1"
+  local candidate
+  for candidate in "${CANDIDATES[@]}"; do
+    if files::exists "${root_dir}/${candidate}"; then
+      printf '%s\n' "${candidate}"
+    fi
+  done
+}
+
+# @description Print the recipe names declared in a justfile, one per line.
+#              Recipe lines start at column 0 as `name [params...]: [deps...]`;
+#              indented body lines, comments, and `:=` assignments are skipped.
+# @arg $1 justfile_path path to the justfile
+# @stdout One recipe name per line.
+function recipe_names() {
+  args::check_exactly_1_arg "$@"
+  local -r justfile_path="$1"
+  gawk '
+    /^[[:space:]]/ { next }
+    /^#/ { next }
+    /:=/ { next }
+    /^[a-z][a-z0-9_-]*([[:space:]][^:]*)?:/ {
+      split($0, parts, ":")
+      split(parts[1], head, " ")
+      print head[1]
+    }
+  ' "${justfile_path}"
+}
+
+# @description Print the recipe names README's command table refers to, one per
+#              line. Only table rows are scanned, so prose mentioning `just`
+#              elsewhere in the file cannot leak in. Any trailing text inside the
+#              backticks (a parameter placeholder like `<path>`) is ignored.
+# @arg $1 readme_path path to README.md
+# @stdout One recipe name per line; nothing when the table names none.
+function readme_recipe_names() {
+  args::check_exactly_1_arg "$@"
+  local -r readme_path="$1"
+  local rows_tmp
+  files::create_temp rows_tmp
+  grep -E '^\|' "${readme_path}" > "${rows_tmp}" || true
+  grep -oE '`just [a-z][a-z0-9_-]*' "${rows_tmp}" \
+    | cut --delimiter=' ' --fields=2 \
+    | sort --unique || true
+}
+
+# @description Print the indented body lines of one recipe.
+# @arg $1 justfile_path path to the justfile
+# @arg $2 recipe recipe name whose body to print
+# @stdout The recipe's body lines; nothing when the recipe has none or is absent.
+function recipe_body() {
+  args::check_exactly_2_args "$@"
+  local -r justfile_path="$1"
+  local -r recipe="$2"
+  # -v rather than an env-var prefix: `recipe` is a readonly local here, and a
+  # `recipe=... gawk` prefix assignment on a readonly name is a fatal bash error.
+  gawk -v want="${recipe}" '
+    BEGIN { inside = 0 }
+    /^[[:space:]]/ { if (inside) print; next }
+    /^[[:space:]]*$/ { next }
+    {
+      split($0, parts, ":")
+      split(parts[1], head, " ")
+      inside = (head[1] == want)
+    }
+  ' "${justfile_path}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  local failed=0
+
+  # 1 + 2: exactly one candidate, and it is the canonical hidden name.
+  local candidates_tmp
+  files::create_temp candidates_tmp
+  justfile_candidates "${ROOT_DIR}" > "${candidates_tmp}"
+  local -a present=()
+  local candidate
+  while IFS= read -r candidate; do
+    strings::is_empty "${candidate}" && continue
+    present+=("${candidate}")
+  done < "${candidates_tmp}"
+
+  if ((${#present[@]} == 0)); then
+    printf 'no justfile found at %s — expected %s\n' "${ROOT_DIR}" "${CANONICAL_JUSTFILE}" >&2
+    exit 1
+  fi
+  # ${array[*]} joins on IFS's first character, a newline under this script's
+  # strict IFS; swap those for spaces so each violation stays on one line.
+  local present_list="${present[*]}"
+  present_list="${present_list//$'\n'/ }"
+  if ((${#present[@]} > 1)); then
+    printf 'multiple justfile candidates present (just refuses to run): %s\n' \
+      "${present_list}" >&2
+    failed=1
+  fi
+  if ! arrays::contains "${CANONICAL_JUSTFILE}" "${present[@]}"; then
+    printf 'the justfile must be named %s, found: %s\n' \
+      "${CANONICAL_JUSTFILE}" "${present_list}" >&2
+    failed=1
+  fi
+
+  files::assert_exists "${JUSTFILE}"
+  files::assert_exists "${README_MD}"
+  files::assert_exists "${PR_TEMPLATE}"
+
+  # 3: bidirectional recipe/README parity.
+  local recipes_tmp readme_tmp
+  files::create_temp recipes_tmp
+  files::create_temp readme_tmp
+  recipe_names "${JUSTFILE}" > "${recipes_tmp}"
+  readme_recipe_names "${README_MD}" > "${readme_tmp}"
+
+  local -a recipes=() documented=()
+  local name
+  while IFS= read -r name; do
+    strings::is_empty "${name}" && continue
+    recipes+=("${name}")
+  done < "${recipes_tmp}"
+  while IFS= read -r name; do
+    strings::is_empty "${name}" && continue
+    documented+=("${name}")
+  done < "${readme_tmp}"
+
+  for name in ${recipes[@]+"${recipes[@]}"}; do
+    arrays::contains "${name}" "${PARITY_EXEMPT_RECIPES[@]}" && continue
+    if ! arrays::contains "${name}" ${documented[@]+"${documented[@]}"}; then
+      printf '%s: recipe has no README command-table row\n' "${name}" >&2
+      failed=1
+    fi
+  done
+  for name in ${documented[@]+"${documented[@]}"}; do
+    if ! arrays::contains "${name}" ${recipes[@]+"${recipes[@]}"}; then
+      printf '%s: README names a recipe that %s does not define\n' \
+        "${name}" "${CANONICAL_JUSTFILE}" >&2
+      failed=1
+    fi
+  done
+
+  # 4: the gate entry points still name run-all-checks.
+  if ! arrays::contains "${GATE_RECIPE}" ${recipes[@]+"${recipes[@]}"}; then
+    printf '%s: no such recipe — the full gate must stay reachable as: just %s\n' \
+      "${GATE_RECIPE}" "${GATE_RECIPE}" >&2
+    failed=1
+  else
+    local body_tmp
+    files::create_temp body_tmp
+    recipe_body "${JUSTFILE}" "${GATE_RECIPE}" > "${body_tmp}"
+    if ! grep --quiet --fixed-strings "${GATE_COMMAND}" "${body_tmp}"; then
+      printf 'the %s recipe must invoke %s\n' "${GATE_RECIPE}" "${GATE_COMMAND}" >&2
+      failed=1
+    fi
+  fi
+  if ! grep --quiet --fixed-strings "${GATE_COMMAND}" "${PR_TEMPLATE}"; then
+    printf 'PULL_REQUEST_TEMPLATE.md must name %s in its test-plan checklist\n' \
+      "${GATE_COMMAND}" >&2
+    failed=1
+  fi
+
+  exit "${failed}"
+}
+
+main "$@"
