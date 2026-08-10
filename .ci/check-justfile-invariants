@@ -9,10 +9,13 @@
 #              The gate assertions cover the machine-readable copies of the gate
 #              description (#222) — CLAUDE.md's prose list is deliberately out of
 #              scope, since string-matching prose fails on rewording.
+#              Recipe parsing is delegated to `just --dump`, so the repo does not
+#              re-encode just's grammar (#229); README scanning is scoped to the
+#              `## Common commands` section (#230).
 # @noargs
 # @stderr One line per violation.
 # @exitcode 0 the justfile is unique, canonical, and agrees with the docs.
-# @exitcode 1 a duplicate or missing justfile, a recipe/README mismatch, or gate-name drift.
+# @exitcode 1 a duplicate or missing justfile, an unparseable justfile, a missing README command table, a recipe/README mismatch, or gate-name drift.
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -22,7 +25,10 @@ source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
+# gawk still scans README's markdown; just + jq parse the justfile itself.
 commands::assert_executable_exists 'gawk'
+commands::assert_executable_exists 'just'
+commands::assert_executable_exists 'jq'
 
 REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
@@ -63,63 +69,94 @@ function justfile_candidates() {
   done
 }
 
-# @description Print the recipe names declared in a justfile, one per line.
-#              Recipe lines start at column 0 as `name [params...]: [deps...]`;
-#              indented body lines, comments, and `:=` assignments are skipped.
+# @description Write `just`'s JSON dump of a justfile to a destination file.
+#              Parsing is delegated to `just` itself rather than re-encoded here:
+#              this lint used to carry the recipe-name pattern twice, and both
+#              copies rejected an uppercase-initial name, so such a recipe was
+#              invisible to the justfile parser and the README parser at once and
+#              the parity check passed on exactly the case it exists to flag
+#              (#229). A justfile `just` cannot parse now fails the lint with
+#              just's own file/line/column diagnostic on stderr, which is the
+#              fail-closed behavior that issue asked for.
 # @arg $1 justfile_path path to the justfile
-# @stdout One recipe name per line.
-function recipe_names() {
-  args::check_exactly_1_arg "$@"
+# @arg $2 dest_path file to write the JSON dump to
+# @stderr just's parse diagnostic, when it cannot parse the justfile.
+# @exitcode 0 the justfile parsed and the dump was written.
+# @exitcode 1 just could not parse the justfile.
+function justfile_dump() {
+  args::check_exactly_2_args "$@"
   local -r justfile_path="$1"
-  gawk '
-    /^[[:space:]]/ { next }
-    /^#/ { next }
-    /:=/ { next }
-    /^[a-z][a-z0-9_-]*([[:space:]][^:]*)?:/ {
-      split($0, parts, ":")
-      split(parts[1], head, " ")
-      print head[1]
-    }
-  ' "${justfile_path}"
+  local -r dest_path="$2"
+  # --working-directory is mandatory: without it just resolves relative paths
+  # against its own location, which would make fixture runs depend on the live
+  # checkout instead of the temp tree the tests build.
+  just --justfile "${justfile_path}" \
+    --working-directory "$(dirname "${justfile_path}")" \
+    --dump --dump-format json > "${dest_path}"
 }
 
-# @description Print the recipe names README's command table refers to, one per
-#              line. Only table rows are scanned, so prose mentioning `just`
-#              elsewhere in the file cannot leak in. Any trailing text inside the
-#              backticks (a parameter placeholder like `<path>`) is ignored.
+# @description Print every recipe in a justfile dump, one per line, as
+#              `visibility<TAB>name` where visibility is `private` or `public`.
+#              `just` reports private=true for both a `_` name prefix and a
+#              `[private]` attribute, which are the two ways it hides a recipe
+#              from `just --list`. Note that `just` rejects digit-initial recipe
+#              names outright — contrary to #229's claim, verified on just 1.51.0
+#              — so no pattern here needs to accommodate them.
+# @arg $1 dump_path path to a JSON dump written by justfile_dump
+# @stdout One `private<TAB>name` or `public<TAB>name` line per recipe.
+function classified_recipes() {
+  args::check_exactly_1_arg "$@"
+  local -r dump_path="$1"
+  jq --raw-output '
+    .recipes
+    | to_entries[]
+    | (if .value.private then "private" else "public" end) + "\t" + .key
+  ' "${dump_path}"
+}
+
+# @description Print the recipe names README's `## Common commands` section
+#              refers to, one per line. Only rows inside that section are
+#              scanned. The previous implementation grepped every line in the
+#              file beginning with `|`, so any unrelated markdown table that
+#              mentioned a recipe in passing would have registered as a
+#              documented command and produced a false failure claiming the
+#              justfile does not define it (#230).
 # @arg $1 readme_path path to README.md
-# @stdout One recipe name per line; nothing when the table names none.
+# @stdout One recipe name per line, sorted and deduplicated.
+# @exitcode 0 the section was found.
+# @exitcode 1 README has no `## Common commands` heading.
 function readme_recipe_names() {
   args::check_exactly_1_arg "$@"
   local -r readme_path="$1"
+  if ! grep --quiet --line-regexp --fixed-strings '## Common commands' "${readme_path}"; then
+    return 1
+  fi
   local rows_tmp
   files::create_temp rows_tmp
-  grep -E '^\|' "${readme_path}" > "${rows_tmp}" || true
-  grep -oE '`just [a-z][a-z0-9_-]*' "${rows_tmp}" \
+  gawk '
+    /^## / { inside = ($0 == "## Common commands"); next }
+    inside && /^\|/ { print }
+  ' "${readme_path}" > "${rows_tmp}"
+  # The name pattern matches what just accepts, so an uppercase or underscore
+  # recipe documented in README is seen by the README-to-justfile direction.
+  grep --only-matching --extended-regexp '`just [A-Za-z_][A-Za-z0-9_-]*' "${rows_tmp}" \
     | cut --delimiter=' ' --fields=2 \
     | sort --unique || true
 }
 
-# @description Print the indented body lines of one recipe.
-# @arg $1 justfile_path path to the justfile
+# @description Print the body of one recipe from a justfile dump, with each
+#              line's fragments joined. Used to assert the gate recipe still
+#              invokes the gate command.
+# @arg $1 dump_path path to a JSON dump written by justfile_dump
 # @arg $2 recipe recipe name whose body to print
-# @stdout The recipe's body lines; nothing when the recipe has none or is absent.
+# @stdout The recipe's body, one line per body line; nothing when it has none.
 function recipe_body() {
   args::check_exactly_2_args "$@"
-  local -r justfile_path="$1"
+  local -r dump_path="$1"
   local -r recipe="$2"
-  # -v rather than an env-var prefix: `recipe` is a readonly local here, and a
-  # `recipe=... gawk` prefix assignment on a readonly name is a fatal bash error.
-  gawk -v want="${recipe}" '
-    BEGIN { inside = 0 }
-    /^[[:space:]]/ { if (inside) print; next }
-    /^[[:space:]]*$/ { next }
-    {
-      split($0, parts, ":")
-      split(parts[1], head, " ")
-      inside = (head[1] == want)
-    }
-  ' "${justfile_path}"
+  jq --raw-output --arg want "${recipe}" '
+    .recipes[$want].body // [] | .[] | map(tostring) | join("")
+  ' "${dump_path}"
 }
 
 function main() {
@@ -161,17 +198,34 @@ function main() {
   files::assert_exists "${PR_TEMPLATE}"
 
   # 3: bidirectional recipe/README parity.
+  local dump_tmp
+  files::create_temp dump_tmp
+  if ! justfile_dump "${JUSTFILE}" "${dump_tmp}"; then
+    printf '%s: just could not parse this justfile (its diagnostic is above)\n' \
+      "${JUSTFILE}" >&2
+    exit 1
+  fi
+
   local recipes_tmp readme_tmp
   files::create_temp recipes_tmp
   files::create_temp readme_tmp
-  recipe_names "${JUSTFILE}" > "${recipes_tmp}"
-  readme_recipe_names "${README_MD}" > "${readme_tmp}"
+  classified_recipes "${dump_tmp}" > "${recipes_tmp}"
+  if ! readme_recipe_names "${README_MD}" > "${readme_tmp}"; then
+    # shellcheck disable=SC2016 # literal backticks quoting a markdown heading, not command substitution
+    printf '%s: no `## Common commands` heading — that section is the documented recipe set\n' \
+      "${README_MD}" >&2
+    exit 1
+  fi
 
-  local -a recipes=() documented=()
-  local name
-  while IFS= read -r name; do
-    strings::is_empty "${name}" && continue
+  local -a recipes=() hidden=() documented=()
+  local line name
+  while IFS= read -r line; do
+    strings::is_empty "${line}" && continue
+    name="${line#*$'\t'}"
     recipes+=("${name}")
+    if [[ "${line%%$'\t'*}" == 'private' ]]; then
+      hidden+=("${name}")
+    fi
   done < "${recipes_tmp}"
   while IFS= read -r name; do
     strings::is_empty "${name}" && continue
@@ -180,6 +234,10 @@ function main() {
 
   for name in ${recipes[@]+"${recipes[@]}"}; do
     arrays::contains "${name}" "${PARITY_EXEMPT_RECIPES[@]}" && continue
+    # Hidden recipes are internal helpers, so they are exempt from needing a
+    # README row. The other direction stays strict below: documenting one is a
+    # real defect, since `just --list` will not show it.
+    arrays::contains "${name}" ${hidden[@]+"${hidden[@]}"} && continue
     if ! arrays::contains "${name}" ${documented[@]+"${documented[@]}"}; then
       printf '%s: recipe has no README command-table row\n' "${name}" >&2
       failed=1
@@ -189,6 +247,9 @@ function main() {
     if ! arrays::contains "${name}" ${recipes[@]+"${recipes[@]}"}; then
       printf '%s: README names a recipe that %s does not define\n' \
         "${name}" "${CANONICAL_JUSTFILE}" >&2
+      failed=1
+    elif arrays::contains "${name}" ${hidden[@]+"${hidden[@]}"}; then
+      printf '%s: README documents a recipe just hides from --list\n' "${name}" >&2
       failed=1
     fi
   done
@@ -201,7 +262,7 @@ function main() {
   else
     local body_tmp
     files::create_temp body_tmp
-    recipe_body "${JUSTFILE}" "${GATE_RECIPE}" > "${body_tmp}"
+    recipe_body "${dump_tmp}" "${GATE_RECIPE}" > "${body_tmp}"
     if ! grep --quiet --fixed-strings "${GATE_COMMAND}" "${body_tmp}"; then
       printf 'the %s recipe must invoke %s\n' "${GATE_RECIPE}" "${GATE_COMMAND}" >&2
       failed=1

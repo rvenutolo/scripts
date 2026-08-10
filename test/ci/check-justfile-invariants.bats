@@ -224,3 +224,153 @@ EOF
   run "${CHECK}"
   assert_success
 }
+
+# --- #229: recipe names just accepts but the old hand-rolled regex did not ---
+
+@test "an uppercase-initial recipe with no README row fails" {
+  make_readme
+  make_pr_template
+  cat > "${ROOT}/.justfile" << 'EOF'
+default: check
+
+all:
+    ./run-all-checks
+
+check:
+    ./check-scripts
+
+new-script PATH:
+    ./scripts/non-interactive/new-script {{PATH}}
+
+Build:
+    ./build
+EOF
+  run_check
+  assert_failure
+  assert_output --partial 'Build'
+  assert_output --partial 'no README'
+}
+
+@test "an uppercase-initial recipe documented in README passes" {
+  make_pr_template
+  cat > "${ROOT}/.justfile" << 'EOF'
+default: check
+
+all:
+    ./run-all-checks
+
+check:
+    ./check-scripts
+
+new-script PATH:
+    ./scripts/non-interactive/new-script {{PATH}}
+
+Build:
+    ./build
+EOF
+  make_readme
+  printf '| `./build` | `just Build` | Build it. |\n' >> "${ROOT}/README.md"
+  run_check
+  assert_success
+}
+
+@test "an underscore-prefixed recipe needs no README row" {
+  make_readme
+  make_pr_template
+  make_justfile
+  printf '\n_scratch:\n    true\n' >> "${ROOT}/.justfile"
+  run_check
+  assert_success
+}
+
+@test "a private-attributed recipe needs no README row" {
+  make_readme
+  make_pr_template
+  make_justfile
+  printf '\n[private]\nhelper:\n    true\n' >> "${ROOT}/.justfile"
+  run_check
+  assert_success
+}
+
+@test "a hidden recipe documented in README fails" {
+  make_pr_template
+  make_justfile
+  printf '\n_scratch:\n    true\n' >> "${ROOT}/.justfile"
+  make_readme
+  printf '| `./scratch` | `just _scratch` | Scratch. |\n' >> "${ROOT}/README.md"
+  run_check
+  assert_failure
+  assert_output --partial '_scratch'
+}
+
+@test "a justfile just cannot parse fails the lint" {
+  make_readme
+  make_pr_template
+  printf 'bogus line here\n\ncheck:\n    ./check-scripts\n' > "${ROOT}/.justfile"
+  run_check
+  assert_failure
+  # Discriminating on purpose: a truncated justfile also trips README parity and
+  # the missing-gate-recipe check, so a bare assert_failure passes vacuously and
+  # would stay green even if nothing ever detected the parse failure.
+  assert_output --partial 'could not parse this justfile'
+}
+
+@test "legal non-recipe constructs parse without a violation" {
+  make_pr_template
+  cat > "${ROOT}/.justfile" << 'EOF'
+set shell := ["bash", "-c"]
+export MYVAR := "x"
+myvar := "y"
+alias c := check
+
+default: check
+
+# Run the full local verification gate
+all: check
+    ./run-all-checks
+
+check:
+    ./check-scripts
+
+new-script PATH="d":
+    ./scripts/non-interactive/new-script {{PATH}}
+EOF
+  make_readme
+  run_check
+  assert_success
+}
+
+# --- #230: README scanning must be scoped to the command table's section ---
+
+@test "an unrelated markdown table mentioning just is ignored" {
+  make_justfile
+  make_pr_template
+  make_readme
+  cat >> "${ROOT}/README.md" << 'EOF'
+
+## Migration notes
+
+| Old | New |
+| --- | --- |
+| `make build` | `just legacy-thing` |
+EOF
+  run_check
+  assert_success
+}
+
+@test "a README with no Common commands heading fails" {
+  make_justfile
+  make_pr_template
+  cat > "${ROOT}/README.md" << 'EOF'
+## Something else
+
+| Shell script | `just` recipe | Purpose |
+| --- | --- | --- |
+| `./run-all-checks` | `just all` | Full local gate. |
+| `./check-scripts` | `just check` (default) | Combined audit. |
+| `scripts/non-interactive/new-script <path>` | `just new-script <path>` | Scaffold a script. |
+EOF
+  run_check
+  assert_failure
+  assert_output --partial 'Common commands'
+}
