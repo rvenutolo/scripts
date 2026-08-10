@@ -21,7 +21,9 @@ args::check_no_args "$@"
 
 sudo --validate
 
-readonly scripts_dir="${SCRIPTS_DIR}/install"
+# INSTALL_DIR_OVERRIDE is a test seam: production leaves it unset. Mirrors
+# CI_DIR_OVERRIDE in .ci/check-script-has-test.
+readonly scripts_dir="${INSTALL_DIR_OVERRIDE:-${SCRIPTS_DIR}/install}"
 export LC_COLLATE='C'
 for script in "${scripts_dir}"/*; do
   # don't attempt to execute directories, READMEs, or scripts that intentionally have their executability turned off

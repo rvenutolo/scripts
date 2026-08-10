@@ -21,7 +21,9 @@ args::check_no_args "$@"
 
 sudo --validate
 
-readonly scripts_dir="${SCRIPTS_DIR}/set_up"
+# SET_UP_DIR_OVERRIDE is a test seam: production leaves it unset. Mirrors
+# CI_DIR_OVERRIDE in .ci/check-script-has-test.
+readonly scripts_dir="${SET_UP_DIR_OVERRIDE:-${SCRIPTS_DIR}/set_up}"
 export LC_COLLATE='C'
 shopt -s globstar
 for script in "${scripts_dir}"/**/*; do
