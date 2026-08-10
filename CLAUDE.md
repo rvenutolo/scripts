@@ -48,6 +48,8 @@ The user's `~/.profile` exports a fixed set of env vars (`SCRIPTS_DIR`, `XDG_*`,
 
 Every non-`misc/` script sources `"${SCRIPTS_DIR}/.functions.bash"`. Exception: a small number of Docker-related scripts (e.g. `scripts/non-interactive/docker-grype-scan`, `scripts/non-interactive/docker-trivy-scan`) source `${DOCKER_COMPOSE_DIR}/functions.bash` from a separate Docker repo instead. That file transitively sources `${SCRIPTS_DIR}/.functions.bash`, so all helpers from this repo (`log::enable_err_trap`, `log::log`, `log::die`, etc.) ARE available — no need to inline equivalents in those scripts.
 
+`.ci/activate-githooks` is the one script under `.ci/` that sources nothing and omits `args::handle_help_flag`. It runs from the flake devShell's `shellHook`, including under `nix develop --ignore-environment`, where `SCRIPTS_DIR` does not exist — sourcing the library there killed it under `set -u`, so the tracked git hooks silently failed to activate in the one environment that most resembles a fresh clone (#231). A bootstrap script cannot depend on the environment it is bootstrapping, so it inlines the `ERR` trap and its few helpers the way `misc/` standalone scripts do.
+
 ## Common Commands
 
 Tooling is provided by a **Nix flake devShell** (see [Required Environment](#required-environment)). Run `nix fmt` / `nix flake check` from the repo; the repo scripts below run inside the flake devShell (`nix develop --command ...` or via direnv).
