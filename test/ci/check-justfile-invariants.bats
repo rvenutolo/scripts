@@ -1,0 +1,226 @@
+setup() {
+  load '../test_helper/common'
+  CHECK="${REPO_DIR}/.ci/check-justfile-invariants"
+  ROOT="${BATS_TEST_TMPDIR}/root"
+  mkdir -p "${ROOT}/.github"
+}
+
+# Write a justfile whose recipes match the default README fixture below.
+make_justfile() {
+  cat > "${ROOT}/.justfile" << 'EOF'
+default: check
+
+# Run the full local verification gate
+all:
+    ./run-all-checks
+
+# shellcheck + shdoc header audit
+check:
+    ./check-scripts
+
+# Scaffold a new script
+new-script PATH:
+    ./scripts/non-interactive/new-script {{PATH}}
+EOF
+}
+
+make_readme() {
+  cat > "${ROOT}/README.md" << 'EOF'
+## Common commands
+
+| Shell script | `just` recipe | Purpose |
+| --- | --- | --- |
+| `./run-all-checks` | `just all` | Full local gate. |
+| `./check-scripts` | `just check` (default) | Combined audit. |
+| `scripts/non-interactive/new-script <path>` | `just new-script <path>` | Scaffold a script. |
+EOF
+}
+
+make_pr_template() {
+  cat > "${ROOT}/.github/PULL_REQUEST_TEMPLATE.md" << 'EOF'
+## Test plan
+
+- [ ] `nix fmt`
+- [ ] `./run-all-checks`
+EOF
+}
+
+# Every path input is pinned at fixtures. Without all four seams the lint would
+# fall back to the live checkout and these tests would depend on real repo state.
+run_check() {
+  ROOT_DIR_OVERRIDE="${ROOT}" \
+    JUSTFILE_OVERRIDE="${ROOT}/.justfile" \
+    README_OVERRIDE="${ROOT}/README.md" \
+    PR_TEMPLATE_OVERRIDE="${ROOT}/.github/PULL_REQUEST_TEMPLATE.md" \
+    run "${CHECK}" "$@"
+}
+
+@test "passes on a well-formed tree" {
+  make_justfile
+  make_readme
+  make_pr_template
+  run_check
+  assert_success
+}
+
+@test "fails when a second justfile candidate exists" {
+  make_justfile
+  make_readme
+  make_pr_template
+  printf 'default: check\n' > "${ROOT}/justfile"
+  run_check
+  assert_failure
+  assert_output --partial 'multiple justfile candidates'
+}
+
+@test "names both candidates when duplicated" {
+  make_justfile
+  make_readme
+  make_pr_template
+  printf 'default: check\n' > "${ROOT}/justfile"
+  run_check
+  assert_output --partial '.justfile'
+  assert_output --partial 'justfile'
+}
+
+@test "fails when no justfile candidate exists" {
+  make_readme
+  make_pr_template
+  run_check
+  assert_failure
+  assert_output --partial 'no justfile'
+}
+
+@test "fails when the sole candidate is the unhidden justfile" {
+  make_justfile
+  mv "${ROOT}/.justfile" "${ROOT}/justfile"
+  make_readme
+  make_pr_template
+  JUSTFILE_OVERRIDE="${ROOT}/justfile" ROOT_DIR_OVERRIDE="${ROOT}" \
+    README_OVERRIDE="${ROOT}/README.md" \
+    PR_TEMPLATE_OVERRIDE="${ROOT}/.github/PULL_REQUEST_TEMPLATE.md" \
+    run "${CHECK}"
+  assert_failure
+  assert_output --partial '.justfile'
+}
+
+@test "fails when a recipe has no README row" {
+  make_justfile
+  make_readme
+  make_pr_template
+  printf '\n# Orphan\norphan:\n    true\n' >> "${ROOT}/.justfile"
+  run_check
+  assert_failure
+  assert_output --partial 'orphan'
+  assert_output --partial 'no README'
+}
+
+@test "fails when README names a recipe that does not exist" {
+  make_justfile
+  make_readme
+  make_pr_template
+  printf '| `./ghost` | `just ghost` | Ghost. |\n' >> "${ROOT}/README.md"
+  run_check
+  assert_failure
+  assert_output --partial 'ghost'
+}
+
+@test "default is exempt from README parity" {
+  make_justfile
+  make_readme
+  make_pr_template
+  run_check
+  assert_success
+  refute_output --partial 'default'
+}
+
+@test "parameterized recipes match on bare name" {
+  make_justfile
+  make_readme
+  make_pr_template
+  run_check
+  assert_success
+  refute_output --partial 'new-script'
+}
+
+@test "fails when the all recipe does not invoke run-all-checks" {
+  make_readme
+  make_pr_template
+  cat > "${ROOT}/.justfile" << 'EOF'
+default: check
+
+all:
+    ./check-scripts
+
+check:
+    ./check-scripts
+
+new-script PATH:
+    ./scripts/non-interactive/new-script {{PATH}}
+EOF
+  run_check
+  assert_failure
+  assert_output --partial 'run-all-checks'
+}
+
+@test "fails when the all recipe is missing entirely" {
+  make_readme
+  make_pr_template
+  cat > "${ROOT}/.justfile" << 'EOF'
+default: check
+
+check:
+    ./check-scripts
+
+new-script PATH:
+    ./scripts/non-interactive/new-script {{PATH}}
+EOF
+  printf '| `./run-all-checks` | `just all` | Gate. |\n' >> "${ROOT}/README.md"
+  run_check
+  assert_failure
+  assert_output --partial 'all'
+}
+
+@test "fails when the PR template does not name run-all-checks" {
+  make_justfile
+  make_readme
+  printf '## Test plan\n\n- [ ] `nix fmt`\n' > "${ROOT}/.github/PULL_REQUEST_TEMPLATE.md"
+  run_check
+  assert_failure
+  assert_output --partial 'PULL_REQUEST_TEMPLATE'
+}
+
+@test "dies when the justfile is missing" {
+  make_readme
+  make_pr_template
+  printf 'default: check\n' > "${ROOT}/.justfile"
+  rm "${ROOT}/.justfile"
+  run_check
+  assert_failure
+}
+
+@test "dies when README is missing" {
+  make_justfile
+  make_pr_template
+  run_check
+  assert_failure
+}
+
+@test "rejects an unexpected argument" {
+  make_justfile
+  make_readme
+  make_pr_template
+  run_check unexpected
+  assert_failure
+}
+
+@test "--help exits 0 and prints the description" {
+  run "${CHECK}" --help
+  assert_success
+  assert_output --partial 'justfile'
+}
+
+@test "the real repo passes its own lint" {
+  run "${CHECK}"
+  assert_success
+}
