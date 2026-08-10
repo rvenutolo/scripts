@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+# @description Copy the custom Nix config into Determinate Nix's include path and restart
+#              nix-daemon if it changed. Skips cleanly when no system Nix is installed.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # source path not known statically
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+readonly src_file="${HOME}/.etc/nix-custom.conf"
+readonly dest_file='/etc/nix/nix.custom.conf'
+readonly nix_conf_file='/etc/nix/nix.conf'
+
+# No system Nix means no include path to install into. Without this gate,
+# files::root_copy would create /etc/nix on a machine that has no Nix.
+if ! files::exists "${nix_conf_file}"; then
+  log::log "No ${nix_conf_file} - skipping"
+  exit 0
+fi
+
+# Determinate owns nix.conf and replaces it on upgrade. Nix treats '!include' as
+# optional, so a renamed include silently discards every setting in this file.
+if ! grep::contains_regex "${nix_conf_file}" '^!include nix\.custom\.conf$'; then
+  log::warn "${nix_conf_file} does not include nix.custom.conf - settings will be ignored"
+fi
+
+# On machines set up by hand the destination is a symlink back to src_file.
+# files::root_copy would follow it, find the files identical, and leave it in place.
+if symlinks::exists "${dest_file}"; then
+  log::log "Removing existing symlink: ${dest_file}"
+  sudo rm --force -- "${dest_file}"
+fi
+
+orig_hash="$(files::hash_if_exists "${dest_file}")"
+readonly orig_hash
+files::root_copy "${src_file}" "${dest_file}"
+cur_hash="$(files::hash_if_exists "${dest_file}")"
+readonly cur_hash
+
+if [[ "${orig_hash}" != "${cur_hash}" ]]; then
+  systemctl::restart_system_service_if_enabled 'nix-daemon.service'
+fi
