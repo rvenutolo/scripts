@@ -77,6 +77,19 @@
               findutils
               gnugrep
             ];
+
+            # Activate the tracked git hooks for this clone. Activation used to be a
+            # manual per-clone step that silently never happened (#212); the devShell is
+            # the one place onboarding cannot skip. Tolerant of failure on purpose — a
+            # devShell that aborts on hook setup is worse than inert hooks. Resolved via
+            # git rather than the flake's store path so it configures the working clone,
+            # not a read-only copy in the Nix store.
+            shellHook = ''
+              if hooks_repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"; then
+                "$hooks_repo_root/.ci/activate-githooks" \
+                  || echo 'warning: could not activate tracked git hooks' >&2
+              fi
+            '';
           };
         }
       );

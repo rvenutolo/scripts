@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+# @description Point this clone's core.hooksPath at the tracked .githooks
+#              directory so the repo's commit-msg and pre-push hooks actually
+#              fire. Activation used to be a manual, per-clone `git config`
+#              step, and repo-local config cannot be committed — so it silently
+#              never happened and both tracked hooks sat inert (issue #212).
+#              This script exists so the flake devShell can do it instead:
+#              `direnv allow` / `nix develop` is the one onboarding step a
+#              contributor cannot skip. Idempotent and completely silent once
+#              the value is already correct, because it runs on every direnv
+#              reload and every `nix develop --command` in CI. A foreign
+#              core.hooksPath is overwritten and logged — leaving it in place
+#              would mean silently inert hooks, which is the bug being fixed.
+# @noargs
+# @stderr One line naming the change, on the runs that change something.
+# @exitcode 0 the tracked hooks are active, already or as of this run.
+# @exitcode 1 the working directory is not inside a git repo.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+# Repo-root-relative on purpose: git resolves core.hooksPath against the work
+# tree root, so one value is correct for every clone and every machine.
+readonly HOOKS_PATH='.githooks'
+
+function main() {
+  args::check_no_args "$@"
+  local repo_root
+  repo_root="$(git::repo_root "$(pwd)")"
+  local current
+  # `--get` exits 1 when the key is unset, which is the ordinary first-run case.
+  current="$(git -C "${repo_root}" config --local --get core.hooksPath || true)"
+  if [[ "${current}" == "${HOOKS_PATH}" ]]; then
+    return 0
+  fi
+  git -C "${repo_root}" config --local core.hooksPath "${HOOKS_PATH}"
+  if strings::is_empty "${current}"; then
+    log::log "activated the tracked git hooks: core.hooksPath set to ${HOOKS_PATH}"
+  else
+    log::log "repointed core.hooksPath from ${current} to ${HOOKS_PATH}"
+  fi
+}
+
+main "$@"

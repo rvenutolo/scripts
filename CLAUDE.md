@@ -439,9 +439,27 @@ Note: `read -rp` writes the prompt text to `/dev/tty`, which BATS `run` does not
 
 ## Before Committing
 
-Run, all inside the flake devShell (`nix develop` or via direnv): `nix fmt` (format every file via treefmt) → `nix flake check` (formatting gate + flake checks) → `./check-scripts` (shellcheck + shdoc-header audit) → `./run-tests` (BATS suite). All must be clean. `./check-scripts` and `./shellcheck-scripts` accept optional file/dir arguments — pass only the changed files for a faster check, or run with no args to cover the whole repo.
+The gate is two steps, both inside the flake devShell (`nix develop` or via direnv): `nix fmt` (format every file via treefmt), then `./run-all-checks`. Both must be clean.
 
-The tracked `.githooks/pre-push` hook runs `./check-scripts` automatically on push (activated per-clone via `git config --local core.hooksPath .githooks`), so the same gate also fires at push time as a safety net.
+`./run-all-checks` is the single definition of the local gate. It runs, in order:
+
+1. `./check-scripts` — shfmt verify, shellcheck, the shdoc-header audit, the executable-bit audit
+1. `nix flake check` — the formatting gate plus the flake's checks
+1. `.ci/run-governance-checks` — workflow posture, Renovate config, branch ruleset
+1. `.ci/run-lint-checks` — actionlint, yamllint, JSON schema, markdownlint, typos, editorconfig-checker
+1. `./run-tests` — the BATS suite (slowest, so it runs last)
+
+It **aggregates exit codes rather than failing fast**, so one run surfaces every failing category instead of only the first. The alternative makes you rediscover the next failure on each rerun, at roughly 90s a round trip.
+
+It is **verify-only** — it never rewrites the tree. That is why `nix fmt` stays a separate step run before it: a gate that reformats the thing it is about to approve is not a gate, and the pre-push hook must never mutate the tree it is pushing.
+
+`nix flake check` evaluates the **tracked git tree**, so it cannot see untracked files — a badly formatted new file passes vacuously until it is staged (#217). `./run-all-checks` therefore **warns** (never fails) when the working tree holds untracked, non-ignored files. Staging is what exposes a new file to the formatting gate, so `git add` before trusting a green run. Warning rather than failing is deliberate: hard-failing would block the gate on scratch files and work in progress.
+
+`./check-scripts` and `./shellcheck-scripts` accept optional file/dir arguments — pass only the changed files for a faster inner loop, then run the whole gate argument-free before committing.
+
+The tracked hooks under `.githooks/` activate **automatically**: the flake devShell's `shellHook` invokes `.ci/activate-githooks`, which points `core.hooksPath` at `.githooks`. `direnv allow` / `nix develop` is all that is required — there is no manual `git config --local core.hooksPath` step, and this section used to document one. Because repo-local config cannot be committed, that manual step silently never happened and both tracked hooks sat inert (#212). Activation is idempotent and silent once the value is correct; a foreign `core.hooksPath` is overwritten and logged.
+
+`.githooks/pre-push` runs `./run-all-checks` — the same gate, including the BATS suite — so local and push-time verification cannot drift apart. It previously ran a hand-maintained four-step list that omitted the tests, which is exactly the drift the single runner exists to prevent. Bypass with `git push --no-verify`.
 
 ## Changed-Path Test Gating
 

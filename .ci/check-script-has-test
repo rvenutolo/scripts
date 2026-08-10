@@ -37,7 +37,7 @@ readonly TEST_ROOT_DIR="${TEST_ROOT_DIR_OVERRIDE:-${REPO_DIR}/test/root}"
 #   side-effecting, not CI-run, and has nothing deterministic to assert.
 readonly EXEMPT=(apply-repo-settings)
 
-# Repo-root runners exempt from the mandate. Deliberately empty: all five
+# Repo-root runners exempt from the mandate. Deliberately empty: all six
 # runners have paired tests under test/root/. An entry here that names no
 # runner, or names one that does have a test, fails the lint rather than
 # silently disarming it.

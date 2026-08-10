@@ -35,13 +35,23 @@ readonly GOVERNANCE_RUNNER="${GOVERNANCE_RUNNER_OVERRIDE:-${REPO_DIR}/.ci/run-go
 
 # Scripts under .ci/ that are utilities/runners, not invariant enforcers, and so
 # are exempt from the "must have an index row" rule:
+# - activate-githooks: points core.hooksPath at the tracked hooks dir; a setup
+#   utility, not an enforcer.
 # - apply-repo-settings: mutates the live GitHub repo via gh; not an enforcer.
 # - build-docs: generates reference docs; not an enforcer.
 # - decide-changed-tests: decides whether the BATS suite must run for a change
 #   set; a CI utility consumed by .github/actions/changed-tests, not an enforcer.
 # - diff-ruleset: prints a ruleset diff; not an enforcer.
 # - run-governance-checks / run-lint-checks: aggregate runners, not enforcers.
-readonly EXEMPT=(apply-repo-settings build-docs decide-changed-tests diff-ruleset run-governance-checks run-lint-checks)
+readonly EXEMPT=(
+  activate-githooks
+  apply-repo-settings
+  build-docs
+  decide-changed-tests
+  diff-ruleset
+  run-governance-checks
+  run-lint-checks
+)
 
 # @description Print the required status-check contexts from a protect-main
 #              ruleset JSON file, one per line.

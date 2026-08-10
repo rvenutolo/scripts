@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 
-# @description Git pre-push hook. Runs check-scripts (shellcheck + shdoc audit), nix flake check (formatting), the governance lint suite, and the config/markup lint suite inside the flake devShell, aborting the push if any fails. Bypass with `git push --no-verify`.
+# @description Git pre-push hook. Runs run-all-checks inside the flake devShell — the full local
+#              gate: check-scripts (shellcheck + shdoc audit), `nix flake check` (formatting), the
+#              governance suite, the lint suite, and the BATS suite — aborting the push if it
+#              fails. One runner rather than a hand-maintained step list, so the hook, the docs,
+#              and the justfile cannot drift apart. Bypass with `git push --no-verify`.
 # @arg $@ args git passes ref/sha pairs that this hook does not use
-# @exitcode 0 check-scripts, nix flake check, governance checks, and lint checks passed
-# @exitcode 1 check-scripts, nix flake check, governance checks, or lint checks failed; push aborted
+# @exitcode 0 run-all-checks passed
+# @exitcode 1 run-all-checks failed; push aborted
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -16,26 +20,8 @@ readonly REPO_DIR
 log::enable_err_trap
 # pass-through: git passes ref/sha pairs on stdin we ignore
 
-log::log 'pre-push: running check-scripts'
-if ! nix develop --command "${REPO_DIR}/check-scripts"; then
-  log::die 'check-scripts failed — push aborted. Fix issues or rerun with --no-verify to bypass.'
+log::log 'pre-push: running the full local gate'
+if ! nix develop --command "${REPO_DIR}/run-all-checks"; then
+  log::die 'run-all-checks failed — push aborted. Fix issues or rerun with --no-verify to bypass.'
 fi
-log::log 'pre-push: check-scripts passed'
-
-log::log 'pre-push: running nix flake check'
-if ! nix flake check; then
-  log::die 'nix flake check failed — push aborted. Run nix fmt to format, or rerun with --no-verify to bypass.'
-fi
-log::log 'pre-push: nix flake check passed'
-
-log::log 'pre-push: running governance checks'
-if ! nix develop --command "${REPO_DIR}/.ci/run-governance-checks"; then
-  log::die 'governance checks failed — push aborted. Fix issues or rerun with --no-verify to bypass.'
-fi
-log::log 'pre-push: governance checks passed'
-
-log::log 'pre-push: running lint checks'
-if ! nix develop --command "${REPO_DIR}/.ci/run-lint-checks"; then
-  log::die 'lint checks failed — push aborted. Fix issues or rerun with --no-verify to bypass.'
-fi
-log::log 'pre-push: lint checks passed'
+log::log 'pre-push: gate passed'

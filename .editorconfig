@@ -37,7 +37,7 @@ switch_case_indent = true
 binary_next_line = true
 space_redirects = true
 
-[{check-scripts,shellcheck-scripts,run-install-scripts,run-set-up-scripts,run-tests}]
+[{check-scripts,shellcheck-scripts,run-all-checks,run-install-scripts,run-set-up-scripts,run-tests}]
 indent_style = space
 indent_size = 2
 switch_case_indent = true

@@ -2,5 +2,5 @@
 
 ## Test plan
 
-- [ ] `./check-scripts`
-- [ ] `./run-tests`
+- [ ] `nix fmt`
+- [ ] `./run-all-checks`
