@@ -32,19 +32,19 @@ All script directories live under a top-level `scripts/` dir; `SCRIPTS_DIR` poin
 
 Most repo-level operations have both a shell script and a `just` recipe (see [`.justfile`](.justfile)). Either form works; `just` is shorter for the common ones.
 
-| Shell script                                                          | `just` recipe            | Purpose                                                                                  |
-| --------------------------------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------- |
-| `./.ci/build-docs && mkdocs build --strict --config-file .mkdocs.yml` | `just docs`              | Build the docs site locally (requires `mkdocs`).                                         |
-| `./.ci/check-shdoc-headers`                                           | `just shdoc-check`       | Audit shdoc header coverage on scripts and library helpers.                              |
-| `./check-scripts [<paths>...]`                                        | `just check` (default)   | Combined `shellcheck`, shdoc-header, and executable-bit audit; non-zero exit on failure. |
-| `nix fmt`                                                             | `just format`            | Format every file via treefmt (shfmt for shell).                                         |
-| `nix flake check`                                                     | `just format-check`      | Verify formatting (treefmt) and run flake checks.                                        |
-| `./run-all-checks`                                                    | `just all`               | Full local gate: `check-scripts`, `nix flake check`, governance, lint, and BATS suites.  |
-| `./run-install-scripts`                                               | `just install`           | Provision a new machine — runs every executable file under `install/` in order.          |
-| `./run-set-up-scripts`                                                | `just setup`             | Run idempotent setup scripts under `set_up/`.                                            |
-| `./run-tests [<bats-args>...]`                                        | `just test`              | Run BATS tests under `test/functions/`, `test/ci/`, and `test/root/`.                    |
-| `./shellcheck-scripts [<paths>...]`                                   | `just shellcheck`        | Run `shellcheck` over shell scripts.                                                     |
-| `scripts/non-interactive/new-script <path>`                           | `just new-script <path>` | Scaffold a new top-level script with the standard header and exec bit.                   |
+| Shell script                                                          | `just` recipe            | Purpose                                                                                       |
+| --------------------------------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------- |
+| `./.ci/build-docs && mkdocs build --strict --config-file .mkdocs.yml` | `just docs`              | Build the docs site locally.                                                                  |
+| `./.ci/check-shdoc-headers`                                           | `just shdoc-check`       | Audit shdoc header coverage on scripts and library helpers.                                   |
+| `./.ci/run-governance-checks`                                         | `just governance`        | Run the repo-governance lint suite (workflow posture, Renovate, ruleset).                     |
+| `./.ci/run-lint-checks`                                               | `just lint`              | Run the config/markup lint suite (actionlint, yamllint, JSON, markdown, typos, editorconfig). |
+| `./check-scripts [<paths>...]`                                        | `just check` (default)   | Combined `shellcheck`, shdoc-header, and executable-bit audit; non-zero exit on failure.      |
+| `nix fmt`                                                             | `just format`            | Format every file via treefmt (shfmt for shell).                                              |
+| `nix flake check`                                                     | `just format-check`      | Verify formatting (treefmt) and run flake checks.                                             |
+| `./run-all-checks`                                                    | `just all`               | Full local gate: `check-scripts`, `nix flake check`, governance, lint, and BATS suites.       |
+| `./run-tests [<bats-args>...]`                                        | `just test`              | Run BATS tests under `test/functions/`, `test/ci/`, and `test/root/`.                         |
+| `./shellcheck-scripts [<paths>...]`                                   | `just shellcheck`        | Run `shellcheck` over shell scripts.                                                          |
+| `scripts/non-interactive/new-script <path>`                           | `just new-script <path>` | Scaffold a new top-level script with the standard header and exec bit.                        |
 
 ## Required environment
 

@@ -1,6 +1,10 @@
 default: check
 
-# shellcheck + shdoc audit
+# Run the full local verification gate
+all:
+    ./run-all-checks
+
+# shellcheck + shdoc header audit
 check:
     ./check-scripts
 
@@ -8,7 +12,11 @@ check:
 governance:
     ./.ci/run-governance-checks
 
-# Run BATS tests
+# Run the config/markup lint suite (actionlint, yamllint, json, markdown, typos, editorconfig)
+lint:
+    ./.ci/run-lint-checks
+
+# Run the BATS test suite
 test:
     ./run-tests
 
@@ -16,11 +24,11 @@ test:
 format:
     nix fmt
 
-# Verify formatting without writing
+# Verify formatting without writing changes
 format-check:
     nix flake check
 
-# Run shellcheck on shell scripts
+# Run shellcheck over shell scripts
 shellcheck:
     ./shellcheck-scripts
 
@@ -28,18 +36,10 @@ shellcheck:
 shdoc-check:
     ./.ci/check-shdoc-headers
 
-# Build the docs site locally (requires mkdocs)
+# Build the docs site locally
 docs:
     ./.ci/build-docs
     mkdocs build --strict --config-file .mkdocs.yml
-
-# Provision a new machine — run every executable under install/
-install:
-    ./run-install-scripts
-
-# Run idempotent setup scripts under set_up/
-setup:
-    ./run-set-up-scripts
 
 # Scaffold a new top-level script with the standard header + exec bit
 new-script PATH:
