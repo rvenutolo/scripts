@@ -431,6 +431,25 @@ Run, all inside the flake devShell (`nix develop` or via direnv): `nix fmt` (for
 
 The tracked `.githooks/pre-push` hook runs `./check-scripts` automatically on push (activated per-clone via `git config --local core.hooksPath .githooks`), so the same gate also fires at push time as a safety net.
 
+## Changed-Path Test Gating
+
+`.github/actions/changed-tests` decides whether the `bats` and `coverage` jobs run
+on a pull request. The decision logic lives in `.ci/decide-changed-tests` — a pure
+function of a changed-path list — so it is unit-tested in
+`test/ci/decide-changed-tests.bats` rather than buried in a YAML `run:` block.
+
+**The matcher is a denylist, and inverting it back to an allowlist is a
+regression.** A path runs the suite unless it matches one of the `IRRELEVANT`
+globs. An allowlist skips every path nobody thought to enumerate, which is exactly
+how a `.ci/`-only PR came to skip `test/ci/` while still reporting green (#207).
+Wasted CI minutes are recoverable; an undetected regression on `main` is not.
+
+`.editorconfig` is deliberately **not** in the irrelevant set: shfmt reads its
+formatting style from that file, so a change to it is test-relevant. `*.md` is
+safe only because `check-links-allowed-endpoints.bats` runs against fixture trees
+via `MARKDOWN_ROOT_OVERRIDE`, never against real repo markdown — if that ever
+changes, `*.md` must come out of the set.
+
 ## Merging PRs
 
 - Merge commit is the only allowed merge method on this repo. Rebase and squash are disabled in repo settings and in the `protect-main` ruleset (`allowed_merge_methods: ["merge"]`). The `main` branch does NOT enforce linear history — merge commits are intentionally allowed.
