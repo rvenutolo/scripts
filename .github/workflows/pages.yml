@@ -3,8 +3,11 @@ on:
   push:
     branches: [main]
   # Manual trigger: lets the docs site be rebuilt on demand, and lets this
-  # workflow be exercised from a branch (a dispatched run publishes that
-  # branch's docs, so dispatch deliberately).
+  # workflow be exercised from a branch. A branch dispatch builds and uploads
+  # the artifact but cannot publish — the github-pages environment carries a
+  # branch policy that restricts deployments to main, so the `deploy` job is
+  # rejected and the live site is untouched. Verify a branch's docs from the
+  # uploaded artifact; a failed `deploy` on a dispatched run is expected.
   workflow_dispatch:
 permissions: {}
 concurrency:
