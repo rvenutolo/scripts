@@ -26,7 +26,7 @@ All script directories live under a top-level `scripts/` dir; `SCRIPTS_DIR` poin
 | `scripts/set_up/`          | Idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script self-checks whether it should run.          | no                 |
 | `scripts/misc/`            | One-off setup scripts. Standalone — runnable on a fresh machine without this repo.                                                      | no                 |
 | `scripts/functions/`       | Bash function library, auto-sourced via `scripts/.functions.bash`.                                                                      | n/a                |
-| `test/`                    | BATS test suite for the function library (at the repo root).                                                                            | n/a                |
+| `test/`                    | BATS suite (at the repo root): `functions/`, `.ci/` scripts, and the repo-root runners.                                                 | n/a                |
 
 ## Common commands
 
@@ -52,7 +52,7 @@ Set `SCRIPTS_DIR` to `repo-root/scripts`. Every script sources `${SCRIPTS_DIR}/.
 
 ## Development
 
-Tooling is provided by a Nix flake devShell. Install [Nix](https://nixos.org/) and [direnv](https://direnv.net/), then run `direnv allow` (or `nix develop`) in the repo root. Every tool (shfmt, shellcheck, bats, formatters, etc.) is then available — nothing else to install, and CI uses the same flake. From inside the devShell, `nix fmt`, `nix flake check`, `./check-scripts`, and `./run-tests` all work.
+Tooling is provided by a Nix flake devShell. Install [Nix](https://nixos.org/) and [direnv](https://direnv.net/), then run `direnv allow` (or `nix develop`) in the repo root. Every tool (shfmt, shellcheck, bats, formatters, etc.) is then available — nothing else to install, and CI uses the same flake. Entering the devShell also activates the tracked git hooks (see [Git hooks](#git-hooks)). The local gate is `nix fmt` followed by `./run-all-checks`.
 
 ## Git hooks
 
