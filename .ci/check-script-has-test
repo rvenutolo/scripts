@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
 
-# @description Assert every shebang-bearing executable under .ci/ has a paired
-#              test/ci/<name>.bats file. Mirrors the BATS-coverage mandate that
-#              already applies to functions/*.bash. Explicitly side-effecting
-#              scripts that cannot be deterministically tested are exempted via
-#              a hardcoded list.
+# @description Assert every script in scope has a paired BATS test file. Two
+#              scopes are checked: every shebang-bearing executable under .ci/
+#              needs test/ci/<name>.bats, and every executable shell file at the
+#              repo root — the runners every contributor and every CI job
+#              invokes — needs test/root/<name>.bats. Mirrors the BATS-coverage
+#              mandate that already applies to functions/*.bash. Explicitly
+#              side-effecting scripts that cannot be deterministically tested are
+#              exempted via a hardcoded list per scope, and each exemption must
+#              stay warranted: an entry naming no script in its scope, or naming
+#              one that does have a paired test, fails the lint rather than
+#              silently disarming it.
 # @noargs
-# @stderr One line per .ci/ script missing its paired test/ci/<name>.bats.
-# @exitcode 0 every non-exempt .ci/ script has a paired test.
-# @exitcode 1 one or more .ci/ scripts are missing a paired test.
+# @stderr One line per script missing its paired test, and one per stale exemption.
+# @exitcode 0 every non-exempt script in both scopes has a paired test.
+# @exitcode 1 one or more scripts are missing a paired test, or an EXEMPT entry is stale.
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -23,31 +29,108 @@ REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
 readonly CI_DIR="${CI_DIR_OVERRIDE:-${REPO_DIR}/.ci}"
 readonly TEST_CI_DIR="${TEST_CI_DIR_OVERRIDE:-${REPO_DIR}/test/ci}"
+readonly ROOT_DIR="${ROOT_DIR_OVERRIDE:-${REPO_DIR}}"
+readonly TEST_ROOT_DIR="${TEST_ROOT_DIR_OVERRIDE:-${REPO_DIR}/test/root}"
 
 # Scripts exempt from the paired-test mandate:
 # - apply-repo-settings: mutates the live GitHub repo via the gh API; it is
 #   side-effecting, not CI-run, and has nothing deterministic to assert.
 readonly EXEMPT=(apply-repo-settings)
 
-function main() {
-  args::check_no_args "$@"
-  local scripts_file
-  files::create_temp scripts_file
-  shell_scripts::find "${CI_DIR}" > "${scripts_file}"
+# Repo-root runners exempt from the mandate. Deliberately empty: all five
+# runners have paired tests under test/root/. An entry here that names no
+# runner, or names one that does have a test, fails the lint rather than
+# silently disarming it.
+readonly ROOT_EXEMPT=()
+
+# @description Print the basenames of repo-root entries that are executable
+#              shell files. Non-recursive, so it yields the runner executables
+#              and not the scripts nested under scripts/ or .ci/.
+# @arg $1 root_dir directory to scan
+# @stdout One basename per line; nothing when the directory holds no such files.
+function root_runner_names() {
+  args::check_exactly_1_arg "$@"
+  local -r root_dir="$1"
+  local entry
+  for entry in "${root_dir}"/*; do
+    if files::is_executable "${entry}" && shell_scripts::is_shell_file "${entry}"; then
+      basename "${entry}"
+    fi
+  done
+}
+
+# @description Check one scope: every non-exempt script needs a paired
+#              <test_dir>/<name>.bats, and every exempt entry must still be
+#              warranted.
+# @arg $1 names_file file of script basenames, one per line
+# @arg $2 test_dir directory expected to hold <name>.bats
+# @arg $3 label display path used in messages, e.g. test/ci
+# @arg $@ exempt remaining args are exempt basenames; may be none
+# @stderr One line per violation.
+# @exitcode 0 no violations in this scope.
+# @exitcode 1 a missing paired test or a stale exemption.
+function check_scope() {
+  args::check_at_least_3_args "$@"
+  local -r names_file="$1"
+  local -r test_dir="$2"
+  local -r label="$3"
+  shift 3
+  local -a exempt=("$@")
+  local seen_tmp
+  files::create_temp seen_tmp
   local failed=0
-  local script name
-  while IFS= read -r script; do
-    strings::is_empty "${script}" && continue
-    name="$(basename "${script}")"
-    if arrays::contains "${name}" "${EXEMPT[@]}"; then
+  local name
+  while IFS= read -r name; do
+    strings::is_empty "${name}" && continue
+    if arrays::contains "${name}" ${exempt[@]+"${exempt[@]}"}; then
+      printf '%s\n' "${name}" >> "${seen_tmp}"
+      if files::exists "${test_dir}/${name}.bats"; then
+        printf 'stale EXEMPT entry: %s already has a paired %s/%s.bats\n' \
+          "${name}" "${label}" "${name}" >&2
+        failed=1
+      fi
       continue
     fi
-    if ! files::exists "${TEST_CI_DIR}/${name}.bats"; then
-      printf '%s: no paired test/ci/%s.bats\n' "${name}" "${name}" >&2
+    if ! files::exists "${test_dir}/${name}.bats"; then
+      printf '%s: no paired %s/%s.bats\n' "${name}" "${label}" "${name}" >&2
       failed=1
     fi
-  done < "${scripts_file}"
-  exit "${failed}"
+  done < "${names_file}"
+  local entry
+  for entry in ${exempt[@]+"${exempt[@]}"}; do
+    if ! grep --quiet --line-regexp --fixed-strings "${entry}" "${seen_tmp}"; then
+      printf 'stale EXEMPT entry: %s matches no script in the %s scope\n' \
+        "${entry}" "${label}" >&2
+      failed=1
+    fi
+  done
+  return "${failed}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  local -a ci_exempt=() root_exempt=()
+  arrays::from_env_override ci_exempt EXEMPT_OVERRIDE "${EXEMPT[@]}"
+  arrays::from_env_override root_exempt ROOT_EXEMPT_OVERRIDE ${ROOT_EXEMPT[@]+"${ROOT_EXEMPT[@]}"}
+
+  local ci_scripts_tmp ci_names_tmp root_names_tmp
+  files::create_temp ci_scripts_tmp
+  files::create_temp ci_names_tmp
+  files::create_temp root_names_tmp
+  shell_scripts::find "${CI_DIR}" > "${ci_scripts_tmp}"
+  local script
+  while IFS= read -r script; do
+    strings::is_empty "${script}" && continue
+    basename "${script}" >> "${ci_names_tmp}"
+  done < "${ci_scripts_tmp}"
+  root_runner_names "${ROOT_DIR}" > "${root_names_tmp}"
+
+  local overall=0
+  check_scope "${ci_names_tmp}" "${TEST_CI_DIR}" 'test/ci' \
+    ${ci_exempt[@]+"${ci_exempt[@]}"} || overall=1
+  check_scope "${root_names_tmp}" "${TEST_ROOT_DIR}" 'test/root' \
+    ${root_exempt[@]+"${root_exempt[@]}"} || overall=1
+  exit "${overall}"
 }
 
 main "$@"
