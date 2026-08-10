@@ -45,6 +45,7 @@ readonly EXEMPT=(
   'ci.yml:governance'                                     # nix-installer-action needs root to write /nix
   'ci.yml:nix-flake-check'                                # nix-installer-action needs root to write /nix
   'ci.yml:coverage'                                       # nix-installer-action needs root to write /nix
+  'pages.yml:build'                                       # nix-installer-action needs root to write /nix
   'protect-main-drift-check.yml:protect-main-drift-check' # nix-installer-action needs root to write /nix
   'pr-title-lint.yml:lint-pr-title'                       # nix-installer-action needs root to write /nix
 )

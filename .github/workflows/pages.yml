@@ -20,50 +20,20 @@ jobs:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
           egress-policy: block
-          disable-sudo: true
           allowed-endpoints: >-
-            api.github.com:443 codeload.github.com:443 files.pythonhosted.org:443 github.com:443 objects.githubusercontent.com:443 pypi.org:443 raw.githubusercontent.com:443 release-assets.githubusercontent.com:443
+            api.github.com:443 cache.nixos.org:443 channels.nixos.org:443 codeload.github.com:443 github.com:443 install.determinate.systems:443 nixos.org:443 objects.githubusercontent.com:443 raw.githubusercontent.com:443 releases.nixos.org:443 rubygems.org:443 tarballs.nixos.org:443
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
           persist-credentials: false
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-        with:
-          python-version: '3.x'
-      - name: Install MkDocs Material
-        run: pip install mkdocs-material
-      - name: Install shfmt (latest)
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -Eeuo pipefail
-          # Authenticate the API call: unauthenticated requests share a 60/hr
-          # per-IP limit on shared runners and intermittently 403, which left
-          # SHFMT_VERSION empty and produced a broken download URL.
-          SHFMT_VERSION=$(curl --disable --fail --silent --location \
-            --header "Authorization: Bearer ${GH_TOKEN}" \
-            https://api.github.com/repos/mvdan/sh/releases/latest \
-            | jq --raw-output .tag_name)
-          if [[ -z "${SHFMT_VERSION}" || "${SHFMT_VERSION}" == "null" ]]; then
-            echo "Failed to resolve latest shfmt version" >&2
-            exit 1
-          fi
-          # Install into a user-writable dir rather than /usr/local/bin so the
-          # step needs no sudo, which lets this job run under disable-sudo.
-          # shfmt is required because .ci/build-docs calls shell_scripts::find,
-          # which shells out to `shfmt --find`.
-          mkdir --parents "${RUNNER_TEMP}/bin"
-          curl --disable --fail --silent --location --output "${RUNNER_TEMP}/bin/shfmt" \
-            "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64"
-          chmod +x "${RUNNER_TEMP}/bin/shfmt"
-          printf '%s\n' "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
+      - uses: ./.github/actions/setup
       - name: Build docs
         env:
           SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: |
           set -Eeuo pipefail
-          ./.ci/build-docs
-          mkdocs build --strict --config-file .mkdocs.yml
+          nix develop --command ./.ci/build-docs
+          nix develop --command mkdocs build --strict --config-file .mkdocs.yml
       - name: Generate BATS test count badge
         run: |
           set -Eeuo pipefail

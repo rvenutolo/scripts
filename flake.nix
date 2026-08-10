@@ -77,6 +77,12 @@
               coreutils
               findutils
               gnugrep
+              # docs site — `mkdocs build` for the .justfile `docs` recipe and the
+              # Pages workflow. withPackages, not python3Packages.mkdocs-material:
+              # the bare package ships no bin/ directory at all, so it puts no
+              # `mkdocs` on PATH, while this env provides mkdocs 1.6.1 and the
+              # material theme 9.7.6 on the same site-packages.
+              (python3.withPackages (ps: [ ps.mkdocs-material ]))
             ];
 
             # Activate the tracked git hooks for this clone. Activation used to be a
