@@ -39,9 +39,10 @@ Most repo-level operations have both a shell script and a `just` recipe (see [`.
 | `./check-scripts [<paths>...]`                                        | `just check` (default)   | Combined `shellcheck`, shdoc-header, and executable-bit audit; non-zero exit on failure. |
 | `nix fmt`                                                             | `just format`            | Format every file via treefmt (shfmt for shell).                                         |
 | `nix flake check`                                                     | `just format-check`      | Verify formatting (treefmt) and run flake checks.                                        |
+| `./run-all-checks`                                                    | `just all`               | Full local gate: `check-scripts`, `nix flake check`, governance, lint, and BATS suites.  |
 | `./run-install-scripts`                                               | `just install`           | Provision a new machine — runs every executable file under `install/` in order.          |
 | `./run-set-up-scripts`                                                | `just setup`             | Run idempotent setup scripts under `set_up/`.                                            |
-| `./run-tests [<bats-args>...]`                                        | `just test`              | Run BATS tests under `test/functions/`.                                                  |
+| `./run-tests [<bats-args>...]`                                        | `just test`              | Run BATS tests under `test/functions/`, `test/ci/`, and `test/root/`.                    |
 | `./shellcheck-scripts [<paths>...]`                                   | `just shellcheck`        | Run `shellcheck` over shell scripts.                                                     |
 | `scripts/non-interactive/new-script <path>`                           | `just new-script <path>` | Scaffold a new top-level script with the standard header and exec bit.                   |
 
@@ -55,16 +56,12 @@ Tooling is provided by a Nix flake devShell. Install [Nix](https://nixos.org/) a
 
 ## Git hooks
 
-Tracked hooks live under `.githooks/`. Activate them once per clone:
-
-```bash
-git config --local core.hooksPath .githooks
-```
+Tracked hooks live under `.githooks/`. They activate automatically: the flake devShell's `shellHook` runs `.ci/activate-githooks`, which points `core.hooksPath` at `.githooks`. Running `direnv allow` (or `nix develop`) is all that is required — there is no manual `git config` step. Activation is idempotent and silent once the value is already correct.
 
 | Hook         | When         | What it does                                                                                                                   |
 | ------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------ |
 | `commit-msg` | `git commit` | Runs `commitlint` against the staged commit message (Conventional Commits). Fails the commit if `commitlint` is not on `PATH`. |
-| `pre-push`   | `git push`   | Runs `./check-scripts`; aborts the push on failure.                                                                            |
+| `pre-push`   | `git push`   | Runs `./run-all-checks` — the full local gate, including the BATS suite; aborts the push on failure.                           |
 
 Bypass any hook with `--no-verify` on the corresponding git command.
 
@@ -72,7 +69,7 @@ Bypass any hook with `--no-verify` on the corresponding git command.
 
 ```bash
 git submodule update --init --recursive   # one-time, on fresh clones
-./run-tests                                # everything under test/functions/
+./run-tests                                # test/functions/, test/ci/, and test/root/
 ./run-tests test/functions/strings.bats    # single file
 ./run-tests --filter 'is_blank' test/functions/strings.bats   # subset by name
 ```

@@ -1,5 +1,9 @@
 default: check
 
+# Run the full local verification gate
+all:
+    ./run-all-checks
+
 # shellcheck + shdoc header audit
 check:
     ./check-scripts
