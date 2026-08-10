@@ -37,9 +37,11 @@ readonly GOVERNANCE_RUNNER="${GOVERNANCE_RUNNER_OVERRIDE:-${REPO_DIR}/.ci/run-go
 # are exempt from the "must have an index row" rule:
 # - apply-repo-settings: mutates the live GitHub repo via gh; not an enforcer.
 # - build-docs: generates reference docs; not an enforcer.
+# - decide-changed-tests: decides whether the BATS suite must run for a change
+#   set; a CI utility consumed by .github/actions/changed-tests, not an enforcer.
 # - diff-ruleset: prints a ruleset diff; not an enforcer.
 # - run-governance-checks / run-lint-checks: aggregate runners, not enforcers.
-readonly EXEMPT=(apply-repo-settings build-docs diff-ruleset run-governance-checks run-lint-checks)
+readonly EXEMPT=(apply-repo-settings build-docs decide-changed-tests diff-ruleset run-governance-checks run-lint-checks)
 
 # @description Print the required status-check contexts from a protect-main
 #              ruleset JSON file, one per line.

@@ -2,7 +2,7 @@ name: changed-tests
 # Caller must run actions/checkout (with fetch-depth: 0) before this composite:
 # a local action cannot perform its own initial checkout, and the change
 # detection diffs the PR range, which needs full history.
-description: "Decide whether the BATS suite must run: always for push/dispatch, and for PRs only when test-relevant files changed. Fails safe so uncertainty runs it."
+description: "Decide whether the BATS suite must run: always for push/dispatch, and for PRs unless every changed path is test-irrelevant. Fails safe so uncertainty runs it."
 outputs:
   run:
     description: "true if the BATS suite should run, false if it can be skipped"
@@ -16,32 +16,25 @@ runs:
         EVENT: ${{ github.event_name }}
         BASE_SHA: ${{ github.event.pull_request.base.sha }}
         HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        SCRIPTS_DIR: ${{ github.workspace }}/scripts
       run: |
         set -Eeuo pipefail
-        # Default to running. Only a clean, successful PR diff that matches none
-        # of the relevant paths flips this to false — every other path (push,
+        # Default to running. Only a clean, successful PR diff whose paths are
+        # ALL test-irrelevant flips this to false — every other path (push,
         # dispatch, diff failure, missing base) keeps the suite running.
-        run=true
-        reason="non-pull_request event"
-        if [[ "${EVENT}" == "pull_request" ]]; then
-          if changed="$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}")"; then
-            run=false
-            reason="no test-relevant paths changed"
-            while IFS= read -r f; do
-              [[ -z "${f}" ]] && continue
-              case "${f}" in
-                scripts/functions/* | scripts/.functions.bash | test/* | \
-                  flake.nix | flake.lock | .github/actions/* | \
-                  .github/workflows/ci.yml)
-                  run=true
-                  reason="changed ${f}"
-                  break
-                  ;;
-              esac
-            done <<< "${changed}"
-          else
-            reason="git diff failed — running to be safe"
-          fi
+        # The path decision itself lives in .ci/decide-changed-tests so it can be
+        # unit-tested; see test/ci/decide-changed-tests.bats. This step runs
+        # before ./.github/actions/setup, so there is no Nix here — the script
+        # only needs bash 5 and SCRIPTS_DIR, both available on the bare runner.
+        if [[ "${EVENT}" != 'pull_request' ]]; then
+          echo 'run=true' >> "${GITHUB_OUTPUT}"
+          echo 'changed-tests: run=true (non-pull_request event)'
+          exit 0
         fi
-        echo "run=${run}" >> "${GITHUB_OUTPUT}"
-        echo "changed-tests: run=${run} (event=${EVENT}; ${reason})"
+        changed="$(mktemp)"
+        if ! git diff --name-only "${BASE_SHA}...${HEAD_SHA}" > "${changed}"; then
+          echo 'run=true' >> "${GITHUB_OUTPUT}"
+          echo 'changed-tests: run=true (git diff failed — running to be safe)'
+          exit 0
+        fi
+        "${GITHUB_WORKSPACE}/.ci/decide-changed-tests" "${changed}" >> "${GITHUB_OUTPUT}"

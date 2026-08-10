@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+# @description Decide whether the BATS suite must run for a set of changed paths.
+#              The matcher is a denylist: a path runs the suite unless it matches
+#              one of the known test-irrelevant globs. A path nobody anticipated
+#              therefore runs the suite rather than being silently skipped — the
+#              failure mode issue #207 documented, where a .ci/-only PR skipped
+#              the very tests written for .ci/ and still reported green.
+# @arg $1 changed_paths_file file listing changed paths, one per line; may be empty
+# @stdout A single `run=true` or `run=false` line, in GITHUB_OUTPUT key=value form.
+# @stderr One line explaining the decision, for the job log.
+# @exitcode 0 a decision was printed.
+# @exitcode 1 the changed-paths file does not exist.
+# @example
+#   git diff --name-only "${BASE_SHA}...${HEAD_SHA}" > changed.txt
+#   .ci/decide-changed-tests changed.txt >> "${GITHUB_OUTPUT}"
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_exactly_1_arg "$@"
+
+readonly CHANGED_PATHS_FILE="$1"
+
+# Paths that cannot affect the BATS suite. Everything else runs it.
+# .editorconfig is deliberately absent: shfmt reads its formatting style from
+# that file, so a change to it is test-relevant. *.md is safe because the only
+# BATS test that reads markdown, check-links-allowed-endpoints.bats, runs against
+# fixture trees via MARKDOWN_ROOT_OVERRIDE rather than real repo files.
+readonly IRRELEVANT=(
+  '*.md'
+  '.docs/*'
+  'LICENSE'
+  '.github/ISSUE_TEMPLATE/*'
+)
+
+# @description Return true if the given path matches one of the IRRELEVANT globs.
+# @arg $1 path repo-relative changed path
+# @exitcode 0 the path cannot affect the BATS suite.
+# @exitcode 1 the path may affect it.
+function is_irrelevant() {
+  args::check_exactly_1_arg "$@"
+  local -r path="$1"
+  local pattern
+  # Explicit returns rather than a trailing [[ ]] test: a search loop cannot be
+  # expressed as a single test. Matches the shape of arrays::contains.
+  for pattern in "${IRRELEVANT[@]}"; do
+    # shellcheck disable=SC2053 # unquoted RHS is intentional — glob match, not literal
+    if [[ "${path}" == ${pattern} ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+function main() {
+  args::check_exactly_1_arg "$@"
+  files::assert_exists "${CHANGED_PATHS_FILE}"
+  local run='false'
+  local reason='no test-relevant paths changed'
+  local path
+  while IFS= read -r path; do
+    strings::is_empty "${path}" && continue
+    if ! is_irrelevant "${path}"; then
+      run='true'
+      reason="changed ${path}"
+      break
+    fi
+  done < "${CHANGED_PATHS_FILE}"
+  printf 'run=%s\n' "${run}"
+  printf 'decide-changed-tests: run=%s (%s)\n' "${run}" "${reason}" >&2
+}
+
+main "$@"
