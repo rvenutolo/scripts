@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+# @description Run the full local verification gate: check-scripts, `nix flake check`, the
+#              governance suite, the lint suite, and the BATS suite. Verify-only — it never
+#              rewrites the tree, so `nix fmt` is a separate step to be run before this one.
+#              Exit codes are aggregated rather than failing fast, so a single run surfaces
+#              every failing category instead of only the first. `nix flake check` evaluates
+#              the tracked git tree and therefore cannot see untracked files; this runner
+#              warns when any exist rather than failing on them.
+# @noargs
+# @stderr Progress lines, the untracked-file warning, and the output of every failing step.
+# @exitcode 0 every check passed.
+# @exitcode 1 one or more checks failed.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+# Every step of the gate lives at the repo root, not under SCRIPTS_DIR (= repo-root/scripts).
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+
+# @description Warn when the working tree holds untracked, non-ignored files.
+#              `nix flake check` evaluates the git tree, so an untracked file is
+#              invisible to the formatting gate and passes vacuously; naming the
+#              files here is what makes that blind spot visible at gate time.
+#              Never fails the run — blocking on scratch files would be worse.
+# @noargs
+# @stderr One warning line, then one line per untracked file.
+# @exitcode 0 always.
+# shellcheck disable=SC2120 # args::check_no_args "$@" is the repo's no-args guard; SC2120 is a false positive
+function warn_untracked() {
+  args::check_no_args "$@"
+  local untracked_tmp
+  files::create_temp untracked_tmp
+  git -C "${REPO_DIR}" ls-files --others --exclude-standard > "${untracked_tmp}"
+  local -a untracked=()
+  mapfile -t untracked < "${untracked_tmp}"
+  if ((${#untracked[@]} == 0)); then
+    return 0
+  fi
+  log::warn 'untracked files are invisible to nix flake check (it inspects only tracked content); git add them:'
+  local file
+  for file in "${untracked[@]}"; do
+    log::warn "  untracked: ${file}"
+  done
+}
+
+function main() {
+  args::check_no_args "$@"
+  local rc=0
+  # shellcheck disable=SC2119 # no args passed; args::check_no_args "$@" is the repo's no-args guard
+  warn_untracked
+  # Aggregate rather than fail-fast so one run surfaces every category. Each
+  # step runs from the repo root; `|| rc=1` keeps set -e from aborting early.
+  log::log 'running check-scripts'
+  "${REPO_DIR}/check-scripts" || rc=1
+  log::log 'running nix flake check'
+  (cd "${REPO_DIR}" && nix flake check) || rc=1
+  log::log 'running governance checks'
+  "${REPO_DIR}/.ci/run-governance-checks" || rc=1
+  log::log 'running lint checks'
+  "${REPO_DIR}/.ci/run-lint-checks" || rc=1
+  log::log 'running tests'
+  "${REPO_DIR}/run-tests" || rc=1
+  if ((rc != 0)); then
+    log::warn 'one or more checks failed'
+  fi
+  exit "${rc}"
+}
+
+main "$@"
