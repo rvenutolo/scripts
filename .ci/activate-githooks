@@ -12,28 +12,40 @@
 #              reload and every `nix develop --command` in CI. A foreign
 #              core.hooksPath is overwritten and logged — leaving it in place
 #              would mean silently inert hooks, which is the bug being fixed.
+#
+#              Standalone on purpose, unlike every other script under .ci/: it
+#              runs from the devShell shellHook, including under
+#              `nix develop --ignore-environment`, where SCRIPTS_DIR does not
+#              exist and sourcing the function library killed it under set -u
+#              (#231). Bootstrapping a clone cannot depend on the environment
+#              that clone has not set up yet, so this inlines the ERR trap and
+#              its handful of helpers the way scripts/misc/ standalone scripts
+#              do — and omits args::handle_help_flag along with them, since a
+#              shellHook never passes --help.
 # @noargs
 # @stderr One line naming the change, on the runs that change something.
 # @exitcode 0 the tracked hooks are active, already or as of this run.
-# @exitcode 1 the working directory is not inside a git repo.
+# @exitcode 1 the working directory is not inside a git repo, or an argument was given.
 
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
-source "${SCRIPTS_DIR}/.functions.bash"
-log::enable_err_trap
-args::handle_help_flag "$@"
-args::check_no_args "$@"
+trap 'printf "\033[0;31m[%s %s] ERROR: line %s (exit %s): %s\033[0m\n" "$(date +%T)" "${0##*/}" "${LINENO}" "$?" "${BASH_COMMAND}" >&2' ERR
 
 # Repo-root-relative on purpose: git resolves core.hooksPath against the work
 # tree root, so one value is correct for every clone and every machine.
 readonly HOOKS_PATH='.githooks'
 
 function main() {
-  args::check_no_args "$@"
+  if (($# > 0)); then
+    printf '%s: expected no arguments, got %s\n' "${0##*/}" "$#" >&2
+    exit 1
+  fi
   local repo_root
-  repo_root="$(git::repo_root "$(pwd)")"
+  if ! repo_root="$(git rev-parse --show-toplevel 2> '/dev/null')"; then
+    printf '%s: not a git repo: %s\n' "${0##*/}" "$(pwd)" >&2
+    exit 1
+  fi
   local current
   # `--get` exits 1 when the key is unset, which is the ordinary first-run case.
   current="$(git -C "${repo_root}" config --local --get core.hooksPath || true)"
@@ -41,10 +53,12 @@ function main() {
     return 0
   fi
   git -C "${repo_root}" config --local core.hooksPath "${HOOKS_PATH}"
-  if strings::is_empty "${current}"; then
-    log::log "activated the tracked git hooks: core.hooksPath set to ${HOOKS_PATH}"
+  if [[ -z "${current}" ]]; then
+    printf '%s: activated the tracked git hooks: core.hooksPath set to %s\n' \
+      "${0##*/}" "${HOOKS_PATH}" >&2
   else
-    log::log "repointed core.hooksPath from ${current} to ${HOOKS_PATH}"
+    printf '%s: repointed core.hooksPath from %s to %s\n' \
+      "${0##*/}" "${current}" "${HOOKS_PATH}" >&2
   fi
 }
 

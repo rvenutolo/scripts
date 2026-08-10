@@ -96,12 +96,20 @@ run_activate() {
 @test "dies when given an argument" {
   run_activate oops
   assert_failure
-  assert_output --partial 'Expected no arguments'
+  assert_output --partial 'expected no arguments'
 }
 
-@test "--help exits 0 and prints help" {
-  run_activate --help
+@test "activates hooks when SCRIPTS_DIR is unset" {
+  cd "${REPO}"
+  run env --unset=SCRIPTS_DIR "${SCRIPT}"
   assert_success
-  assert_output --partial 'activate-githooks'
-  assert_output --partial 'Exit codes:'
+  assert_equal "$(hooks_path)" '.githooks'
+}
+
+@test "activates hooks under a minimal environment" {
+  cd "${REPO}"
+  run env --ignore-environment \
+    "PATH=${PATH}" "HOME=${HOME}" "${SCRIPT}"
+  assert_success
+  assert_equal "$(hooks_path)" '.githooks'
 }
