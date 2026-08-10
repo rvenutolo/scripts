@@ -67,6 +67,7 @@
               commitlint
               bats
               parallel
+              just
               pwgen
               gawk
               kcov
