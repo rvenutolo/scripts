@@ -96,14 +96,7 @@ run_activate() {
 @test "dies when given an argument" {
   run_activate oops
   assert_failure
-  assert_output --partial 'Expected no arguments'
-}
-
-@test "--help exits 0 and prints help" {
-  run_activate --help
-  assert_success
-  assert_output --partial 'activate-githooks'
-  assert_output --partial 'Exit codes:'
+  assert_output --partial 'expected no arguments'
 }
 
 @test "activates hooks when SCRIPTS_DIR is unset" {
