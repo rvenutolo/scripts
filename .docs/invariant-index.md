@@ -33,4 +33,5 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | script file modes match the executable-bit convention | `check-executable-bit` | `check-scripts` | `check-scripts` |
 | invariant index, .ci/ enforcers, workflow jobs, ruleset contexts, and governance runner agree | `check-orphan-invariants` | `governance` | `governance` |
 | the repo has exactly one justfile and it agrees with the documented command table | `check-justfile-invariants` | `governance` | `governance` |
+| every tool the repo's tooling invokes comes from the flake devShell, not the caller's home | `check-devshell-provides` | `governance` | `governance` |
 <!-- invariant-index:end -->
