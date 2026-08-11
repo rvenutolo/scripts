@@ -210,3 +210,24 @@ function git::default_branch() {
     log::die "no default branch (main or master) in ${repo}"
   fi
 }
+
+# @description Unset every repo-scoped environment variable that git injects into hook and
+#              child-process environments (GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, ...). A
+#              worktree `git push` exports an absolute GIT_DIR into hooks; any tooling that
+#              then runs git against OTHER repos gets silently retargeted at the pushing repo
+#              (#248). The list comes from `git rev-parse --local-env-vars` at runtime so new
+#              git versions stay covered.
+# @noargs
+function git::clear_local_env() {
+  args::check_no_args "$@"
+  local env_vars_tmp
+  files::create_temp env_vars_tmp
+  git rev-parse --local-env-vars > "${env_vars_tmp}"
+  local -a env_vars=()
+  # shellcheck disable=SC2154 # env_vars_tmp assigned by files::create_temp via nameref
+  mapfile -t env_vars < "${env_vars_tmp}"
+  local env_var
+  for env_var in "${env_vars[@]}"; do
+    unset "${env_var}"
+  done
+}

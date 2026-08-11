@@ -7,7 +7,12 @@ setup() {
 }
 
 # Run the check with both override seams pointed at the test tmpdirs.
+# .ci/check-checkout-persist-credentials derives its own repo root via
+# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
+# every invocation — this test targets the real repo.
 run_check() {
+  cd "${REPO_DIR}" || return 1
   WORKFLOWS_DIR_OVERRIDE="${WF}" ACTIONS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/actions" run "${CHECK}" "$@"
 }
 
@@ -179,6 +184,7 @@ EOF
 }
 
 @test "exits 0 when both scan dirs are absent" {
+  cd "${REPO_DIR}"
   WORKFLOWS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/nope" \
     ACTIONS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/nope2" run "${CHECK}"
   assert_success

@@ -5,6 +5,15 @@ setup() {
   mkdir -p "${WF}"
 }
 
+# .ci/check-job-timeout-minutes derives its own repo root via
+# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
+# every invocation — this test targets the real repo.
+run_check() {
+  cd "${REPO_DIR}" || return 1
+  run "$@"
+}
+
 @test "passes when every job has a positive-int timeout-minutes" {
   cat > "${WF}/a.yml" << 'EOF'
 jobs:
@@ -15,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_success
 }
 
@@ -25,7 +34,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'no timeout-minutes'
 }
@@ -37,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 0
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'not a positive integer'
 }
@@ -49,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: -5
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'not a positive integer'
 }
@@ -61,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: abc
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'not a positive integer'
 }
@@ -75,12 +84,12 @@ jobs:
   bad:
     runs-on: ubuntu-latest
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
 }
 
 @test "dies when given an argument" {
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}" oops
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}" oops
   assert_failure
   assert_output --partial 'Expected no arguments'
 }

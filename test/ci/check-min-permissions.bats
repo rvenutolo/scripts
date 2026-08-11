@@ -5,6 +5,15 @@ setup() {
   mkdir -p "${WF}"
 }
 
+# .ci/check-min-permissions derives its own repo root via
+# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
+# every invocation — this test targets the real repo.
+run_check() {
+  cd "${REPO_DIR}" || return 1
+  run "$@"
+}
+
 @test "passes: empty top-level + per-job blocks" {
   cat > "${WF}/a.yml" << 'EOF'
 permissions: {}
@@ -15,7 +24,7 @@ jobs:
     steps:
       - run: true
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_success
 }
 
@@ -28,7 +37,7 @@ jobs:
     steps:
       - run: true
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'missing top-level'
 }
@@ -44,7 +53,7 @@ jobs:
     steps:
       - run: true
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'non-empty'
 }
@@ -59,7 +68,7 @@ jobs:
     steps:
       - run: true
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
 }
 
@@ -71,13 +80,13 @@ jobs:
     steps:
       - run: true
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'missing'
 }
 
 @test "dies when given an argument" {
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}" oops
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}" oops
   assert_failure
   assert_output --partial 'Expected no arguments'
 }

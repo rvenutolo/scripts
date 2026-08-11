@@ -1,17 +1,22 @@
 setup() {
   load '../test_helper/common'
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/args.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/log.bash"
+  load '../test_helper/git_fixture'
   CHECK="${REPO_DIR}/.ci/check-links-allowed-endpoints"
   ROOT="${BATS_TEST_TMPDIR}/root"
   mkdir -p "${ROOT}"
   # The check enumerates markdown with git ls-files, so the fixture root has to
   # be a real work tree. Identity is set locally so the fixture repo works even
   # when the environment has no global git config.
-  git -C "${ROOT}" init --quiet --initial-branch=main # -C: no long-form equivalent
-  git -C "${ROOT}" config user.email 'bats@example.com'
-  git -C "${ROOT}" config user.name 'BATS Fixture'
+  git_fixture::init "${ROOT}" --initial-branch=main
+  git_fixture::run "${ROOT}" config user.email 'bats@example.com'
+  git_fixture::run "${ROOT}" config user.name 'BATS Fixture'
   # The developer's global gitignore would otherwise leak into the fixture repo
   # and silently ignore fixture paths such as "vendor".
-  git -C "${ROOT}" config core.excludesFile '/dev/null'
+  git_fixture::run "${ROOT}" config core.excludesFile '/dev/null'
   LYCHEERC="${BATS_TEST_TMPDIR}/lycheerc"
   LINKS_WF="${BATS_TEST_TMPDIR}/links.yml"
   printf 'exclude_path = [\n  ".git",\n  "vendor",\n]\n' > "${LYCHEERC}"
@@ -20,7 +25,7 @@ setup() {
 # track <path...> — stage the given root-relative fixture paths so git ls-files
 # reports them. Staging is enough; no commit is needed.
 track() {
-  git -C "${ROOT}" add -- "$@" # -C: no long-form equivalent
+  git_fixture::run "${ROOT}" add -- "$@"
 }
 
 # write_allowlist <host...> — a links.yml whose harden-runner step allows the
@@ -37,7 +42,12 @@ write_allowlist() {
   } > "${LINKS_WF}"
 }
 
+# .ci/check-links-allowed-endpoints derives its own repo root via
+# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
+# every invocation — this test targets the real repo.
 run_check() {
+  cd "${REPO_DIR}" || return 1
   LINKS_WORKFLOW_OVERRIDE="${LINKS_WF}" \
     LYCHEERC_OVERRIDE="${LYCHEERC}" \
     MARKDOWN_ROOT_OVERRIDE="${ROOT}" \
@@ -149,6 +159,7 @@ run_check() {
 @test "dies when the links workflow is missing" {
   printf 'Just prose.\n' > "${ROOT}/a.md"
   track 'a.md'
+  cd "${REPO_DIR}"
   LINKS_WORKFLOW_OVERRIDE="${BATS_TEST_TMPDIR}/absent.yml" \
     LYCHEERC_OVERRIDE="${LYCHEERC}" \
     MARKDOWN_ROOT_OVERRIDE="${ROOT}" \

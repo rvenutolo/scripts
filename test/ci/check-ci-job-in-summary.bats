@@ -51,7 +51,12 @@ write_summary() {
   } > "${SUMMARY}"
 }
 
+# .ci/check-ci-job-in-summary derives its own repo root via
+# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
+# every invocation — this test targets the real repo.
 run_check() {
+  cd "${REPO_DIR}" || return 1
   SUMMARY_MD_OVERRIDE="${SUMMARY}" RULESET_JSON_OVERRIDE="${RULESET}" WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
 }
 

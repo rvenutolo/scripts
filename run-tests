@@ -2,6 +2,8 @@
 
 # @description Run the BATS test suite under test/functions/, test/ci/, and test/root/ in parallel, or forward arguments directly to bats.
 # @arg $@ args Optional bats arguments or test file paths; omit to run all tests under test/functions/, test/ci/, and test/root/.
+# @exitcode 0 all tests passed and the repo was left untouched.
+# @exitcode 1 bats not found, GNU parallel not found, one or more tests failed, or the suite mutated the repo (#248).
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -17,7 +19,24 @@ readonly REPO_DIR
 readonly BATS_BIN="${REPO_DIR}/test/bats/bin/bats"
 readonly DEFAULT_TARGETS=("${REPO_DIR}/test/functions" "${REPO_DIR}/test/ci" "${REPO_DIR}/test/root")
 
+# @description Print one line per watched repo artifact: HEAD sha, config hash, index hash.
+#              Used before/after the suite to detect fixture escapes onto the real repo (#248).
+# @noargs
+# shellcheck disable=SC2120 # called with no args by main, but shellcheck can't see the call site
+function repo_state() {
+  args::check_no_args "$@"
+  local head_ref config_hash index_hash
+  # An empty repo has no HEAD; --quiet --verify prints nothing, so substitute a marker.
+  head_ref="$(git rev-parse --quiet --verify HEAD || printf 'NO-HEAD')"
+  config_hash="$(files::hash_if_exists "$(git rev-parse --path-format=absolute --git-path config)")"
+  index_hash="$(files::hash_if_exists "$(git rev-parse --path-format=absolute --git-path index)")"
+  printf 'HEAD=%s\nconfig=%s\nindex=%s\n' "${head_ref}" "${config_hash}" "${index_hash}"
+}
+
 # @description Run bats with default parallel settings or forward all args to bats verbatim.
+#              Snapshots repo state (HEAD, config, index) before and after the run and dies
+#              loudly, citing #248, if the suite mutated the real repo — even when bats itself
+#              exited 0.
 # @arg $@ args Optional bats arguments forwarded verbatim, or empty to run all tests in parallel.
 function main() {
   # Unset BASH_ENV so bats' per-test subshells don't re-source the user's
@@ -31,11 +50,20 @@ function main() {
   if ! commands::executable_exists 'parallel'; then
     log::die "GNU parallel not found — required for bats --jobs. Install via your package manager."
   fi
+  local before after status=0
+  # shellcheck disable=SC2119 # intentional no-arg call; repo_state takes no args
+  before="$(repo_state)"
   if (($# == 0)); then
-    "${BATS_BIN}" --jobs "$(nproc)" --recursive --print-output-on-failure "${DEFAULT_TARGETS[@]}"
+    "${BATS_BIN}" --jobs "$(nproc)" --recursive --print-output-on-failure "${DEFAULT_TARGETS[@]}" || status=$?
   else
-    "${BATS_BIN}" "$@"
+    "${BATS_BIN}" "$@" || status=$?
   fi
+  # shellcheck disable=SC2119 # intentional no-arg call; repo_state takes no args
+  after="$(repo_state)"
+  if [[ "${before}" != "${after}" ]]; then
+    log::die "test suite mutated the real repo (#248) — before: [${before//$'\n'/ }] after: [${after//$'\n'/ }]"
+  fi
+  exit "${status}"
 }
 
 main "$@"

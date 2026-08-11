@@ -5,6 +5,15 @@ setup() {
   mkdir -p "${WF}"
 }
 
+# .ci/check-pr-workflows-no-secrets derives its own repo root via
+# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
+# every invocation — this test targets the real repo.
+run_check() {
+  cd "${REPO_DIR}" || return 1
+  run "$@"
+}
+
 @test "passes: PR workflow using only GITHUB_TOKEN" {
   cat > "${WF}/a.yml" << 'EOF'
 on:
@@ -17,7 +26,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: true
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_success
 }
 
@@ -33,7 +42,7 @@ jobs:
           TOK: ${{ secrets.RULESET_READ_TOKEN }}
         run: true
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'secrets.RULESET_READ_TOKEN'
 }
@@ -50,7 +59,7 @@ jobs:
           TOK: ${{ secrets.RULESET_READ_TOKEN }}
         run: true
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_success
 }
 
@@ -66,7 +75,7 @@ jobs:
           TOK: ${{ secrets.OTHER }}
         run: true
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
 }
 
@@ -80,12 +89,12 @@ jobs:
           TOK: ${{ secrets.OTHER }}
         run: true
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
 }
 
 @test "dies when given an argument" {
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}" oops
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}" oops
   assert_failure
   assert_output --partial 'Expected no arguments'
 }

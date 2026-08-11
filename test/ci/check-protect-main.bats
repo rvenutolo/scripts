@@ -4,6 +4,15 @@ setup() {
   RS="${BATS_TEST_TMPDIR}/rs.json"
 }
 
+# .ci/check-protect-main derives its own repo root via
+# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
+# every invocation — this test targets the real repo.
+run_check() {
+  cd "${REPO_DIR}" || return 1
+  run "$@"
+}
+
 good_ruleset() {
   cat > "${RS}" << 'EOF'
 {
@@ -23,14 +32,14 @@ EOF
 
 @test "passes on a well-formed merge-only ruleset" {
   good_ruleset
-  RULESET_JSON_OVERRIDE="${RS}" run "${CHECK}"
+  RULESET_JSON_OVERRIDE="${RS}" run_check "${CHECK}"
   assert_success
 }
 
 @test "fails when allowed_merge_methods is not [merge]" {
   good_ruleset
   jq '(.rules[] | select(.type=="pull_request") | .parameters.allowed_merge_methods) = ["rebase"]' "${RS}" > "${RS}.x" && mv "${RS}.x" "${RS}"
-  RULESET_JSON_OVERRIDE="${RS}" run "${CHECK}"
+  RULESET_JSON_OVERRIDE="${RS}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'allowed_merge_methods'
 }
@@ -38,7 +47,7 @@ EOF
 @test "fails when required_signatures rule is missing" {
   good_ruleset
   jq 'del(.rules[] | select(.type=="required_signatures"))' "${RS}" > "${RS}.x" && mv "${RS}.x" "${RS}"
-  RULESET_JSON_OVERRIDE="${RS}" run "${CHECK}"
+  RULESET_JSON_OVERRIDE="${RS}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'required_signatures'
 }
@@ -46,7 +55,7 @@ EOF
 @test "fails when required_linear_history is present" {
   good_ruleset
   jq '.rules += [{ "type": "required_linear_history" }]' "${RS}" > "${RS}.x" && mv "${RS}.x" "${RS}"
-  RULESET_JSON_OVERRIDE="${RS}" run "${CHECK}"
+  RULESET_JSON_OVERRIDE="${RS}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'required_linear_history'
 }
@@ -54,24 +63,24 @@ EOF
 @test "fails when bypass_actors is non-empty" {
   good_ruleset
   jq '.bypass_actors = [{ "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" }]' "${RS}" > "${RS}.x" && mv "${RS}.x" "${RS}"
-  RULESET_JSON_OVERRIDE="${RS}" run "${CHECK}"
+  RULESET_JSON_OVERRIDE="${RS}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'bypass_actors'
 }
 
 @test "fails when file missing" {
-  RULESET_JSON_OVERRIDE="${BATS_TEST_TMPDIR}/nope.json" run "${CHECK}"
+  RULESET_JSON_OVERRIDE="${BATS_TEST_TMPDIR}/nope.json" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'not found'
 }
 
 @test "validates the real in-tree ruleset by default" {
-  run "${CHECK}"
+  run_check "${CHECK}"
   assert_success
 }
 
 @test "dies when given an argument" {
-  RULESET_JSON_OVERRIDE="${RS}" run "${CHECK}" oops
+  RULESET_JSON_OVERRIDE="${RS}" run_check "${CHECK}" oops
   assert_failure
   assert_output --partial 'Expected no arguments'
 }

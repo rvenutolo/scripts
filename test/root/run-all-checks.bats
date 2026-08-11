@@ -5,13 +5,18 @@ bats_require_minimum_version 1.5.0
 setup() {
   load '../test_helper/common'
   load '../test_helper/path_shim'
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/args.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/log.bash"
+  load '../test_helper/git_fixture'
   SCRIPT="${REPO_DIR}/run-all-checks"
   FAKE_REPO="${BATS_TEST_TMPDIR}/fake-repo"
   mkdir -p "${FAKE_REPO}/.ci"
   # pwd -P so the path matches what `git rev-parse --show-toplevel` reports;
   # BATS_TEST_TMPDIR can sit under a symlinked TMPDIR.
   FAKE_REPO="$(cd "${FAKE_REPO}" && pwd -P)"
-  git -C "${FAKE_REPO}" init --quiet
+  git_fixture::init "${FAKE_REPO}"
   STEP_LOG="${BATS_TEST_TMPDIR}/steps.log"
 }
 
@@ -50,10 +55,11 @@ install_passing_steps() {
 }
 
 # Stage everything so the tree reads as clean to `git ls-files --others`.
-# Deliberately no commit: the maintainer's global commit.gpgsign=true applies
-# inside fixture repos too, and staged files are enough for the untracked check.
+# Staging alone is enough for the untracked check; no commit is needed. (Host git
+# config no longer reaches fixtures — common.bash pins GIT_CONFIG_GLOBAL/SYSTEM
+# to /dev/null — so the old global-gpgsign concern is retired. #248)
 stage_tree() {
-  git -C "${FAKE_REPO}" add --all
+  git_fixture::run "${FAKE_REPO}" add --all
 }
 
 run_gate() {

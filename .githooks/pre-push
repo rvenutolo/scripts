@@ -14,6 +14,10 @@ IFS=$'\n\t'
 
 # shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
 source "${SCRIPTS_DIR}/.functions.bash"
+# A push from a linked worktree exports an absolute GIT_DIR into this hook; the gate below
+# runs the BATS suite, whose fixture git commands would all be retargeted at this repo by
+# that inherited context (#248). Strip it before resolving paths or running any tooling.
+git::clear_local_env
 # check-scripts and .ci/ live at the repo root, not under SCRIPTS_DIR (= repo-root/scripts).
 REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
