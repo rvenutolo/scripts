@@ -458,3 +458,243 @@ EOF
   assert_line --index 0 'foo::one'
   assert_line --index 1 'plain_two'
 }
+
+@test "shdoc::find_placeholder_functions flags a bare TODO in a function @description" {
+  local f="${BATS_TEST_TMPDIR}/lib.bash"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description TODO: describe what this does.
+# @arg $1 thing
+function foo::scaffolded() {
+  echo hi
+}
+EOF
+  run shdoc::find_placeholder_functions "${f}"
+  assert_success
+  assert_output 'foo::scaffolded'
+}
+
+@test "shdoc::find_placeholder_functions flags a TODO in an @arg body" {
+  local f="${BATS_TEST_TMPDIR}/lib.bash"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Do a thing.
+# @arg $1 target TODO name this properly
+function foo::argbody() {
+  echo hi
+}
+EOF
+  run shdoc::find_placeholder_functions "${f}"
+  assert_success
+  assert_output 'foo::argbody'
+}
+
+@test "shdoc::find_placeholder_functions allows a backticked TODO" {
+  local f="${BATS_TEST_TMPDIR}/lib.bash"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Match a word-bounded `TODO`, so `todo` and `TODOS` do not trip it.
+# @noargs
+function foo::documents_the_rule() {
+  echo hi
+}
+EOF
+  run shdoc::find_placeholder_functions "${f}"
+  assert_success
+  assert_output ''
+}
+
+@test "shdoc::find_placeholder_functions ignores lowercase todo" {
+  local f="${BATS_TEST_TMPDIR}/lib.bash"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Handle todo lists.
+# @noargs
+function foo::lowercase() {
+  echo hi
+}
+EOF
+  run shdoc::find_placeholder_functions "${f}"
+  assert_success
+  assert_output ''
+}
+
+@test "shdoc::find_placeholder_functions ignores TODOS without a word boundary" {
+  local f="${BATS_TEST_TMPDIR}/lib.bash"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Enumerate TODOS in a file.
+# @noargs
+function foo::plural() {
+  echo hi
+}
+EOF
+  run shdoc::find_placeholder_functions "${f}"
+  assert_success
+  assert_output ''
+}
+
+@test "shdoc::find_placeholder_functions ignores an underscore-joined TODO_MARKER" {
+  local f="${BATS_TEST_TMPDIR}/lib.bash"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Parse a TODO_MARKER token.
+# @noargs
+function foo::marker() {
+  echo hi
+}
+EOF
+  run shdoc::find_placeholder_functions "${f}"
+  assert_success
+  assert_output ''
+}
+
+@test "shdoc::find_placeholder_functions ignores a TODO in the function body" {
+  local f="${BATS_TEST_TMPDIR}/lib.bash"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Do a thing.
+# @noargs
+function foo::body_todo() {
+  # TODO: handle the IPv6 case
+  echo hi
+}
+EOF
+  run shdoc::find_placeholder_functions "${f}"
+  assert_success
+  assert_output ''
+}
+
+@test "shdoc::find_placeholder_functions ignores a TODO separated by a blank line" {
+  local f="${BATS_TEST_TMPDIR}/lib.bash"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# TODO: revisit this whole file layout
+
+# @description Do a thing.
+# @noargs
+function foo::detached() {
+  echo hi
+}
+EOF
+  run shdoc::find_placeholder_functions "${f}"
+  assert_success
+  assert_output ''
+}
+
+@test "shdoc::find_placeholder_functions excludes main" {
+  local f="${BATS_TEST_TMPDIR}/s1"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description TODO: describe this entry point.
+function main() {
+  echo hi
+}
+EOF
+  run shdoc::find_placeholder_functions "${f}"
+  assert_success
+  assert_output ''
+}
+
+@test "shdoc::find_placeholder_functions reports every offending function" {
+  local f="${BATS_TEST_TMPDIR}/lib.bash"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description TODO: describe this.
+function foo::one() {
+  echo one
+}
+
+# @description Fine.
+function foo::two() {
+  echo two
+}
+
+# @description TODO: and this.
+function foo::three() {
+  echo three
+}
+EOF
+  run shdoc::find_placeholder_functions "${f}"
+  assert_success
+  assert_line --index 0 'foo::one'
+  assert_line --index 1 'foo::three'
+  refute_output --partial 'foo::two'
+}
+
+@test "shdoc::find_placeholder_functions flags a helper in a top-level script" {
+  local f="${BATS_TEST_TMPDIR}/s1"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description A clean file-level header.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# @description TODO: describe this helper.
+# @noargs
+function collect_things() {
+  echo hi
+}
+
+collect_things
+EOF
+  run shdoc::find_placeholder_functions "${f}"
+  assert_success
+  assert_output 'collect_things'
+}
+
+@test "shdoc::find_placeholder_functions emits nothing for a clean file" {
+  local f="${BATS_TEST_TMPDIR}/lib.bash"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Do a thing.
+# @noargs
+function foo::clean() {
+  echo hi
+}
+EOF
+  run shdoc::find_placeholder_functions "${f}"
+  assert_success
+  assert_output ''
+}
+
+@test "shdoc::find_placeholder_functions dies with 0 args" {
+  run shdoc::find_placeholder_functions
+  assert_failure
+}
+
+@test "shdoc::find_placeholder_functions dies with 2 args" {
+  run shdoc::find_placeholder_functions a b
+  assert_failure
+}
+
+@test "shdoc::header_has_placeholder allows a backticked TODO in the header" {
+  local f="${BATS_TEST_TMPDIR}/s1"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Report a word-bounded `TODO`, which is what the scaffold emits.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+echo hi
+EOF
+  run shdoc::header_has_placeholder "${f}"
+  assert_failure
+}
