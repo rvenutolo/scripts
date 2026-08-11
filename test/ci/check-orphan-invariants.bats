@@ -114,7 +114,7 @@ baseline() {
   write_workflow gov.yml governance
   make_ci check-thing
   write_runner check-thing
-  EXEMPT_OVERRIDE='no-such-script' run "${CHECK}"
+  EXEMPT_OVERRIDE='no-such-script' run_check "${CHECK}"
   assert_failure
   assert_output --partial 'no-such-script'
 }
@@ -125,7 +125,7 @@ baseline() {
   write_workflow gov.yml governance
   make_ci check-thing
   write_runner check-thing
-  EXEMPT_OVERRIDE='check-thing' run "${CHECK}"
+  EXEMPT_OVERRIDE='check-thing' run_check "${CHECK}"
   assert_failure
   assert_output --partial 'check-thing'
 }
@@ -136,7 +136,7 @@ baseline() {
   write_workflow gov.yml governance
   make_ci check-thing helper-util
   write_runner check-thing
-  EXEMPT_OVERRIDE='helper-util' run "${CHECK}"
+  EXEMPT_OVERRIDE='helper-util' run_check "${CHECK}"
   assert_success
 }
 
@@ -146,7 +146,7 @@ baseline() {
   unset EXEMPT_OVERRIDE
   unset INDEX_MD_OVERRIDE RULESET_JSON_OVERRIDE WORKFLOWS_DIR_OVERRIDE
   unset CI_DIR_OVERRIDE GOVERNANCE_RUNNER_OVERRIDE
-  run "${REPO_DIR}/.ci/check-orphan-invariants"
+  run_check "${CHECK}"
   assert_success
 }
 
