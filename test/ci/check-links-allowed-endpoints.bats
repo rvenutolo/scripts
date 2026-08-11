@@ -114,6 +114,7 @@ run_check() {
 @test "ignores URLs inside fenced code blocks" {
   {
     printf 'Prose link: [docs](https://example.com/page).\n\n'
+    # shellcheck disable=SC2016 # backticks in the markdown fixture are literal content the lint under test must match, never command substitution
     printf '```\ncurl https://fenced.test/thing\n```\n'
   } > "${ROOT}/a.md"
   track 'a.md'

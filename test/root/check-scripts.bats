@@ -24,13 +24,13 @@ setup() {
   # The regression itself: shfmt must never see this file. See issue #206.
   refute_output --partial 'a command can only contain words and redirects'
   # ...and it must be visibly skipped rather than silently vanishing.
-  assert_output --partial 'Skipping (no bash/sh shebang)'
+  assert_output --partial 'Skipping (not a shell file)'
 }
 
 @test "check-scripts: a misformatted shell file still reaches shfmt" {
   # Guards the other direction: the new filter must not smuggle real shell
-  # files past the formatting gate. No shebang, so the shellcheck step skips it
-  # and shfmt is the only step that can report it.
+  # files past the formatting gate. It is only misformatted, not unsound —
+  # shfmt is the only step that can report it, since shellcheck passes it clean.
   local -r script="${BATS_TEST_TMPDIR}/bad.bash"
   printf '%s\n' 'if true; then' 'echo "unindented"' 'fi' > "${script}"
 

@@ -76,6 +76,7 @@ make_ci() {
 }
 
 # write_runner <name...> — a run-governance-checks-shaped file listing names.
+# shellcheck disable=SC2016,SC1003 # $-tokens and the escaped quote are literal fixture content the lint under test must match
 write_runner() {
   {
     echo '#!/usr/bin/env bash'

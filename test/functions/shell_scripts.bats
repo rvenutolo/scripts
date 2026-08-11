@@ -131,12 +131,23 @@ make_fixture() {
 
 # ---------- filter ----------
 
-@test "filter: keeps shell-shebang files, drops non-shell" {
+@test "filter: keeps shell files, drops non-shell" {
   local result=()
   shell_scripts::filter result "${TREE}/a.sh" "${TREE}/d.txt" "${TREE}/b.bash" "${TREE}/e"
   [[ "${#result[@]}" -eq 2 ]]
   [[ "${result[0]}" == "${TREE}/a.sh" ]]
   [[ "${result[1]}" == "${TREE}/b.bash" ]]
+}
+
+@test "filter: keeps a .bats file with no shebang" {
+  local fixture
+  fixture="$(make_fixture 'i.bats' 'setup() {
+  true
+}')"
+  local result=()
+  shell_scripts::filter result "${fixture}"
+  [[ "${#result[@]}" -eq 1 ]]
+  [[ "${result[0]}" == "${fixture}" ]]
 }
 
 @test "filter: empty input -> empty output" {

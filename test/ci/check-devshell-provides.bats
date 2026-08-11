@@ -1,3 +1,5 @@
+# shellcheck disable=SC2030,SC2031 # BATS runs each @test in a subshell; REQUIRED_TOOLS_OVERRIDE mutations are intentional and correctly scoped per-test
+
 setup() {
   load '../test_helper/common'
   load '../test_helper/path_shim'
@@ -43,6 +45,7 @@ true'
   HOME="${BATS_TEST_TMPDIR}" run "${CHECK}"
   assert_failure
   assert_output --partial 'faketool'
+  # shellcheck disable=SC2016 # '$HOME' is literal text the lint under test emits, never an expansion
   assert_output --partial 'under $HOME'
 }
 

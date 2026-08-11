@@ -72,7 +72,7 @@ make_bats() {
 # Run the check against the fixture repo. Must cd first so the check's
 # `git rev-parse --show-toplevel` resolves to the fixture.
 run_check() {
-  cd "${REPO}"
+  cd "${REPO}" || return 1
   run "${CHECK}" "$@"
 }
 

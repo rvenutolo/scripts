@@ -1,3 +1,5 @@
+# shellcheck disable=SC2016 # backticks in the markdown fixtures are literal content the lint under test must match, never command substitution
+
 setup() {
   load '../test_helper/common'
   CHECK="${REPO_DIR}/.ci/check-justfile-invariants"
