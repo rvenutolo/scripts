@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+
+# @description Run `nix flake check` with the evaluation cache disabled and fail
+#              on any `evaluation warning:` line it emits. Nix caches evaluation
+#              results, and a cache hit suppresses the warning lines that the
+#              cold run printed — so a warm local gate is quieter than CI, which
+#              always starts cold, and a newly introduced flake warning is
+#              invisible to ./run-all-checks (#244). `--no-eval-cache` forces a
+#              real evaluation every time; the measured cost is ~2s against a
+#              ~90s gate. This check is a strict superset of the bare
+#              `nix flake check` step it replaces: flake check's own exit status
+#              still fails the gate. Both surfaces — ./run-all-checks and the
+#              `nix-flake-check` CI job — call this one script so the local and
+#              CI definitions of "flake check" cannot drift. The flake is
+#              evaluated in the repo this script was invoked in, never the
+#              ambient one, so a worktree grades its own tree (#250).
+# @noargs
+# @stderr Flake check's combined output when it fails, plus one line per evaluation warning.
+# @exitcode 0 nix flake check passed and emitted no evaluation warnings.
+# @exitcode 1 nix flake check failed, or an evaluation warning was emitted.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'nix'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+
+# The marker nix prefixes every `lib.warn` / `warnIf` evaluation-time message
+# with. Matched as a fixed string, not a regex: plain `warning:` lines (the
+# ubiquitous "Git tree is dirty") are out of scope and must not fail the gate.
+readonly WARNING_MARKER='evaluation warning:'
+
+function main() {
+  args::check_no_args "$@"
+  local output_tmp
+  files::create_temp output_tmp
+  local rc=0
+  # `|| rc=1` keeps set -e from aborting: flake check's exit status is data here,
+  # and it must survive to the exit below rather than being swallowed. Combined
+  # output — nix writes both the warnings and its diagnostics to stderr.
+  # shellcheck disable=SC2154 # output_tmp assigned by files::create_temp via nameref
+  (cd "${REPO_DIR}" && nix flake check --no-eval-cache) > "${output_tmp}" 2>&1 || rc=1
+  if ((rc != 0)); then
+    cat "${output_tmp}" >&2
+  fi
+  local warnings_tmp
+  files::create_temp warnings_tmp
+  # grep exits 1 when nothing matches, which is the expected case; `|| true`
+  # keeps that from tripping set -e.
+  # shellcheck disable=SC2154 # warnings_tmp assigned by files::create_temp via nameref
+  grep --fixed-strings "${WARNING_MARKER}" "${output_tmp}" > "${warnings_tmp}" || true
+  if files::is_non_empty "${warnings_tmp}"; then
+    log::warn 'nix flake check emitted evaluation warnings:'
+    local line
+    while IFS= read -r line; do
+      strings::is_empty "${line}" && continue
+      printf '  %s\n' "${line}" >&2
+    done < "${warnings_tmp}"
+    rc=1
+  fi
+  exit "${rc}"
+}
+
+main "$@"

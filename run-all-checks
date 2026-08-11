@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
-# @description Run the full local verification gate: check-scripts, `nix flake check`, the
-#              governance suite, the lint suite, and the BATS suite. Verify-only — it never
+# @description Run the full local verification gate: check-scripts, the flake check
+#              (via .ci/check-flake-eval-warnings, the one script the `nix-flake-check`
+#              CI job also runs, so the two definitions cannot drift), the governance
+#              suite, the lint suite, and the BATS suite. Verify-only — it never
 #              rewrites the tree, so `nix fmt` is a separate step to be run before this one.
 #              Exit codes are aggregated rather than failing fast, so a single run surfaces
 #              every failing category instead of only the first. `nix flake check` evaluates
@@ -61,7 +63,9 @@ function main() {
   log::log 'running check-scripts'
   "${REPO_DIR}/check-scripts" || rc=1
   log::log 'running nix flake check'
-  (cd "${REPO_DIR}" && nix flake check) || rc=1
+  # Not a bare `nix flake check`: the enforcer adds --no-eval-cache and fails on
+  # evaluation warnings, which the eval cache would otherwise hide locally (#244).
+  "${REPO_DIR}/.ci/check-flake-eval-warnings" || rc=1
   log::log 'running governance checks'
   "${REPO_DIR}/.ci/run-governance-checks" || rc=1
   log::log 'running lint checks'

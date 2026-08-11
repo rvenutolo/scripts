@@ -4,7 +4,6 @@ bats_require_minimum_version 1.5.0
 
 setup() {
   load '../test_helper/common'
-  load '../test_helper/path_shim'
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/args.bash"
   # shellcheck disable=SC1091
@@ -35,23 +34,17 @@ EOF
   chmod +x "${FAKE_REPO}/${rel_path}"
 }
 
-# Stub nix onto PATH so `nix flake check` never touches the real flake.
-# $1 = exit code (default 0).
-make_nix_step() {
-  local -r exit_code="${1:-0}"
-  path_shim::add nix "#!/usr/bin/env bash
-printf '%s\n' 'nix' >> '${STEP_LOG}'
-exit ${exit_code}"
-}
-
 # Install all five steps, each passing. Individual tests re-install one of them
-# with a failing exit code to exercise that step's failure path.
+# with a failing exit code to exercise that step's failure path. The flake step
+# is a stub script inside the fake repo like every other one: the runner calls
+# .ci/check-flake-eval-warnings rather than `nix flake check` directly (#244), so
+# no test here goes anywhere near the real `nix`.
 install_passing_steps() {
   make_step 'check-scripts' 'check-scripts'
+  make_step '.ci/check-flake-eval-warnings' 'check-flake-eval-warnings'
   make_step '.ci/run-governance-checks' 'run-governance-checks'
   make_step '.ci/run-lint-checks' 'run-lint-checks'
   make_step 'run-tests' 'run-tests'
-  make_nix_step
 }
 
 # Stage everything so the tree reads as clean to `git ls-files --others`.
@@ -87,7 +80,7 @@ recorded_steps() {
   stage_tree
   run_gate
   assert_success
-  assert_equal "$(recorded_steps)" 'check-scripts nix run-governance-checks run-lint-checks run-tests'
+  assert_equal "$(recorded_steps)" 'check-scripts check-flake-eval-warnings run-governance-checks run-lint-checks run-tests'
 }
 
 @test "exits 1 when check-scripts fails" {
@@ -98,9 +91,9 @@ recorded_steps() {
   assert_failure
 }
 
-@test "exits 1 when nix flake check fails" {
+@test "exits 1 when the flake check fails" {
   install_passing_steps
-  make_nix_step 1
+  make_step '.ci/check-flake-eval-warnings' 'check-flake-eval-warnings' 1
   stage_tree
   run_gate
   assert_failure
@@ -136,7 +129,7 @@ recorded_steps() {
   stage_tree
   run_gate
   assert_failure
-  assert_equal "$(recorded_steps)" 'check-scripts nix run-governance-checks run-lint-checks run-tests'
+  assert_equal "$(recorded_steps)" 'check-scripts check-flake-eval-warnings run-governance-checks run-lint-checks run-tests'
 }
 
 @test "reports that at least one check failed" {
