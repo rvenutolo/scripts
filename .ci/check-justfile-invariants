@@ -12,10 +12,11 @@
 #              Recipe parsing is delegated to `just --dump`, so the repo does not
 #              re-encode just's grammar (#229); README scanning is scoped to the
 #              `## Common commands` section (#230).
+#              Every public recipe must also carry a doc comment.
 # @noargs
 # @stderr One line per violation.
 # @exitcode 0 the justfile is unique, canonical, and agrees with the docs.
-# @exitcode 1 a duplicate or missing justfile, an unparseable justfile, a missing README command table, a recipe/README mismatch, or gate-name drift.
+# @exitcode 1 a duplicate or missing justfile, an unparseable justfile, a missing README command table, a recipe/README mismatch, gate-name drift, or an undocumented public recipe.
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -111,6 +112,26 @@ function classified_recipes() {
     .recipes
     | to_entries[]
     | (if .value.private then "private" else "public" end) + "\t" + .key
+  ' "${dump_path}"
+}
+
+# @description Print the name of every public recipe in a justfile dump that
+#              carries no doc comment, one per line. `just` reports the comment
+#              line immediately above a recipe as its `doc` field, and null when
+#              there is none. Private recipes are excluded: they are internal
+#              helpers `just --list` never shows, matching how the README parity
+#              rule already treats them.
+# @arg $1 dump_path path to a JSON dump written by justfile_dump
+# @stdout One undocumented public recipe name per line.
+function undocumented_recipes() {
+  args::check_exactly_1_arg "$@"
+  local -r dump_path="$1"
+  jq --raw-output '
+    .recipes
+    | to_entries[]
+    | select(.value.private | not)
+    | select((.value.doc // "") | test("^\\s*$"))
+    | .key
   ' "${dump_path}"
 }
 
@@ -273,6 +294,19 @@ function main() {
       "${GATE_COMMAND}" >&2
     failed=1
   fi
+
+  # 5: every public recipe describes itself. `just --list` renders the doc
+  # comment, so an undocumented recipe is invisible to anyone discovering the
+  # command set. Private recipes are exempt — --list never shows them.
+  local undoc_tmp
+  files::create_temp undoc_tmp
+  undocumented_recipes "${dump_tmp}" > "${undoc_tmp}"
+  local undoc_name
+  while IFS= read -r undoc_name; do
+    strings::is_empty "${undoc_name}" && continue
+    printf '%s: recipe has no doc comment\n' "${undoc_name}" >&2
+    failed=1
+  done < "${undoc_tmp}"
 
   exit "${failed}"
 }

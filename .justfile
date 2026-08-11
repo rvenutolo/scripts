@@ -1,3 +1,4 @@
+# Run the default gate (`just check`)
 default: check
 
 # Run the full local verification gate
