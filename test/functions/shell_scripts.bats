@@ -132,7 +132,7 @@ make_fixture() {
 
 # ---------- filter ----------
 
-@test "filter: keeps shell-shebang files, drops non-shell" {
+@test "filter: keeps shell files, drops non-shell" {
   local result=()
   shell_scripts::filter result "${TREE}/a.sh" "${TREE}/d.txt" "${TREE}/b.bash" "${TREE}/e"
   [[ "${#result[@]}" -eq 2 ]]

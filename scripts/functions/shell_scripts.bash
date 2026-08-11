@@ -73,7 +73,11 @@ function shell_scripts::find() {
 }
 
 # @description Filter candidate paths down to processable shell scripts:
-# - Files without a bash/sh shebang are warned and skipped.
+# - Files that are not shell files are warned and skipped. A shell file is one
+#   carrying a .sh/.bash/.bats extension or a shell shebang (shell_scripts::is_shell_file),
+#   the same predicate the shfmt step in check-scripts uses. Gating on the shebang
+#   alone made shellcheck coverage of the .bats corpus an accident of authoring
+#   style: 31 of 83 test files were silently exempt (#215).
 # - Files under /other/ require interactive confirmation (prompt::ny).
 # Output goes into a caller-provided array via nameref so prompts can run
 # in the caller's shell (avoids capturing prompt output in process subs).
@@ -88,8 +92,8 @@ function shell_scripts::filter() {
   _out_ref=()
   local file
   for file in "$@"; do
-    if ! shell_scripts::has_shell_shebang "${file}"; then
-      log::log "Skipping (no bash/sh shebang): ${file}"
+    if ! shell_scripts::is_shell_file "${file}"; then
+      log::log "Skipping (not a shell file): ${file}"
       continue
     fi
     if [[ "${file}" == */other/* ]]; then
