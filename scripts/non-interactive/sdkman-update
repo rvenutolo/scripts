@@ -7,7 +7,7 @@
 # @noargs
 # @exitcode 0 every step succeeded
 # @exitcode 1 an SDKMAN package failed to install, or a step aborted via log::die
-# @exitcode * a metadata or Temurin JDK step failed; its own status is propagated verbatim
+# @exitcode * a metadata, package-list fetch, or Temurin JDK step failed; its own status is propagated verbatim
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -38,6 +38,8 @@ trap - ERR
 
   log::log 'Updating SDKMAN packages'
   failed_package_count=0
+  # Bare call required: wrapping this in `if`/`||`/`&&` suppresses errexit through the whole call
+  # tree, silently reintroducing a failed sdkman.csv download reading as an empty, green run.
   sdkman_packages::install_sdkman_packages failed_package_count
   if ((failed_package_count > 0)); then
     log::warn 'Some SDKMAN packages failed to install; continuing'
