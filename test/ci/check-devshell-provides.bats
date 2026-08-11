@@ -9,9 +9,6 @@ setup() {
   source "${SCRIPTS_DIR}/functions/log.bash"
   load '../test_helper/git_fixture'
   CHECK="${REPO_DIR}/.ci/check-devshell-provides"
-  # Captured before the cd below: the live case runs the check against the real
-  # repo, and REPO_DIR still points there at this point.
-  REAL_REPO_DIR="${REPO_DIR}"
   # The check resolves REPO_DIR via `git rev-parse --show-toplevel`, so it must
   # run with cwd inside a git repo or it exits 128 before any scan. common.bash
   # leaves cwd at BATS_TEST_TMPDIR, which is deliberately not a repo (#248
@@ -22,8 +19,8 @@ setup() {
   git_fixture::init "${FIXTURE_REPO}"
   cd "${FIXTURE_REPO}" || return 1
   # A fake devShell PATH: tests populate it per case so they assert the lint's
-  # logic rather than the machine's toolchain — except the live case, which
-  # deliberately unsets both overrides.
+  # logic rather than the machine's toolchain. This narrows common.bash's
+  # suite-wide default from the ambient PATH to a directory this file controls.
   DEVSHELL_BIN="${BATS_TEST_TMPDIR}/devshell-bin"
   mkdir --parents "${DEVSHELL_BIN}"
   export DEVSHELL_PATH_OVERRIDE="${DEVSHELL_BIN}"
@@ -182,12 +179,9 @@ add_devshell_tool() {
   assert_output --partial 'devShell'
 }
 
-@test "the shipped tool list is provided by the real devShell" {
-  # No overrides: the real `nix print-dev-env` query against the real repo. This
-  # is the only case that pays the query's multi-second cost.
-  unset DEVSHELL_PATH_OVERRIDE
-  unset REQUIRED_TOOLS_OVERRIDE
-  cd "${REAL_REPO_DIR}"
-  run "${CHECK}"
-  assert_success
-}
+# There is deliberately no case here that unsets DEVSHELL_PATH_OVERRIDE to query the real
+# devShell. Doing so shells out to `nix`, which needs the network, takes seconds, and — as
+# this file's first CI run proved — writes nix/sentry/settings.dat into the working tree,
+# failing run-lint-checks.bats in the process. See the DEVSHELL_PATH_OVERRIDE block in
+# test_helper/common.bash. The real devShell is asserted by the `governance` CI job and by
+# ./run-all-checks, both of which run this lint in an unmodified environment.
