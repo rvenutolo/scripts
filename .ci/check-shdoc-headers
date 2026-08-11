@@ -30,12 +30,14 @@ args::handle_help_flag "$@"
 args::check_no_args "$@"
 
 # @description Print every in-scope top-level script path, one per line.
-#              In-scope means any shebang-bearing file under non-interactive/,
-#              interactive/, install/, set_up/, misc/ (under SCRIPTS_DIR), .ci/
-#              (under the repo root), or directly under the repo root.
-#              Library files under functions/ are listed by
-#              collect_library_files instead, since they follow a different
-#              annotation rule.
+#              In-scope means any shebang-bearing file under scripts/{non-interactive,
+#              interactive,install,set_up,misc}, .ci/, or directly under the repo root.
+#              Every scan root derives from REPO_DIR — the repo this command was
+#              invoked in — never from the SCRIPTS_DIR environment variable, which
+#              points at the user's main checkout and would make the audit grade the
+#              wrong tree from a worktree or a second clone (#250).
+#              Library files under functions/ are listed by collect_library_files
+#              instead, since they follow a different annotation rule.
 # @noargs
 # @stdout File paths, one per line.
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
@@ -43,8 +45,8 @@ function collect_in_scope_scripts() {
   args::check_no_args "$@"
   local subdir
   for subdir in non-interactive interactive install set_up misc; do
-    if dirs::exists "${SCRIPTS_DIR}/${subdir}"; then
-      shell_scripts::find "${SCRIPTS_DIR}/${subdir}"
+    if dirs::exists "${REPO_DIR}/scripts/${subdir}"; then
+      shell_scripts::find "${REPO_DIR}/scripts/${subdir}"
     fi
   done
   if dirs::exists "${REPO_DIR}/.ci"; then
@@ -63,7 +65,7 @@ function collect_in_scope_scripts() {
 function collect_library_files() {
   args::check_no_args "$@"
   local file
-  for file in "${SCRIPTS_DIR}"/functions/*.bash; do
+  for file in "${REPO_DIR}"/scripts/functions/*.bash; do
     if files::exists "${file}"; then
       printf '%s\n' "${file}"
     fi

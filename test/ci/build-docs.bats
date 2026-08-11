@@ -47,3 +47,22 @@ run_check() {
   assert_success
   assert_output --partial '.md'
 }
+
+@test "documents the repo it runs in, not SCRIPTS_DIR" {
+  # A decoy SCRIPTS_DIR that can satisfy sourcing but holds no script dirs. If
+  # build-docs rooted its input scan at SCRIPTS_DIR it would find nothing to
+  # document; it must root at the repo it was invoked in instead.
+  local decoy="${BATS_TEST_TMPDIR}/decoy"
+  mkdir -p "${decoy}/functions"
+  ln --symbolic "${SCRIPTS_DIR}/.functions.bash" "${decoy}/.functions.bash"
+  local lib
+  for lib in "${SCRIPTS_DIR}"/functions/*.bash; do
+    ln --symbolic "${lib}" "${decoy}/functions/$(basename -- "${lib}")"
+  done
+  cd "${REPO_DIR}" || return 1
+  SCRIPTS_DIR="${decoy}" run "${CHECK}"
+  assert_success
+  run find "${DOCS_DIR_OVERRIDE}/scripts/non-interactive" -type f -name 'new-script.md'
+  assert_success
+  assert_output --partial 'new-script.md'
+}

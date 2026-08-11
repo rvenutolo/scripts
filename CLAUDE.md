@@ -226,6 +226,27 @@ Scripts under `set_up/` must be idempotent and self-gate — check current state
 
 **Never run these two runners without a seam in order to observe a "failure" — they execute the real provisioning scripts against the live machine.** Stubbing `sudo` does not prevent that; the scripts under `install/` and `set_up/` run for real. To exercise the fallback path, copy the repo to a tmpdir and empty those directories there.
 
+### Scan roots come from `REPO_DIR`, not `SCRIPTS_DIR`
+
+Repo tooling that **inspects the tree** must resolve its scan roots from the repo it was
+invoked in — `REPO_DIR="$(git rev-parse --show-toplevel)"` — never from the `SCRIPTS_DIR`
+environment variable. `SCRIPTS_DIR` points at the user's main checkout, so a gate rooted
+there audits that tree from inside a worktree or a second clone and reports success for the
+tree actually being worked on. That is a false green, silent and indistinguishable from a
+real pass; it hid a broken shdoc header through two consecutive full-gate runs (#250).
+
+Runners that **act on the machine** are the deliberate exception: `run-install-scripts` and
+`run-set-up-scripts` provision the host from the user's canonical scripts, so `SCRIPTS_DIR`
+is the correct root there.
+
+`source "${SCRIPTS_DIR}/.functions.bash"` is always fine — it locates the function library,
+not a scan root.
+
+`.ci/check-tree-scan-root` enforces this over `.ci/`, `.githooks/`, and the repo-root
+runners. Its `EXEMPT` array holds the two provisioning runners and carries staleness
+detection: an entry naming no in-scope file, or naming one with no flagged reference, fails
+the lint rather than silently disarming it.
+
 ### Standalone `misc/` ERR trap
 
 Standalone scripts that do NOT source this repo's `.functions.bash` (everything in `misc/`) cannot call `log::enable_err_trap`. Inline the trap directly after the `IFS=` line. (Note: scripts that source `${DOCKER_COMPOSE_DIR}/functions.bash` DO have access to this repo's helpers — that file transitively sources `${SCRIPTS_DIR}/.functions.bash` — so use `log::enable_err_trap` there, not the inline form.)

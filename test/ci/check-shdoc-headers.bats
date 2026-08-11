@@ -10,30 +10,30 @@ setup() {
   CHECK="${REPO_DIR}/.ci/check-shdoc-headers"
   REAL_SCRIPTS_DIR="${SCRIPTS_DIR}"
   REPO="${BATS_TEST_TMPDIR}/repo"
+  # The fixture mirrors the real repo layout: SCRIPTS_DIR is repo-root/scripts.
+  # The check derives its scan root from `git rev-parse --show-toplevel`, so the
+  # scripts/ layer is required for its scans to resolve — and having it lets a
+  # test point SCRIPTS_DIR somewhere else entirely, which is how the scan-root
+  # pins below discriminate.
+  SCRIPTS="${REPO}/scripts"
 
   # The check sources "${SCRIPTS_DIR}/.functions.bash", which loops over
-  # "${SCRIPTS_DIR}/functions/*.bash". It also AUDITS "${SCRIPTS_DIR}/functions/*.bash"
-  # (library files) and resolves the repo root via `git rev-parse --show-toplevel`
-  # for its .ci/ and root scans.
-  #
-  # Isolation approach: build a temp git repo as the fixture SCRIPTS_DIR and
-  # symlink the REAL .functions.bash + functions/ library into it. That keeps
-  # sourcing working AND keeps the library-file audit clean (the real library
-  # is fully compliant). Top-level FAILURE cases are then driven through fixture
-  # scripts dropped into non-interactive/, which exercise the same audit_one /
-  # shdoc::* code paths. The temp repo has no .ci/ dir and no shebang-bearing
-  # root files, so those scans contribute nothing — the audit operates on the
-  # SCRIPTS_DIR fixtures only.
-  mkdir -p "${REPO}/non-interactive" "${REPO}/functions"
+  # "${SCRIPTS_DIR}/functions/*.bash". Symlinking the REAL .functions.bash and
+  # functions/ library into the fixture keeps sourcing working AND keeps the
+  # library-file audit clean, since the real library is fully compliant.
+  # Top-level FAILURE cases are driven through fixture scripts dropped into
+  # scripts/non-interactive/. The fixture has no .ci/ dir and no shebang-bearing
+  # root files, so those two scans contribute nothing.
+  mkdir -p "${SCRIPTS}/non-interactive" "${SCRIPTS}/functions"
   git_fixture::init "${REPO}"
-  ln --symbolic "${REAL_SCRIPTS_DIR}/.functions.bash" "${REPO}/.functions.bash"
+  ln --symbolic "${REAL_SCRIPTS_DIR}/.functions.bash" "${SCRIPTS}/.functions.bash"
   local lib
   for lib in "${REAL_SCRIPTS_DIR}"/functions/*.bash; do
-    ln --symbolic "${lib}" "${REPO}/functions/$(basename -- "${lib}")"
+    ln --symbolic "${lib}" "${SCRIPTS}/functions/$(basename -- "${lib}")"
   done
 
   # A clean, fully-annotated top-level fixture script so the default tree passes.
-  cat > "${REPO}/non-interactive/good-script" << 'EOF'
+  cat > "${SCRIPTS}/non-interactive/good-script" << 'EOF'
 #!/usr/bin/env bash
 
 # @description A clean fixture script.
@@ -44,13 +44,13 @@ IFS=$'\n\t'
 
 echo hi
 EOF
-  chmod +x "${REPO}/non-interactive/good-script"
+  chmod +x "${SCRIPTS}/non-interactive/good-script"
 }
 
 # Run the check against the fixture repo. Caller cds into ${REPO} first so the
 # check's `git rev-parse --show-toplevel` resolves to the fixture.
 run_check() {
-  SCRIPTS_DIR="${REPO}" run "${CHECK}" "$@"
+  SCRIPTS_DIR="${SCRIPTS}" run "${CHECK}" "$@"
 }
 
 @test "passes on a clean fixture tree (annotated script + real library)" {
@@ -60,7 +60,7 @@ run_check() {
 }
 
 @test "fails when a top-level script is missing its file-level @description" {
-  cat > "${REPO}/non-interactive/no-desc" << 'EOF'
+  cat > "${SCRIPTS}/non-interactive/no-desc" << 'EOF'
 #!/usr/bin/env bash
 
 # @noargs
@@ -70,7 +70,7 @@ IFS=$'\n\t'
 
 echo hi
 EOF
-  chmod +x "${REPO}/non-interactive/no-desc"
+  chmod +x "${SCRIPTS}/non-interactive/no-desc"
   cd "${REPO}"
   run_check
   assert_failure
@@ -79,7 +79,7 @@ EOF
 }
 
 @test "fails when a top-level script has an unannotated helper function" {
-  cat > "${REPO}/non-interactive/bad-helper" << 'EOF'
+  cat > "${SCRIPTS}/non-interactive/bad-helper" << 'EOF'
 #!/usr/bin/env bash
 
 # @description Has an unannotated helper.
@@ -94,7 +94,7 @@ function do_thing() {
 
 do_thing
 EOF
-  chmod +x "${REPO}/non-interactive/bad-helper"
+  chmod +x "${SCRIPTS}/non-interactive/bad-helper"
   cd "${REPO}"
   run_check
   assert_failure
@@ -103,7 +103,7 @@ EOF
 }
 
 @test "passes when a helper function is properly annotated" {
-  cat > "${REPO}/non-interactive/good-helper" << 'EOF'
+  cat > "${SCRIPTS}/non-interactive/good-helper" << 'EOF'
 #!/usr/bin/env bash
 
 # @description Has a properly annotated helper.
@@ -120,14 +120,14 @@ function do_thing() {
 
 do_thing
 EOF
-  chmod +x "${REPO}/non-interactive/good-helper"
+  chmod +x "${SCRIPTS}/non-interactive/good-helper"
   cd "${REPO}"
   run_check
   assert_success
 }
 
 @test "ignores an unannotated main function (exempt by file-level header)" {
-  cat > "${REPO}/non-interactive/with-main" << 'EOF'
+  cat > "${SCRIPTS}/non-interactive/with-main" << 'EOF'
 #!/usr/bin/env bash
 
 # @description A script whose only function is main.
@@ -142,14 +142,14 @@ function main() {
 
 main "$@"
 EOF
-  chmod +x "${REPO}/non-interactive/with-main"
+  chmod +x "${SCRIPTS}/non-interactive/with-main"
   cd "${REPO}"
   run_check
   assert_success
 }
 
 @test "reports every failing script when several are broken" {
-  cat > "${REPO}/non-interactive/no-desc" << 'EOF'
+  cat > "${SCRIPTS}/non-interactive/no-desc" << 'EOF'
 #!/usr/bin/env bash
 
 # @noargs
@@ -159,8 +159,8 @@ IFS=$'\n\t'
 
 echo hi
 EOF
-  chmod +x "${REPO}/non-interactive/no-desc"
-  cat > "${REPO}/non-interactive/bad-helper" << 'EOF'
+  chmod +x "${SCRIPTS}/non-interactive/no-desc"
+  cat > "${SCRIPTS}/non-interactive/bad-helper" << 'EOF'
 #!/usr/bin/env bash
 
 # @description Has an unannotated helper.
@@ -175,7 +175,7 @@ function do_thing() {
 
 do_thing
 EOF
-  chmod +x "${REPO}/non-interactive/bad-helper"
+  chmod +x "${SCRIPTS}/non-interactive/bad-helper"
   cd "${REPO}"
   run_check
   assert_failure
@@ -202,7 +202,7 @@ EOF
 }
 
 @test "fails when a top-level script carries the scaffold placeholder description" {
-  cat > "${REPO}/non-interactive/scaffolded" << 'EOF'
+  cat > "${SCRIPTS}/non-interactive/scaffolded" << 'EOF'
 #!/usr/bin/env bash
 
 # @description TODO: describe what this script does.
@@ -213,7 +213,7 @@ IFS=$'\n\t'
 
 echo hi
 EOF
-  chmod +x "${REPO}/non-interactive/scaffolded"
+  chmod +x "${SCRIPTS}/non-interactive/scaffolded"
   cd "${REPO}"
   run_check
   assert_failure
@@ -222,7 +222,7 @@ EOF
 }
 
 @test "fails when a library-sourcing script omits the help-flag call" {
-  cat > "${REPO}/non-interactive/no-help-flag" << 'EOF'
+  cat > "${SCRIPTS}/non-interactive/no-help-flag" << 'EOF'
 #!/usr/bin/env bash
 
 # @description A script that forgot its help flag.
@@ -235,7 +235,7 @@ source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::check_no_args "$@"
 EOF
-  chmod +x "${REPO}/non-interactive/no-help-flag"
+  chmod +x "${SCRIPTS}/non-interactive/no-help-flag"
   cd "${REPO}"
   run_check
   assert_failure
@@ -244,7 +244,7 @@ EOF
 }
 
 @test "passes when a library-sourcing script calls the help flag" {
-  cat > "${REPO}/non-interactive/with-help-flag" << 'EOF'
+  cat > "${SCRIPTS}/non-interactive/with-help-flag" << 'EOF'
 #!/usr/bin/env bash
 
 # @description A script that remembers its help flag.
@@ -258,14 +258,14 @@ log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
 EOF
-  chmod +x "${REPO}/non-interactive/with-help-flag"
+  chmod +x "${SCRIPTS}/non-interactive/with-help-flag"
   cd "${REPO}"
   run_check
   assert_success
 }
 
 @test "passes when a pass-through script omits the help-flag call" {
-  cat > "${REPO}/non-interactive/passthrough" << 'EOF'
+  cat > "${SCRIPTS}/non-interactive/passthrough" << 'EOF'
 #!/usr/bin/env bash
 
 # @description Forward everything to the real tool.
@@ -280,14 +280,14 @@ log::enable_err_trap
 
 exec true "$@"
 EOF
-  chmod +x "${REPO}/non-interactive/passthrough"
+  chmod +x "${SCRIPTS}/non-interactive/passthrough"
   cd "${REPO}"
   run_check
   assert_success
 }
 
 @test "passes when a standalone script omits the help-flag call" {
-  cat > "${REPO}/non-interactive/standalone" << 'EOF'
+  cat > "${SCRIPTS}/non-interactive/standalone" << 'EOF'
 #!/usr/bin/env bash
 
 # @description A standalone script that never sources the library.
@@ -298,14 +298,14 @@ IFS=$'\n\t'
 
 echo hi
 EOF
-  chmod +x "${REPO}/non-interactive/standalone"
+  chmod +x "${SCRIPTS}/non-interactive/standalone"
   cd "${REPO}"
   run_check
   assert_success
 }
 
 @test "fails when the help flag is named only in header prose" {
-  cat > "${REPO}/non-interactive/prose-only" << 'EOF'
+  cat > "${SCRIPTS}/non-interactive/prose-only" << 'EOF'
 #!/usr/bin/env bash
 
 # @description A script whose header discusses args::handle_help_flag
@@ -319,9 +319,50 @@ source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::check_no_args "$@"
 EOF
-  chmod +x "${REPO}/non-interactive/prose-only"
+  chmod +x "${SCRIPTS}/non-interactive/prose-only"
   cd "${REPO}"
   run_check
   assert_failure
   assert_output --partial 'prose-only'
+}
+
+# The two tests below deliberately do NOT use run_check: they point SCRIPTS_DIR at
+# the REAL repo while cwd is the fixture. A scan rooted at SCRIPTS_DIR audits the
+# real tree, which is compliant, and reports success — the false green of #250. The
+# audit must follow the repo it was invoked in and catch the fixture's violation.
+
+@test "audits top-level scripts from the repo it runs in, not SCRIPTS_DIR" {
+  cat > "${SCRIPTS}/non-interactive/no-desc" << 'EOF'
+#!/usr/bin/env bash
+
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+echo hi
+EOF
+  chmod +x "${SCRIPTS}/non-interactive/no-desc"
+  cd "${REPO}"
+  SCRIPTS_DIR="${REAL_SCRIPTS_DIR}" run "${CHECK}"
+  assert_failure
+  assert_output --partial 'non-interactive/no-desc'
+  assert_output --partial 'missing file-level @description'
+}
+
+@test "audits library files from the repo it runs in, not SCRIPTS_DIR" {
+  # A real file, not a symlink: the fixture library otherwise mirrors the compliant
+  # real library entirely.
+  cat > "${SCRIPTS}/functions/broken.bash" << 'EOF'
+#!/usr/bin/env bash
+
+function broken_thing() {
+  echo thing
+}
+EOF
+  cd "${REPO}"
+  SCRIPTS_DIR="${REAL_SCRIPTS_DIR}" run "${CHECK}"
+  assert_failure
+  assert_output --partial 'broken.bash'
+  assert_output --partial 'broken_thing'
 }
