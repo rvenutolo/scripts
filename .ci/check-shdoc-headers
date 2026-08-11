@@ -6,12 +6,14 @@
 #              Top-level scripts must carry a file-level `# @description` tag
 #              in the header, an annotation block on every helper function
 #              other than `main`, no scaffold placeholder text anywhere in the
-#              header block, and — unless they are a pass-through or a
+#              header block, no placeholder text in any function's annotation
+#              block either, and — unless they are a pass-through or a
 #              standalone that never sources the library — a call to
 #              args::handle_help_flag. Library files (functions/*.bash) must have
-#              an annotation block on every function — the file-level
-#              description is intentionally not required because library files
-#              are documented function-by-function.
+#              an annotation block on every function and no placeholder text in
+#              those annotations — the file-level description is intentionally
+#              not required because library files are documented
+#              function-by-function.
 # @noargs
 # @stderr Empty on success. On failure: one block per failing file with the
 #         missing-header reason and any unannotated function names.
@@ -101,6 +103,15 @@ function audit_one() {
       violations+=("helper function missing shdoc annotation: ${fn}")
     done < "${unannotated_file}"
   fi
+  local placeholder_file
+  files::create_temp placeholder_file
+  shdoc::find_placeholder_functions "${file}" > "${placeholder_file}"
+  if [[ -s "${placeholder_file}" ]]; then
+    local placeholder_fn
+    while IFS= read -r placeholder_fn; do
+      violations+=("function annotation contains placeholder text: ${placeholder_fn}")
+    done < "${placeholder_file}"
+  fi
   if [[ "${#violations[@]}" -eq 0 ]]; then
     return 0
   fi
@@ -114,24 +125,41 @@ function audit_one() {
 
 # @description Audit a single library file under functions/. Library files
 #              are documented per-function, so the file-level @description
-#              check is skipped — only unannotated functions are flagged.
+#              check is skipped — unannotated functions and annotation blocks
+#              carrying placeholder text are both flagged.
 # @arg $1 file path to library file
 # @exitcode 0 clean
 # @exitcode 1 reported violations
 function audit_library_one() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
+  local violations=()
   local unannotated_file
   files::create_temp unannotated_file
   shdoc::find_unannotated_functions "${file}" > "${unannotated_file}"
-  if [[ ! -s "${unannotated_file}" ]]; then
+  if [[ -s "${unannotated_file}" ]]; then
+    local fn
+    while IFS= read -r fn; do
+      violations+=("function missing shdoc annotation: ${fn}")
+    done < "${unannotated_file}"
+  fi
+  local placeholder_file
+  files::create_temp placeholder_file
+  shdoc::find_placeholder_functions "${file}" > "${placeholder_file}"
+  if [[ -s "${placeholder_file}" ]]; then
+    local placeholder_fn
+    while IFS= read -r placeholder_fn; do
+      violations+=("function annotation contains placeholder text: ${placeholder_fn}")
+    done < "${placeholder_file}"
+  fi
+  if [[ "${#violations[@]}" -eq 0 ]]; then
     return 0
   fi
   printf '%s\n' "${file}" >&2
-  local fn
-  while IFS= read -r fn; do
-    printf '  - %s\n' "function missing shdoc annotation: ${fn}" >&2
-  done < "${unannotated_file}"
+  local v
+  for v in "${violations[@]}"; do
+    printf '  - %s\n' "${v}" >&2
+  done
   return 1
 }
 
