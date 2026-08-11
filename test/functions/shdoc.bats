@@ -241,3 +241,156 @@ EOF
   assert_success
   assert_output ''
 }
+
+@test "shdoc::header_has_placeholder true for TODO in @description" {
+  local f="${BATS_TEST_TMPDIR}/p1"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description TODO: describe what this script does.
+# @noargs
+
+set -Eeuo pipefail
+EOF
+  run shdoc::header_has_placeholder "${f}"
+  assert_success
+}
+
+@test "shdoc::header_has_placeholder true for TODO in an @arg body" {
+  local f="${BATS_TEST_TMPDIR}/p2"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Sync the flatpaks.
+# @arg $1 target TODO name this properly
+
+set -Eeuo pipefail
+EOF
+  run shdoc::header_has_placeholder "${f}"
+  assert_success
+}
+
+@test "shdoc::header_has_placeholder true for TODO on a continuation line" {
+  local f="${BATS_TEST_TMPDIR}/p3"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Sync the flatpaks.
+#              TODO: document the --dry-run flag.
+# @noargs
+
+set -Eeuo pipefail
+EOF
+  run shdoc::header_has_placeholder "${f}"
+  assert_success
+}
+
+@test "shdoc::header_has_placeholder false for TODO below the header window" {
+  local f="${BATS_TEST_TMPDIR}/p4"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Scaffold a new script.
+# @noargs
+
+set -Eeuo pipefail
+
+cat > "$1" << 'INNER'
+# @description TODO: describe what this script does.
+INNER
+EOF
+  run shdoc::header_has_placeholder "${f}"
+  assert_failure
+}
+
+@test "shdoc::header_has_placeholder true for TODO within the 30-line no-pragma window" {
+  local f="${BATS_TEST_TMPDIR}/p5"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description TODO: describe this standalone script.
+# @noargs
+
+echo hi
+EOF
+  run shdoc::header_has_placeholder "${f}"
+  assert_success
+}
+
+@test "shdoc::header_has_placeholder false for TODO past line 30 with no pragma" {
+  local f="${BATS_TEST_TMPDIR}/p6"
+  {
+    printf '%s\n' '#!/usr/bin/env bash' '' '# @description A real description.' '# @noargs' ''
+    local i
+    for ((i = 0; i < 30; i++)); do printf '%s\n' "echo line ${i}"; done
+    printf '%s\n' '# TODO: this is far past the window'
+  } > "${f}"
+  run shdoc::header_has_placeholder "${f}"
+  assert_failure
+}
+
+@test "shdoc::header_has_placeholder false for TODO in prose before any tag" {
+  local f="${BATS_TEST_TMPDIR}/p7"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+# TODO: revisit this file layout
+# @description A real description.
+# @noargs
+
+set -Eeuo pipefail
+EOF
+  run shdoc::header_has_placeholder "${f}"
+  assert_failure
+}
+
+@test "shdoc::header_has_placeholder false for lowercase todo" {
+  local f="${BATS_TEST_TMPDIR}/p8"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Manage the todo list.
+# @noargs
+
+set -Eeuo pipefail
+EOF
+  run shdoc::header_has_placeholder "${f}"
+  assert_failure
+}
+
+@test "shdoc::header_has_placeholder false for TODOS without word boundary" {
+  local f="${BATS_TEST_TMPDIR}/p9"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Print all TODOS found in the tree.
+# @noargs
+
+set -Eeuo pipefail
+EOF
+  run shdoc::header_has_placeholder "${f}"
+  assert_failure
+}
+
+@test "shdoc::header_has_placeholder false for a clean header" {
+  local f="${BATS_TEST_TMPDIR}/p10"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Copy the kernel hardening sysctl file into /etc/sysctl.d.
+# @noargs
+
+set -Eeuo pipefail
+EOF
+  run shdoc::header_has_placeholder "${f}"
+  assert_failure
+}
+
+@test "shdoc::header_has_placeholder dies with 0 args" {
+  run shdoc::header_has_placeholder
+  assert_failure
+}
+
+@test "shdoc::header_has_placeholder dies with 2 args" {
+  run shdoc::header_has_placeholder a b
+  assert_failure
+}
