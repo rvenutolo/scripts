@@ -1,0 +1,243 @@
+#!/usr/bin/env bash
+
+# @description Assert every tool the repo's own tooling asks for by name is
+#              declared in .ci/required-tools. The declared list is what
+#              check-devshell-provides holds the flake devShell to, so an
+#              undeclared call site is a tool nobody ever checks: it resolves on
+#              the maintainer's machine and is simply missing for everyone else
+#              (#234). Scope is every shebang-bearing executable under .ci/ and
+#              .githooks/, plus the repo-root runners — not scripts/, which is
+#              the repo's payload and expects its tools from the machine.
+#
+#              The check is one-directional (derived subset of declared): a
+#              declared tool with no matching call site is fine, because some are
+#              invoked from the .justfile or a workflow rather than from a
+#              script. Deriving tool names from .justfile recipe bodies is
+#              deliberately out of scope — an arbitrary recipe body is not a
+#              reliable enumerator.
+#
+#              Only the fixed-form calls are read: an argument that is a variable
+#              expansion is ignored rather than flagged, since its value is not
+#              knowable statically. Tools that cannot be declared are named in
+#              EXEMPT_TOOLS, and each exemption is checked for staleness in both
+#              directions.
+# @noargs
+# @stderr One line per undeclared call site, and one per stale EXEMPT_TOOLS entry.
+# @exitcode 0 every tool named by a call site is declared, and every exemption is warranted.
+# @exitcode 1 an undeclared call site, or a stale EXEMPT_TOOLS entry.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'gawk'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly CI_DIR="${CI_DIR_OVERRIDE:-${REPO_DIR}/.ci}"
+readonly HOOKS_DIR="${HOOKS_DIR_OVERRIDE:-${REPO_DIR}/.githooks}"
+readonly ROOT_DIR="${ROOT_DIR_OVERRIDE:-${REPO_DIR}}"
+readonly REQUIRED_TOOLS_FILE="${REQUIRED_TOOLS_FILE_OVERRIDE:-${REPO_DIR}/.ci/required-tools}"
+
+# Tools a call site may name without declaring. `nix` provides the devShell and
+# so cannot be provided by it — declaring it would make check-devshell-provides
+# demand that the devShell's own PATH carry the binary that built it. Every entry
+# is staleness-checked below: an entry no call site names, or one that is also
+# declared and therefore needs no exemption, fails the lint.
+readonly EXEMPT_TOOLS=(nix)
+
+# @description Print the tool names held in a required-tools data file, one per
+#              line. `#` comments (whole-line or trailing) and blank lines are
+#              stripped. Deliberately duplicated in .ci/check-devshell-provides
+#              rather than shared through functions/: the format belongs to the
+#              two lints that consume it, not to the payload function library.
+# @arg $1 file path to a required-tools-shaped data file
+# @stdout One tool name per line; nothing when the file holds only comments.
+function tool_lines() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  files::assert_exists "${file}"
+  local line trimmed
+  while IFS= read -r line; do
+    line="${line%%#*}"
+    trimmed="$(strings::trim "${line}")"
+    strings::is_empty "${trimmed}" && continue
+    printf '%s\n' "${trimmed}"
+  done < "${file}"
+}
+
+# @description Print the declared tool names, one per line: the contents of the
+#              required-tools data file, or REQUIRED_TOOLS_OVERRIDE when set. The
+#              file is read only when the override is absent, so a fixture tree
+#              without a .ci/required-tools can still drive the lint.
+# @noargs
+# @stdout One declared tool name per line; nothing when the list is empty.
+# shellcheck disable=SC2120 # takes no args; args::check_no_args enforces that
+function declared_tools() {
+  args::check_no_args "$@"
+  local -a defaults=()
+  if [[ ! -v REQUIRED_TOOLS_OVERRIDE ]]; then
+    local tmp_file_tools
+    files::create_temp tmp_file_tools
+    # shellcheck disable=SC2154 # tmp_file_tools assigned by files::create_temp via nameref
+    tool_lines "${REQUIRED_TOOLS_FILE}" > "${tmp_file_tools}"
+    mapfile -t defaults < "${tmp_file_tools}"
+  fi
+  local -a tools=()
+  arrays::from_env_override tools REQUIRED_TOOLS_OVERRIDE ${defaults[@]+"${defaults[@]}"}
+  local tool
+  for tool in ${tools[@]+"${tools[@]}"}; do
+    strings::is_empty "${tool}" && continue
+    printf '%s\n' "${tool}"
+  done
+}
+
+# @description Print every tool a file asks for by name, as "LINENO<TAB>TOOL".
+#              A call site is a commands::executable_exists or
+#              commands::assert_executable_exists invocation whose argument is a
+#              literal, single-quoted, double-quoted, or bare. An argument that
+#              begins with anything other than an alphanumeric — a `$` expansion,
+#              most importantly — yields nothing, because its value is not
+#              knowable statically.
+#
+#              The gawk program deliberately spells the function names as
+#              commands[:][:](assert[_])?executable[_]exists rather than
+#              literally, so this script does not flag its own source. Both
+#              devices are load bearing: bracketing the colons defeats the
+#              namespace prefix and bracketing the underscores defeats the rest,
+#              and without them the program text itself reads as a call site
+#              naming whatever token follows. Skipping comment lines is not
+#              sufficient on its own — the program text is code, not a comment.
+#              Verified empirically against this script's own source.
+# @arg $1 file path to an in-scope shell file
+# @stdout One "LINENO<TAB>TOOL" line per call site; nothing when the file has none.
+function tool_call_sites() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  gawk '
+    # Quote characters by code point: a literal single quote cannot appear inside
+    # a single-quoted shell string without ending it.
+    BEGIN { sq = sprintf("%c", 39); dq = sprintf("%c", 34) }
+    # A call site cannot live in a comment.
+    /^[[:space:]]*#/ { next }
+    {
+      rest = $0
+      while (match(rest, /commands[:][:](assert[_])?executable[_]exists/)) {
+        arg = substr(rest, RSTART + RLENGTH)
+        rest = arg
+        # A longer identifier that merely starts with the name is not a call.
+        if (arg !~ /^[[:space:]]/) { continue }
+        sub(/^[[:space:]]+/, "", arg)
+        q = substr(arg, 1, 1)
+        if (q == sq || q == dq) { arg = substr(arg, 2) }
+        if (match(arg, /^[A-Za-z0-9][A-Za-z0-9._+-]*/)) {
+          printf "%d\t%s\n", FNR, substr(arg, RSTART, RLENGTH)
+        }
+      }
+    }
+  ' "${file}"
+}
+
+# @description Print the paths of root-level entries that are shell files.
+#              Non-recursive, so it yields the repo-root runners and not the
+#              scripts nested under scripts/ or .ci/. Takes the root as an
+#              argument rather than calling shell_scripts::find_root_only, which
+#              resolves the repo root itself and therefore cannot be pointed at a
+#              fixture tree — the same reason check-tree-scan-root carries its own
+#              copy. Dotfiles are not globbed, so the root-level .functions.bash
+#              loader is excluded without a special case.
+# @arg $1 root_dir directory to scan
+# @stdout One path per line; nothing when the directory holds no shell files.
+function root_shell_files() {
+  args::check_exactly_1_arg "$@"
+  local -r root_dir="$1"
+  local entry
+  for entry in "${root_dir}"/*; do
+    if files::exists "${entry}" && shell_scripts::is_shell_file "${entry}"; then
+      printf '%s\n' "${entry}"
+    fi
+  done
+}
+
+# @description Print every in-scope file path, one per line: shebang-bearing
+#              executables under .ci/ and .githooks/, plus the repo-root runners.
+# @noargs
+# @stdout File paths, one per line.
+# shellcheck disable=SC2120 # takes no args; args::check_no_args enforces that
+function collect_in_scope_files() {
+  args::check_no_args "$@"
+  if dirs::exists "${CI_DIR}"; then
+    shell_scripts::find "${CI_DIR}"
+  fi
+  if dirs::exists "${HOOKS_DIR}"; then
+    shell_scripts::find "${HOOKS_DIR}"
+  fi
+  if dirs::exists "${ROOT_DIR}"; then
+    root_shell_files "${ROOT_DIR}"
+  fi
+}
+
+function main() {
+  args::check_no_args "$@"
+  local -a exempt=()
+  arrays::from_env_override exempt EXEMPT_TOOLS_OVERRIDE "${EXEMPT_TOOLS[@]}"
+
+  local tools_tmp files_tmp hits_tmp seen_tmp
+  files::create_temp tools_tmp
+  files::create_temp files_tmp
+  files::create_temp hits_tmp
+  files::create_temp seen_tmp
+  # shellcheck disable=SC2119,SC2154 # no args intended; temps assigned via nameref
+  declared_tools > "${tools_tmp}"
+  local -a declared=()
+  mapfile -t declared < "${tools_tmp}"
+  # shellcheck disable=SC2119 # no args intended; SC2120 disable on the definition suppresses the pair
+  collect_in_scope_files > "${files_tmp}"
+
+  local rc=0
+  local file lineno tool
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    tool_call_sites "${file}" > "${hits_tmp}"
+    while IFS=$'\t' read -r lineno tool; do
+      strings::is_empty "${tool}" && continue
+      if arrays::contains "${tool}" ${declared[@]+"${declared[@]}"}; then
+        continue
+      fi
+      if arrays::contains "${tool}" ${exempt[@]+"${exempt[@]}"}; then
+        printf '%s\n' "${tool}" >> "${seen_tmp}"
+        continue
+      fi
+      printf '%s:%s: %s is not declared in .ci/required-tools\n' \
+        "${file#"${REPO_DIR}/"}" "${lineno}" "${tool}" >&2
+      rc=1
+    done < "${hits_tmp}"
+  done < "${files_tmp}"
+
+  # Both staleness directions, one check each. An entry that is also declared
+  # needs no exemption; an entry no call site names is dead weight, and neither
+  # may sit there quietly disarming the lint for a name that later returns.
+  local entry
+  for entry in ${exempt[@]+"${exempt[@]}"}; do
+    if arrays::contains "${entry}" ${declared[@]+"${declared[@]}"}; then
+      printf 'stale EXEMPT_TOOLS entry: %s is declared in .ci/required-tools\n' "${entry}" >&2
+      rc=1
+      continue
+    fi
+    if ! grep --quiet --line-regexp --fixed-strings "${entry}" "${seen_tmp}"; then
+      printf 'stale EXEMPT_TOOLS entry: %s is named by no call site\n' "${entry}" >&2
+      rc=1
+    fi
+  done
+
+  if ((rc != 0)); then
+    log::warn 'tool-declaration audit failed — declare the tool in .ci/required-tools.'
+  fi
+  exit "${rc}"
+}
+
+main "$@"

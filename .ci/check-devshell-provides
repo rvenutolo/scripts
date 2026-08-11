@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 
-# @description Assert every tool the repo's own tooling invokes is a member of
-#              the flake devShell's own closure — an executable of that name
+# @description Keep the declared tool list and the flake devShell in agreement,
+#              in both directions (#234).
+#
+#              Forward: every tool listed in .ci/required-tools must be a member
+#              of the flake devShell's own closure — an executable of that name
 #              exists in one of the directories on the PATH the devShell itself
 #              defines, as reported by `nix print-dev-env --json`. Resolution
 #              through the ambient PATH is deliberately not consulted: a
@@ -12,13 +15,26 @@
 #              a tool the maintainer installed globally is absent from the
 #              devShell PATH and so fails, which is how `just` came to resolve
 #              only from ~/.nix-profile while every doc claimed the devShell
-#              provided it (#219). The devShell PATH is queried against the repo
-#              this script was invoked in, never the ambient flake, so a
-#              worktree grades its own tree (#250).
+#              provided it (#219).
+#
+#              Reverse: every package the devShell declares must contribute at
+#              least one binary that .ci/required-tools names, or be listed in
+#              EXCLUDED_PACKAGES with a reason. Without this arm the list is a
+#              hand-maintained mirror that fails OPEN — a tool nobody listed is
+#              never checked. Package binaries are collected from EVERY output in
+#              `p.outputs`, never `p.outPath` alone: shellcheck and jq keep their
+#              binaries in a separate `-bin` output, so an outPath-only
+#              implementation reports two correctly declared tools as unprovided.
+#
+#              Both queries are run against the repo this script was invoked in,
+#              never the ambient flake, so a worktree grades its own tree (#250).
 # @noargs
-# @stderr One line per tool that is not provided by the flake devShell.
-# @exitcode 0 every required tool is provided by the flake devShell.
-# @exitcode 1 a required tool is not provided by the flake devShell.
+# @stderr One line per tool that is not provided by the flake devShell, per
+#         devShell package that contributes no declared tool, and per stale
+#         EXCLUDED_PACKAGES entry.
+# @exitcode 0 the declared tool list and the devShell agree in both directions.
+# @exitcode 1 a declared tool is not provided by the devShell, a devShell package
+#             contributes no declared tool, or an EXCLUDED_PACKAGES entry is stale.
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -33,50 +49,84 @@ commands::assert_executable_exists 'jq'
 
 REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
+readonly REQUIRED_TOOLS_FILE="${REQUIRED_TOOLS_FILE_OVERRIDE:-${REPO_DIR}/.ci/required-tools}"
 
-# Tools the repo's own tooling shells out to. Every entry is justified by a real
-# call site, so the list stays reviewable rather than a guess:
-# - actionlint, editorconfig-checker, markdownlint-cli2, typos, yamllint:
-#   invoked directly by .ci/run-lint-checks.
-# - check-jsonschema: invoked by .ci/check-jsonschema.
-# - gawk, jq, yq: asserted by the .ci/check-* workflow lints.
-# - gh: asserted by .ci/apply-repo-settings.
-# - git: every repo-tooling script derives REPO_DIR via `git rev-parse`.
-# - just: the task runner the .justfile and README document.
-# - mkdocs: the .justfile `docs` recipe and the Pages workflow.
-# - parallel: run-tests' default `bats --jobs` path needs GNU parallel.
-# - shellcheck, shfmt: the check-scripts / shellcheck-scripts gate, and
-#   shell_scripts::find shells out to `shfmt --find`.
-#
-# Deliberately absent:
-# - nix: it provides the devShell and so cannot be provided by it.
-# - bats: run-tests invokes the vendored ./test/bats/bin/bats submodule, not a
-#   PATH binary.
-# - prettier, yamlfmt, taplo, nixfmt, mdformat: treefmt resolves these from the
-#   Nix store directly, never through PATH.
-# - commitlint, lychee, zizmor, kcov, bashcov: invoked by CI actions, not by any
-#   script in this repo.
-# - flatpak, appman, apt, dnf, pacman, pwgen and friends: invoked by scripts/,
-#   which is the repo's payload rather than its tooling. Those are expected to
-#   come from the machine.
-readonly REQUIRED_TOOLS=(
-  actionlint
-  check-jsonschema
-  editorconfig-checker
-  gawk
-  gh
-  git
-  jq
-  just
-  markdownlint-cli2
-  mkdocs
-  parallel
-  shellcheck
-  shfmt
-  typos
-  yamllint
-  yq
+# devShell packages that legitimately contribute no tool to .ci/required-tools.
+# Each entry names the package as the enumeration reports it — its `pname`, or
+# its `name` with the version parsed off — and every entry is staleness-checked
+# below: an entry naming no enumerated package, or naming one that DOES
+# contribute a declared tool, fails the lint rather than silently disarming it.
+readonly EXCLUDED_PACKAGES=(
+  # treefmt resolves these from the Nix store directly, never through PATH, so
+  # no repo script ever names them.
+  prettier
+  yamlfmt
+  taplo
+  nixfmt
+  mdformat
+  # Invoked by CI actions, not by any script in this repo.
+  zizmor
+  lychee
+  kcov
+  bashcov-env
+  # run-tests invokes the vendored ./test/bats/bin/bats submodule, not a PATH
+  # binary; the package is here so a contributor still gets `bats` interactively.
+  bats
+  # Payload tooling: used by scripts/, which expects its tools from the machine.
+  pwgen
+  # Base packages. Present so the devShell carries a predictable POSIX
+  # toolchain, not because repo tooling invokes a specific binary of theirs by
+  # name — the shell builtins and coreutils calls are unqualified.
+  coreutils
+  findutils
+  gnugrep
 )
+
+# @description Print the tool names held in a required-tools data file, one per
+#              line. `#` comments (whole-line or trailing) and blank lines are
+#              stripped. Deliberately duplicated in .ci/check-tool-declarations
+#              rather than shared through functions/: the format belongs to the
+#              two lints that consume it, not to the payload function library.
+# @arg $1 file path to a required-tools-shaped data file
+# @stdout One tool name per line; nothing when the file holds only comments.
+function tool_lines() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  files::assert_exists "${file}"
+  local line trimmed
+  while IFS= read -r line; do
+    line="${line%%#*}"
+    trimmed="$(strings::trim "${line}")"
+    strings::is_empty "${trimmed}" && continue
+    printf '%s\n' "${trimmed}"
+  done < "${file}"
+}
+
+# @description Print the declared tool names, one per line: the contents of the
+#              required-tools data file, or REQUIRED_TOOLS_OVERRIDE when set.
+#              The file is read only when the override is absent, so a fixture
+#              repo without a .ci/required-tools can still drive the lint.
+# @noargs
+# @stdout One declared tool name per line; nothing when the list is empty.
+# shellcheck disable=SC2120 # takes no args; args::check_no_args enforces that
+function declared_tools() {
+  args::check_no_args "$@"
+  local -a defaults=()
+  if [[ ! -v REQUIRED_TOOLS_OVERRIDE ]]; then
+    local tmp_file_tools
+    files::create_temp tmp_file_tools
+    # shellcheck disable=SC2154 # tmp_file_tools assigned by files::create_temp via nameref
+    tool_lines "${REQUIRED_TOOLS_FILE}" > "${tmp_file_tools}"
+    mapfile -t defaults < "${tmp_file_tools}"
+  fi
+  local -a tools=()
+  arrays::from_env_override tools REQUIRED_TOOLS_OVERRIDE ${defaults[@]+"${defaults[@]}"}
+  local tool
+  for tool in ${tools[@]+"${tools[@]}"}; do
+    strings::is_empty "${tool}" && continue
+    printf '%s\n' "${tool}"
+  done
+}
 
 # @description Print the directories on the flake devShell's own PATH, one per
 #              line. DEVSHELL_PATH_OVERRIDE (colon-separated, same shape as a
@@ -99,6 +149,53 @@ function devshell_path_dirs() {
   fi
   strings::is_empty "${path_value}" && return 0
   printf '%s\n' "${path_value//:/$'\n'}"
+}
+
+# @description Print the packages the flake devShell declares, one per line, as
+#              tab-separated NAME then one bin directory per remaining field.
+#              NAME is the package's pname, or its name with the version parsed
+#              off, so the list survives a version bump. Every entry in
+#              `p.outputs` contributes a bin directory: shellcheck and jq keep
+#              their binaries in a `-bin` output, and an outPath-only walk misses
+#              them. DEVSHELL_PACKAGES_OVERRIDE supplies the same data directly,
+#              because `nix eval` costs seconds and no BATS case may shell out to
+#              nix at all. An empty enumeration is a hard failure on the real
+#              path — only the override may legitimately yield nothing.
+# @noargs
+# @stdout One tab-separated package record per line.
+# @exitcode 1 the real enumeration returned no packages.
+# shellcheck disable=SC2120 # takes no args; args::check_no_args enforces that
+function devshell_packages() {
+  args::check_no_args "$@"
+  if [[ -v DEVSHELL_PACKAGES_OVERRIDE ]]; then
+    strings::is_empty "${DEVSHELL_PACKAGES_OVERRIDE}" && return 0
+    printf '%s\n' "${DEVSHELL_PACKAGES_OVERRIDE}"
+    return 0
+  fi
+  local -r nix_expr="
+    let
+      flake = builtins.getFlake \"${REPO_DIR}\";
+      system = builtins.currentSystem;
+      pkgName =
+        p:
+        let
+          pn = p.pname or null;
+        in
+        if pn == null || pn == \"\" then (builtins.parseDrvName p.name).name else pn;
+      binDirs = p: map (o: (p.\${o} or p).outPath + \"/bin\") (p.outputs or [ \"out\" ]);
+    in
+    map (p: [ (pkgName p) ] ++ binDirs p) flake.devShells.\${system}.default.nativeBuildInputs
+  "
+  local tmp_eval tmp_pkgs
+  files::create_temp tmp_eval
+  files::create_temp tmp_pkgs
+  # shellcheck disable=SC2154 # tmp_eval/tmp_pkgs assigned by files::create_temp via nameref
+  nix eval --json --impure --no-warn-dirty --expr "${nix_expr}" > "${tmp_eval}"
+  jq --raw-output '.[] | @tsv' "${tmp_eval}" > "${tmp_pkgs}"
+  if files::is_empty "${tmp_pkgs}"; then
+    log::die 'the flake devShell declares no packages — nix eval returned an empty list'
+  fi
+  cat "${tmp_pkgs}"
 }
 
 # @description Return true when an executable of the given name exists in any of
@@ -125,26 +222,135 @@ function provided_by_dirs() {
   return 1
 }
 
-function main() {
-  args::check_no_args "$@"
-  local -a required=()
-  arrays::from_env_override required REQUIRED_TOOLS_OVERRIDE "${REQUIRED_TOOLS[@]}"
-  local tmp_dirs
-  files::create_temp tmp_dirs
-  # shellcheck disable=SC2154 # tmp_dirs assigned by files::create_temp via nameref
-  devshell_path_dirs > "${tmp_dirs}"
-  local -a dirs=()
-  mapfile -t dirs < "${tmp_dirs}"
-  local failed=0
+# @description Return true when any tool named in the given tools file is
+#              executable in any of the given directories.
+# @arg $1 tools_file file holding declared tool names, one per line
+# @arg $@ dirs directories to search, one argument each
+# @exitcode 0 if true
+# @exitcode 1 if false
+function provides_declared_tool() {
+  args::check_at_least_1_arg "$@"
+  local -r tools_file="$1"
+  shift
   local tool
-  for tool in ${required[@]+"${required[@]}"}; do
+  # Explicit returns rather than a trailing [[ ]] test: a search loop cannot be
+  # expressed as a single test.
+  while IFS= read -r tool; do
+    strings::is_empty "${tool}" && continue
+    if provided_by_dirs "${tool}" "$@"; then
+      return 0
+    fi
+  done < "${tools_file}"
+  return 1
+}
+
+# @description Report every declared tool that the devShell PATH does not
+#              provide. Writes one line per failure to stderr.
+# @arg $1 tools_file file holding declared tool names, one per line
+# @arg $2 dirs_file file holding devShell PATH directories, one per line
+# @stderr One line per tool that is not provided by the flake devShell.
+# @exitcode 0 every declared tool is provided.
+# @exitcode 1 at least one declared tool is not provided.
+function check_declared_tools_provided() {
+  args::check_exactly_2_args "$@"
+  local -r tools_file="$1"
+  local -r dirs_file="$2"
+  local -a dirs=()
+  mapfile -t dirs < "${dirs_file}"
+  local rc=0
+  local tool
+  while IFS= read -r tool; do
     strings::is_empty "${tool}" && continue
     if ! provided_by_dirs "${tool}" ${dirs[@]+"${dirs[@]}"}; then
       printf '%s: not provided by the flake devShell — add it to flake.nix devShells.default.packages\n' \
         "${tool}" >&2
-      failed=1
+      rc=1
+    fi
+  done < "${tools_file}"
+  return "${rc}"
+}
+
+# @description Report every devShell package that contributes no declared tool
+#              and is not excluded, plus every stale EXCLUDED_PACKAGES entry. An
+#              empty enumeration grades nothing: only the test seam can produce
+#              one (devshell_packages dies on an empty real enumeration), and
+#              grading exclusions against no packages would call every entry
+#              stale.
+# @arg $1 tools_file file holding declared tool names, one per line
+# @arg $2 packages_file file holding tab-separated package records, one per line
+# @arg $@ excluded package names exempt from the rule
+# @stderr One line per unbacked package and per stale exclusion.
+# @exitcode 0 every package contributes a declared tool or is validly excluded.
+# @exitcode 1 a package contributes nothing, or an exclusion is stale.
+function check_packages_backed() {
+  args::check_at_least_2_args "$@"
+  local -r tools_file="$1"
+  local -r packages_file="$2"
+  shift 2
+  local seen_tmp
+  files::create_temp seen_tmp
+  local rc=0
+  local packages=0
+  local record name
+  local -a fields=()
+  local -a dirs=()
+  while IFS= read -r record; do
+    strings::is_empty "${record}" && continue
+    packages=1
+    # Scoped IFS: a package record is tab-delimited by construction, and the
+    # strict global IFS would also split it on newlines.
+    IFS=$'\t' read -r -a fields <<< "${record}"
+    name="${fields[0]}"
+    dirs=("${fields[@]:1}")
+    if provides_declared_tool "${tools_file}" ${dirs[@]+"${dirs[@]}"}; then
+      continue
+    fi
+    if arrays::contains "${name}" "$@"; then
+      # shellcheck disable=SC2154 # seen_tmp assigned by files::create_temp via nameref
+      printf '%s\n' "${name}" >> "${seen_tmp}"
+      continue
+    fi
+    printf '%s: devShell package contributes no tool declared in .ci/required-tools — declare one of its binaries or add the package to EXCLUDED_PACKAGES\n' \
+      "${name}" >&2
+    rc=1
+  done < "${packages_file}"
+
+  if ((packages == 0)); then
+    return "${rc}"
+  fi
+  # One check covers both staleness directions: an entry naming no enumerated
+  # package never lands in seen_tmp, and neither does one naming a package that
+  # does contribute a declared tool and therefore needs no exclusion.
+  local entry
+  for entry in "$@"; do
+    if ! grep --quiet --line-regexp --fixed-strings "${entry}" "${seen_tmp}"; then
+      printf 'stale EXCLUDED_PACKAGES entry: %s names no devShell package that lacks a declared tool\n' \
+        "${entry}" >&2
+      rc=1
     fi
   done
+  return "${rc}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  local -a excluded=()
+  arrays::from_env_override excluded EXCLUDED_PACKAGES_OVERRIDE "${EXCLUDED_PACKAGES[@]}"
+
+  local tools_tmp dirs_tmp packages_tmp
+  files::create_temp tools_tmp
+  files::create_temp dirs_tmp
+  files::create_temp packages_tmp
+  # shellcheck disable=SC2119,SC2154 # no args intended; temps assigned via nameref
+  declared_tools > "${tools_tmp}"
+  # shellcheck disable=SC2119 # no args intended; SC2120 disable on the definition suppresses the pair
+  devshell_path_dirs > "${dirs_tmp}"
+  # shellcheck disable=SC2119 # no args intended; SC2120 disable on the definition suppresses the pair
+  devshell_packages > "${packages_tmp}"
+
+  local failed=0
+  check_declared_tools_provided "${tools_tmp}" "${dirs_tmp}" || failed=1
+  check_packages_backed "${tools_tmp}" "${packages_tmp}" ${excluded[@]+"${excluded[@]}"} || failed=1
   exit "${failed}"
 }
 

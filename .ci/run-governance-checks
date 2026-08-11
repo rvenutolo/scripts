@@ -51,7 +51,8 @@ function main() {
     check-ci-job-in-summary \
     check-orphan-invariants \
     check-justfile-invariants \
-    check-devshell-provides; do
+    check-devshell-provides \
+    check-tool-declarations; do
     log::log "running ${check}"
     "${ci}/${check}" || rc=1
   done
