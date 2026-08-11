@@ -29,8 +29,8 @@ setup() {
 
 @test "check-scripts: a misformatted shell file still reaches shfmt" {
   # Guards the other direction: the new filter must not smuggle real shell
-  # files past the formatting gate. No shebang, so the shellcheck step skips it
-  # and shfmt is the only step that can report it.
+  # files past the formatting gate. It is only misformatted, not unsound —
+  # shfmt is the only step that can report it, since shellcheck passes it clean.
   local -r script="${BATS_TEST_TMPDIR}/bad.bash"
   printf '%s\n' 'if true; then' 'echo "unindented"' 'fi' > "${script}"
 

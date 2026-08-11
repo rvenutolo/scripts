@@ -1,5 +1,3 @@
-# shellcheck disable=SC2119 # run_check is variadic by design; calling it with no args is correct
-
 setup() {
   load '../test_helper/common'
   CHECK="${REPO_DIR}/.ci/check-upload-artifact-strict"

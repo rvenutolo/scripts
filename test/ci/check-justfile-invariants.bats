@@ -1,4 +1,4 @@
-# shellcheck disable=SC2016 # $-tokens are literal fixture content the lint under test must match, never expansions
+# shellcheck disable=SC2016 # backticks in the markdown fixtures are literal content the lint under test must match, never command substitution
 
 setup() {
   load '../test_helper/common'
