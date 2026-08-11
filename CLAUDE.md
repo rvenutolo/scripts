@@ -399,6 +399,23 @@ git submodule update --init --recursive
 
 The `run-tests` wrapper aborts with this hint if `test/bats/bin/bats` is missing.
 
+### Fixture-escape hardening (#248)
+
+A worktree `git push` exports an absolute `GIT_DIR` into hooks; the pre-push gate runs the
+BATS suite, so without defenses every fixture `git` command would be retargeted at the real
+repo — this happened once (#248: branch rewritten, `commit.gpgsign=false` written into the
+shared config). Defenses, all of which must stay:
+
+- `.githooks/pre-push` calls `git::clear_local_env` before running the gate.
+- `test/test_helper/common.bash` unsets repo-scoped `GIT_*`, pins
+  `GIT_CONFIG_GLOBAL`/`GIT_CONFIG_SYSTEM` to `/dev/null`, sets `GIT_CEILING_DIRECTORIES`,
+  asserts `BATS_TEST_TMPDIR` is sane and outside the repo, and `cd`s into it.
+- Fixture repos are created and driven via `git_fixture::init` / `git_fixture::run` (from
+  `test/test_helper/git_fixture.bash`), which confine every call to `BATS_TEST_TMPDIR` with
+  explicit `--git-dir`/`--work-tree`. Raw `git -C` in tests is reserved for probes whose
+  subject is git's own discovery behavior.
+- `run-tests` snapshots HEAD + config + index around the suite and fails loudly on any change.
+
 ### Testing philosophy
 
 Tests are **specification-driven**: each test encodes what the function *should* do based on its name, doc comment, and reasonable invariants — not what the current implementation happens to do. When a test fails, the default response is to fix the function, not the test. Genuinely ambiguous cases get raised before being silently encoded.
