@@ -127,20 +127,28 @@ setup() {
   local victim_head
   victim_head="$(git_fixture::run "${BATS_TEST_TMPDIR}/victim" rev-parse HEAD)"
 
-  # Simulate the #248 hook environment: absolute GIT_DIR aimed at the victim.
+  # Simulate the #248 hook environment: absolute GIT_DIR/GIT_INDEX_FILE/GIT_OBJECT_DIRECTORY
+  # all aimed at the victim. GIT_DIR alone is neutralized by the --git-dir pin, but
+  # GIT_INDEX_FILE and GIT_OBJECT_DIRECTORY are repo-scoped vars the pin does not touch.
   export GIT_DIR="${BATS_TEST_TMPDIR}/victim/.git"
+  export GIT_INDEX_FILE="${BATS_TEST_TMPDIR}/victim/.git/index"
+  export GIT_OBJECT_DIRECTORY="${BATS_TEST_TMPDIR}/victim/.git/objects"
   git_fixture::init "${BATS_TEST_TMPDIR}/fixture"
   git_fixture::run "${BATS_TEST_TMPDIR}/fixture" config user.name 'BATS Fixture'
   git_fixture::run "${BATS_TEST_TMPDIR}/fixture" config user.email 'bats@example.com'
   git_fixture::run "${BATS_TEST_TMPDIR}/fixture" config commit.gpgSign false
   git_fixture::run "${BATS_TEST_TMPDIR}/fixture" commit --quiet --allow-empty --message='stray'
-  unset GIT_DIR
+  unset GIT_DIR GIT_INDEX_FILE GIT_OBJECT_DIRECTORY
 
-  # Victim untouched: same HEAD, original identity.
+  # Victim untouched: same HEAD, original identity, and clean working state (a hostile
+  # GIT_INDEX_FILE redirect would have staged the fixture's writes into the victim's index).
   run git_fixture::run "${BATS_TEST_TMPDIR}/victim" rev-parse HEAD
   assert_output "${victim_head}"
   run git_fixture::run "${BATS_TEST_TMPDIR}/victim" config user.name
   assert_output 'Victim'
+  run git_fixture::run "${BATS_TEST_TMPDIR}/victim" status --porcelain
+  assert_success
+  assert_output ''
   # Fixture received the writes.
   run git_fixture::run "${BATS_TEST_TMPDIR}/fixture" log --format=%s
   assert_output 'stray'
