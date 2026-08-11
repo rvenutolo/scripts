@@ -321,3 +321,100 @@ Some (parenthesized) prose.')"
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
+
+@test "shell_scripts::requires_help_flag true when library sourced and no marker" {
+  local f="${BATS_TEST_TMPDIR}/r1"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::check_no_args "$@"
+EOF
+  run shell_scripts::requires_help_flag "${f}"
+  assert_success
+}
+
+@test "shell_scripts::requires_help_flag false for a pass-through script" {
+  local f="${BATS_TEST_TMPDIR}/r2"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+# pass-through: any arg count valid (forwarded to the real kate binary)
+
+exec kate "$@"
+EOF
+  run shell_scripts::requires_help_flag "${f}"
+  assert_failure
+}
+
+@test "shell_scripts::requires_help_flag false when marker is a trailing comment" {
+  local f="${BATS_TEST_TMPDIR}/r3"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+source "${SCRIPTS_DIR}/.functions.bash"
+exec mvn "$@" # pass-through: maven owns its own --help
+EOF
+  run shell_scripts::requires_help_flag "${f}"
+  assert_failure
+}
+
+@test "shell_scripts::requires_help_flag false when the library is never sourced" {
+  local f="${BATS_TEST_TMPDIR}/r4"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+echo standalone
+EOF
+  run shell_scripts::requires_help_flag "${f}"
+  assert_failure
+}
+
+@test "shell_scripts::requires_help_flag false when only ~/.profile is sourced" {
+  local f="${BATS_TEST_TMPDIR}/r5"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+source "${HOME}/.profile"
+echo standalone
+EOF
+  run shell_scripts::requires_help_flag "${f}"
+  assert_failure
+}
+
+@test "shell_scripts::requires_help_flag true for a docker-compose functions.bash consumer" {
+  local f="${BATS_TEST_TMPDIR}/r6"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+source "${DOCKER_COMPOSE_DIR}/functions.bash"
+log::enable_err_trap
+EOF
+  run shell_scripts::requires_help_flag "${f}"
+  assert_success
+}
+
+@test "shell_scripts::requires_help_flag dies with 0 args" {
+  run shell_scripts::requires_help_flag
+  assert_failure
+}
+
+@test "shell_scripts::requires_help_flag dies with 2 args" {
+  run shell_scripts::requires_help_flag a b
+  assert_failure
+}
