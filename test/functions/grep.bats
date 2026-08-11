@@ -448,6 +448,18 @@ function run_file_grep() {
   assert_failure
 }
 
+@test "contains_word_regex: dies with 0 args" {
+  run grep::contains_word_regex < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "contains_word_regex: dies with 3 args" {
+  run grep::contains_word_regex 'a' 'b' 'c' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 # ---------- grep::contains_word_regex_ignore_case ----------
 
 @test "contains_word_regex_ignore_case stdin: case-insensitive regex word match" {
