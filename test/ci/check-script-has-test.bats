@@ -42,7 +42,12 @@ make_root_test() {
 # Both scopes are always pinned at fixture dirs. Without the root seams the
 # repo-root scope would fall back to the live checkout, and every test here would
 # silently depend on real repo state.
+# .ci/check-script-has-test derives its own repo root via
+# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
+# every invocation.
 run_check() {
+  cd "${REPO_DIR}" || return 1
   CI_DIR_OVERRIDE="${CI}" TEST_CI_DIR_OVERRIDE="${TEST_CI}" \
     ROOT_DIR_OVERRIDE="${ROOT}" TEST_ROOT_DIR_OVERRIDE="${TEST_ROOT}" \
     run "${CHECK}" "$@"

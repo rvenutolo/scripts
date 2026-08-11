@@ -37,7 +37,12 @@ write_allowlist() {
   } > "${LINKS_WF}"
 }
 
+# .ci/check-links-allowed-endpoints derives its own repo root via
+# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
+# every invocation — this test targets the real repo.
 run_check() {
+  cd "${REPO_DIR}" || return 1
   LINKS_WORKFLOW_OVERRIDE="${LINKS_WF}" \
     LYCHEERC_OVERRIDE="${LYCHEERC}" \
     MARKDOWN_ROOT_OVERRIDE="${ROOT}" \
@@ -149,6 +154,7 @@ run_check() {
 @test "dies when the links workflow is missing" {
   printf 'Just prose.\n' > "${ROOT}/a.md"
   track 'a.md'
+  cd "${REPO_DIR}"
   LINKS_WORKFLOW_OVERRIDE="${BATS_TEST_TMPDIR}/absent.yml" \
     LYCHEERC_OVERRIDE="${LYCHEERC}" \
     MARKDOWN_ROOT_OVERRIDE="${ROOT}" \

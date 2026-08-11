@@ -6,6 +6,15 @@ setup() {
   HR='step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5'
 }
 
+# .ci/check-harden-runner-egress derives its own repo root via
+# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
+# every invocation — this test targets the real repo.
+run_check() {
+  cd "${REPO_DIR}" || return 1
+  run "$@"
+}
+
 # write_job <file> <job> <policy> <endpoints> — one job whose harden-runner step
 # uses the given policy. An empty endpoints arg omits the key entirely.
 write_job() {
@@ -24,20 +33,20 @@ write_job() {
 
 @test "passes when every job blocks with a non-empty allowed-endpoints" {
   write_job 'a.yml' 'build' 'block' 'github.com:443'
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_success
 }
 
 @test "fails when a job is still on audit" {
   write_job 'a.yml' 'build' 'audit' ''
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'egress-policy'
 }
 
 @test "fails when a blocking job has no allowed-endpoints key" {
   write_job 'a.yml' 'build' 'block' ''
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'allowed-endpoints'
 }
@@ -52,7 +61,7 @@ jobs:
           egress-policy: block
           allowed-endpoints: '   '
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'allowed-endpoints'
 }
@@ -64,27 +73,27 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'no harden-runner step'
 }
 
 @test "passes an audit job that is listed in EXEMPT" {
   write_job 'a.yml' 'build' 'audit' ''
-  WORKFLOWS_DIR_OVERRIDE="${WF}" EXEMPT_OVERRIDE='a.yml:build' run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" EXEMPT_OVERRIDE='a.yml:build' run_check "${CHECK}"
   assert_success
 }
 
 @test "fails when an EXEMPT entry names a job that does not exist" {
   write_job 'a.yml' 'build' 'block' 'github.com:443'
-  WORKFLOWS_DIR_OVERRIDE="${WF}" EXEMPT_OVERRIDE='a.yml:nope' run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" EXEMPT_OVERRIDE='a.yml:nope' run_check "${CHECK}"
   assert_failure
   assert_output --partial 'stale EXEMPT entry'
 }
 
 @test "fails when an EXEMPT entry names a job that already blocks" {
   write_job 'a.yml' 'build' 'block' 'github.com:443'
-  WORKFLOWS_DIR_OVERRIDE="${WF}" EXEMPT_OVERRIDE='a.yml:build' run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" EXEMPT_OVERRIDE='a.yml:build' run_check "${CHECK}"
   assert_failure
   assert_output --partial 'stale EXEMPT entry'
 }
@@ -92,13 +101,13 @@ EOF
 @test "counts violations across multiple jobs in multiple files" {
   write_job 'a.yml' 'build' 'audit' ''
   write_job 'b.yml' 'test' 'block' ''
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial '2 job(s)'
 }
 
 @test "passes when the workflows directory does not exist" {
-  WORKFLOWS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/absent" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/absent" run_check "${CHECK}"
   assert_success
 }
 
@@ -120,12 +129,12 @@ jobs:
           allowed-endpoints: >-
             api.github.com:443
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_success
 }
 
 @test "dies when given an argument" {
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}" oops
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}" oops
   assert_failure
   assert_output --partial 'Expected no arguments'
 }

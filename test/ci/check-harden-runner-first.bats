@@ -6,6 +6,15 @@ setup() {
   HR='step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5'
 }
 
+# .ci/check-harden-runner-first derives its own repo root via
+# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
+# every invocation — this test targets the real repo.
+run_check() {
+  cd "${REPO_DIR}" || return 1
+  run "$@"
+}
+
 @test "passes when harden-runner is the SHA-pinned first step" {
   cat > "${WF}/a.yml" << EOF
 jobs:
@@ -14,7 +23,7 @@ jobs:
       - uses: ${HR}
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_success
 }
 
@@ -25,7 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'first step'
 }
@@ -37,7 +46,7 @@ jobs:
     steps:
       - run: true
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'no first-step'
 }
@@ -49,7 +58,7 @@ jobs:
     steps:
       - uses: step-security/harden-runner@v2
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'not SHA-pinned'
 }
@@ -64,12 +73,12 @@ jobs:
     steps:
       - run: true
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
 }
 
 @test "dies when given an argument" {
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}" oops
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}" oops
   assert_failure
   assert_output --partial 'Expected no arguments'
 }

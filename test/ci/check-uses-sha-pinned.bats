@@ -7,6 +7,15 @@ setup() {
   export ACTIONS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/empty-actions"
 }
 
+# .ci/check-uses-sha-pinned derives its own repo root via `git rev-parse
+# --show-toplevel`. common.bash's #248 hardening leaves CWD at BATS_TEST_TMPDIR
+# (outside any git repo) by design, so cd into REPO_DIR before every
+# invocation — this test targets the real repo.
+run_check() {
+  cd "${REPO_DIR}" || return 1
+  run "$@"
+}
+
 @test "passes when every uses is 40-hex SHA-pinned" {
   cat > "${WF}/a.yml" << 'EOF'
 jobs:
@@ -14,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_success
 }
 
@@ -25,7 +34,7 @@ jobs:
     steps:
       - uses: ./.github/actions/local-thing
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_success
 }
 
@@ -36,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'not SHA-pinned'
 }
@@ -48,17 +57,17 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2
 EOF
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
 }
 
 @test "passes on empty workflows dir" {
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_success
 }
 
 @test "dies when given an argument" {
-  WORKFLOWS_DIR_OVERRIDE="${WF}" run "${CHECK}" unexpected
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}" unexpected
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
@@ -73,7 +82,7 @@ runs:
     - uses: actions/checkout@v4
 EOF
   WORKFLOWS_DIR_OVERRIDE="${WF}" ACTIONS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/actions" \
-    run "${CHECK}"
+    run_check "${CHECK}"
   assert_failure
   assert_output --partial 'not SHA-pinned'
 }
@@ -88,12 +97,12 @@ runs:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 EOF
   WORKFLOWS_DIR_OVERRIDE="${WF}" ACTIONS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/actions" \
-    run "${CHECK}"
+    run_check "${CHECK}"
   assert_success
 }
 
 @test "passes when the actions dir is absent" {
   WORKFLOWS_DIR_OVERRIDE="${WF}" ACTIONS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/nope" \
-    run "${CHECK}"
+    run_check "${CHECK}"
   assert_success
 }

@@ -18,6 +18,15 @@ setup() {
   export EXEMPT_OVERRIDE=''
 }
 
+# .ci/check-orphan-invariants derives its own repo root via `git rev-parse
+# --show-toplevel`. common.bash's #248 hardening leaves CWD at BATS_TEST_TMPDIR
+# (outside any git repo) by design, so cd into REPO_DIR before every
+# invocation — this test targets the real repo.
+run_check() {
+  cd "${REPO_DIR}" || return 1
+  run "$@"
+}
+
 # write_ruleset <context...> — ruleset whose required contexts are the args.
 write_ruleset() {
   printf '%s\n' "$@" \
@@ -94,7 +103,7 @@ baseline() {
 
 @test "passes on a self-consistent fixture" {
   baseline
-  run "${CHECK}"
+  run_check "${CHECK}"
   [ "${status}" -eq 0 ]
   [ -z "${output}" ]
 }
@@ -144,7 +153,7 @@ baseline() {
 @test "fails on an orphan enforcer (ci script with no index row)" {
   baseline
   make_ci check-orphan
-  run "${CHECK}"
+  run_check "${CHECK}"
   [ "${status}" -eq 1 ]
   [[ "${output}" == *"check-orphan"* ]]
 }
@@ -156,7 +165,7 @@ baseline() {
     "bar invariant|check-bar|check-scripts|check-scripts" \
     "ghost invariant|check-ghost|governance|governance"
   write_runner check-foo check-ghost
-  run "${CHECK}"
+  run_check "${CHECK}"
   [ "${status}" -eq 1 ]
   [[ "${output}" == *"check-ghost"* ]]
 }
@@ -166,7 +175,7 @@ baseline() {
   write_index \
     "foo invariant|check-foo|governance|governance" \
     "bar invariant|check-bar|nonexistent-job|check-scripts"
-  run "${CHECK}"
+  run_check "${CHECK}"
   [ "${status}" -eq 1 ]
   [[ "${output}" == *"nonexistent-job"* ]]
 }
@@ -176,7 +185,7 @@ baseline() {
   write_index \
     "foo invariant|check-foo|governance|governance" \
     "bar invariant|check-bar|check-scripts|not-required"
-  run "${CHECK}"
+  run_check "${CHECK}"
   [ "${status}" -eq 1 ]
   [[ "${output}" == *"not-required"* ]]
 }
@@ -193,7 +202,7 @@ baseline() {
   write_index \
     "foo invariant|check-foo|governance|governance" \
     "baz invariant|check-baz|baz-job|"
-  run "${CHECK}"
+  run_check "${CHECK}"
   [ "${status}" -eq 0 ]
 }
 
@@ -203,7 +212,7 @@ baseline() {
   write_workflow ci.yml governance
   write_ruleset governance
   write_index "|check-foo|governance|governance"
-  run "${CHECK}"
+  run_check "${CHECK}"
   [ "${status}" -eq 1 ]
   [[ "${output}" == *"empty"* ]]
 }
@@ -216,7 +225,7 @@ baseline() {
   write_index \
     "foo invariant|check-foo|governance|governance" \
     "bad invariant||governance|governance"
-  run "${CHECK}"
+  run_check "${CHECK}"
   [ "${status}" -eq 1 ]
   [[ "${output}" == *"empty"* ]]
   [[ "${output}" == *"Enforcer"* ]]
@@ -230,7 +239,7 @@ baseline() {
   write_index \
     "foo invariant|check-foo|governance|governance" \
     "bar invariant|check-bar||check-scripts"
-  run "${CHECK}"
+  run_check "${CHECK}"
   [ "${status}" -eq 1 ]
   [[ "${output}" == *"empty"* ]]
   [[ "${output}" == *"CI job"* ]]
@@ -239,7 +248,7 @@ baseline() {
 @test "fails when a governance-job row's enforcer is not in the runner" {
   baseline
   write_runner # empty runner
-  run "${CHECK}"
+  run_check "${CHECK}"
   [ "${status}" -eq 1 ]
   [[ "${output}" == *"check-foo"* ]]
 }
@@ -247,7 +256,7 @@ baseline() {
 @test "fails when a runner entry has no governance-job row" {
   baseline
   write_runner check-foo check-bar # check-bar is a check-scripts row
-  run "${CHECK}"
+  run_check "${CHECK}"
   [ "${status}" -eq 1 ]
   [[ "${output}" == *"check-bar"* ]]
 }
@@ -255,17 +264,17 @@ baseline() {
 @test "dies when the index file is missing" {
   baseline
   rm -f "${INDEX}"
-  run "${CHECK}"
+  run_check "${CHECK}"
   [ "${status}" -ne 0 ]
 }
 
 @test "prints help and exits 0 with --help" {
-  run "${CHECK}" --help
+  run_check "${CHECK}" --help
   [ "${status}" -eq 0 ]
 }
 
 @test "dies when given an argument" {
-  run "${CHECK}" bogus
+  run_check "${CHECK}" bogus
   [ "${status}" -ne 0 ]
 }
 
@@ -284,7 +293,7 @@ baseline() {
     echo "| bar invariant | \`check-bar\` | \`check-scripts\` | \`check-scripts\` |"
     echo "<!-- invariant-index:end -->"
   } > "${INDEX}"
-  run "${CHECK}"
+  run_check "${CHECK}"
   [ "${status}" -eq 0 ]
   [ -z "${output}" ]
 }

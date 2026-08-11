@@ -48,7 +48,12 @@ EOF
 
 # Every path input is pinned at fixtures. Without all four seams the lint would
 # fall back to the live checkout and these tests would depend on real repo state.
+# .ci/check-justfile-invariants derives its own repo root via
+# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
+# every invocation.
 run_check() {
+  cd "${REPO_DIR}" || return 1
   ROOT_DIR_OVERRIDE="${ROOT}" \
     JUSTFILE_OVERRIDE="${ROOT}/.justfile" \
     README_OVERRIDE="${ROOT}/README.md" \
@@ -97,6 +102,7 @@ run_check() {
   mv "${ROOT}/.justfile" "${ROOT}/justfile"
   make_readme
   make_pr_template
+  cd "${REPO_DIR}"
   JUSTFILE_OVERRIDE="${ROOT}/justfile" ROOT_DIR_OVERRIDE="${ROOT}" \
     README_OVERRIDE="${ROOT}/README.md" \
     PR_TEMPLATE_OVERRIDE="${ROOT}/.github/PULL_REQUEST_TEMPLATE.md" \
@@ -229,6 +235,7 @@ EOF
 }
 
 @test "the real repo passes its own lint" {
+  cd "${REPO_DIR}"
   run "${CHECK}"
   assert_success
 }
