@@ -47,6 +47,7 @@ function main() {
     check-upload-artifact-strict \
     check-run-block-strict \
     check-script-has-test \
+    check-tree-scan-root \
     check-ci-job-in-summary \
     check-orphan-invariants \
     check-justfile-invariants \

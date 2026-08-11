@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+
+# @description Assert no tree-inspecting repo tool resolves a scan root from the
+#              SCRIPTS_DIR environment variable. Tooling that inspects the tree
+#              must derive its paths from the repo it was invoked in, via
+#              `git rev-parse --show-toplevel`, because SCRIPTS_DIR points at the
+#              user's main checkout and makes a gate grade the wrong tree from a
+#              worktree or a second clone (#250). Scope is every shebang-bearing
+#              executable under .ci/ and .githooks/, plus the repo-root runners.
+#              The canonical library-sourcing line is allowed: it locates the
+#              function library, not a scan root. Comment lines are allowed.
+#              Provisioning runners that act on the machine rather than on the
+#              tree are exempt by name, and each exemption must stay warranted —
+#              an entry naming no in-scope file, or naming one with no flagged
+#              reference, fails the lint rather than silently disarming it.
+# @noargs
+# @stderr One line per offending file and line, and one per stale exemption.
+# @exitcode 0 no in-scope file resolves a scan root from SCRIPTS_DIR.
+# @exitcode 1 an offending reference, or a stale EXEMPT entry.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'gawk'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly CI_DIR="${CI_DIR_OVERRIDE:-${REPO_DIR}/.ci}"
+readonly HOOKS_DIR="${HOOKS_DIR_OVERRIDE:-${REPO_DIR}/.githooks}"
+readonly ROOT_DIR="${ROOT_DIR_OVERRIDE:-${REPO_DIR}}"
+
+# Runners exempt from the rule. Both act on the MACHINE rather than on the tree
+# being inspected: they provision the host from the user's canonical scripts, so
+# SCRIPTS_DIR is the correct root there. Every other in-scope file must derive
+# its roots from the repo it runs in.
+readonly EXEMPT=(run-install-scripts run-set-up-scripts)
+
+# @description Print every offending line in a file as "LINENO: TEXT".
+#              A line offends when it expands SCRIPTS_DIR and is neither a comment
+#              nor the canonical library-sourcing line.
+#              The patterns below deliberately spell the variable as
+#              \$[{]SCRIPTS[_]DIR[}] and \$SCRIPTS[_]DIR rather than literally, so
+#              this script does not flag its own source. Both devices are load
+#              bearing: bracketing the braces defeats the braced pattern, and
+#              bracketing the underscore defeats the unbraced one — without the
+#              latter, the text `\$SCRIPTS_DIR(` inside the second regex contains a
+#              literal $SCRIPTS_DIR and the lint flags itself. Verified empirically
+#              against its own source before this was written. Were it ever to
+#              regress, the lint runs over the real tree in the gate, so it would
+#              flag itself loudly rather than fail open.
+# @arg $1 file path to an in-scope shell file
+# @stdout One "LINENO: TEXT" line per offending line; nothing when the file is clean.
+function offending_lines() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  gawk '
+    # A scan root cannot live in a comment.
+    /^[[:space:]]*#/ { next }
+    # The canonical library-sourcing line locates the function library, not a scan
+    # root, and every in-scope script that uses the helpers needs it.
+    /^[[:space:]]*source[[:space:]]+"\$[{]SCRIPTS[_]DIR[}]\/[.]functions[.]bash"[[:space:]]*$/ { next }
+    # Match the EXPANSION forms only. A bare substring match would flag
+    # DOCS_SCRIPTS_DIR and any other *_SCRIPTS_DIR variable.
+    /\$[{]SCRIPTS[_]DIR[}]/ || /\$SCRIPTS[_]DIR([^A-Za-z0-9_]|$)/ { printf "%d: %s\n", FNR, $0 }
+  ' "${file}"
+}
+
+# @description Print the paths of root-level entries that are shell files.
+#              Non-recursive, so it yields the repo-root runners and not the
+#              scripts nested under scripts/ or .ci/. Takes the root as an
+#              argument rather than calling shell_scripts::find_root_only, which
+#              resolves the repo root itself and therefore cannot be pointed at a
+#              fixture tree — the same reason check-script-has-test carries its own
+#              root_runner_names. Dotfiles are not globbed, so the root-level
+#              .functions.bash loader is excluded without a special case.
+# @arg $1 root_dir directory to scan
+# @stdout One path per line; nothing when the directory holds no shell files.
+function root_shell_files() {
+  args::check_exactly_1_arg "$@"
+  local -r root_dir="$1"
+  local entry
+  for entry in "${root_dir}"/*; do
+    if files::exists "${entry}" && shell_scripts::is_shell_file "${entry}"; then
+      printf '%s\n' "${entry}"
+    fi
+  done
+}
+
+# @description Print every in-scope file path, one per line: shebang-bearing
+#              executables under .ci/ and .githooks/, plus the repo-root runners.
+# @noargs
+# @stdout File paths, one per line.
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+function collect_in_scope_files() {
+  args::check_no_args "$@"
+  if dirs::exists "${CI_DIR}"; then
+    shell_scripts::find "${CI_DIR}"
+  fi
+  if dirs::exists "${HOOKS_DIR}"; then
+    shell_scripts::find "${HOOKS_DIR}"
+  fi
+  if dirs::exists "${ROOT_DIR}"; then
+    root_shell_files "${ROOT_DIR}"
+  fi
+}
+
+function main() {
+  args::check_no_args "$@"
+  local -a exempt=()
+  arrays::from_env_override exempt EXEMPT_OVERRIDE "${EXEMPT[@]}"
+
+  local files_tmp seen_tmp hits_tmp
+  files::create_temp files_tmp
+  files::create_temp seen_tmp
+  files::create_temp hits_tmp
+  # shellcheck disable=SC2119 # no args intended; SC2120 disable on function def suppresses the pair
+  collect_in_scope_files > "${files_tmp}"
+
+  local rc=0
+  local file name hit
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    offending_lines "${file}" > "${hits_tmp}"
+    if [[ ! -s "${hits_tmp}" ]]; then
+      continue
+    fi
+    name="$(basename -- "${file}")"
+    if arrays::contains "${name}" ${exempt[@]+"${exempt[@]}"}; then
+      printf '%s\n' "${name}" >> "${seen_tmp}"
+      continue
+    fi
+    while IFS= read -r hit; do
+      printf '%s:%s\n' "${file#"${REPO_DIR}/"}" "${hit}" >&2
+      rc=1
+    done < "${hits_tmp}"
+  done < "${files_tmp}"
+
+  # One check covers both staleness directions: an entry naming a file that does
+  # not exist never lands in seen_tmp, and neither does one naming a file with no
+  # flagged reference.
+  local entry
+  for entry in ${exempt[@]+"${exempt[@]}"}; do
+    if ! grep --quiet --line-regexp --fixed-strings "${entry}" "${seen_tmp}"; then
+      printf 'stale EXEMPT entry: %s has no SCRIPTS_DIR scan-root reference\n' "${entry}" >&2
+      rc=1
+    fi
+  done
+
+  if ((rc != 0)); then
+    log::warn 'tree scan-root audit failed — derive scan roots from REPO_DIR, not SCRIPTS_DIR.'
+  fi
+  exit "${rc}"
+}
+
+main "$@"
