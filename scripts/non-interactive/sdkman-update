@@ -44,4 +44,6 @@ args::check_no_args "$@"
   log::log 'Set default JDK'
 
   exit "${overall_exit_code}"
-)
+  # Suppress the parent ERR trap: overall_exit_code=1 is a deliberate, already-logged status, not an
+  # unhandled error, but the trap can't tell the difference from a bare subshell exit.
+) || exit $?
