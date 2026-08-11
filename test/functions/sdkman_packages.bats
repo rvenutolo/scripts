@@ -214,6 +214,11 @@ setup() {
   refute [ -f "${BATS_TEST_TMPDIR}/sdk.calls" ]
 }
 
+@test "install_sdkman_packages: dies with wrong arg count" {
+  run sdkman_packages::install_sdkman_packages unexpected
+  assert_failure
+}
+
 # ---------- prune_sdkman_packages ----------
 
 @test "prune_sdkman_packages: iterates installed packages and prunes each" {
