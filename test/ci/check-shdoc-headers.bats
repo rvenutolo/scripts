@@ -381,3 +381,48 @@ EOF
   assert_output --partial 'broken_ns.bash'
   assert_output --partial 'broken::unannotated'
 }
+
+@test "fails when a library function annotation carries placeholder text" {
+  cat > "${SCRIPTS}/functions/scaffolded.bash" << 'EOF'
+#!/usr/bin/env bash
+
+# @description TODO: describe what this does.
+# @arg $1 thing
+function scaffolded::thing() {
+  echo hi
+}
+EOF
+  cd "${REPO}"
+  run_check
+  assert_failure
+  assert_output --partial 'scaffolded.bash'
+  assert_output --partial 'scaffolded::thing'
+  assert_output --partial 'placeholder'
+}
+
+@test "fails when a top-level script helper annotation carries placeholder text" {
+  cat > "${SCRIPTS}/non-interactive/scaffolded-helper" << 'EOF'
+#!/usr/bin/env bash
+
+# @description A clean file-level header.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# @description TODO: describe this helper.
+# @noargs
+function collect_things() {
+  echo hi
+}
+
+collect_things
+EOF
+  chmod +x "${SCRIPTS}/non-interactive/scaffolded-helper"
+  cd "${REPO}"
+  run_check
+  assert_failure
+  assert_output --partial 'scaffolded-helper'
+  assert_output --partial 'collect_things'
+  assert_output --partial 'placeholder'
+}
