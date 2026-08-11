@@ -1,3 +1,5 @@
+# shellcheck disable=SC2016 # $-tokens are literal fixture content the lint under test must match, never expansions
+
 setup() {
   load '../test_helper/common'
   CHECK="${REPO_DIR}/.ci/check-justfile-invariants"

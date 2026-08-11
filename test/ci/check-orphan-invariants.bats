@@ -1,3 +1,5 @@
+# shellcheck disable=SC2016,SC1003 # $-tokens and the escaped quote are literal fixture content the lint under test must match
+
 setup() {
   load '../test_helper/common'
   CHECK="${REPO_DIR}/.ci/check-orphan-invariants"

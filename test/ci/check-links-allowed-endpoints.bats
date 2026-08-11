@@ -1,3 +1,5 @@
+# shellcheck disable=SC2016 # $-tokens are literal fixture content the lint under test must match, never expansions
+
 setup() {
   load '../test_helper/common'
   # shellcheck disable=SC1091
