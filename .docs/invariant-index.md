@@ -39,4 +39,5 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | the repo has exactly one justfile and it agrees with the documented command table | `check-justfile-invariants` | `governance` | `governance` |
 | every public `just` recipe has a doc comment | `check-justfile-invariants` | `governance` | `governance` |
 | every tool the repo's tooling invokes is a member of the flake devShell's own PATH, not merely resolvable from the ambient one | `check-devshell-provides` | `governance` | `governance` |
+| `nix flake check` passes and emits no evaluation warnings | `check-flake-eval-warnings` | `nix-flake-check` | `nix-flake-check` |
 <!-- invariant-index:end -->

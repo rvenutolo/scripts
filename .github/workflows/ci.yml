@@ -178,7 +178,9 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Run nix flake check
-        run: nix flake check
+        env:
+          SCRIPTS_DIR: ${{ github.workspace }}/scripts
+        run: nix develop --command ./.ci/check-flake-eval-warnings
   coverage:
     name: coverage
     runs-on: ubuntu-latest
