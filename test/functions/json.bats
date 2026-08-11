@@ -103,6 +103,12 @@ setup() {
   assert_failure
 }
 
+@test "sort: dies with 2 args" {
+  run json::sort 'a0' 'a1' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 @test "key_paths: leaf paths dotted, sorted via stdin" {
   dual_mode::assert_stdin 'json::key_paths' '{"b":2,"a":{"d":4,"c":3}}' '.a.c
 .a.d
