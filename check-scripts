@@ -33,10 +33,11 @@ if [[ "${#candidates[@]}" -eq 0 ]]; then
 fi
 
 # shfmt formatting gate. Deliberately runs over `candidates` rather than the
-# post-filter `files` list used for shellcheck, so *.bats files are covered too: they
-# begin with `@test` rather than a shebang, so shell_scripts::filter drops them, but
-# shfmt detects the bats dialect from the extension and formats them like any other
-# script.
+# post-filter `files` list used for shellcheck, so *.bats files are covered too:
+# shfmt and shellcheck now read the same candidate list through the same predicate
+# (shell_scripts::is_shell_file), so *.bats files are both formatted and linted
+# whether or not they carry a shebang. Gating shellcheck on the shebang alone left
+# 31 of 83 test files silently unlinted (#215).
 #
 # This gate exists because `nix fmt` cannot replace it. treefmt matches formatters to
 # files by EXTENSION, and this repo's top-level executables have none by convention, so
