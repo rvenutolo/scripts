@@ -38,8 +38,11 @@ function shdoc::file_has_description() {
 # @description Scan a script file for top-level helper function definitions of
 # the form `function NAME() {` and print the names of any whose immediately
 # preceding non-blank, non-shellcheck-directive line is NOT a shdoc tag line
-# (does not match `^# @`). The literal `main` function is always excluded —
-# it is covered by the file-level header per project rule.
+# (does not match `^# @`). Names may be namespaced with `::`, which every
+# function in functions/*.bash is; omitting the colon from the name class made
+# the library arm of check-shdoc-headers match nothing at all (#258). The literal
+# `main` function is always excluded — it is covered by the file-level header per
+# project rule.
 # @arg $1 file path to script
 # @stdout names of unannotated helper functions, one per line
 # @exitcode 0 always (presence of unannotated functions is signaled via stdout)
@@ -47,7 +50,7 @@ function shdoc::find_unannotated_functions() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
   awk '
-    /^function [A-Za-z_][A-Za-z0-9_]*\(\)[[:space:]]*\{/ {
+    /^function [A-Za-z_][A-Za-z0-9_:]*\(\)[[:space:]]*\{/ {
       name = $2
       sub(/\(\).*$/, "", name)
       if (name == "main") { next }

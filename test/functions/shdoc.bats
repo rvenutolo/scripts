@@ -394,3 +394,67 @@ EOF
   run shdoc::header_has_placeholder a b
   assert_failure
 }
+
+@test "shdoc::find_unannotated_functions reports a namespaced function with no annotation" {
+  local f="${BATS_TEST_TMPDIR}/lib.bash"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+function foo::unannotated() {
+  echo hi
+}
+EOF
+  run shdoc::find_unannotated_functions "${f}"
+  assert_success
+  assert_output 'foo::unannotated'
+}
+
+@test "shdoc::find_unannotated_functions stays quiet for an annotated namespaced function" {
+  local f="${BATS_TEST_TMPDIR}/lib.bash"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Do a thing.
+# @noargs
+function foo::annotated() {
+  echo hi
+}
+EOF
+  run shdoc::find_unannotated_functions "${f}"
+  assert_success
+  assert_output ''
+}
+
+@test "shdoc::find_unannotated_functions reports a namespaced function behind only a shellcheck directive" {
+  local f="${BATS_TEST_TMPDIR}/lib.bash"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+# shellcheck disable=SC2120
+function foo::directive_only() {
+  echo hi
+}
+EOF
+  run shdoc::find_unannotated_functions "${f}"
+  assert_success
+  assert_output 'foo::directive_only'
+}
+
+@test "shdoc::find_unannotated_functions reports both namespaced and plain offenders" {
+  local f="${BATS_TEST_TMPDIR}/lib.bash"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+function foo::one() {
+  echo one
+}
+
+function plain_two() {
+  echo two
+}
+EOF
+  run shdoc::find_unannotated_functions "${f}"
+  assert_success
+  assert_line --index 0 'foo::one'
+  assert_line --index 1 'plain_two'
+}
