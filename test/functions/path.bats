@@ -96,7 +96,7 @@ teardown() {
   [[ "${PATH}" == '/opt/x' ]]
 }
 
-@test "append: dies with 0 args" {
+@test "append: dies with no args" {
   run path::append < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
@@ -124,7 +124,7 @@ teardown() {
   [[ "${PATH}" == '/opt/x' ]]
 }
 
-@test "prepend: dies with 0 args" {
+@test "prepend: dies with no args" {
   run path::prepend < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'

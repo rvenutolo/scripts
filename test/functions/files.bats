@@ -918,6 +918,7 @@ setup_files_root_helpers() {
 }
 
 @test "root_write: dies with 1 arg" {
+  setup_files_root_helpers
   run files::root_write 'a0' < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 2 arguments'
@@ -933,6 +934,7 @@ setup_files_root_helpers() {
 }
 
 @test "root_write_quiet: dies with 1 arg" {
+  setup_files_root_helpers
   run files::root_write_quiet 'a0' < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 2 arguments'
@@ -958,6 +960,7 @@ setup_files_root_helpers() {
 }
 
 @test "root_append_to: dies with 1 arg" {
+  setup_files_root_helpers
   run files::root_append_to 'a0' < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 2 arguments'
@@ -973,6 +976,7 @@ setup_files_root_helpers() {
 }
 
 @test "root_append_to_quiet: dies with 1 arg" {
+  setup_files_root_helpers
   run files::root_append_to_quiet 'a0' < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 2 arguments'
@@ -1020,6 +1024,7 @@ setup_files_root_helpers() {
 }
 
 @test "root_move: dies with 1 arg" {
+  setup_files_root_helpers
   run files::root_move 'a0' < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 2 arguments'
@@ -1038,6 +1043,7 @@ setup_files_root_helpers() {
 }
 
 @test "root_move_quiet: dies with 1 arg" {
+  setup_files_root_helpers
   run files::root_move_quiet 'a0' < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 2 arguments'
@@ -1076,6 +1082,7 @@ setup_files_root_helpers() {
 }
 
 @test "root_copy: dies with 1 arg" {
+  setup_files_root_helpers
   run files::root_copy 'a0' < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 2 arguments'
@@ -1094,6 +1101,7 @@ setup_files_root_helpers() {
 }
 
 @test "root_copy_quiet: dies with 1 arg" {
+  setup_files_root_helpers
   run files::root_copy_quiet 'a0' < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 2 arguments'
