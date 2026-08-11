@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
 # @description Install the latest version of an SDKMAN package.
+#              Failure is signalled through the `sdk install | sdkman::clean_output` pipeline, so
+#              the caller must have `pipefail` set for a failed install to be observable.
 # @arg $1 package name (e.g. "gradle")
+# @exitcode 0 sdk install succeeded
+# @exitcode 1 sdk install failed (requires pipefail in the caller)
 function sdkman_packages::install_sdkman_package() {
   args::check_exactly_1_arg "$@"
   sdk install "$1" | sdkman::clean_output
@@ -16,8 +20,12 @@ function sdkman_packages::uninstall_package_version() {
 }
 
 # @description Install the latest version of every SDKMAN package listed for this machine.
+#              A package that fails to install is logged and skipped rather than aborting the
+#              run, so one broken upstream package cannot take down the whole update.
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
+# @exitcode 0 every package installed
+# @exitcode 1 one or more packages failed to install
 function sdkman_packages::install_sdkman_packages() {
   args::check_no_args "$@"
   local -a pkgs
@@ -25,9 +33,19 @@ function sdkman_packages::install_sdkman_packages() {
   files::create_temp pkgs_tmp
   packages::get_sdkman > "${pkgs_tmp}"
   mapfile -t pkgs < "${pkgs_tmp}"
+  local -a failed_pkgs=()
   for pkg in "${pkgs[@]}"; do
-    sdkman_packages::install_sdkman_package "${pkg}"
+    if ! sdkman_packages::install_sdkman_package "${pkg}"; then
+      log::warn "Failed to install SDKMAN package: ${pkg}"
+      failed_pkgs+=("${pkg}")
+    fi
   done
+  # Count only: strict IFS=$'\n\t' would make "${failed_pkgs[*]}" join on a newline, and every
+  # failure is already named individually above.
+  if ((${#failed_pkgs[@]} > 0)); then
+    log::warn "Failed to install ${#failed_pkgs[@]} SDKMAN package(s)"
+    return 1
+  fi
 }
 
 # @description Print the names of all installed SDKMAN packages (excluding java).
