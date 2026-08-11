@@ -21,17 +21,22 @@ function sdkman_packages::uninstall_package_version() {
 
 # @description Install the latest version of every SDKMAN package listed for this machine.
 #              A package that fails to install is logged and skipped rather than aborting the
-#              run, so one broken upstream package cannot take down the whole update.
+#              run, so one broken upstream package cannot take down the whole update. A failure to
+#              fetch the package list itself is fatal (log::die) — an unfetchable list is not the
+#              same as an empty one, and must never read as "nothing to do".
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
 # @exitcode 0 every package installed
-# @exitcode 1 one or more packages failed to install
+# @exitcode 1 one or more packages failed to install, or the package list could not be fetched
 function sdkman_packages::install_sdkman_packages() {
   args::check_no_args "$@"
   local -a pkgs
   local pkgs_tmp
   files::create_temp pkgs_tmp
-  packages::get_sdkman > "${pkgs_tmp}"
+  # Explicit || log::die rather than relying on errexit: this function is called from an `if`
+  # condition, which disables errexit through the whole call tree, so a failed (network) download
+  # would otherwise leave an empty list and report a vacuous success.
+  packages::get_sdkman > "${pkgs_tmp}" || log::die 'Failed to fetch the SDKMAN package list'
   mapfile -t pkgs < "${pkgs_tmp}"
   local -a failed_pkgs=()
   for pkg in "${pkgs[@]}"; do
