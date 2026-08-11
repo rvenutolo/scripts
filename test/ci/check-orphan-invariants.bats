@@ -12,6 +12,10 @@ setup() {
   export WORKFLOWS_DIR_OVERRIDE="${WF}"
   export CI_DIR_OVERRIDE="${CI}"
   export GOVERNANCE_RUNNER_OVERRIDE="${RUNNER}"
+  # The shipped EXEMPT defaults name real .ci scripts that do not exist in the
+  # fixture CI dir, so they would read as stale. Clear them; individual tests
+  # set their own. This is the set-but-empty case from_env_override exists for.
+  export EXEMPT_OVERRIDE=''
 }
 
 # write_ruleset <context...> — ruleset whose required contexts are the args.
@@ -93,6 +97,48 @@ baseline() {
   run "${CHECK}"
   [ "${status}" -eq 0 ]
   [ -z "${output}" ]
+}
+
+@test "fails when an EXEMPT entry names no .ci executable" {
+  write_index "some invariant|check-thing|governance|governance"
+  write_ruleset governance
+  write_workflow gov.yml governance
+  make_ci check-thing
+  write_runner check-thing
+  EXEMPT_OVERRIDE='no-such-script' run "${CHECK}"
+  assert_failure
+  assert_output --partial 'no-such-script'
+}
+
+@test "fails when an EXEMPT entry has an invariant-index row" {
+  write_index "some invariant|check-thing|governance|governance"
+  write_ruleset governance
+  write_workflow gov.yml governance
+  make_ci check-thing
+  write_runner check-thing
+  EXEMPT_OVERRIDE='check-thing' run "${CHECK}"
+  assert_failure
+  assert_output --partial 'check-thing'
+}
+
+@test "passes when an EXEMPT entry exists and holds no index row" {
+  write_index "some invariant|check-thing|governance|governance"
+  write_ruleset governance
+  write_workflow gov.yml governance
+  make_ci check-thing helper-util
+  write_runner check-thing
+  EXEMPT_OVERRIDE='helper-util' run "${CHECK}"
+  assert_success
+}
+
+@test "the shipped EXEMPT defaults are all warranted" {
+  # Runs against the real repo, so every fixture seam setup() pinned must go —
+  # including EXEMPT_OVERRIDE, so the shipped defaults are what is under test.
+  unset EXEMPT_OVERRIDE
+  unset INDEX_MD_OVERRIDE RULESET_JSON_OVERRIDE WORKFLOWS_DIR_OVERRIDE
+  unset CI_DIR_OVERRIDE GOVERNANCE_RUNNER_OVERRIDE
+  run "${REPO_DIR}/.ci/check-orphan-invariants"
+  assert_success
 }
 
 @test "fails on an orphan enforcer (ci script with no index row)" {
