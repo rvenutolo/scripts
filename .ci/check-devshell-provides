@@ -1,18 +1,24 @@
 #!/usr/bin/env bash
 
-# @description Assert every tool the repo's own tooling invokes is provided by
-#              the flake devShell rather than the caller's home directory.
-#              `nix develop` inherits the ambient PATH, so a tool the maintainer
-#              installed globally silently becomes a hidden dependency that a
-#              fresh contributor does not have. That is exactly how `just` came
-#              to resolve only from ~/.nix-profile while every doc claimed the
-#              devShell provided it (#219). Run this from inside the devShell —
-#              it deliberately does not spawn a nested `nix develop`, since the
-#              governance suite already runs in one.
+# @description Assert every tool the repo's own tooling invokes is a member of
+#              the flake devShell's own closure — an executable of that name
+#              exists in one of the directories on the PATH the devShell itself
+#              defines, as reported by `nix print-dev-env --json`. Resolution
+#              through the ambient PATH is deliberately not consulted: a
+#              direnv-activated shell still carries the PREVIOUS devShell's
+#              /nix/store paths, so a tool deleted from flake.nix keeps
+#              resolving and a PATH-based check reports green (#228). Closure
+#              membership is the guarantee a fresh contributor actually gets;
+#              a tool the maintainer installed globally is absent from the
+#              devShell PATH and so fails, which is how `just` came to resolve
+#              only from ~/.nix-profile while every doc claimed the devShell
+#              provided it (#219). The devShell PATH is queried against the repo
+#              this script was invoked in, never the ambient flake, so a
+#              worktree grades its own tree (#250).
 # @noargs
-# @stderr One line per tool that is missing or resolves from under $HOME.
-# @exitcode 0 every required tool resolves from outside $HOME.
-# @exitcode 1 a required tool is missing, or is provided by the caller's home directory.
+# @stderr One line per tool that is not provided by the flake devShell.
+# @exitcode 0 every required tool is provided by the flake devShell.
+# @exitcode 1 a required tool is not provided by the flake devShell.
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -22,6 +28,11 @@ source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
+commands::assert_executable_exists 'nix'
+commands::assert_executable_exists 'jq'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
 
 # Tools the repo's own tooling shells out to. Every entry is justified by a real
 # call site, so the list stays reviewable rather than a guess:
@@ -67,25 +78,70 @@ readonly REQUIRED_TOOLS=(
   yq
 )
 
+# @description Print the directories on the flake devShell's own PATH, one per
+#              line. DEVSHELL_PATH_OVERRIDE (colon-separated, same shape as a
+#              PATH) short-circuits the query entirely — `nix print-dev-env`
+#              costs seconds, which no BATS case can pay per test.
+# @noargs
+# @stdout One devShell PATH directory per line; nothing when the PATH is empty.
+# shellcheck disable=SC2120,SC2119 # function takes no args; args::check_no_args enforces that
+function devshell_path_dirs() {
+  args::check_no_args "$@"
+  local path_value
+  if [[ -v DEVSHELL_PATH_OVERRIDE ]]; then
+    path_value="${DEVSHELL_PATH_OVERRIDE}"
+  else
+    local tmp_dev_env
+    files::create_temp tmp_dev_env
+    # shellcheck disable=SC2154 # tmp_dev_env assigned by files::create_temp via nameref
+    nix print-dev-env --json "${REPO_DIR}" > "${tmp_dev_env}"
+    path_value="$(jq --raw-output '.variables.PATH.value' "${tmp_dev_env}")"
+  fi
+  strings::is_empty "${path_value}" && return 0
+  printf '%s\n' "${path_value//:/$'\n'}"
+}
+
+# @description Return true when an executable of the given name exists in any of
+#              the given directories. The ambient PATH is never consulted —
+#              commands::executable_path would, and that is precisely the thing
+#              under suspicion (#228).
+# @arg $1 tool executable name to look for
+# @arg $@ dirs directories to search, one argument each
+# @exitcode 0 if true
+# @exitcode 1 if false
+function provided_by_dirs() {
+  args::check_at_least_1_arg "$@"
+  local -r tool="$1"
+  shift
+  local dir
+  # Explicit returns rather than a trailing [[ ]] test: a search loop cannot be
+  # expressed as a single test. Same shape as arrays::contains.
+  for dir in "$@"; do
+    strings::is_empty "${dir}" && continue
+    if files::is_executable "${dir}/${tool}"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 function main() {
   args::check_no_args "$@"
   local -a required=()
   arrays::from_env_override required REQUIRED_TOOLS_OVERRIDE "${REQUIRED_TOOLS[@]}"
+  local tmp_dirs
+  files::create_temp tmp_dirs
+  # shellcheck disable=SC2154 # tmp_dirs assigned by files::create_temp via nameref
+  devshell_path_dirs > "${tmp_dirs}"
+  local -a dirs=()
+  mapfile -t dirs < "${tmp_dirs}"
   local failed=0
-  local tool resolved
+  local tool
   for tool in ${required[@]+"${required[@]}"}; do
     strings::is_empty "${tool}" && continue
-    if ! resolved="$(commands::executable_path "${tool}")" \
-      || strings::is_empty "${resolved}"; then
-      printf '%s: not found on PATH — add it to flake.nix devShells.default.packages\n' \
+    if ! provided_by_dirs "${tool}" ${dirs[@]+"${dirs[@]}"}; then
+      printf '%s: not provided by the flake devShell — add it to flake.nix devShells.default.packages\n' \
         "${tool}" >&2
-      failed=1
-      continue
-    fi
-    if [[ "${resolved}" == "${HOME}/"* ]]; then
-      # shellcheck disable=SC2016 # the literal string $HOME is the message text; expanding it would be wrong
-      printf '%s: resolves to %s (under $HOME), not the devShell — add it to flake.nix\n' \
-        "${tool}" "${resolved}" >&2
       failed=1
     fi
   done
