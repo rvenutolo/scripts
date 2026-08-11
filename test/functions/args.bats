@@ -358,6 +358,18 @@ assert_died_expecting() {
   assert_success
 }
 
+@test "check_for_stdin: dies with args" {
+  run args::check_for_stdin 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
+@test "stdin_exists: dies with args" {
+  run args::stdin_exists 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
 # ---------- print_help ----------
 
 write_fixture() {
