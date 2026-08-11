@@ -848,3 +848,37 @@ function _seed_repo_on_branch() {
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
+
+# ---------- git::clear_local_env ----------
+
+@test "clear_local_env: unsets inherited repo-scoped git env vars" {
+  # shellcheck disable=SC2030 # modification is intentional; we test it's cleared below
+  export GIT_DIR='/nowhere/.git'
+  export GIT_WORK_TREE='/nowhere'
+  export GIT_INDEX_FILE='/nowhere/index'
+  export GIT_PREFIX='sub/'
+  # Direct call, not `run` — the unset must land in this shell.
+  git::clear_local_env
+  [[ -z "${GIT_DIR:-}" ]]
+  [[ -z "${GIT_WORK_TREE:-}" ]]
+  [[ -z "${GIT_INDEX_FILE:-}" ]]
+  [[ -z "${GIT_PREFIX:-}" ]]
+}
+
+@test "clear_local_env: leaves non-repo-scoped git env untouched" {
+  export GIT_AUTHOR_NAME='Keep Me'
+  # shellcheck disable=SC2030,SC2031 # modification is intentional; cleared by git::clear_local_env
+  export GIT_DIR='/nowhere/.git'
+  git::clear_local_env
+  [[ "${GIT_AUTHOR_NAME}" == 'Keep Me' ]]
+  unset GIT_AUTHOR_NAME
+}
+
+@test "clear_local_env: no-op when nothing is set" {
+  git::clear_local_env
+}
+
+@test "clear_local_env: dies with 1 arg" {
+  run --separate-stderr git::clear_local_env 'x'
+  assert_failure
+}
