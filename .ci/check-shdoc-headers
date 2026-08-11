@@ -4,8 +4,11 @@
 #              interactive/, install/, set_up/, misc/, .ci/, and the project root AND every library file
 #              under functions/ for the project's shdoc annotation convention.
 #              Top-level scripts must carry a file-level `# @description` tag
-#              in the header and an annotation block on every helper function
-#              other than `main`. Library files (functions/*.bash) must have
+#              in the header, an annotation block on every helper function
+#              other than `main`, no scaffold placeholder text anywhere in the
+#              header block, and — unless they are a pass-through or a
+#              standalone that never sources the library — a call to
+#              args::handle_help_flag. Library files (functions/*.bash) must have
 #              an annotation block on every function — the file-level
 #              description is intentionally not required because library files
 #              are documented function-by-function.
@@ -79,6 +82,13 @@ function audit_one() {
   local violations=()
   if ! shdoc::file_has_description "${file}"; then
     violations+=('missing file-level @description')
+  fi
+  if shdoc::header_has_placeholder "${file}"; then
+    violations+=('placeholder TODO text in shdoc header')
+  fi
+  if shell_scripts::requires_help_flag "${file}" \
+    && ! grep --quiet --extended-regexp '^[[:space:]]*args::handle_help_flag([[:space:]]|$)' "${file}"; then
+    violations+=('missing args::handle_help_flag call')
   fi
   local unannotated_file
   files::create_temp unannotated_file

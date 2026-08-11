@@ -130,3 +130,33 @@ function shell_scripts::find_root_only() {
     fi
   done
 }
+
+# @description Return true if a top-level script is required to call
+# args::handle_help_flag. CLAUDE.md mandates the call on every top-level script
+# with two exemptions, and both are structural rather than listed: a pass-through
+# script carries the mandatory `pass-through` comment, and a standalone script
+# never sources the function library, so the helper does not exist for it to
+# call. The library test matches `functions.bash` rather than any source line —
+# a misc/ script sourcing ~/.profile is still standalone, while a Docker script
+# sourcing ${DOCKER_COMPOSE_DIR}/functions.bash gets this repo's helpers
+# transitively and is not exempt.
+#
+# Deliberate looseness: `pass-through` marks two different CLAUDE.md exemptions —
+# the help-flag one this predicate wants, and the arg-count-guard one, which a
+# merely variadic script also carries. Three scripts (mvn-fresh, claude-resume,
+# sync-flatpaks) carry the arity marker while still owning their own --help, so
+# this reads them as exempt when they are not. That costs nothing today because
+# all three call the helper anyway, and erring toward exempt keeps the predicate
+# free of false positives. Tightening it needs a marker that distinguishes the
+# two exemptions, which is a convention change rather than a lint change.
+# @arg $1 file path to script
+# @exitcode 0 the script must call args::handle_help_flag
+# @exitcode 1 the script is exempt as a pass-through or a standalone
+function shell_scripts::requires_help_flag() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  if ! grep --quiet --extended-regexp '^[[:space:]]*source .*functions\.bash' "${file}"; then
+    return 1
+  fi
+  ! grep --quiet --extended-regexp '#.*pass-through' "${file}"
+}

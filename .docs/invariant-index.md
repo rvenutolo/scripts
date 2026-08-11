@@ -30,6 +30,8 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | every .ci/ script has a paired bats test file | `check-script-has-test` | `governance` | `governance` |
 | required-checks table, protect-main ruleset, and workflow jobs agree | `check-ci-job-in-summary` | `governance` | `governance` |
 | every top-level script and library function has a shdoc annotation | `check-shdoc-headers` | `check-scripts` | `check-scripts` |
+| no top-level script ships placeholder text in its shdoc header | `check-shdoc-headers` | `check-scripts` | `check-scripts` |
+| every non-exempt top-level script calls `args::handle_help_flag` | `check-shdoc-headers` | `check-scripts` | `check-scripts` |
 | script file modes match the executable-bit convention | `check-executable-bit` | `check-scripts` | `check-scripts` |
 | invariant index, .ci/ enforcers, workflow jobs, ruleset contexts, and governance runner agree | `check-orphan-invariants` | `governance` | `governance` |
 | the repo has exactly one justfile and it agrees with the documented command table | `check-justfile-invariants` | `governance` | `governance` |
