@@ -366,3 +366,18 @@ EOF
   assert_output --partial 'broken.bash'
   assert_output --partial 'broken_thing'
 }
+
+@test "audit_library_one is not vacuous for namespaced library functions" {
+  cat > "${SCRIPTS}/functions/broken_ns.bash" << 'EOF'
+#!/usr/bin/env bash
+
+function broken::unannotated() {
+  echo hi
+}
+EOF
+  cd "${REPO}"
+  run_check
+  assert_failure
+  assert_output --partial 'broken_ns.bash'
+  assert_output --partial 'broken::unannotated'
+}
