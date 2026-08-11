@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
 # @description Install the latest version of an SDKMAN package.
+#              Failure is signalled through the `sdk install | sdkman::clean_output` pipeline, so
+#              the caller must have `pipefail` set for a failed install to be observable.
 # @arg $1 package name (e.g. "gradle")
+# @exitcode 0 sdk install succeeded
+# @exitcode 1 sdk install failed (requires pipefail in the caller)
 function sdkman_packages::install_sdkman_package() {
   args::check_exactly_1_arg "$@"
   sdk install "$1" | sdkman::clean_output
@@ -16,18 +20,43 @@ function sdkman_packages::uninstall_package_version() {
 }
 
 # @description Install the latest version of every SDKMAN package listed for this machine.
-# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
-# @noargs
+#              A package that fails to install is logged and skipped rather than aborting the
+#              run, so one broken upstream package cannot take down the whole update. The number of
+#              such failures is reported through the out-variable named by $1, NOT through the exit
+#              status: this function always returns 0.
+#
+#              The caller MUST invoke this function bare — never inside an `if` condition, nor on
+#              the left of `||` or `&&`. Bash disables errexit through the entire call tree of a
+#              function evaluated in a condition context, which would stop a failed package-list
+#              fetch from aborting the run and let it read as "nothing to do" instead. Calling bare
+#              keeps errexit live for the `packages::get_sdkman` fetch (fatal, as it must be) while
+#              the inner `if !` below scopes suppression to the single `sdk install` call, which is
+#              the only place a failure is meant to be survivable.
+# @arg $1 name of the out-variable to assign the failed-package count to (passed as a name-ref)
+# @exitcode 0 always
 function sdkman_packages::install_sdkman_packages() {
-  args::check_no_args "$@"
+  args::check_exactly_1_arg "$@"
+  local -n _install_sdkman_packages_failed_count="$1"
   local -a pkgs
   local pkgs_tmp
   files::create_temp pkgs_tmp
   packages::get_sdkman > "${pkgs_tmp}"
   mapfile -t pkgs < "${pkgs_tmp}"
+  local -a failed_pkgs=()
   for pkg in "${pkgs[@]}"; do
-    sdkman_packages::install_sdkman_package "${pkg}"
+    if ! sdkman_packages::install_sdkman_package "${pkg}"; then
+      log::warn "Failed to install SDKMAN package: ${pkg}"
+      failed_pkgs+=("${pkg}")
+    fi
   done
+  # Count only: strict IFS=$'\n\t' would make "${failed_pkgs[*]}" join on a newline, and every
+  # failure is already named individually above.
+  if ((${#failed_pkgs[@]} > 0)); then
+    log::warn "Failed to install ${#failed_pkgs[@]} SDKMAN package(s)"
+  fi
+  # Must be the last statement: assigning the out-variable is what makes this function return 0
+  # unconditionally, which is the contract the bare call above depends on.
+  _install_sdkman_packages_failed_count="${#failed_pkgs[@]}"
 }
 
 # @description Print the names of all installed SDKMAN packages (excluding java).

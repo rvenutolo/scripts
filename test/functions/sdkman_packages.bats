@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2030,SC2031 # BATS isolates each @test in a subshell; SDK_FAILING_PACKAGES edits are per-test
 
 bats_require_minimum_version 1.5.0
 
@@ -27,9 +28,17 @@ setup() {
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/sdkman_packages.bash"
 
+  # '|'-delimited list of package names the stub must fail 'install' for, e.g. '|groovyserv|'.
+  # Default empty means every sdk invocation succeeds, so tests that do not set it are unaffected.
+  export SDK_FAILING_PACKAGES=''
   # shellcheck disable=SC2329 # invoked indirectly by sdkman_packages functions under test
   function sdk() {
     printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"
+    # Gate on the subcommand: $2 is the package name for both 'install <pkg>' and
+    # 'uninstall <pkg> <ver>', so an ungated match would fail uninstalls too.
+    if [[ "$1" == 'install' && "${SDK_FAILING_PACKAGES}" == *"|$2|"* ]]; then
+      return 1
+    fi
   }
   export -f sdk
 
@@ -44,6 +53,15 @@ setup() {
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output 'install gradle'
+}
+
+@test "install_sdkman_package: returns 1 when sdk install fails" {
+  export SDK_FAILING_PACKAGES='|groovyserv|'
+  # pipefail is mandatory here: without it the 'sdk install | clean_output' pipeline reports the
+  # cleaner's status and the failure is masked, so this test would pass vacuously.
+  set -o pipefail
+  run sdkman_packages::install_sdkman_package groovyserv
+  assert_failure 1
 }
 
 @test "install_sdkman_package: dies with wrong arg count" {
@@ -158,14 +176,88 @@ setup() {
 
 # ---------- install_sdkman_packages ----------
 
+# The function reports failures through an out-variable and always returns 0, so these tests call
+# it directly rather than through `run`: `run` executes in a subshell, and a nameref write inside
+# that subshell is discarded. This mirrors the precedent in test/functions/path.bats, where the
+# PATH-mutating helpers are likewise called directly. Warn text is captured by redirecting stderr
+# to a file, since a direct call leaves BATS's `$output` unpopulated.
+
 @test "install_sdkman_packages: iterates packages::get_sdkman output" {
+  # shellcheck disable=SC2329 # invoked indirectly by sdkman_packages::install_sdkman_packages
   function packages::get_sdkman() { printf 'gradle\nmaven\n'; }
   export -f packages::get_sdkman
-  run sdkman_packages::install_sdkman_packages
-  assert_success
+  local failed_count='unset'
+  sdkman_packages::install_sdkman_packages failed_count
+  assert_equal "${failed_count}" 0
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_line --index 0 'install gradle'
   assert_line --index 1 'install maven'
+}
+
+@test "install_sdkman_packages: continues past a failing package and reports one failure" {
+  # shellcheck disable=SC2329 # invoked indirectly by sdkman_packages::install_sdkman_packages
+  function packages::get_sdkman() { printf 'gradle\ngroovyserv\nmaven\n'; }
+  export -f packages::get_sdkman
+  export SDK_FAILING_PACKAGES='|groovyserv|'
+  set -o pipefail
+  local failed_count='unset'
+  sdkman_packages::install_sdkman_packages failed_count 2> "${BATS_TEST_TMPDIR}/stderr"
+  assert_equal "${failed_count}" 1
+  run cat "${BATS_TEST_TMPDIR}/stderr"
+  assert_output --partial 'Failed to install SDKMAN package: groovyserv'
+  assert_output --partial 'Failed to install 1 SDKMAN package(s)'
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  assert_line --index 0 'install gradle'
+  assert_line --index 1 'install groovyserv'
+  assert_line --index 2 'install maven'
+}
+
+@test "install_sdkman_packages: names every failing package and reports the total" {
+  # shellcheck disable=SC2329 # invoked indirectly by sdkman_packages::install_sdkman_packages
+  function packages::get_sdkman() { printf 'gradle\ngroovyserv\nmaven\n'; }
+  export -f packages::get_sdkman
+  export SDK_FAILING_PACKAGES='|groovyserv|maven|'
+  set -o pipefail
+  local failed_count='unset'
+  sdkman_packages::install_sdkman_packages failed_count 2> "${BATS_TEST_TMPDIR}/stderr"
+  assert_equal "${failed_count}" 2
+  run cat "${BATS_TEST_TMPDIR}/stderr"
+  assert_output --partial 'Failed to install SDKMAN package: groovyserv'
+  assert_output --partial 'Failed to install SDKMAN package: maven'
+  assert_output --partial 'Failed to install 2 SDKMAN package(s)'
+}
+
+@test "install_sdkman_packages: reports zero failures when every package installs" {
+  # shellcheck disable=SC2329 # invoked indirectly by sdkman_packages::install_sdkman_packages
+  function packages::get_sdkman() { printf 'gradle\nmaven\n'; }
+  export -f packages::get_sdkman
+  set -o pipefail
+  local failed_count='unset'
+  sdkman_packages::install_sdkman_packages failed_count 2> "${BATS_TEST_TMPDIR}/stderr"
+  assert_equal "${failed_count}" 0
+  run cat "${BATS_TEST_TMPDIR}/stderr"
+  refute_output --partial 'Failed to install'
+}
+
+@test "install_sdkman_packages: reports zero failures and invokes sdk zero times for an empty list" {
+  # shellcheck disable=SC2329 # invoked indirectly by sdkman_packages::install_sdkman_packages
+  function packages::get_sdkman() { :; }
+  export -f packages::get_sdkman
+  set -o pipefail
+  local failed_count='unset'
+  sdkman_packages::install_sdkman_packages failed_count
+  assert_equal "${failed_count}" 0
+  refute [ -f "${BATS_TEST_TMPDIR}/sdk.calls" ]
+}
+
+@test "install_sdkman_packages: dies with 0 args" {
+  run sdkman_packages::install_sdkman_packages
+  assert_failure
+}
+
+@test "install_sdkman_packages: dies with 2 args" {
+  run sdkman_packages::install_sdkman_packages failed_count unexpected
+  assert_failure
 }
 
 # ---------- prune_sdkman_packages ----------
