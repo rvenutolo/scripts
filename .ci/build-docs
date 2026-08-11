@@ -273,18 +273,18 @@ function main() {
 
   log::log "Generating function reference"
   local file base
-  for file in "${SCRIPTS_DIR}"/functions/*.bash; do
+  for file in "${REPO_DIR}"/scripts/functions/*.bash; do
     base="$(basename -- "${file}" .bash)"
     shdoc_one "${file}" "${DOCS_FUNCTIONS_DIR}/${base}.md"
   done
   write_index "${DOCS_FUNCTIONS_DIR}" 'Functions'
 
   log::log "Generating scripts reference"
-  generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/non-interactive" non-interactive 'non-interactive'
-  generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/interactive" interactive 'interactive'
-  generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/install" install 'install'
-  generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/set_up" set_up 'set_up'
-  generate_scripts_for_dir shell_scripts::find "${SCRIPTS_DIR}/misc" misc 'misc'
+  generate_scripts_for_dir shell_scripts::find "${REPO_DIR}/scripts/non-interactive" non-interactive 'non-interactive'
+  generate_scripts_for_dir shell_scripts::find "${REPO_DIR}/scripts/interactive" interactive 'interactive'
+  generate_scripts_for_dir shell_scripts::find "${REPO_DIR}/scripts/install" install 'install'
+  generate_scripts_for_dir shell_scripts::find "${REPO_DIR}/scripts/set_up" set_up 'set_up'
+  generate_scripts_for_dir shell_scripts::find "${REPO_DIR}/scripts/misc" misc 'misc'
   generate_scripts_for_dir shell_scripts::find_root_only '' root 'root'
   # shellcheck disable=SC2119 # no args passed; args::check_no_args "$@" is the repo's no-args guard
   write_scripts_top_index
