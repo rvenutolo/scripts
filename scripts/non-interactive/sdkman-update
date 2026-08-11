@@ -37,11 +37,13 @@ trap - ERR
   log::log 'Updated SDKMAN metadata'
 
   log::log 'Updating SDKMAN packages'
-  if sdkman_packages::install_sdkman_packages; then
-    log::log 'Updated SDKMAN packages'
-  else
+  failed_package_count=0
+  sdkman_packages::install_sdkman_packages failed_package_count
+  if ((failed_package_count > 0)); then
     log::warn 'Some SDKMAN packages failed to install; continuing'
     overall_exit_code=1
+  else
+    log::log 'Updated SDKMAN packages'
   fi
 
   log::log 'Updating Temurin JDKs'

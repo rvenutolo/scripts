@@ -21,22 +21,26 @@ function sdkman_packages::uninstall_package_version() {
 
 # @description Install the latest version of every SDKMAN package listed for this machine.
 #              A package that fails to install is logged and skipped rather than aborting the
-#              run, so one broken upstream package cannot take down the whole update. A failure to
-#              fetch the package list itself is fatal (log::die) — an unfetchable list is not the
-#              same as an empty one, and must never read as "nothing to do".
-# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
-# @noargs
-# @exitcode 0 every package installed
-# @exitcode 1 one or more packages failed to install, or the package list could not be fetched
+#              run, so one broken upstream package cannot take down the whole update. The number of
+#              such failures is reported through the out-variable named by $1, NOT through the exit
+#              status: this function always returns 0.
+#
+#              The caller MUST invoke this function bare — never inside an `if` condition, nor on
+#              the left of `||` or `&&`. Bash disables errexit through the entire call tree of a
+#              function evaluated in a condition context, which would stop a failed package-list
+#              fetch from aborting the run and let it read as "nothing to do" instead. Calling bare
+#              keeps errexit live for the `packages::get_sdkman` fetch (fatal, as it must be) while
+#              the inner `if !` below scopes suppression to the single `sdk install` call, which is
+#              the only place a failure is meant to be survivable.
+# @arg $1 name of the out-variable to assign the failed-package count to (passed as a name-ref)
+# @exitcode 0 always
 function sdkman_packages::install_sdkman_packages() {
-  args::check_no_args "$@"
+  args::check_exactly_1_arg "$@"
+  local -n _install_sdkman_packages_failed_count="$1"
   local -a pkgs
   local pkgs_tmp
   files::create_temp pkgs_tmp
-  # Explicit || log::die rather than relying on errexit: this function is called from an `if`
-  # condition, which disables errexit through the whole call tree, so a failed (network) download
-  # would otherwise leave an empty list and report a vacuous success.
-  packages::get_sdkman > "${pkgs_tmp}" || log::die 'Failed to fetch the SDKMAN package list'
+  packages::get_sdkman > "${pkgs_tmp}"
   mapfile -t pkgs < "${pkgs_tmp}"
   local -a failed_pkgs=()
   for pkg in "${pkgs[@]}"; do
@@ -49,8 +53,10 @@ function sdkman_packages::install_sdkman_packages() {
   # failure is already named individually above.
   if ((${#failed_pkgs[@]} > 0)); then
     log::warn "Failed to install ${#failed_pkgs[@]} SDKMAN package(s)"
-    return 1
   fi
+  # Must be the last statement: assigning the out-variable is what makes this function return 0
+  # unconditionally, which is the contract the bare call above depends on.
+  _install_sdkman_packages_failed_count="${#failed_pkgs[@]}"
 }
 
 # @description Print the names of all installed SDKMAN packages (excluding java).
