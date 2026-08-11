@@ -1,5 +1,10 @@
 setup() {
   load '../test_helper/common'
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/args.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/log.bash"
+  load '../test_helper/git_fixture'
   # Capture the real check path BEFORE any cd into the fixture repo — REPO_DIR
   # from common.bash points at the real repo here, and the tests cd away.
   CHECK="${REPO_DIR}/.ci/check-executable-bit"
@@ -14,7 +19,7 @@ setup() {
   mkdir --parents "${REPO}"/scripts/{non-interactive,interactive,misc,functions,install,set_up,other}
   mkdir --parents "${REPO}"/scripts/set_up/{docker,sysctl,tailscale}
   mkdir --parents "${REPO}/.ci" "${REPO}/.githooks" "${REPO}/test/ci" "${REPO}/lib"
-  git init --quiet "${REPO}"
+  git_fixture::init "${REPO}"
 
   # One compliant file in every enforced location, so the default tree passes
   # and each failure test introduces exactly one violation of its own.

@@ -1,5 +1,10 @@
 setup() {
   load '../test_helper/common'
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/args.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/log.bash"
+  load '../test_helper/git_fixture'
   SCRIPT="${REPO_DIR}/.ci/activate-githooks"
   # Resolve the tmpdir itself with pwd -P: BATS_TEST_TMPDIR can sit under a
   # symlinked TMPDIR, and both `git rev-parse --show-toplevel` and
@@ -7,12 +12,12 @@ setup() {
   TMP_ROOT="$(cd "${BATS_TEST_TMPDIR}" && pwd -P)"
   REPO="${TMP_ROOT}/repo"
   mkdir --parents "${REPO}"
-  git init --quiet "${REPO}"
+  git_fixture::init "${REPO}"
 }
 
 # Read back the repo-local core.hooksPath. Empty when unset.
 hooks_path() {
-  git -C "${REPO}" config --local --get core.hooksPath || true
+  git_fixture::run "${REPO}" config --local --get core.hooksPath || true
 }
 
 # Run the script with the working directory set to the fixture repo (or to the
@@ -55,14 +60,14 @@ run_activate() {
 }
 
 @test "overwrites a foreign core.hooksPath" {
-  git -C "${REPO}" config --local core.hooksPath '.other-hooks'
+  git_fixture::run "${REPO}" config --local core.hooksPath '.other-hooks'
   run_activate
   assert_success
   assert_equal "$(hooks_path)" '.githooks'
 }
 
 @test "names the old value when repointing a foreign core.hooksPath" {
-  git -C "${REPO}" config --local core.hooksPath '.other-hooks'
+  git_fixture::run "${REPO}" config --local core.hooksPath '.other-hooks'
   run_activate
   assert_success
   assert_output --partial '.other-hooks'

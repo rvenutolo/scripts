@@ -1,5 +1,10 @@
 setup() {
   load '../test_helper/common'
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/args.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/log.bash"
+  load '../test_helper/git_fixture'
   # Capture the real check path BEFORE any cd into the fixture repo — REPO_DIR
   # from common.bash points at the real repo here, and the tests cd away.
   CHECK="${REPO_DIR}/.ci/check-shdoc-headers"
@@ -20,7 +25,7 @@ setup() {
   # root files, so those scans contribute nothing — the audit operates on the
   # SCRIPTS_DIR fixtures only.
   mkdir -p "${REPO}/non-interactive" "${REPO}/functions"
-  git init --quiet "${REPO}"
+  git_fixture::init "${REPO}"
   ln --symbolic "${REAL_SCRIPTS_DIR}/.functions.bash" "${REPO}/.functions.bash"
   local lib
   for lib in "${REAL_SCRIPTS_DIR}"/functions/*.bash; do
