@@ -103,6 +103,12 @@ setup() {
   assert_output ''
 }
 
+@test "get_installed_packages: dies with wrong arg count" {
+  run sdkman_packages::get_installed_packages 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
 # ---------- get_installed_packages_versions ----------
 
 @test "get_installed_packages_versions: returns sorted versions for given pkg (symlink excluded by -type d)" {
@@ -160,6 +166,12 @@ setup() {
   run sdkman_packages::prune_sdkman_package skeletal
   assert_success
   refute [ -f "${BATS_TEST_TMPDIR}/sdk.calls" ]
+}
+
+@test "prune_sdkman_package: dies with wrong arg count" {
+  run sdkman_packages::prune_sdkman_package < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "prune_sdkman_packages: skips packages with no 'current' symlink (stale empty dirs)" {
@@ -274,4 +286,10 @@ setup() {
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output --partial 'uninstall gradle 8.4'
   assert_output --partial 'uninstall maven 3.9.0'
+}
+
+@test "prune_sdkman_packages: dies with wrong arg count" {
+  run sdkman_packages::prune_sdkman_packages 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
 }
