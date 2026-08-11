@@ -22,6 +22,12 @@ setup() {
   # BATS_TEST_TMPDIR can sit under a symlinked TMPDIR.
   FAKE_REPO="$(cd "${FAKE_REPO}" && pwd -P)"
   git_fixture::init "${FAKE_REPO}"
+  # The mutation-tripwire tests need a resolvable HEAD and a committer identity
+  # (GIT_CONFIG_GLOBAL is /dev/null in this harness — see common.bash), so every
+  # test in this file gets a configured identity and an initial commit.
+  git_fixture::run "${FAKE_REPO}" config user.email 'bats@example.invalid'
+  git_fixture::run "${FAKE_REPO}" config user.name 'Bats Test'
+  git_fixture::run "${FAKE_REPO}" commit --quiet --allow-empty --message 'initial commit'
   ARGS_LOG="${BATS_TEST_TMPDIR}/bats-args.log"
 }
 
@@ -32,6 +38,20 @@ install_bats_stub() {
   cat > "${FAKE_REPO}/test/bats/bin/bats" << EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" > "${ARGS_LOG}"
+exit 0
+EOF
+  chmod +x "${FAKE_REPO}/test/bats/bin/bats"
+}
+
+# Like install_bats_stub, but runs the given body line(s) before exiting 0 —
+# used to simulate the suite mutating the surrounding fixture repo (#248).
+make_recording_bats_stub_with_body() {
+  local -r body="$1"
+  mkdir -p "${FAKE_REPO}/test/bats/bin"
+  cat > "${FAKE_REPO}/test/bats/bin/bats" << EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" > "${ARGS_LOG}"
+${body}
 exit 0
 EOF
   chmod +x "${FAKE_REPO}/test/bats/bin/bats"
@@ -98,4 +118,35 @@ make_no_parallel_bin() {
   run env --unset=BASH_ENV PATH="${bin_dir}" "${SCRIPT}"
   assert_failure
   assert_output --partial 'GNU parallel not found'
+}
+
+@test "tripwire: fails when the suite mutates the repo config" {
+  # Stub bats writes into the surrounding fixture repo's config, simulating a
+  # fixture escape (#248), and exits 0 as if all tests passed.
+  # shellcheck disable=SC2016 # single quotes are deliberate: the snippet is evaluated by the stub, not here
+  make_recording_bats_stub_with_body 'git config --file "$(git rev-parse --path-format=absolute --git-path config)" bats.escaped true'
+  run_in_fake_repo
+  assert_failure
+  assert_output --partial '#248'
+}
+
+@test "tripwire: fails when the suite moves HEAD" {
+  make_recording_bats_stub_with_body 'git commit --quiet --allow-empty --message stray'
+  run_in_fake_repo
+  assert_failure
+  assert_output --partial '#248'
+}
+
+@test "tripwire: silent on a clean green run" {
+  make_recording_bats_stub_with_body ''
+  run_in_fake_repo
+  assert_success
+  refute_output --partial '#248'
+}
+
+@test "tripwire: a red suite still reports the bats exit, not the tripwire" {
+  make_recording_bats_stub_with_body 'exit 1'
+  run_in_fake_repo
+  assert_failure
+  refute_output --partial '#248'
 }
