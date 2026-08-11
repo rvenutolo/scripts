@@ -55,6 +55,15 @@ setup() {
   assert_output 'install gradle'
 }
 
+@test "install_sdkman_package: returns 1 when sdk install fails" {
+  export SDK_FAILING_PACKAGES='|groovyserv|'
+  # pipefail is mandatory here: without it the 'sdk install | clean_output' pipeline reports the
+  # cleaner's status and the failure is masked, so this test would pass vacuously.
+  set -o pipefail
+  run sdkman_packages::install_sdkman_package groovyserv
+  assert_failure 1
+}
+
 @test "install_sdkman_package: dies with wrong arg count" {
   run sdkman_packages::install_sdkman_package
   assert_failure
@@ -185,7 +194,7 @@ setup() {
   export SDK_FAILING_PACKAGES='|groovyserv|'
   set -o pipefail
   run sdkman_packages::install_sdkman_packages
-  assert_failure
+  assert_failure 1
   assert_output --partial 'Failed to install SDKMAN package: groovyserv'
   assert_output --partial 'Failed to install 1 SDKMAN package(s)'
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
@@ -201,7 +210,7 @@ setup() {
   export SDK_FAILING_PACKAGES='|groovyserv|maven|'
   set -o pipefail
   run sdkman_packages::install_sdkman_packages
-  assert_failure
+  assert_failure 1
   assert_output --partial 'Failed to install SDKMAN package: groovyserv'
   assert_output --partial 'Failed to install SDKMAN package: maven'
   assert_output --partial 'Failed to install 2 SDKMAN package(s)'
@@ -214,6 +223,19 @@ setup() {
   set -o pipefail
   run sdkman_packages::install_sdkman_packages
   assert_success
+  refute [ -f "${BATS_TEST_TMPDIR}/sdk.calls" ]
+}
+
+@test "install_sdkman_packages: dies when the package list cannot be fetched" {
+  # An unfetchable list must not be silently treated as an empty one: the pre-branch behaviour was
+  # a fatal abort, and the `if`-condition caller disables errexit, so the guard must be explicit.
+  # shellcheck disable=SC2329 # invoked indirectly by sdkman_packages::install_sdkman_packages
+  function packages::get_sdkman() { return 1; }
+  export -f packages::get_sdkman
+  set -o pipefail
+  run sdkman_packages::install_sdkman_packages
+  assert_failure 1
+  assert_output --partial 'Failed to fetch the SDKMAN package list'
   refute [ -f "${BATS_TEST_TMPDIR}/sdk.calls" ]
 }
 
