@@ -26,6 +26,7 @@ setup() {
   printf '%s\n' '#!/bin/bash' 'echo a' > "${TREE}/a.sh"
   printf '%s\n' '#!/usr/bin/env bash' 'echo b' > "${TREE}/b.bash"
   printf '%s\n' '#!/usr/bin/env bats' 'echo c' > "${TREE}/c.bats"
+  printf '%s\n' 'setup() {' '  true' '}' > "${TREE}/i.bats"
   printf '%s\n' 'no shebang here' > "${TREE}/d.txt"
   printf '%s\n' '#!/usr/bin/env python3' 'print("e")' > "${TREE}/e"
   printf '%s\n' '#!/usr/bin/env bash' 'echo f' > "${TREE}/f"
@@ -137,6 +138,13 @@ make_fixture() {
   [[ "${#result[@]}" -eq 2 ]]
   [[ "${result[0]}" == "${TREE}/a.sh" ]]
   [[ "${result[1]}" == "${TREE}/b.bash" ]]
+}
+
+@test "filter: keeps a .bats file with no shebang" {
+  local result=()
+  shell_scripts::filter result "${TREE}/i.bats"
+  [[ "${#result[@]}" -eq 1 ]]
+  [[ "${result[0]}" == "${TREE}/i.bats" ]]
 }
 
 @test "filter: empty input -> empty output" {
