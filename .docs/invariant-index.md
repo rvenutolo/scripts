@@ -38,5 +38,5 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | invariant index, .ci/ enforcers, workflow jobs, ruleset contexts, and governance runner agree | `check-orphan-invariants` | `governance` | `governance` |
 | the repo has exactly one justfile and it agrees with the documented command table | `check-justfile-invariants` | `governance` | `governance` |
 | every public `just` recipe has a doc comment | `check-justfile-invariants` | `governance` | `governance` |
-| every tool the repo's tooling invokes comes from the flake devShell, not the caller's home | `check-devshell-provides` | `governance` | `governance` |
+| every tool the repo's tooling invokes is a member of the flake devShell's own PATH, not merely resolvable from the ambient one | `check-devshell-provides` | `governance` | `governance` |
 <!-- invariant-index:end -->
