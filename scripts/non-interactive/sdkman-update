@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 
 # @description Update SDKMAN metadata, install/upgrade configured SDKMAN packages and Temurin JDKs, then set the default JDK to the latest installed.
+#              A package that fails to install is logged and skipped so the Temurin JDK steps still run; the script then exits 1.
 # @noargs
+# @exitcode 0 every step succeeded
+# @exitcode 1 one or more SDKMAN packages failed to install
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -16,13 +19,21 @@ args::check_no_args "$@"
 (
   sdkman::init
 
+  # Records a non-fatal failure so the Temurin JDK steps below still run while the script still
+  # reports failure to cron/topgrade. A silent green run would hide a persistent breakage.
+  overall_exit_code=0
+
   log::log 'Updating SDKMAN metadata'
   sdkman::update_metadata
   log::log 'Updated SDKMAN metadata'
 
   log::log 'Updating SDKMAN packages'
-  sdkman_packages::install_sdkman_packages
-  log::log 'Updated SDKMAN packages'
+  if sdkman_packages::install_sdkman_packages; then
+    log::log 'Updated SDKMAN packages'
+  else
+    log::warn 'Some SDKMAN packages failed to install; continuing'
+    overall_exit_code=1
+  fi
 
   log::log 'Updating Temurin JDKs'
   sdkman_jdks::install_latest_tem_jdks
@@ -31,4 +42,6 @@ args::check_no_args "$@"
   log::log 'Setting default JDK'
   sdkman_jdks::set_default_jdk_to_latest_patch_of_current_major
   log::log 'Set default JDK'
+
+  exit "${overall_exit_code}"
 )
