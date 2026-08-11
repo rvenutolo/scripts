@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# shellcheck disable=SC2030,SC2031 # BATS isolates each @test in its own subshell; SDK_FAILING_PACKAGES mutations are intentional and correctly scoped per-test
+# shellcheck disable=SC2030,SC2031 # BATS isolates each @test in a subshell; SDK_FAILING_PACKAGES edits are per-test
 
 bats_require_minimum_version 1.5.0
 
@@ -28,13 +28,15 @@ setup() {
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/sdkman_packages.bash"
 
-  # '|'-delimited list of package names the stub must fail for, e.g. '|groovyserv|'. Default empty
-  # means every sdk invocation succeeds, so tests that do not set it are unaffected.
+  # '|'-delimited list of package names the stub must fail 'install' for, e.g. '|groovyserv|'.
+  # Default empty means every sdk invocation succeeds, so tests that do not set it are unaffected.
   export SDK_FAILING_PACKAGES=''
   # shellcheck disable=SC2329 # invoked indirectly by sdkman_packages functions under test
   function sdk() {
     printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"
-    if [[ "${SDK_FAILING_PACKAGES}" == *"|$2|"* ]]; then
+    # Gate on the subcommand: $2 is the package name for both 'install <pkg>' and
+    # 'uninstall <pkg> <ver>', so an ungated match would fail uninstalls too.
+    if [[ "$1" == 'install' && "${SDK_FAILING_PACKAGES}" == *"|$2|"* ]]; then
       return 1
     fi
   }
@@ -206,6 +208,7 @@ setup() {
 }
 
 @test "install_sdkman_packages: succeeds and invokes sdk zero times for an empty package list" {
+  # shellcheck disable=SC2329 # invoked indirectly by sdkman_packages::install_sdkman_packages
   function packages::get_sdkman() { :; }
   export -f packages::get_sdkman
   set -o pipefail
