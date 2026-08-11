@@ -195,3 +195,128 @@ EOF
   assert_output --partial 'Stderr:'
   refute_output --partial 'Stdout:'
 }
+
+@test "fails when a top-level script carries the scaffold placeholder description" {
+  cat > "${REPO}/non-interactive/scaffolded" << 'EOF'
+#!/usr/bin/env bash
+
+# @description TODO: describe what this script does.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+echo hi
+EOF
+  chmod +x "${REPO}/non-interactive/scaffolded"
+  cd "${REPO}"
+  run_check
+  assert_failure
+  assert_output --partial 'placeholder'
+  assert_output --partial 'scaffolded'
+}
+
+@test "fails when a library-sourcing script omits the help-flag call" {
+  cat > "${REPO}/non-interactive/no-help-flag" << 'EOF'
+#!/usr/bin/env bash
+
+# @description A script that forgot its help flag.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::check_no_args "$@"
+EOF
+  chmod +x "${REPO}/non-interactive/no-help-flag"
+  cd "${REPO}"
+  run_check
+  assert_failure
+  assert_output --partial 'args::handle_help_flag'
+  assert_output --partial 'no-help-flag'
+}
+
+@test "passes when a library-sourcing script calls the help flag" {
+  cat > "${REPO}/non-interactive/with-help-flag" << 'EOF'
+#!/usr/bin/env bash
+
+# @description A script that remembers its help flag.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+EOF
+  chmod +x "${REPO}/non-interactive/with-help-flag"
+  cd "${REPO}"
+  run_check
+  assert_success
+}
+
+@test "passes when a pass-through script omits the help-flag call" {
+  cat > "${REPO}/non-interactive/passthrough" << 'EOF'
+#!/usr/bin/env bash
+
+# @description Forward everything to the real tool.
+# @arg $@ args Arguments forwarded verbatim.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+# pass-through: any arg count valid; the real tool owns --help
+
+exec true "$@"
+EOF
+  chmod +x "${REPO}/non-interactive/passthrough"
+  cd "${REPO}"
+  run_check
+  assert_success
+}
+
+@test "passes when a standalone script omits the help-flag call" {
+  cat > "${REPO}/non-interactive/standalone" << 'EOF'
+#!/usr/bin/env bash
+
+# @description A standalone script that never sources the library.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+echo hi
+EOF
+  chmod +x "${REPO}/non-interactive/standalone"
+  cd "${REPO}"
+  run_check
+  assert_success
+}
+
+@test "fails when the help flag is named only in header prose" {
+  cat > "${REPO}/non-interactive/prose-only" << 'EOF'
+#!/usr/bin/env bash
+
+# @description A script whose header discusses args::handle_help_flag
+#              without ever calling it.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::check_no_args "$@"
+EOF
+  chmod +x "${REPO}/non-interactive/prose-only"
+  cd "${REPO}"
+  run_check
+  assert_failure
+  assert_output --partial 'prose-only'
+}
