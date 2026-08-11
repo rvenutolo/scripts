@@ -325,3 +325,44 @@ EOF
   assert_failure
   assert_output --partial 'prose-only'
 }
+
+# The two tests below deliberately do NOT use run_check: they point SCRIPTS_DIR at
+# the REAL repo while cwd is the fixture. A scan rooted at SCRIPTS_DIR audits the
+# real tree, which is compliant, and reports success — the false green of #250. The
+# audit must follow the repo it was invoked in and catch the fixture's violation.
+
+@test "audits top-level scripts from the repo it runs in, not SCRIPTS_DIR" {
+  cat > "${SCRIPTS}/non-interactive/no-desc" << 'EOF'
+#!/usr/bin/env bash
+
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+echo hi
+EOF
+  chmod +x "${SCRIPTS}/non-interactive/no-desc"
+  cd "${REPO}"
+  SCRIPTS_DIR="${REAL_SCRIPTS_DIR}" run "${CHECK}"
+  assert_failure
+  assert_output --partial 'non-interactive/no-desc'
+  assert_output --partial 'missing file-level @description'
+}
+
+@test "audits library files from the repo it runs in, not SCRIPTS_DIR" {
+  # A real file, not a symlink: the fixture library otherwise mirrors the compliant
+  # real library entirely.
+  cat > "${SCRIPTS}/functions/broken.bash" << 'EOF'
+#!/usr/bin/env bash
+
+function broken_thing() {
+  echo thing
+}
+EOF
+  cd "${REPO}"
+  SCRIPTS_DIR="${REAL_SCRIPTS_DIR}" run "${CHECK}"
+  assert_failure
+  assert_output --partial 'broken.bash'
+  assert_output --partial 'broken_thing'
+}
