@@ -45,7 +45,19 @@ function main() {
   log::log 'running actionlint'
   (cd "${REPO_DIR}" && actionlint) || rc=1
   log::log 'running yamllint'
-  (cd "${REPO_DIR}" && yamllint .) || rc=1
+  # Lint the tracked YAML set, for the same reason markdownlint does below:
+  # `yamllint .` walks the whole working tree, and unlike typos and
+  # editorconfig-checker it does not skip gitignored paths. Any gitignored YAML
+  # — an agent worktree under .claude/worktrees/, .direnv, scratch output —
+  # therefore failed the local gate while CI, which checks out clean, stayed
+  # green. That is the local/CI divergence this runner exists to prevent (#253).
+  # .yamllint.yml's `ignore:` list still applies: yamllint honors it for
+  # explicitly-passed paths too, so it keeps guarding tracked files under lib/
+  # and scripts/other/.
+  local yaml_tmp
+  files::create_temp yaml_tmp
+  (cd "${REPO_DIR}" && git ls-files -z -- '*.yml' '*.yaml') > "${yaml_tmp}"
+  (cd "${REPO_DIR}" && xargs --null --no-run-if-empty yamllint < "${yaml_tmp}") || rc=1
   log::log 'running json lint'
   # shellcheck disable=SC2119 # no args passed; args::check_no_args "$@" is the repo's no-args guard
   lint_json || rc=1
