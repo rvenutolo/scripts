@@ -24,7 +24,7 @@ setup() {
   # The regression itself: shfmt must never see this file. See issue #206.
   refute_output --partial 'a command can only contain words and redirects'
   # ...and it must be visibly skipped rather than silently vanishing.
-  assert_output --partial 'Skipping (no bash/sh shebang)'
+  assert_output --partial 'Skipping (not a shell file)'
 }
 
 @test "check-scripts: a misformatted shell file still reaches shfmt" {
