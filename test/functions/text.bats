@@ -52,6 +52,12 @@ setup() {
   dual_mode::assert_stdin 'text::remove_ansi' '' ''
 }
 
+@test "remove_ansi: dies with 2 args" {
+  run text::remove_ansi 'a0' 'a1' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- text::remove_empty_lines ----------
 
 @test "remove_empty_lines: no blank lines -> unchanged (stdin)" {
@@ -86,6 +92,12 @@ setup() {
   dual_mode::assert_stdin 'text::remove_empty_lines' $'\n   \n\t\n' ''
 }
 
+@test "remove_empty_lines: dies with 2 args" {
+  run text::remove_empty_lines 'a0' 'a1' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- text::first_line ----------
 
 @test "first_line: single-line input (stdin)" {
@@ -112,6 +124,12 @@ setup() {
   dual_mode::assert_stdin 'text::first_line' $'\nsecond' ''
 }
 
+@test "first_line: dies with 2 args" {
+  run text::first_line 'a0' 'a1' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- text::last_line ----------
 
 @test "last_line: single-line input (stdin)" {
@@ -136,6 +154,12 @@ setup() {
 
 @test "last_line: trailing newline -> last non-empty content line (stdin)" {
   dual_mode::assert_stdin 'text::last_line' $'a\nb\n' 'b'
+}
+
+@test "last_line: dies with 2 args" {
+  run text::last_line 'a0' 'a1' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- text::skip_first_lines ----------
