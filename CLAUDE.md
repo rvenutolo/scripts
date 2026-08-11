@@ -146,7 +146,7 @@ comment separated from the definition by a blank line.
 
 Files excluded from `shell_scripts::find` (`.shdoc/`, `scripts/other/`, vendored bats submodules under `test/`) are excluded from this rule.
 
-Library files under `functions/*.bash` follow a related but distinct rule: every function must have a preceding shdoc annotation block, but the file-level `@description` is intentionally not required because library files are documented function-by-function. `.ci/check-shdoc-headers` enforces both rules in a single audit pass (top-level scripts get the file-level + per-helper check; library files get the per-function check only). Both contribute to the audit's exit code, and the audit is wired into `check-scripts` so any regression fails the aggregate gate.
+Library files under `functions/*.bash` follow a related but distinct rule: every function must have a preceding shdoc annotation block, but the file-level `@description` is intentionally not required because library files are documented function-by-function. `.ci/check-shdoc-headers` enforces both rules in a single audit pass (top-level scripts get the file-level + per-helper check; library files get the per-function check, minus the file-level `@description`). Both arms also reject placeholder text in a function's annotation block, per the rule above. Both contribute to the audit's exit code, and the audit is wired into `check-scripts` so any regression fails the aggregate gate.
 
 ### Standard top-level skeleton
 
