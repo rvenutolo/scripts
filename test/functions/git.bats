@@ -23,35 +23,36 @@ setup() {
   source "${SCRIPTS_DIR}/functions/prompt.bash"
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/git.bash"
+  load '../test_helper/git_fixture'
 }
 
 # Create a repo at ${BATS_TEST_TMPDIR}/repo with commits made under different
 # author/committer identities. Mix of author-only vs committer-only differences.
 function _seed_repo_multi_idents() {
   local -r repo="${BATS_TEST_TMPDIR}/repo"
-  git init --quiet --initial-branch=main "${repo}"
-  git -C "${repo}" config commit.gpgSign false
-  git -C "${repo}" config tag.gpgSign false
+  git_fixture::init "${repo}" --initial-branch=main
+  git_fixture::run "${repo}" config commit.gpgSign false
+  git_fixture::run "${repo}" config tag.gpgSign false
 
   # commit 1: author = Alice, committer = Alice
   GIT_AUTHOR_NAME='Alice' GIT_AUTHOR_EMAIL='alice@example.com' \
     GIT_COMMITTER_NAME='Alice' GIT_COMMITTER_EMAIL='alice@example.com' \
-    git -C "${repo}" commit --quiet --allow-empty --message='c1'
+    git_fixture::run "${repo}" commit --quiet --allow-empty --message='c1'
 
   # commit 2: author = Alice, committer = GitHub
   GIT_AUTHOR_NAME='Alice' GIT_AUTHOR_EMAIL='alice@example.com' \
     GIT_COMMITTER_NAME='GitHub' GIT_COMMITTER_EMAIL='noreply@github.com' \
-    git -C "${repo}" commit --quiet --allow-empty --message='c2'
+    git_fixture::run "${repo}" commit --quiet --allow-empty --message='c2'
 
   # commit 3: author = Bob, committer = Alice
   GIT_AUTHOR_NAME='Bob' GIT_AUTHOR_EMAIL='bob@example.com' \
     GIT_COMMITTER_NAME='Alice' GIT_COMMITTER_EMAIL='alice@example.com' \
-    git -C "${repo}" commit --quiet --allow-empty --message='c3'
+    git_fixture::run "${repo}" commit --quiet --allow-empty --message='c3'
 
   # commit 4: author = Bob, committer = Bob
   GIT_AUTHOR_NAME='Bob' GIT_AUTHOR_EMAIL='bob@example.com' \
     GIT_COMMITTER_NAME='Bob' GIT_COMMITTER_EMAIL='bob@example.com' \
-    git -C "${repo}" commit --quiet --allow-empty --message='c4'
+    git_fixture::run "${repo}" commit --quiet --allow-empty --message='c4'
 
   printf '%s\n' "${repo}"
 }
@@ -59,13 +60,13 @@ function _seed_repo_multi_idents() {
 # ---------- git::is_git_repo ----------
 
 @test "is_git_repo: freshly inited repo -> true" {
-  git -C "${BATS_TEST_TMPDIR}" init --quiet
+  git_fixture::init "${BATS_TEST_TMPDIR}"
   run git::is_git_repo "${BATS_TEST_TMPDIR}"
   assert_success
 }
 
 @test "is_git_repo: subdir of repo -> true" {
-  git -C "${BATS_TEST_TMPDIR}" init --quiet
+  git_fixture::init "${BATS_TEST_TMPDIR}"
   mkdir --parents "${BATS_TEST_TMPDIR}/sub/nested"
   run git::is_git_repo "${BATS_TEST_TMPDIR}/sub/nested"
   assert_success
@@ -73,7 +74,7 @@ function _seed_repo_multi_idents() {
 
 @test "is_git_repo: bare repo -> true" {
   local bare="${BATS_TEST_TMPDIR}/bare.git"
-  git init --bare --quiet "${bare}"
+  git_fixture::init_bare "${bare}"
   run git::is_git_repo "${bare}"
   assert_success
 }
@@ -110,14 +111,14 @@ function _seed_repo_multi_idents() {
 # ---------- git::assert_git_repo ----------
 
 @test "assert_git_repo: repo -> silent success" {
-  git -C "${BATS_TEST_TMPDIR}" init --quiet
+  git_fixture::init "${BATS_TEST_TMPDIR}"
   run git::assert_git_repo "${BATS_TEST_TMPDIR}"
   assert_success
   assert_output ''
 }
 
 @test "assert_git_repo: subdir of repo -> silent success" {
-  git -C "${BATS_TEST_TMPDIR}" init --quiet
+  git_fixture::init "${BATS_TEST_TMPDIR}"
   mkdir --parents "${BATS_TEST_TMPDIR}/sub"
   run git::assert_git_repo "${BATS_TEST_TMPDIR}/sub"
   assert_success
@@ -126,7 +127,7 @@ function _seed_repo_multi_idents() {
 
 @test "assert_git_repo: bare repo -> silent success" {
   local bare="${BATS_TEST_TMPDIR}/bare.git"
-  git init --bare --quiet "${bare}"
+  git_fixture::init_bare "${bare}"
   run git::assert_git_repo "${bare}"
   assert_success
   assert_output ''
@@ -160,14 +161,14 @@ function _seed_repo_multi_idents() {
 # ---------- git::repo_root ----------
 
 @test "repo_root: returns toplevel from repo root" {
-  git -C "${BATS_TEST_TMPDIR}" init --quiet
+  git_fixture::init "${BATS_TEST_TMPDIR}"
   run git::repo_root "${BATS_TEST_TMPDIR}"
   assert_success
   assert_output "$(cd "${BATS_TEST_TMPDIR}" && pwd -P)"
 }
 
 @test "repo_root: returns toplevel from subdir" {
-  git -C "${BATS_TEST_TMPDIR}" init --quiet
+  git_fixture::init "${BATS_TEST_TMPDIR}"
   mkdir --parents "${BATS_TEST_TMPDIR}/sub/nested"
   run git::repo_root "${BATS_TEST_TMPDIR}/sub/nested"
   assert_success
@@ -196,15 +197,15 @@ function _seed_repo_multi_idents() {
 # ---------- git::canonical_name ----------
 
 @test "canonical_name: returns configured name" {
-  git -C "${BATS_TEST_TMPDIR}" init --quiet
-  git -C "${BATS_TEST_TMPDIR}" config user.name 'Test User'
+  git_fixture::init "${BATS_TEST_TMPDIR}"
+  git_fixture::run "${BATS_TEST_TMPDIR}" config user.name 'Test User'
   run git::canonical_name "${BATS_TEST_TMPDIR}"
   assert_success
   assert_output 'Test User'
 }
 
 @test "canonical_name: unset -> dies" {
-  git -C "${BATS_TEST_TMPDIR}" init --quiet
+  git_fixture::init "${BATS_TEST_TMPDIR}"
   # Force a clean environment so global git config doesn't leak in.
   run env GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null \
     bash -c "source '${SCRIPTS_DIR}/functions/args.bash'; \
@@ -217,8 +218,8 @@ function _seed_repo_multi_idents() {
 }
 
 @test "canonical_name: empty -> dies" {
-  git -C "${BATS_TEST_TMPDIR}" init --quiet
-  git -C "${BATS_TEST_TMPDIR}" config user.name ''
+  git_fixture::init "${BATS_TEST_TMPDIR}"
+  git_fixture::run "${BATS_TEST_TMPDIR}" config user.name ''
   run git::canonical_name "${BATS_TEST_TMPDIR}"
   assert_failure
   assert_output --partial 'user.name is empty'
@@ -239,15 +240,15 @@ function _seed_repo_multi_idents() {
 # ---------- git::canonical_email ----------
 
 @test "canonical_email: returns configured email" {
-  git -C "${BATS_TEST_TMPDIR}" init --quiet
-  git -C "${BATS_TEST_TMPDIR}" config user.email 'me@example.com'
+  git_fixture::init "${BATS_TEST_TMPDIR}"
+  git_fixture::run "${BATS_TEST_TMPDIR}" config user.email 'me@example.com'
   run git::canonical_email "${BATS_TEST_TMPDIR}"
   assert_success
   assert_output 'me@example.com'
 }
 
 @test "canonical_email: unset -> dies" {
-  git -C "${BATS_TEST_TMPDIR}" init --quiet
+  git_fixture::init "${BATS_TEST_TMPDIR}"
   run env GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null \
     bash -c "source '${SCRIPTS_DIR}/functions/args.bash'; \
              source '${SCRIPTS_DIR}/functions/log.bash'; \
@@ -259,8 +260,8 @@ function _seed_repo_multi_idents() {
 }
 
 @test "canonical_email: empty -> dies" {
-  git -C "${BATS_TEST_TMPDIR}" init --quiet
-  git -C "${BATS_TEST_TMPDIR}" config user.email ''
+  git_fixture::init "${BATS_TEST_TMPDIR}"
+  git_fixture::run "${BATS_TEST_TMPDIR}" config user.email ''
   run git::canonical_email "${BATS_TEST_TMPDIR}"
   assert_failure
   assert_output --partial 'user.email is empty'
@@ -294,11 +295,11 @@ function _seed_repo_multi_idents() {
 
 @test "write_distinct_identities: single-identity repo -> single line" {
   local -r repo="${BATS_TEST_TMPDIR}/solo"
-  git init --quiet "${repo}"
-  git -C "${repo}" config commit.gpgSign false
+  git_fixture::init "${repo}"
+  git_fixture::run "${repo}" config commit.gpgSign false
   GIT_AUTHOR_NAME='Solo' GIT_AUTHOR_EMAIL='solo@x' \
     GIT_COMMITTER_NAME='Solo' GIT_COMMITTER_EMAIL='solo@x' \
-    git -C "${repo}" commit --quiet --allow-empty --message='c1'
+    git_fixture::run "${repo}" commit --quiet --allow-empty --message='c1'
   local out="${BATS_TEST_TMPDIR}/distinct"
   git::write_distinct_identities "${repo}" "${out}"
   run cat "${out}"
@@ -308,7 +309,7 @@ function _seed_repo_multi_idents() {
 
 @test "write_distinct_identities: empty repo -> dies" {
   local -r repo="${BATS_TEST_TMPDIR}/empty"
-  git init --quiet "${repo}"
+  git_fixture::init "${repo}"
   local out="${BATS_TEST_TMPDIR}/distinct"
   run git::write_distinct_identities "${repo}" "${out}"
   assert_failure
@@ -799,8 +800,8 @@ function _seed_repo_on_branch() {
   local -r branch="$1"
   local -r name="${2:-dbr}"
   local -r dir="${BATS_TEST_TMPDIR}/${name}"
-  git init --quiet --initial-branch="${branch}" "${dir}"
-  git -C "${dir}" -c user.name=t -c user.email=t@e commit --allow-empty --quiet --message init
+  git_fixture::init "${dir}" --initial-branch="${branch}"
+  git_fixture::run "${dir}" -c user.name=t -c user.email=t@e commit --allow-empty --quiet --message init
   printf '%s\n' "${dir}"
 }
 
@@ -823,7 +824,7 @@ function _seed_repo_on_branch() {
 @test "default_branch: prefers main when both exist" {
   local repo
   repo="$(_seed_repo_on_branch master)"
-  git -C "${repo}" branch main
+  git_fixture::run "${repo}" branch main
   run git::default_branch "${repo}"
   assert_success
   assert_output 'main'
