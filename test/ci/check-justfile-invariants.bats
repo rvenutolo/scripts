@@ -8,6 +8,7 @@ setup() {
 # Write a justfile whose recipes match the default README fixture below.
 make_justfile() {
   cat > "${ROOT}/.justfile" << 'EOF'
+# Run the default gate
 default: check
 
 # Run the full local verification gate
@@ -147,14 +148,18 @@ run_check() {
   make_readme
   make_pr_template
   cat > "${ROOT}/.justfile" << 'EOF'
+# Run the default gate
 default: check
 
+# Run the full local verification gate
 all:
     ./check-scripts
 
+# shellcheck + shdoc header audit
 check:
     ./check-scripts
 
+# Scaffold a new script
 new-script PATH:
     ./scripts/non-interactive/new-script {{PATH}}
 EOF
@@ -167,11 +172,14 @@ EOF
   make_readme
   make_pr_template
   cat > "${ROOT}/.justfile" << 'EOF'
+# Run the default gate
 default: check
 
+# shellcheck + shdoc header audit
 check:
     ./check-scripts
 
+# Scaffold a new script
 new-script PATH:
     ./scripts/non-interactive/new-script {{PATH}}
 EOF
@@ -231,17 +239,22 @@ EOF
   make_readme
   make_pr_template
   cat > "${ROOT}/.justfile" << 'EOF'
+# Run the default gate
 default: check
 
+# Run the full local verification gate
 all:
     ./run-all-checks
 
+# shellcheck + shdoc header audit
 check:
     ./check-scripts
 
+# Scaffold a new script
 new-script PATH:
     ./scripts/non-interactive/new-script {{PATH}}
 
+# Build the thing
 Build:
     ./build
 EOF
@@ -254,17 +267,22 @@ EOF
 @test "an uppercase-initial recipe documented in README passes" {
   make_pr_template
   cat > "${ROOT}/.justfile" << 'EOF'
+# Run the default gate
 default: check
 
+# Run the full local verification gate
 all:
     ./run-all-checks
 
+# shellcheck + shdoc header audit
 check:
     ./check-scripts
 
+# Scaffold a new script
 new-script PATH:
     ./scripts/non-interactive/new-script {{PATH}}
 
+# Build the thing
 Build:
     ./build
 EOF
@@ -323,15 +341,18 @@ export MYVAR := "x"
 myvar := "y"
 alias c := check
 
+# Run the default gate
 default: check
 
 # Run the full local verification gate
 all: check
     ./run-all-checks
 
+# shellcheck + shdoc header audit
 check:
     ./check-scripts
 
+# Scaffold a new script
 new-script PATH="d":
     ./scripts/non-interactive/new-script {{PATH}}
 EOF
@@ -373,4 +394,64 @@ EOF
   run_check
   assert_failure
   assert_output --partial 'Common commands'
+}
+
+# --- #242: every public recipe describes itself ---
+
+@test "fails when a public recipe has no doc comment" {
+  make_readme
+  make_pr_template
+  cat > "${ROOT}/.justfile" << 'EOF'
+# Run the default gate
+default: check
+
+# Run the full local verification gate
+all:
+    ./run-all-checks
+
+check:
+    ./check-scripts
+
+# Scaffold a new script
+new-script PATH:
+    ./scripts/non-interactive/new-script {{PATH}}
+EOF
+  run_check
+  assert_failure
+  assert_output --partial 'check'
+  assert_output --partial 'doc comment'
+}
+
+@test "passes when a private recipe has no doc comment" {
+  make_readme
+  make_pr_template
+  cat > "${ROOT}/.justfile" << 'EOF'
+# Run the default gate
+default: check
+
+# Run the full local verification gate
+all:
+    ./run-all-checks
+
+# shellcheck + shdoc header audit
+check:
+    ./check-scripts
+
+_internal-helper:
+    true
+
+# Scaffold a new script
+new-script PATH:
+    ./scripts/non-interactive/new-script {{PATH}}
+EOF
+  run_check
+  assert_success
+}
+
+@test "passes when every public recipe carries a doc comment" {
+  make_justfile
+  make_readme
+  make_pr_template
+  run_check
+  assert_success
 }

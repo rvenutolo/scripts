@@ -137,6 +137,8 @@ function governance_runner_checks() {
 
 function main() {
   args::check_no_args "$@"
+  local -a exempt_entries=()
+  arrays::from_env_override exempt_entries EXEMPT_OVERRIDE "${EXEMPT[@]}"
   files::assert_exists "${INDEX_MD}"
   files::assert_exists "${RULESET_JSON}"
   files::assert_exists "${GOVERNANCE_RUNNER}"
@@ -160,6 +162,26 @@ function main() {
   cut --delimiter=$'\x01' --fields=2 "${rows_tmp}" | sort --unique > "${index_enf_tmp}"
 
   local failed=0
+
+  # Rule 7: every EXEMPT entry must still be warranted, in both directions.
+  # Forward: the entry names a real .ci executable, so a rename or deletion
+  # cannot leave dead weight behind. Reverse: the entry holds no index row —
+  # an exempt script that acquires one is being documented as an enforcer, so
+  # the exemption is wrong. The reverse test reads index_enf_tmp (the Enforcer
+  # column) rather than the raw file: run-governance-checks is named in the
+  # index's header prose, and a whole-file grep would misread that as a row.
+  local exempt_entry
+  for exempt_entry in ${exempt_entries[@]+"${exempt_entries[@]}"}; do
+    if [[ ! -x "${CI_DIR}/${exempt_entry}" ]]; then
+      printf 'EXEMPT entry names no .ci executable: %s\n' "${exempt_entry}" >&2
+      failed=1
+    fi
+    if grep --quiet --line-regexp --fixed-strings "${exempt_entry}" "${index_enf_tmp}"; then
+      printf 'EXEMPT entry has an invariant-index row: %s\n' "${exempt_entry}" >&2
+      failed=1
+    fi
+  done
+
   local inv enf job req
   while IFS=$'\x01' read -r inv enf job req; do
     # Skip stray blank lines that gawk may emit (all three key cells empty); not a legitimate partial-blank row.
@@ -213,7 +235,7 @@ function main() {
   while IFS= read -r script; do
     strings::is_empty "${script}" && continue
     name="$(basename "${script}")"
-    if arrays::contains "${name}" "${EXEMPT[@]}"; then
+    if arrays::contains "${name}" ${exempt_entries[@]+"${exempt_entries[@]}"}; then
       continue
     fi
     printf '%s\n' "${name}" >> "${ci_basenames_tmp}"
