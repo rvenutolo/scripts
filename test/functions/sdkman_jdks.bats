@@ -107,6 +107,12 @@ EOF
   assert_output ''
 }
 
+@test "filter_for_installed: dies with args" {
+  run sdkman_jdks::filter_for_installed 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
 # ---------- filter_for_major_version ----------
 
 @test "filter_for_major_version: keeps only matching major" {
@@ -142,6 +148,12 @@ EOF
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
   assert_line --index 1 '17;17.0.10;17.0.10-tem;y'
+}
+
+@test "filter_for_latest_per_major_version: dies with args" {
+  run sdkman_jdks::filter_for_latest_per_major_version 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 # ---------- get_formatted_tem_jdk_*_field ----------
@@ -187,6 +199,24 @@ EOF
     assert_success
     assert_output ''
   done
+}
+
+@test "get_formatted_tem_jdk_major_version_field: dies with args" {
+  run sdkman_jdks::get_formatted_tem_jdk_major_version_field 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
+@test "get_formatted_tem_jdk_version_field: dies with args" {
+  run sdkman_jdks::get_formatted_tem_jdk_version_field 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
+@test "get_formatted_tem_jdk_artifact_id_field: dies with args" {
+  run sdkman_jdks::get_formatted_tem_jdk_artifact_id_field 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 # ---------- helpers for wrapper tests ----------
@@ -423,6 +453,24 @@ fixture_default_symlink() {
   assert_output 'default java 21.0.5-tem'
 }
 
+@test "install_jdk: dies with 0 args" {
+  run sdkman_jdks::install_jdk < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "uninstall_jdk: dies with 0 args" {
+  run sdkman_jdks::uninstall_jdk < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "set_default_jdk_by_id: dies with 0 args" {
+  run sdkman_jdks::set_default_jdk_by_id < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- latest_available_* ----------
 
 @test "get_formatted_latest_available_tem_jdk_major_versions: returns latest per major" {
@@ -432,6 +480,12 @@ fixture_default_symlink() {
   assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
   assert_line --index 1 '17;17.0.10;17.0.10-tem;y'
   assert_line --index 2 '11;11.0.22;11.0.22-tem;n'
+}
+
+@test "get_formatted_latest_available_tem_jdk_major_versions: dies with args" {
+  run sdkman_jdks::get_formatted_latest_available_tem_jdk_major_versions 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 @test "get_formatted_latest_available_tem_jdk_for_major_version: returns latest for given major" {
@@ -448,6 +502,12 @@ fixture_default_symlink() {
   assert_output --partial 'Java version 99 is not available'
 }
 
+@test "get_formatted_latest_available_tem_jdk_for_major_version: dies with 0 args" {
+  run sdkman_jdks::get_formatted_latest_available_tem_jdk_for_major_version < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- available major versions ----------
 
 @test "get_available_tem_jdk_major_versions: numerically sorted unique majors" {
@@ -459,11 +519,23 @@ fixture_default_symlink() {
   assert_line --index 2 '21'
 }
 
+@test "get_available_tem_jdk_major_versions: dies with args" {
+  run sdkman_jdks::get_available_tem_jdk_major_versions 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
 @test "get_latest_available_tem_jdk_major_version: returns highest major" {
   stub_jdks_and_sdk
   run sdkman_jdks::get_latest_available_tem_jdk_major_version
   assert_success
   assert_output '21'
+}
+
+@test "get_latest_available_tem_jdk_major_version: dies with args" {
+  run sdkman_jdks::get_latest_available_tem_jdk_major_version 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 @test "check_available_tem_jdk_major_version: succeeds for available major" {
@@ -477,6 +549,12 @@ fixture_default_symlink() {
   run sdkman_jdks::check_available_tem_jdk_major_version 99
   assert_failure
   assert_output --partial 'Java version 99 is not available'
+}
+
+@test "check_available_tem_jdk_major_version: dies with 0 args" {
+  run sdkman_jdks::check_available_tem_jdk_major_version < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- get_formatted_installed_tem_jdks (candidates-dir source) ----------
@@ -575,12 +653,24 @@ fixture_default_symlink() {
   assert_line --index 1 '21;21.0.3;21.0.3-tem;y'
 }
 
+@test "get_formatted_installed_tem_jdks_for_major_version: dies with 0 args" {
+  run sdkman_jdks::get_formatted_installed_tem_jdks_for_major_version < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 @test "get_formatted_latest_installed_tem_jdk_major_versions: latest installed per major" {
   stub_jdks_and_sdk
   run sdkman_jdks::get_formatted_latest_installed_tem_jdk_major_versions
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
   assert_line --index 1 '17;17.0.10;17.0.10-tem;y'
+}
+
+@test "get_formatted_latest_installed_tem_jdk_major_versions: dies with args" {
+  run sdkman_jdks::get_formatted_latest_installed_tem_jdk_major_versions 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 @test "get_formatted_latest_installed_tem_jdk_for_major_version: returns latest installed for major" {
@@ -597,6 +687,12 @@ fixture_default_symlink() {
   assert_output --partial 'Java version 11 is not installed'
 }
 
+@test "get_formatted_latest_installed_tem_jdk_for_major_version: dies with 0 args" {
+  run sdkman_jdks::get_formatted_latest_installed_tem_jdk_for_major_version < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 @test "get_installed_tem_jdk_major_versions: numerically sorted unique installed majors" {
   stub_jdks_and_sdk
   run sdkman_jdks::get_installed_tem_jdk_major_versions
@@ -605,11 +701,23 @@ fixture_default_symlink() {
   assert_line --index 1 '21'
 }
 
+@test "get_installed_tem_jdk_major_versions: dies with args" {
+  run sdkman_jdks::get_installed_tem_jdk_major_versions 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
 @test "get_latest_installed_tem_jdk_major_version: returns highest installed major" {
   stub_jdks_and_sdk
   run sdkman_jdks::get_latest_installed_tem_jdk_major_version
   assert_success
   assert_output '21'
+}
+
+@test "get_latest_installed_tem_jdk_major_version: dies with args" {
+  run sdkman_jdks::get_latest_installed_tem_jdk_major_version 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 @test "check_installed_tem_jdk_major_version: succeeds for installed" {
@@ -624,6 +732,12 @@ fixture_default_symlink() {
   assert_failure
 }
 
+@test "check_installed_tem_jdk_major_version: dies with 0 args" {
+  run sdkman_jdks::check_installed_tem_jdk_major_version < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 @test "is_tem_jdk_artifact_installed: true for installed artifact" {
   stub_jdks_and_sdk
   run sdkman_jdks::is_tem_jdk_artifact_installed '21.0.3-tem'
@@ -636,11 +750,23 @@ fixture_default_symlink() {
   assert_failure
 }
 
+@test "is_tem_jdk_artifact_installed: dies with 0 args" {
+  run sdkman_jdks::is_tem_jdk_artifact_installed < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 @test "get_latest_installed_tem_jdk_artifact_id_for_major_version: returns artifact id" {
   stub_jdks_and_sdk
   run sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version 21
   assert_success
   assert_output '21.0.5-tem'
+}
+
+@test "get_latest_installed_tem_jdk_artifact_id_for_major_version: dies with 0 args" {
+  run sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- installing / setting default / pruning ----------
@@ -653,6 +779,12 @@ fixture_default_symlink() {
   assert_output 'install java 21.0.5-tem'
 }
 
+@test "install_latest_tem_jdk: dies with 0 args" {
+  run sdkman_jdks::install_latest_tem_jdk < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 @test "install_latest_tem_jdks: installs latest for every major" {
   stub_jdks_and_sdk
   run sdkman_jdks::install_latest_tem_jdks
@@ -663,12 +795,24 @@ fixture_default_symlink() {
   assert_line --index 2 'install java 21.0.5-tem'
 }
 
+@test "install_latest_tem_jdks: dies with args" {
+  run sdkman_jdks::install_latest_tem_jdks 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
 @test "set_default_sdk_to_latest_installed_for_major_version: sets default to latest installed" {
   stub_jdks_and_sdk
   run sdkman_jdks::set_default_sdk_to_latest_installed_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output 'default java 21.0.5-tem'
+}
+
+@test "set_default_sdk_to_latest_installed_for_major_version: dies with 0 args" {
+  run sdkman_jdks::set_default_sdk_to_latest_installed_for_major_version < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- has_default_jdk ----------
@@ -740,6 +884,12 @@ fixture_default_symlink() {
   assert_output 'default java 21.0.5-tem'
 }
 
+@test "set_default_jdk_to_latest_patch_of_current_major: dies with args" {
+  run sdkman_jdks::set_default_jdk_to_latest_patch_of_current_major 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
 @test "prune_tem_jdks_for_major_version: uninstalls all installed for major except latest available" {
   stub_jdks_and_sdk
   run sdkman_jdks::prune_tem_jdks_for_major_version 21
@@ -748,10 +898,22 @@ fixture_default_symlink() {
   assert_output 'uninstall java 21.0.3-tem'
 }
 
+@test "prune_tem_jdks_for_major_version: dies with 0 args" {
+  run sdkman_jdks::prune_tem_jdks_for_major_version < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 @test "prune_tem_jdks: prunes across every installed major" {
   stub_jdks_and_sdk
   run sdkman_jdks::prune_tem_jdks
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output --partial 'uninstall java 21.0.3-tem'
+}
+
+@test "prune_tem_jdks: dies with args" {
+  run sdkman_jdks::prune_tem_jdks 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
 }

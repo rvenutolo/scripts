@@ -72,6 +72,12 @@ setup() {
   assert_output --partial 'does not exist'
 }
 
+@test "assert_exists: dies with 0 args" {
+  run files::assert_exists < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- files::any_exists ----------
 
 @test "any_exists: file -> true" {
@@ -98,6 +104,12 @@ setup() {
   assert_failure
 }
 
+@test "any_exists: dies with 0 args" {
+  run files::any_exists < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- files::is_readable ----------
 
 @test "is_readable: readable file -> true" {
@@ -120,6 +132,12 @@ setup() {
 @test "is_readable: missing -> false" {
   run files::is_readable "${BATS_TEST_TMPDIR}/nope"
   assert_failure
+}
+
+@test "is_readable: dies with 0 args" {
+  run files::is_readable < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- files::is_executable ----------
@@ -236,6 +254,12 @@ setup() {
   assert_output --partial 'is not executable'
 }
 
+@test "assert_executable: dies with 0 args" {
+  run files::assert_executable < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- files::is_empty ----------
 
 @test "is_empty: empty file -> true" {
@@ -345,6 +369,12 @@ setup() {
   assert_output --partial 'does not exist or is not empty'
 }
 
+@test "assert_empty: dies with 0 args" {
+  run files::assert_empty < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- files::assert_non_empty ----------
 
 @test "assert_non_empty: non-empty file -> success" {
@@ -366,6 +396,12 @@ setup() {
   assert_output --partial 'does not exist or is empty'
 }
 
+@test "assert_non_empty: dies with 0 args" {
+  run files::assert_non_empty < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- files::size_gb ----------
 
 @test "size_gb: tiny file -> 0 (bc with scale=2 omits trailing zeros for 0)" {
@@ -380,6 +416,12 @@ setup() {
   run files::size_gb "${BATS_TEST_TMPDIR}/nope"
   assert_failure
   assert_output --partial 'does not exist'
+}
+
+@test "size_gb: dies with 0 args" {
+  run files::size_gb < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- files::mtime_epoch ----------
@@ -572,6 +614,12 @@ setup() {
   [[ "$(< "${BATS_TEST_TMPDIR}/f")" == 'content' ]]
 }
 
+@test "write_quiet: dies with 1 arg" {
+  run files::write_quiet 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 # ---------- files::move ----------
 
 @test "move: src -> nonexistent dest with auto-answer Y" {
@@ -665,6 +713,24 @@ setup() {
   [[ ! -e "${BATS_TEST_TMPDIR}/src" ]]
 }
 
+@test "move_quiet: dies with 1 arg" {
+  run files::move_quiet 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
+@test "move_no_prompt: dies with 1 arg" {
+  run files::move_no_prompt 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
+@test "move_no_prompt_quiet: dies with 1 arg" {
+  run files::move_no_prompt_quiet 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 # ---------- files::copy ----------
 
 @test "copy: nonexistent dest auto-Y -> creates copy, src remains" {
@@ -707,6 +773,18 @@ setup() {
   [[ -f "${BATS_TEST_TMPDIR}/dest" ]]
 }
 
+@test "copy: dies with 1 arg" {
+  run files::copy 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
+@test "copy_quiet: dies with 1 arg" {
+  run files::copy_quiet 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 # ---------- files::append_to ----------
 
 @test "append_to: appends to existing file" {
@@ -743,6 +821,12 @@ setup() {
 
 @test "append_to: dies with 1 arg" {
   run files::append_to 'a'
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
+@test "append_to_quiet: dies with 1 arg" {
+  run files::append_to_quiet 'a0' < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 2 arguments'
 }
@@ -833,6 +917,13 @@ setup_files_root_helpers() {
   [[ "$(< "${target}")" == 'new' ]]
 }
 
+@test "root_write: dies with 1 arg" {
+  setup_files_root_helpers
+  run files::root_write 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 @test "root_write_quiet: writes without log noise" {
   setup_files_root_helpers
   local target="${BATS_TEST_TMPDIR}/out"
@@ -840,6 +931,13 @@ setup_files_root_helpers() {
   assert_success
   [[ "$(< "${target}")" == 'hello' ]]
   refute_output --partial 'Writing'
+}
+
+@test "root_write_quiet: dies with 1 arg" {
+  setup_files_root_helpers
+  run files::root_write_quiet 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 @test "root_append_to: appends to file via sudo passthrough" {
@@ -861,6 +959,13 @@ setup_files_root_helpers() {
   [[ "$(< "${target}")" == 'line1' ]]
 }
 
+@test "root_append_to: dies with 1 arg" {
+  setup_files_root_helpers
+  run files::root_append_to 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 @test "root_append_to_quiet: appends without log noise" {
   setup_files_root_helpers
   local target="${BATS_TEST_TMPDIR}/log"
@@ -868,6 +973,13 @@ setup_files_root_helpers() {
   run files::root_append_to_quiet "${target}" 'line2'
   assert_success
   refute_output --partial 'Appending'
+}
+
+@test "root_append_to_quiet: dies with 1 arg" {
+  setup_files_root_helpers
+  run files::root_append_to_quiet 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 @test "root_move: moves file via sudo passthrough when confirm=y" {
@@ -911,6 +1023,13 @@ setup_files_root_helpers() {
   assert_output --partial 'File paths are the same'
 }
 
+@test "root_move: dies with 1 arg" {
+  setup_files_root_helpers
+  run files::root_move 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 @test "root_move_quiet: moves without log noise" {
   setup_files_root_helpers
   local src="${BATS_TEST_TMPDIR}/src"
@@ -921,6 +1040,13 @@ setup_files_root_helpers() {
   run files::root_move_quiet "${src}" "${dest}"
   assert_success
   refute_output --partial 'Moving'
+}
+
+@test "root_move_quiet: dies with 1 arg" {
+  setup_files_root_helpers
+  run files::root_move_quiet 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 @test "root_copy: copies file via sudo passthrough when confirm=y" {
@@ -955,6 +1081,13 @@ setup_files_root_helpers() {
   assert_output --partial 'does not exist'
 }
 
+@test "root_copy: dies with 1 arg" {
+  setup_files_root_helpers
+  run files::root_copy 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 @test "root_copy_quiet: copies without log noise" {
   setup_files_root_helpers
   local src="${BATS_TEST_TMPDIR}/src"
@@ -965,6 +1098,13 @@ setup_files_root_helpers() {
   run files::root_copy_quiet "${src}" "${dest}"
   assert_success
   refute_output --partial 'Copying'
+}
+
+@test "root_copy_quiet: dies with 1 arg" {
+  setup_files_root_helpers
+  run files::root_copy_quiet 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 @test "root_transform: applies sed filter to root-owned file" {

@@ -61,6 +61,12 @@ setup() {
   assert_success
 }
 
+@test "is_not_empty: dies with no args" {
+  run strings::is_not_empty < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- strings::is_blank ----------
 
 @test "is_blank: true for empty string" {
@@ -96,6 +102,12 @@ setup() {
 @test "is_blank: false for whitespace surrounding non-space" {
   run strings::is_blank '  x  '
   assert_failure
+}
+
+@test "is_blank: dies with no args" {
+  run strings::is_blank < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- strings::is_not_blank ----------
@@ -330,6 +342,12 @@ setup() {
   assert_output ''
 }
 
+@test "trim: dies with no args" {
+  run strings::trim < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- strings::ensure_trailing_slash ----------
 
 @test "ensure_trailing_slash: empty string -> empty string" {
@@ -360,4 +378,10 @@ setup() {
   run strings::ensure_trailing_slash 'foo/bar'
   assert_success
   assert_output 'foo/bar/'
+}
+
+@test "ensure_trailing_slash: dies with no args" {
+  run strings::ensure_trailing_slash < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }

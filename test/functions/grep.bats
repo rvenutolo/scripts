@@ -135,6 +135,18 @@ function run_file_grep() {
   assert_failure
 }
 
+@test "contains_exactly_ignore_case: dies with 0 args" {
+  run grep::contains_exactly_ignore_case < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "contains_exactly_ignore_case: dies with 3 args" {
+  run grep::contains_exactly_ignore_case 'a' 'b' 'c' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 # ---------- grep::contains_regex ----------
 
 @test "contains_regex stdin: simple regex matches" {
@@ -192,6 +204,18 @@ function run_file_grep() {
   assert_failure
 }
 
+@test "contains_regex: dies with 0 args" {
+  run grep::contains_regex < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "contains_regex: dies with 3 args" {
+  run grep::contains_regex 'a' 'b' 'c' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 # ---------- grep::contains_regex_ignore_case ----------
 
 @test "contains_regex_ignore_case stdin: case-insensitive match" {
@@ -207,6 +231,18 @@ function run_file_grep() {
 @test "contains_regex_ignore_case file: case-insensitive match" {
   run_file_grep 'grep::contains_regex_ignore_case' 'FOO' '^foo'
   assert_success
+}
+
+@test "contains_regex_ignore_case: dies with 0 args" {
+  run grep::contains_regex_ignore_case < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "contains_regex_ignore_case: dies with 3 args" {
+  run grep::contains_regex_ignore_case 'a' 'b' 'c' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 # ---------- grep::contains_perl_regex ----------
@@ -246,6 +282,18 @@ function run_file_grep() {
   assert_failure
 }
 
+@test "contains_perl_regex: dies with 0 args" {
+  run grep::contains_perl_regex < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "contains_perl_regex: dies with 3 args" {
+  run grep::contains_perl_regex 'a' 'b' 'c' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 # ---------- grep::contains_perl_regex_ignore_case ----------
 
 @test "contains_perl_regex_ignore_case stdin: case-insensitive perl match" {
@@ -261,6 +309,18 @@ function run_file_grep() {
 @test "contains_perl_regex_ignore_case file: case-insensitive perl match" {
   run_file_grep 'grep::contains_perl_regex_ignore_case' 'FOO BAR' '\bfoo\b'
   assert_success
+}
+
+@test "contains_perl_regex_ignore_case: dies with 0 args" {
+  run grep::contains_perl_regex_ignore_case < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "contains_perl_regex_ignore_case: dies with 3 args" {
+  run grep::contains_perl_regex_ignore_case 'a' 'b' 'c' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 # ---------- grep::contains_word ----------
@@ -310,6 +370,18 @@ function run_file_grep() {
   assert_failure
 }
 
+@test "contains_word: dies with 0 args" {
+  run grep::contains_word < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "contains_word: dies with 3 args" {
+  run grep::contains_word 'a' 'b' 'c' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 # ---------- grep::contains_word_ignore_case ----------
 
 @test "contains_word_ignore_case stdin: matches different case" {
@@ -330,6 +402,18 @@ function run_file_grep() {
 @test "contains_word_ignore_case file: requires word boundary" {
   run_file_grep 'grep::contains_word_ignore_case' 'FOOBAR' 'foo'
   assert_failure
+}
+
+@test "contains_word_ignore_case: dies with 0 args" {
+  run grep::contains_word_ignore_case < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "contains_word_ignore_case: dies with 3 args" {
+  run grep::contains_word_ignore_case 'a' 'b' 'c' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 # ---------- grep::contains_word_regex ----------
@@ -364,6 +448,18 @@ function run_file_grep() {
   assert_failure
 }
 
+@test "contains_word_regex: dies with 0 args" {
+  run grep::contains_word_regex < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "contains_word_regex: dies with 3 args" {
+  run grep::contains_word_regex 'a' 'b' 'c' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 # ---------- grep::contains_word_regex_ignore_case ----------
 
 @test "contains_word_regex_ignore_case stdin: case-insensitive regex word match" {
@@ -384,4 +480,16 @@ function run_file_grep() {
 @test "contains_word_regex_ignore_case file: word boundary still enforced" {
   run_file_grep 'grep::contains_word_regex_ignore_case' 'FOOBAR' 'b.r'
   assert_failure
+}
+
+@test "contains_word_regex_ignore_case: dies with 0 args" {
+  run grep::contains_word_regex_ignore_case < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "contains_word_regex_ignore_case: dies with 3 args" {
+  run grep::contains_word_regex_ignore_case 'a' 'b' 'c' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }

@@ -81,6 +81,12 @@ printf '%s\\n' '$1'"
   assert_failure
 }
 
+@test "is_work: dies with args" {
+  run hosts::is_work 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
 # ---------- is_desktop ----------
 
 @test "is_desktop: matches desktop hostname" {
@@ -99,6 +105,12 @@ printf '%s\\n' '$1'"
   set_hostname 'fixture-work'
   run hosts::is_desktop
   assert_failure
+}
+
+@test "is_desktop: dies with args" {
+  run hosts::is_desktop 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 # ---------- is_laptop ----------
@@ -127,6 +139,12 @@ printf '%s\\n' '$1'"
   assert_failure
 }
 
+@test "is_laptop: dies with args" {
+  run hosts::is_laptop 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
 # ---------- is_server ----------
 
 @test "is_server: matches unknown hostname (anything not personal/work)" {
@@ -151,4 +169,10 @@ printf '%s\\n' '$1'"
   set_hostname 'fixture-work'
   run hosts::is_server
   assert_failure
+}
+
+@test "is_server: dies with args" {
+  run hosts::is_server 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
 }

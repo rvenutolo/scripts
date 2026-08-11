@@ -138,6 +138,12 @@ setup() {
   assert_equal "${#result[@]}" 0
 }
 
+@test "diff: dies with 1 arg" {
+  run arrays::diff 'a0' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
 @test "contains: needle is the first element -> success" {
   run arrays::contains 'apple' 'apple' 'banana' 'cherry'
   assert_success
