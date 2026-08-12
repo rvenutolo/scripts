@@ -54,6 +54,16 @@ export GIT_CEILING_DIRECTORIES="${REPO_DIR}"
 # check-devshell-provides.bats overrides this per case to drive synthetic PATHs.
 export DEVSHELL_PATH_OVERRIDE="${PATH}"
 
+# Same mandate, second query. check-devshell-provides also enumerates the devShell's
+# DECLARED packages via `nix eval` (#234), which carries every hazard listed above —
+# network, nix/sentry/settings.dat written into the working tree, seconds per call — and
+# is reached by any test that runs the real governance suite, not just the lint's own
+# file. An empty value means "no packages enumerated", which the lint treats as nothing to
+# grade; it hard-fails on an empty enumeration only when this override is absent, so the
+# seam cannot make the real gate fail open. check-devshell-provides.bats sets a synthetic
+# enumeration per case to drive that arm.
+export DEVSHELL_PACKAGES_OVERRIDE=''
+
 # Fail the test loudly if the per-test tmpdir is unusable or inside the repo — a wrong
 # fixture root is exactly how git commands end up aimed at the real checkout (#248).
 # Inline [[ ]] checks: strings.bash/dirs.bash are code under test, not harness deps.

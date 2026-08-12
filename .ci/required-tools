@@ -1,0 +1,62 @@
+# Tools the repo's own tooling shells out to. Every entry is justified by a real
+# call site, so the list stays reviewable rather than a guess. This file is data,
+# not a script: one tool per line, `#` comments and blank lines ignored, and it
+# deliberately carries no shebang and no executable bit.
+#
+# Two lints consume it, closing the drift in both directions (#234):
+# - .ci/check-devshell-provides: every entry here must be provided by the flake
+#   devShell, and every package the devShell declares must contribute at least
+#   one entry here (or be excluded by name, with a reason).
+# - .ci/check-tool-declarations: every tool named by a
+#   `commands::*executable_exists` call site under .ci/, .githooks/, or the
+#   repo-root runners must appear here.
+#
+# Deliberately absent:
+# - nix: it provides the devShell and so cannot be provided by it. It is named by
+#   real call sites, so check-tool-declarations exempts it explicitly.
+# - bats: run-tests invokes the vendored ./test/bats/bin/bats submodule, not a
+#   PATH binary.
+# - prettier, yamlfmt, taplo, nixfmt, mdformat: treefmt resolves these from the
+#   Nix store directly, never through PATH.
+# - lychee, zizmor, kcov, bashcov: invoked by CI actions, not by any script in
+#   this repo.
+# - flatpak, appman, apt, dnf, pacman, pwgen and friends: invoked by scripts/,
+#   which is the repo's payload rather than its tooling. Those are expected to
+#   come from the machine.
+#
+# Entries are alphabetical; each carries the call site that warrants it.
+
+# invoked directly by .ci/run-lint-checks
+actionlint
+# invoked by .ci/check-jsonschema
+check-jsonschema
+# invoked by .githooks/commit-msg to validate the prospective commit message
+commitlint
+# invoked directly by .ci/run-lint-checks
+editorconfig-checker
+# asserted by the .ci/check-* workflow lints
+gawk
+# asserted by .ci/apply-repo-settings
+gh
+# every repo-tooling script derives REPO_DIR via `git rev-parse`
+git
+# asserted by the .ci/check-* workflow lints
+jq
+# the task runner the .justfile and README document
+just
+# invoked directly by .ci/run-lint-checks
+markdownlint-cli2
+# the .justfile `docs` recipe and the Pages workflow
+mkdocs
+# run-tests' default `bats --jobs` path needs GNU parallel
+parallel
+# the check-scripts / shellcheck-scripts gate
+shellcheck
+# the check-scripts gate, and shell_scripts::find shells out to `shfmt --find`
+shfmt
+# invoked directly by .ci/run-lint-checks
+typos
+# invoked directly by .ci/run-lint-checks
+yamllint
+# asserted by the .ci/check-* workflow lints
+yq

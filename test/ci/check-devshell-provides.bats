@@ -1,4 +1,4 @@
-# shellcheck disable=SC2030,SC2031 # BATS runs each @test in a subshell; REQUIRED_TOOLS_OVERRIDE and DEVSHELL_PATH_OVERRIDE mutations are intentional and correctly scoped per-test
+# shellcheck disable=SC2030,SC2031 # BATS runs each @test in a subshell; the *_OVERRIDE mutations are intentional and correctly scoped per-test
 
 setup() {
   load '../test_helper/common'
@@ -24,9 +24,42 @@ setup() {
   DEVSHELL_BIN="${BATS_TEST_TMPDIR}/devshell-bin"
   mkdir --parents "${DEVSHELL_BIN}"
   export DEVSHELL_PATH_OVERRIDE="${DEVSHELL_BIN}"
-  # The shipped REQUIRED_TOOLS names real devShell binaries. Tests drive a
-  # synthetic list instead, for the same reason.
+  # The shipped tool list names real devShell binaries. Tests drive a synthetic
+  # list instead, for the same reason.
   export REQUIRED_TOOLS_OVERRIDE='faketool'
+  # The reverse arm (flake -> declared) is inert by default: common.bash exports
+  # an empty DEVSHELL_PACKAGES_OVERRIDE suite-wide so no test can shell out to
+  # `nix eval`, and an empty enumeration grades nothing. The Arm C cases below
+  # supply a synthetic enumeration per case. The shipped EXCLUDED_PACKAGES names
+  # real devShell packages that no synthetic enumeration contains, so it is
+  # emptied here for the same reason the tool list is.
+  export EXCLUDED_PACKAGES_OVERRIDE=''
+}
+
+# Build one tab-separated package record: the package name, then one bin
+# directory per remaining argument — the shape devshell_packages emits.
+pkg_record() {
+  local -r name="$1"
+  shift
+  local record="${name}"
+  local dir
+  for dir in "$@"; do
+    record+=$'\t'"${dir}"
+  done
+  printf '%s' "${record}"
+}
+
+# Create a bin directory holding an executable of the given name, and echo the
+# directory. Stands in for one output of a devShell package.
+make_bin_dir() {
+  local -r dir="$1"
+  local -r tool="${2:-}"
+  mkdir --parents "${dir}"
+  if [[ -n "${tool}" ]]; then
+    printf '%s\n' '#!/usr/bin/env bash' 'true' > "${dir}/${tool}"
+    chmod +x "${dir}/${tool}"
+  fi
+  printf '%s' "${dir}"
 }
 
 # path_shim::add wants a body with a shebang. The shims are never executed —
@@ -163,6 +196,130 @@ add_devshell_tool() {
 @test "passes with an empty tool list and an empty devShell PATH" {
   export REQUIRED_TOOLS_OVERRIDE=''
   export DEVSHELL_PATH_OVERRIDE=''
+  run "${CHECK}"
+  assert_success
+}
+
+@test "reads the declared tool list from the required-tools data file" {
+  add_devshell_tool 'faketool'
+  unset REQUIRED_TOOLS_OVERRIDE
+  printf '%s\n' '# a comment' '' 'faketool # trailing comment' > "${BATS_TEST_TMPDIR}/required-tools"
+  export REQUIRED_TOOLS_FILE_OVERRIDE="${BATS_TEST_TMPDIR}/required-tools"
+  run "${CHECK}"
+  assert_success
+}
+
+@test "a commented-out data-file entry is not a declared tool" {
+  # The tool is absent from the devShell PATH, so a stripped comment marker would
+  # surface as an Arm A failure naming it.
+  unset REQUIRED_TOOLS_OVERRIDE
+  printf '%s\n' '# missing-tool-xyz' > "${BATS_TEST_TMPDIR}/required-tools"
+  export REQUIRED_TOOLS_FILE_OVERRIDE="${BATS_TEST_TMPDIR}/required-tools"
+  run "${CHECK}"
+  assert_success
+}
+
+@test "passes when a devShell package provides a declared tool" {
+  add_devshell_tool 'faketool'
+  DEVSHELL_PACKAGES_OVERRIDE="$(pkg_record 'fakepkg' "${DEVSHELL_BIN}")"
+  export DEVSHELL_PACKAGES_OVERRIDE
+  run "${CHECK}"
+  assert_success
+}
+
+@test "fails when a devShell package provides no declared tool" {
+  add_devshell_tool 'faketool'
+  local -r other="$(make_bin_dir "${BATS_TEST_TMPDIR}/otherbin" 'unrelated')"
+  DEVSHELL_PACKAGES_OVERRIDE="$(pkg_record 'otherpkg' "${other}")"
+  export DEVSHELL_PACKAGES_OVERRIDE
+  run "${CHECK}"
+  assert_failure
+  assert_output --partial 'otherpkg: devShell package contributes no tool declared in .ci/required-tools'
+}
+
+@test "finds a declared tool in a package's second output" {
+  # #234/D10: shellcheck and jq keep their binaries in a separate `-bin` output,
+  # so a walk over p.outPath alone reports two correctly declared tools as
+  # unprovided. Every output must contribute a bin directory.
+  local -r empty_out="$(make_bin_dir "${BATS_TEST_TMPDIR}/pkg-out")"
+  local -r bin_out="$(make_bin_dir "${BATS_TEST_TMPDIR}/pkg-bin" 'faketool')"
+  add_devshell_tool 'faketool'
+  DEVSHELL_PACKAGES_OVERRIDE="$(pkg_record 'fakepkg' "${empty_out}" "${bin_out}")"
+  export DEVSHELL_PACKAGES_OVERRIDE
+  run "${CHECK}"
+  assert_success
+}
+
+@test "an EXCLUDED_PACKAGES entry suppresses an unbacked package" {
+  add_devshell_tool 'faketool'
+  local -r other="$(make_bin_dir "${BATS_TEST_TMPDIR}/otherbin" 'unrelated')"
+  DEVSHELL_PACKAGES_OVERRIDE="$(pkg_record 'otherpkg' "${other}")"
+  export DEVSHELL_PACKAGES_OVERRIDE
+  export EXCLUDED_PACKAGES_OVERRIDE='otherpkg'
+  run "${CHECK}"
+  assert_success
+}
+
+@test "fails when an EXCLUDED_PACKAGES entry names no enumerated package" {
+  add_devshell_tool 'faketool'
+  DEVSHELL_PACKAGES_OVERRIDE="$(pkg_record 'fakepkg' "${DEVSHELL_BIN}")"
+  export DEVSHELL_PACKAGES_OVERRIDE
+  export EXCLUDED_PACKAGES_OVERRIDE='ghostpkg'
+  run "${CHECK}"
+  assert_failure
+  assert_output --partial 'stale EXCLUDED_PACKAGES entry: ghostpkg'
+}
+
+@test "fails when an EXCLUDED_PACKAGES entry names a package that is backed" {
+  # The exclusion is unnecessary: the package does contribute a declared tool, so
+  # leaving the entry in place would quietly disarm the rule for that name.
+  add_devshell_tool 'faketool'
+  DEVSHELL_PACKAGES_OVERRIDE="$(pkg_record 'fakepkg' "${DEVSHELL_BIN}")"
+  export DEVSHELL_PACKAGES_OVERRIDE
+  export EXCLUDED_PACKAGES_OVERRIDE='fakepkg'
+  run "${CHECK}"
+  assert_failure
+  assert_output --partial 'stale EXCLUDED_PACKAGES entry: fakepkg'
+}
+
+@test "reports every unbacked package, not just the first" {
+  add_devshell_tool 'faketool'
+  local -r one="$(make_bin_dir "${BATS_TEST_TMPDIR}/one" 'unrelated')"
+  local -r two="$(make_bin_dir "${BATS_TEST_TMPDIR}/two" 'unrelated')"
+  DEVSHELL_PACKAGES_OVERRIDE="$(pkg_record 'onepkg' "${one}")
+$(pkg_record 'twopkg' "${two}")"
+  export DEVSHELL_PACKAGES_OVERRIDE
+  run "${CHECK}"
+  assert_failure
+  assert_output --partial 'onepkg'
+  assert_output --partial 'twopkg'
+}
+
+@test "reports both arms in one run" {
+  local -r other="$(make_bin_dir "${BATS_TEST_TMPDIR}/otherbin" 'unrelated')"
+  DEVSHELL_PACKAGES_OVERRIDE="$(pkg_record 'otherpkg' "${other}")"
+  export DEVSHELL_PACKAGES_OVERRIDE
+  run "${CHECK}"
+  assert_failure
+  assert_output --partial 'faketool: not provided by the flake devShell'
+  assert_output --partial 'otherpkg: devShell package contributes no tool'
+}
+
+@test "an empty package enumeration grades nothing" {
+  # The suite-wide default. With no packages enumerated there is nothing to hold
+  # the exclusions against, so they must not all read as stale.
+  add_devshell_tool 'faketool'
+  export DEVSHELL_PACKAGES_OVERRIDE=''
+  export EXCLUDED_PACKAGES_OVERRIDE='ghostpkg'
+  run "${CHECK}"
+  assert_success
+}
+
+@test "ignores a package with no bin directories at all" {
+  add_devshell_tool 'faketool'
+  DEVSHELL_PACKAGES_OVERRIDE="$(pkg_record 'barepkg')"
+  export DEVSHELL_PACKAGES_OVERRIDE
+  export EXCLUDED_PACKAGES_OVERRIDE='barepkg'
   run "${CHECK}"
   assert_success
 }
