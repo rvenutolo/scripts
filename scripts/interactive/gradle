@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 # @description Pass-through wrapper that runs `./gradlew` from the nearest enclosing Gradle project root if available, otherwise the system `gradle`.
+#              Honors the JDK pinned by the nearest `.sdkmanrc`.
 # @arg $@ args Arguments forwarded to gradlew/gradle. # pass-through: any arg count valid
+# @stderr a `log::warn` line when the nearest `.sdkmanrc` pins a JDK that is not installed
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -25,6 +27,21 @@ while [[ "${dir}" != / ]]; do
   dir="$(dirname -- "${dir}")"
 done
 readonly project_root
+
+# SDKMAN's auto_env only applies an .sdkmanrc when a shell interactively `cd`s into the directory
+# holding it, so a shell that *starts* here — cron, `bash -c`, a script, an agent session — and any
+# shell sitting in a subproject below it both inherit the global default JDK instead of the pin.
+# Resolve the pin ourselves and export JAVA_HOME: both `gradle` and `gradlew` honor an inherited
+# JAVA_HOME. The search starts at PWD, not project_root, because the .sdkmanrc usually sits at the
+# repo root while project_root stops at the nearest settings.gradle.
+# An already-exported JAVA_HOME does NOT win: sdkman-init exports one in every shell, so deferring
+# to it would make this a permanent no-op.
+sdkmanrc_java_home="$(sdkman::sdkmanrc_java_home "${PWD}")"
+readonly sdkmanrc_java_home
+if strings::is_not_empty "${sdkmanrc_java_home}"; then
+  log::log "Using JDK from .sdkmanrc: ${sdkmanrc_java_home}"
+  export JAVA_HOME="${sdkmanrc_java_home}"
+fi
 
 if files::is_executable "${project_root}/gradlew"; then
   log::log 'Executing gradlew instead of gradle'
