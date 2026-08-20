@@ -85,6 +85,233 @@ setup() {
   assert_output --partial 'Expected no arguments'
 }
 
+# ---------- find_sdkmanrc_file ----------
+
+@test "find_sdkmanrc_file: finds .sdkmanrc in the start directory" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/proj"
+  touch "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
+  run sdkman::find_sdkmanrc_file "${BATS_TEST_TMPDIR}/proj"
+  assert_success
+  assert_output "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
+}
+
+@test "find_sdkmanrc_file: finds .sdkmanrc in an ancestor directory" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/proj/module/src"
+  touch "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
+  run sdkman::find_sdkmanrc_file "${BATS_TEST_TMPDIR}/proj/module/src"
+  assert_success
+  assert_output "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
+}
+
+@test "find_sdkmanrc_file: nearest .sdkmanrc wins over a more distant ancestor" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/proj/module"
+  touch "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
+  touch "${BATS_TEST_TMPDIR}/proj/module/.sdkmanrc"
+  run sdkman::find_sdkmanrc_file "${BATS_TEST_TMPDIR}/proj/module"
+  assert_success
+  assert_output "${BATS_TEST_TMPDIR}/proj/module/.sdkmanrc"
+}
+
+@test "find_sdkmanrc_file: empty when no ancestor holds an .sdkmanrc" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/proj/module"
+  run sdkman::find_sdkmanrc_file "${BATS_TEST_TMPDIR}/proj/module"
+  assert_success
+  assert_output ''
+}
+
+@test "find_sdkmanrc_file: terminates on a relative start directory holding the file" {
+  touch "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::find_sdkmanrc_file '.'
+  assert_success
+  assert_output './.sdkmanrc'
+}
+
+@test "find_sdkmanrc_file: terminates on a relative start directory with no file" {
+  # `dirname .` is `.`, so a missing termination guard would spin forever here.
+  run sdkman::find_sdkmanrc_file '.'
+  assert_success
+  assert_output ''
+}
+
+@test "find_sdkmanrc_file: dies with no args" {
+  run sdkman::find_sdkmanrc_file
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "find_sdkmanrc_file: dies with 2 args" {
+  run sdkman::find_sdkmanrc_file "${BATS_TEST_TMPDIR}" extra
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+# ---------- get_sdkmanrc_file_value ----------
+
+@test "get_sdkmanrc_file_value: reads a plain key=value line" {
+  printf 'java=21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
+  assert_success
+  assert_output '21.0.3-tem'
+}
+
+@test "get_sdkmanrc_file_value: reads a non-java key" {
+  printf 'java=21.0.3-tem\ngradle=8.5\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'gradle'
+  assert_success
+  assert_output '8.5'
+}
+
+@test "get_sdkmanrc_file_value: tolerates whitespace around key, = and value" {
+  printf '   java   =   21.0.3-tem   \n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
+  assert_success
+  assert_output '21.0.3-tem'
+}
+
+@test "get_sdkmanrc_file_value: tolerates CRLF line endings" {
+  printf 'java=21.0.3-tem\r\ngradle=8.5\r\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
+  assert_success
+  assert_output '21.0.3-tem'
+}
+
+@test "get_sdkmanrc_file_value: ignores blank lines and whole-line comments" {
+  printf '# Enable auto-env through the sdkman_auto_env config\n\n#java=99.0.0-tem\njava=21.0.3-tem\n' \
+    > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
+  assert_success
+  assert_output '21.0.3-tem'
+}
+
+@test "get_sdkmanrc_file_value: strips a spaced trailing comment" {
+  printf 'java=21.0.3-tem # pinned for the enforcer\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
+  assert_success
+  assert_output '21.0.3-tem'
+}
+
+@test "get_sdkmanrc_file_value: strips an unspaced trailing comment" {
+  printf 'java=21.0.3-tem#pinned\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
+  assert_success
+  assert_output '21.0.3-tem'
+}
+
+@test "get_sdkmanrc_file_value: last assignment of the key wins" {
+  printf 'java=21.0.3-tem\njava=25.0.4-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
+  assert_success
+  assert_output '25.0.4-tem'
+}
+
+@test "get_sdkmanrc_file_value: empty when the key is absent" {
+  printf 'gradle=8.5\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
+  assert_success
+  assert_output ''
+}
+
+@test "get_sdkmanrc_file_value: empty when the key is assigned an empty value" {
+  printf 'java=\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
+  assert_success
+  assert_output ''
+}
+
+@test "get_sdkmanrc_file_value: empty on an empty file" {
+  : > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
+  assert_success
+  assert_output ''
+}
+
+@test "get_sdkmanrc_file_value: does not match a key that merely starts with the requested one" {
+  printf 'javafx=17.0.1-zulu\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
+  assert_success
+  assert_output ''
+}
+
+@test "get_sdkmanrc_file_value: dies when the file does not exist" {
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/nope" 'java'
+  assert_failure
+  assert_output --partial 'does not exist'
+}
+
+@test "get_sdkmanrc_file_value: dies with 1 arg" {
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
+@test "get_sdkmanrc_file_value: dies with 3 args" {
+  run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java' extra
+  assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
+}
+
+# ---------- sdkmanrc_java_home ----------
+
+@test "sdkmanrc_java_home: resolves the pinned JDK from the start directory" {
+  export SDKMAN_DIR="${BATS_TEST_TMPDIR}/sdkman"
+  mkdir --parents "${SDKMAN_DIR}/candidates/java/21.0.3-tem" "${BATS_TEST_TMPDIR}/proj"
+  printf 'java=21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
+  run sdkman::sdkmanrc_java_home "${BATS_TEST_TMPDIR}/proj"
+  assert_success
+  assert_output "${SDKMAN_DIR}/candidates/java/21.0.3-tem"
+}
+
+@test "sdkmanrc_java_home: resolves the pin from an ancestor of a submodule directory" {
+  export SDKMAN_DIR="${BATS_TEST_TMPDIR}/sdkman"
+  mkdir --parents "${SDKMAN_DIR}/candidates/java/25.0.4-tem" "${BATS_TEST_TMPDIR}/proj/module"
+  printf 'java=25.0.4-tem\n' > "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
+  run sdkman::sdkmanrc_java_home "${BATS_TEST_TMPDIR}/proj/module"
+  assert_success
+  assert_output "${SDKMAN_DIR}/candidates/java/25.0.4-tem"
+}
+
+@test "sdkmanrc_java_home: empty when no ancestor holds an .sdkmanrc" {
+  export SDKMAN_DIR="${BATS_TEST_TMPDIR}/sdkman"
+  mkdir --parents "${SDKMAN_DIR}/candidates/java/21.0.3-tem" "${BATS_TEST_TMPDIR}/proj"
+  run --separate-stderr sdkman::sdkmanrc_java_home "${BATS_TEST_TMPDIR}/proj"
+  assert_success
+  assert_output ''
+  [[ -z "${stderr}" ]]
+}
+
+@test "sdkmanrc_java_home: empty when .sdkmanrc declares no java key" {
+  export SDKMAN_DIR="${BATS_TEST_TMPDIR}/sdkman"
+  mkdir --parents "${SDKMAN_DIR}/candidates/java/21.0.3-tem" "${BATS_TEST_TMPDIR}/proj"
+  printf 'gradle=8.5\n' > "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
+  run --separate-stderr sdkman::sdkmanrc_java_home "${BATS_TEST_TMPDIR}/proj"
+  assert_success
+  assert_output ''
+  [[ -z "${stderr}" ]]
+}
+
+@test "sdkmanrc_java_home: warns to stderr and prints nothing when the pinned JDK is not installed" {
+  export SDKMAN_DIR="${BATS_TEST_TMPDIR}/sdkman"
+  mkdir --parents "${SDKMAN_DIR}/candidates/java/21.0.3-tem" "${BATS_TEST_TMPDIR}/proj"
+  printf 'java=99.0.0-tem\n' > "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
+  run --separate-stderr sdkman::sdkmanrc_java_home "${BATS_TEST_TMPDIR}/proj"
+  assert_success
+  assert_output ''
+  [[ "${stderr}" == *'pins java=99.0.0-tem'* ]]
+  [[ "${stderr}" == *'not installed'* ]]
+}
+
+@test "sdkmanrc_java_home: dies with no args" {
+  run sdkman::sdkmanrc_java_home
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "sdkmanrc_java_home: dies with 2 args" {
+  run sdkman::sdkmanrc_java_home "${BATS_TEST_TMPDIR}" extra
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- get_sdkmanrc_file_java_artifact_id ----------
 
 @test "get_sdkmanrc_file_java_artifact_id: extracts artifact id from .sdkmanrc" {
