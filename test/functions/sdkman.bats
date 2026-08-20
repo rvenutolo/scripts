@@ -340,6 +340,20 @@ setup() {
   assert_output --partial 'Expected exactly 1 argument'
 }
 
+@test "get_sdkmanrc_file_java_artifact_id: shares the tolerant parser (CRLF, spacing, trailing comment)" {
+  printf '# pin\r\n  java  =  25.0.4-tem  # for the enforcer\r\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::get_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  assert_success
+  assert_output '25.0.4-tem'
+}
+
+@test "get_sdkmanrc_file_java_artifact_id: last assignment wins" {
+  printf 'java=21.0.3-tem\njava=25.0.4-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::get_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  assert_success
+  assert_output '25.0.4-tem'
+}
+
 # ---------- overwrite_sdkmanrc_file_java_artifact_id ----------
 
 @test "overwrite_sdkmanrc_file_java_artifact_id: rewrites java= line" {
@@ -361,6 +375,58 @@ setup() {
   run sdkman::overwrite_sdkmanrc_file_java_artifact_id
   assert_failure
   assert_output --partial 'Expected exactly 2 arguments'
+}
+
+@test "overwrite_sdkmanrc_file_java_artifact_id: rewrites an indented line, preserving indentation and spacing" {
+  printf '  java  =  21.0.3-tem\ngradle=8.5\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '21.0.5-tem'
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  assert_line --index 0 '  java  =  21.0.5-tem'
+  assert_line --index 1 'gradle=8.5'
+}
+
+@test "overwrite_sdkmanrc_file_java_artifact_id: preserves a trailing comment" {
+  printf 'java=21.0.3-tem # pinned for the enforcer\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '21.0.5-tem'
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  assert_output 'java=21.0.5-tem # pinned for the enforcer'
+}
+
+@test "overwrite_sdkmanrc_file_java_artifact_id: preserves a CRLF line ending" {
+  printf 'java=21.0.3-tem\r\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '21.0.5-tem'
+  assert_success
+  run od --address-radix=n --format=c "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  assert_output --partial '\r'
+}
+
+@test "overwrite_sdkmanrc_file_java_artifact_id: leaves a whole-line comment untouched" {
+  printf '#java=99.0.0-tem\njava=21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '21.0.5-tem'
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  assert_line --index 0 '#java=99.0.0-tem'
+  assert_line --index 1 'java=21.0.5-tem'
+}
+
+@test "overwrite_sdkmanrc_file_java_artifact_id: writes sed replacement metacharacters literally" {
+  printf 'java=21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" 'a&b/c\d'
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  assert_output 'java=a&b/c\d'
+}
+
+@test "overwrite_sdkmanrc_file_java_artifact_id: round-trips through the reader on a tolerant line shape" {
+  # The invariant that keeps rewrite_sdkmanrc_file_java_version honest: anything the reader can find,
+  # the writer can rewrite. A reader-only match makes the rewrite a silent no-op that reports success.
+  printf '  java  =  21.0.3-tem  # pinned\r\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '25.0.4-tem'
+  run sdkman::get_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  assert_success
+  assert_output '25.0.4-tem'
 }
 
 # ---------- rewrite_sdkmanrc_file_java_version ----------
@@ -403,6 +469,23 @@ setup() {
   run sdkman::rewrite_sdkmanrc_file_java_version
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "rewrite_sdkmanrc_file_java_version: rewrites an indented java line" {
+  printf '  java = 21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdkman_jdks::is_tem_jdk_artifact_installed() { return 1; }
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdkman_jdks::get_jdk_major_version() { printf '21'; }
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version() { printf '21.0.7-tem'; }
+  export -f sdkman_jdks::is_tem_jdk_artifact_installed
+  export -f sdkman_jdks::get_jdk_major_version
+  export -f sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version
+  run sdkman::rewrite_sdkmanrc_file_java_version "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  assert_output '  java = 21.0.7-tem'
 }
 
 # ---------- list_all_sdkmanrc_files ----------

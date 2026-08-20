@@ -144,24 +144,41 @@ function sdkman::sdkmanrc_java_home() {
 }
 
 # @description Print the java artifact ID declared in an .sdkmanrc file.
-# Output: stdout — artifact ID string (e.g. "21.0.3-tem")
-# @arg $1 .sdkmanrc file path
+# A named shorthand for the `java` key; `sdkman::get_sdkmanrc_file_value` owns the parsing, so this
+# accepts everything that does — CRLF, comments, whitespace around the `=`.
+# @arg $1 sdkmanrc_file .sdkmanrc file path
+# @stdout artifact ID string (e.g. "21.0.3-tem"), or nothing when no java key is declared
+# @exitcode 0 always — "absent" is signalled by empty stdout, never a non-zero status
+# @exitcode 1 the given file does not exist
 function sdkman::get_sdkmanrc_file_java_artifact_id() {
   args::check_exactly_1_arg "$@"
   local -r sdkmanrc_file="$1"
-  files::assert_exists "${sdkmanrc_file}"
-  sed --quiet 's/^java=\(.*\)/\1/p' "${sdkmanrc_file}"
+  sdkman::get_sdkmanrc_file_value "${sdkmanrc_file}" 'java'
 }
 
 # @description Overwrite the java artifact ID in an .sdkmanrc file.
-# @arg $1 .sdkmanrc file path
-# @arg $2 new artifact ID (e.g. "21.0.3-tem")
+# Matches the same line shapes `sdkman::get_sdkmanrc_file_value` reads — leading whitespace and
+# whitespace around the `=` — and rewrites only the value, preserving indentation, spacing, a
+# trailing comment, and a CRLF line ending. Read and write MUST stay symmetric: a reader that finds
+# a line the writer cannot match turns `sdkman::rewrite_sdkmanrc_file_java_version` into a silent
+# no-op that reports success.
+# @arg $1 sdkmanrc_file .sdkmanrc file path
+# @arg $2 artifact_id new artifact ID (e.g. "21.0.3-tem")
+# @exitcode 1 the given file does not exist
 function sdkman::overwrite_sdkmanrc_file_java_artifact_id() {
   args::check_exactly_2_args "$@"
   local -r sdkmanrc_file="$1"
   local -r artifact_id="$2"
   files::assert_exists "${sdkmanrc_file}"
-  sed --in-place --expression "s/^java=.*/java=${artifact_id}/" "${sdkmanrc_file}"
+  # The replacement text is interpreted by sed: a backslash escapes, an unescaped `&` expands to the
+  # whole match, and an unescaped `/` ends the replacement. Escape all three before interpolating.
+  local escaped_artifact_id="${artifact_id//\\/\\\\}"
+  escaped_artifact_id="${escaped_artifact_id//&/\\&}"
+  escaped_artifact_id="${escaped_artifact_id//\//\\/}"
+  readonly escaped_artifact_id
+  sed --in-place --regexp-extended \
+    --expression "s/^([[:space:]]*java[[:space:]]*=[[:space:]]*)[^#[:space:]]*/\\1${escaped_artifact_id}/" \
+    "${sdkmanrc_file}"
 }
 
 # @description Update the java entry in an .sdkmanrc file to the latest installed Temurin JDK for the same major version.
