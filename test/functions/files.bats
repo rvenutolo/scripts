@@ -589,8 +589,8 @@ setup() {
   export SCRIPTS_AUTO_ANSWER=y # intentional: export reaches child process via `run`
   run --separate-stderr files::write "${BATS_TEST_TMPDIR}/f" 'content'
   assert_success
-  [[ "${stderr}" == *'Writing'* ]]
-  [[ "${stderr}" == *'Wrote'* ]]
+  assert_stderr --partial 'Writing'
+  assert_stderr --partial 'Wrote'
 }
 
 @test "write: dies with 1 arg" {
@@ -612,8 +612,8 @@ setup() {
   export SCRIPTS_AUTO_ANSWER=y # intentional: export reaches child process via `run`
   run --separate-stderr files::write_quiet "${BATS_TEST_TMPDIR}/f" 'content'
   assert_success
-  [[ "${stderr}" != *'Writing'* ]]
-  [[ "${stderr}" != *'Wrote'* ]]
+  refute_stderr --partial 'Writing'
+  refute_stderr --partial 'Wrote'
   [[ "$(< "${BATS_TEST_TMPDIR}/f")" == 'content' ]]
 }
 
@@ -687,7 +687,7 @@ setup() {
   export SCRIPTS_AUTO_ANSWER=y # intentional: export reaches child process via `run`
   run --separate-stderr files::move_quiet "${BATS_TEST_TMPDIR}/src" "${BATS_TEST_TMPDIR}/dest"
   assert_success
-  [[ "${stderr}" != *'Moving'* ]]
+  refute_stderr --partial 'Moving'
   [[ ! -e "${BATS_TEST_TMPDIR}/src" ]]
   [[ -f "${BATS_TEST_TMPDIR}/dest" ]]
 }
@@ -713,7 +713,7 @@ setup() {
   unset SCRIPTS_AUTO_ANSWER || true
   run --separate-stderr files::move_no_prompt_quiet "${BATS_TEST_TMPDIR}/src" "${BATS_TEST_TMPDIR}/dest"
   assert_success
-  [[ "${stderr}" != *'Moving'* ]]
+  refute_stderr --partial 'Moving'
   [[ ! -e "${BATS_TEST_TMPDIR}/src" ]]
 }
 
@@ -773,7 +773,7 @@ setup() {
   export SCRIPTS_AUTO_ANSWER=y # intentional: export reaches child process via `run`
   run --separate-stderr files::copy_quiet "${BATS_TEST_TMPDIR}/src" "${BATS_TEST_TMPDIR}/dest"
   assert_success
-  [[ "${stderr}" != *'Copying'* ]]
+  refute_stderr --partial 'Copying'
   [[ -f "${BATS_TEST_TMPDIR}/dest" ]]
 }
 
@@ -811,15 +811,15 @@ setup() {
 @test "append_to: emits Appending/Appended log lines" {
   run --separate-stderr files::append_to "${BATS_TEST_TMPDIR}/f" 'content'
   assert_success
-  [[ "${stderr}" == *'Appending'* ]]
-  [[ "${stderr}" == *'Appended'* ]]
+  assert_stderr --partial 'Appending'
+  assert_stderr --partial 'Appended'
 }
 
 @test "append_to_quiet: no log lines" {
   run --separate-stderr files::append_to_quiet "${BATS_TEST_TMPDIR}/f" 'content'
   assert_success
-  [[ "${stderr}" != *'Appending'* ]]
-  [[ "${stderr}" != *'Appended'* ]]
+  refute_stderr --partial 'Appending'
+  refute_stderr --partial 'Appended'
   [[ "$(< "${BATS_TEST_TMPDIR}/f")" == 'content' ]]
 }
 

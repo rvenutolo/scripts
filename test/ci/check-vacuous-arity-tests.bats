@@ -53,9 +53,18 @@ EOF
 #              real test definitions, truncating them at the first embedded one.
 #              It also means the lint, scanning the real tree, sees no test blocks
 #              here at all.
-# @arg $1 body full file contents, with `%%` where `@test` belongs
+#
+#              `@@STDERR@@` is a second sentinel of the same kind, translated to a
+#              stderr expansion here. A fixture body that spelled the raw glob
+#              literally would be flagged by check-stderr-assertions, which scans the
+#              real tree and cannot tell a fixture string from an assertion. The
+#              translated fixture on disk still carries the real glob, so what the
+#              lint under test sees is unchanged. The substitution below is safe from
+#              that rule itself because the rule requires a `[[` on the same line.
+# @arg $1 body full file contents, with `%%` where `@test` belongs and `@@STDERR@@`
+#         where a stderr expansion belongs
 make_test() {
-  printf '%s\n' "$1" | sed 's/^%%/@test/' > "${FIXTURE_TEST}/sample.bats"
+  printf '%s\n' "$1" | sed 's/^%%/@test/; s/@@STDERR@@/${stderr}/' > "${FIXTURE_TEST}/sample.bats"
 }
 
 # ---------- core detection rule ----------
@@ -257,7 +266,7 @@ make_test() {
   make_test '%% "takes_one: dies" {
   run --separate-stderr fixture::takes_one a b
   assert_failure
-  [[ "${stderr}" == *"Expected exactly 1 argument"* ]]
+  [[ "@@STDERR@@" == *"Expected exactly 1 argument"* ]]
 }'
   run "${CHECK}"
   assert_success

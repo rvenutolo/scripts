@@ -177,9 +177,10 @@ assert_stderr --partial 'Expected no arguments'
 
 `assert_stderr` and `refute_stderr` are easy to overlook — the vendored bats-assert
 defines them inside `src/assert_output.bash` and `src/refute_output.bash` rather than
-in files of their own. Some older tests use a `[[ "${stderr}" == *'…'* ]]` glob; that
-works, but `assert_stderr` prints expected-vs-actual on failure where the glob prints
-nothing.
+in files of their own, along with `assert_stderr_line` and `refute_stderr_line` in the
+`*_line.bash` pair. All four delegate to a shared `__assert_stream` that picks the
+stream from the caller's name. There is no `src/assert_stderr.bash`, which is why an
+`ls src/` once concluded they were missing (#274).
 
 `.ci/check-vacuous-arity-tests` enforces this. It resolves each `run` target to the
 `args::check_*` guard the helper declares and flags the test only when the argument
@@ -196,6 +197,23 @@ those messages anyway, just without a lint to enforce it.
 Exemptions are keyed `<repo-relative-file>::<helper>#<argcount>`. The key carries no
 spaces because `arrays::from_env_override` splits its override on spaces, and it
 survives a test moving within its file, which a line number does not.
+
+**Never hand-roll `[[ "${stderr}" == *'…'* ]]`.** The glob works, but on failure BATS
+prints only the bare failed-`[[` line with no indication of what stderr actually held,
+while `assert_stderr` prints a `-- stderr does not contain substring --` block naming
+both the substring and the real stderr. The rule is not limited to arity tests — it
+covers every stderr assertion in the suite.
+
+- `assert_stderr --partial 'X'` / `refute_stderr --partial 'X'` — substring present or
+  absent.
+- `assert_stderr --regexp 'RE'` — ERE, the same engine bash's `=~` uses, so a pattern
+  moved out of a `[[ ]]` transfers verbatim. Quote it, and drop any `\ ` escapes that
+  were needed only because the old right-hand side was unquoted.
+- Bare `assert_stderr` asserts stderr is non-empty; bare `refute_stderr` asserts it is
+  empty. Prefer `refute_output` over `assert_output ''` for the stdout half, for the
+  same diagnostic reason.
+- Both die with `stderr: parameter not set` when the `run` omitted `--separate-stderr`,
+  which is a clearer failure than the silent empty-string compare it replaces.
 
 ### Standard top-level skeleton
 
