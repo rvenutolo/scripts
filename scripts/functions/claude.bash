@@ -33,6 +33,26 @@ function claude::projects_dir() {
   printf '%s/projects\n' "$(claude::config_dir)"
 }
 
+# @description Print the absolute path of each Claude Code profile config dir --
+#   `${XDG_CONFIG_HOME}/claude/personal` and `${XDG_CONFIG_HOME}/claude/work` --
+#   one per line, personal first. Only dirs that already exist are printed, so a
+#   machine carrying a single profile yields a single line. Unlike
+#   `claude::config_dir` this enumerates the fixed profile set rather than
+#   selecting one, and deliberately ignores both CLAUDE_CONFIG_DIR and PWD.
+# @noargs
+# @stdout one existing profile config dir path per line; no output if none exist
+function claude::profile_dirs() {
+  args::check_no_args "$@"
+  local -ar profiles=('personal' 'work')
+  local profile profile_dir
+  for profile in "${profiles[@]}"; do
+    profile_dir="${XDG_CONFIG_HOME}/claude/${profile}"
+    if dirs::exists "${profile_dir}"; then
+      printf '%s\n' "${profile_dir}"
+    fi
+  done
+}
+
 # @description Encode an absolute path into a Claude Code project-dir name by replacing
 #   every `/` and `.` with `-` (e.g. `/home/x/.config/y` -> `-home-x--config-y`).
 # @arg $1 path absolute path to encode
