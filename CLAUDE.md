@@ -690,6 +690,18 @@ compromised dependency.
   host name genuinely rotates between runs (for example an Azure storage-account number), and then
   narrow it as far as the observed family allows and comment why.
 
+- **`keybase.io:443` in `coverage.yml` is load-bearing — never prune it.** `codecov-action` fetches the
+  Codecov signing key from keybase.io to verify the CLI it just downloaded. The fetch uses a bare
+  `curl -s` inside a command substitution, so a blocked request yields an empty key rather than an
+  error; `gpg --verify` then fails, and with `fail_ci_if_error: false` the script's `exit_if_error`
+  merely prints and returns, falling through to run the unverified binary (#199). The entry looks
+  unused because nothing in the workflow names it — it is the least obviously necessary and
+  highest-value host in that allowlist.
+
+- **Codecov's Sentry telemetry host is blocked deliberately.** `o26192.ingest.us.sentry.io` is crash
+  reporting, not part of the upload path. It is recorded here so a future allowlist harvest does not
+  relitigate it.
+
 - **`links.yml` carries a second, stricter gate.** `.ci/check-links-allowed-endpoints` requires every
   host linked from tracked markdown to appear in that workflow's allowlist. The comparison is one-way:
   extra entries are fine, missing ones fail. Adding an external link to any tracked markdown file —
