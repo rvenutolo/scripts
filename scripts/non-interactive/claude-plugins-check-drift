@@ -1,0 +1,206 @@
+#!/usr/bin/env bash
+
+# @description Report drift between the Claude Code plugin state actually present in every
+#              Claude profile config dir (`${XDG_CONFIG_HOME}/claude/personal` and
+#              `${XDG_CONFIG_HOME}/claude/work`) and the state each profile's `settings.json`
+#              declares. Four categories are reported, per profile:
+#                - a plugin installed but absent from `enabledPlugins`
+#                - a plugin named in `enabledPlugins` but not installed
+#                - a marketplace registered but absent from `extraKnownMarketplaces`
+#                - a marketplace named in `extraKnownMarketplaces` but not registered
+#              Drift matters because `settings.json` is the only declaration chezmoi applies to a
+#              new machine: anything installed but undeclared exists on this host alone, costs disk,
+#              and is re-cloned and updated by `claude-plugins-update` on every topgrade run, while
+#              anything declared but missing silently does nothing. An `enabledPlugins` entry set to
+#              `false` counts as declared -- key presence is the test, not the value, because an
+#              explicit `false` is a deliberate installed-but-off choice.
+#              A profile whose state cannot be read is reported and skipped so the remaining profiles
+#              are still checked; the script then exits 1 along with any real drift.
+# @noargs
+# @stderr progress lines per profile, one warning per drift finding, and a per-profile summary
+# @exitcode 0 every profile's installed plugins and marketplaces match its declarations
+# @exitcode 1 drift was found, a profile could not be read, or claude was not found
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+# Resolve the real binary rather than calling `claude`: that name resolves to this repo's
+# wrapper, which derives CLAUDE_CONFIG_DIR from PWD (defeating the per-profile loop below)
+# and pins ANTHROPIC_MODEL.
+CLAUDE_BIN="$(commands::executable_path claude)" || log::die 'claude executable not found'
+readonly CLAUDE_BIN
+
+# Guarded up front so a missing jq is named directly rather than surfacing once per profile as a
+# generic "failed to read" line that misattributes the cause to claude.
+commands::assert_executable_exists 'jq'
+
+# Ships with Claude Code and is registered in every profile without being asked for. It is by
+# definition not an *extra* known marketplace, so it never appears in extraKnownMarketplaces and
+# would otherwise be reported as undeclared on every run.
+readonly BUILTIN_MARKETPLACE='claude-plugins-official'
+
+# @description Print one warning per element of the first sorted array that is missing from the
+#   second, and report how many there were. Both arrays must already be sorted ascending.
+# @arg $1 first_array_name name of the sorted array to subtract from
+# @arg $2 second_array_name name of the sorted array to subtract
+# @arg $3 description drift label prefixed to each warning line
+# @arg $4 finding_count_var name of the caller's variable to hold the number of findings
+# @stderr one warning line per finding
+# @exitcode 0 always
+function report_drift() {
+  args::check_exactly_4_args "$@"
+  local -r first_array_name="$1"
+  local -r second_array_name="$2"
+  local -r description="$3"
+  local -n _report_drift_finding_count="$4"
+
+  local diff_tmp
+  files::create_temp diff_tmp
+  # shellcheck disable=SC2154 # diff_tmp assigned by files::create_temp via nameref
+  arrays::diff "${first_array_name}" "${second_array_name}" > "${diff_tmp}"
+
+  # mapfile over a temp file rather than a command substitution: an empty diff must yield a
+  # zero-length array, and `arr=( $(...) )` would also mangle any entry containing whitespace.
+  local -a findings
+  mapfile -t findings < "${diff_tmp}"
+
+  local finding
+  for finding in "${findings[@]}"; do
+    log::warn "${description}: ${finding}"
+  done
+
+  _report_drift_finding_count="${#findings[@]}"
+}
+
+# @description Check one Claude profile config dir for plugin and marketplace drift. Always returns
+#   0; the caller learns about findings through the out-variable, so a bare call keeps errexit armed
+#   for everything else this function does.
+# @arg $1 config_dir absolute path to a Claude profile config dir
+# @arg $2 finding_count_var name of the caller's variable to hold the total finding count
+# @stderr progress and warning lines
+# @exitcode 0 always
+function check_profile() {
+  args::check_exactly_2_args "$@"
+  local -r config_dir="$1"
+  local -n _check_profile_finding_count="$2"
+
+  # Scopes the profile for every claude invocation below. Re-exported on each call, so the
+  # value never leaks from one profile's iteration into the next.
+  export CLAUDE_CONFIG_DIR="${config_dir}"
+
+  local -r settings_file="${config_dir}/settings.json"
+  if ! files::exists "${settings_file}"; then
+    log::warn "No settings.json in ${config_dir}; cannot check for drift"
+    _check_profile_finding_count=1
+    return
+  fi
+
+  local installed_plugins_tmp declared_plugins_tmp
+  files::create_temp installed_plugins_tmp
+  files::create_temp declared_plugins_tmp
+
+  # Every claude call below reads stdin from /dev/null. This script runs unattended under
+  # topgrade and cron, where stdin is an inherited pipe that never closes; claude reads it and
+  # blocks forever rather than failing. /dev/null gives it an immediate EOF.
+  # shellcheck disable=SC2154 # installed_plugins_tmp assigned by files::create_temp via nameref
+  if ! "${CLAUDE_BIN}" plugin list --json < '/dev/null' | jq --raw-output '.[].id' | sort > "${installed_plugins_tmp}"; then
+    log::warn "Failed to list installed plugins in ${config_dir}"
+    _check_profile_finding_count=1
+    return
+  fi
+
+  # shellcheck disable=SC2154 # declared_plugins_tmp assigned by files::create_temp via nameref
+  if ! jq --raw-output '.enabledPlugins // {} | keys[]' "${settings_file}" | sort > "${declared_plugins_tmp}"; then
+    log::warn "Failed to read enabledPlugins from ${settings_file}"
+    _check_profile_finding_count=1
+    return
+  fi
+
+  local installed_marketplaces_tmp declared_marketplaces_tmp
+  files::create_temp installed_marketplaces_tmp
+  files::create_temp declared_marketplaces_tmp
+
+  # shellcheck disable=SC2154 # installed_marketplaces_tmp assigned by files::create_temp via nameref
+  if ! "${CLAUDE_BIN}" plugin marketplace list --json < '/dev/null' | jq --raw-output '.[].name' | sort > "${installed_marketplaces_tmp}"; then
+    log::warn "Failed to list registered marketplaces in ${config_dir}"
+    _check_profile_finding_count=1
+    return
+  fi
+
+  # shellcheck disable=SC2154 # declared_marketplaces_tmp assigned by files::create_temp via nameref
+  if ! {
+    jq --raw-output '.extraKnownMarketplaces // {} | keys[]' "${settings_file}"
+    printf '%s\n' "${BUILTIN_MARKETPLACE}"
+  } | sort > "${declared_marketplaces_tmp}"; then
+    log::warn "Failed to read extraKnownMarketplaces from ${settings_file}"
+    _check_profile_finding_count=1
+    return
+  fi
+
+  # The four arrays below are read by arrays::diff through namerefs built from the names passed to
+  # report_drift, which shellcheck cannot follow -- hence the SC2034 disable on each.
+  local -a installed_plugins declared_plugins installed_marketplaces declared_marketplaces
+  # shellcheck disable=SC2034 # read via nameref
+  mapfile -t installed_plugins < "${installed_plugins_tmp}"
+  # shellcheck disable=SC2034 # read via nameref
+  mapfile -t declared_plugins < "${declared_plugins_tmp}"
+  # shellcheck disable=SC2034 # read via nameref
+  mapfile -t installed_marketplaces < "${installed_marketplaces_tmp}"
+  # shellcheck disable=SC2034 # read via nameref
+  mapfile -t declared_marketplaces < "${declared_marketplaces_tmp}"
+
+  local -i undeclared_plugins=0 missing_plugins=0 undeclared_marketplaces=0 missing_marketplaces=0
+  report_drift installed_plugins declared_plugins \
+    "Plugin installed in ${config_dir} but absent from enabledPlugins" undeclared_plugins
+  report_drift declared_plugins installed_plugins \
+    "Plugin declared in enabledPlugins but not installed in ${config_dir}" missing_plugins
+  report_drift installed_marketplaces declared_marketplaces \
+    "Marketplace registered in ${config_dir} but absent from extraKnownMarketplaces" undeclared_marketplaces
+  report_drift declared_marketplaces installed_marketplaces \
+    "Marketplace declared in extraKnownMarketplaces but not registered in ${config_dir}" missing_marketplaces
+
+  _check_profile_finding_count=$((undeclared_plugins + missing_plugins + undeclared_marketplaces + missing_marketplaces))
+}
+
+function main() {
+  # Records findings across profiles so every profile is still checked while the script still
+  # reports failure to topgrade/cron. A silent green run would hide exactly the drift this exists
+  # to surface.
+  local -i overall_exit_code=0
+
+  local dirs_tmp
+  files::create_temp dirs_tmp
+  # shellcheck disable=SC2154 # dirs_tmp assigned by files::create_temp via nameref
+  claude::profile_dirs > "${dirs_tmp}"
+  local -a profile_dirs
+  mapfile -t profile_dirs < "${dirs_tmp}"
+  if ((${#profile_dirs[@]} == 0)); then
+    log::die "No Claude profile config dirs found under ${XDG_CONFIG_HOME}/claude"
+  fi
+
+  local profile_dir
+  local -i profile_findings
+  for profile_dir in "${profile_dirs[@]}"; do
+    log::log "Checking Claude plugin drift in ${profile_dir}"
+    profile_findings=0
+    # Bare call required: wrapping this in `if`/`||`/`&&` suppresses errexit through the whole
+    # call tree, which would let a broken jq or an unwritable temp file read as a green run.
+    check_profile "${profile_dir}" profile_findings
+    if ((profile_findings > 0)); then
+      log::warn "${profile_findings} Claude plugin drift finding(s) in ${profile_dir}"
+      overall_exit_code=1
+    else
+      log::log "No Claude plugin drift in ${profile_dir}"
+    fi
+  done
+
+  exit "${overall_exit_code}"
+}
+
+main "$@"
