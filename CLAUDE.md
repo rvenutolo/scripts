@@ -689,6 +689,9 @@ compromised dependency.
 - **Prefer exact hosts over wildcards.** A wildcard entry permits every subdomain. Use one only when the
   host name genuinely rotates between runs (for example an Azure storage-account number), and then
   narrow it as far as the observed family allows and comment why.
+  `hosted-compute-*.githubapp.com:443` is the sanctioned instance of this: GitHub's own runner
+  watchdog and request-orchestrator hosts carry a per-run region/index suffix (`eus-01`,
+  `iad-02`, …), so no exact host exists to prefer (#201).
 
 - **`keybase.io:443` in `coverage.yml` is load-bearing — never prune it.** `codecov-action` fetches the
   Codecov signing key from keybase.io to verify the CLI it just downloaded. The fetch uses a bare
