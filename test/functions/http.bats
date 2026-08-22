@@ -90,9 +90,11 @@ setup() {
 @test "url_reachable: fails with zero args" {
   run http::url_reachable
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "url_reachable: fails with two args" {
   run http::url_reachable 'https://example.com' 'https://other.com'
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }

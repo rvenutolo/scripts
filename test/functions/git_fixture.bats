@@ -58,8 +58,10 @@ setup() {
 @test "assert_confined: dies with 0 and 2 args" {
   run --separate-stderr git_fixture::assert_confined
   assert_failure
+  [[ "${stderr}" == *'Expected exactly 1 argument'* ]]
   run --separate-stderr git_fixture::assert_confined "${BATS_TEST_TMPDIR}" 'extra'
   assert_failure
+  [[ "${stderr}" == *'Expected exactly 1 argument'* ]]
 }
 
 # ---------- git_fixture::init / init_bare ----------
@@ -114,6 +116,7 @@ setup() {
 @test "run: dies with fewer than 2 args" {
   run --separate-stderr git_fixture::run "${BATS_TEST_TMPDIR}"
   assert_failure
+  [[ "${stderr}" == *'Expected at least 2 arguments'* ]]
 }
 
 # ---------- #248 regression: hostile inherited GIT_DIR cannot retarget fixtures ----------

@@ -33,11 +33,13 @@ setup() {
 @test "assert_installed: 0 args dies" {
   run flatpak::assert_installed
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "assert_installed: 2 args dies" {
   run flatpak::assert_installed 'a' 'b'
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "assert_installed: flatpak missing dies" {
@@ -64,6 +66,7 @@ setup() {
 @test "exec_gui: 0 args dies" {
   run flatpak::exec_gui
   assert_failure
+  assert_output --partial 'Expected at least 1 argument'
 }
 
 @test "exec_gui: missing flatpak dies" {
@@ -132,6 +135,7 @@ setup() {
 @test "exec: 0 args dies" {
   run flatpak::exec
   assert_failure
+  assert_output --partial 'Expected at least 1 argument'
 }
 
 @test "exec: missing flatpak dies" {

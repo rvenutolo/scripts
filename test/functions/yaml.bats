@@ -62,6 +62,7 @@ a: 1' '{
 @test "to_json: dies with 2 args" {
   run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; yaml::to_json a b"
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "to_json: invalid YAML fails (stdin)" {
@@ -93,6 +94,7 @@ a: 1'
 @test "from_json: dies with 2 args" {
   run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; yaml::from_json a b"
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "from_json: invalid JSON fails (stdin)" {
