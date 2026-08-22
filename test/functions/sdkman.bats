@@ -275,8 +275,8 @@ setup() {
   mkdir --parents "${SDKMAN_DIR}/candidates/java/21.0.3-tem" "${BATS_TEST_TMPDIR}/proj"
   run --separate-stderr sdkman::sdkmanrc_java_home "${BATS_TEST_TMPDIR}/proj"
   assert_success
-  assert_output ''
-  [[ -z "${stderr}" ]]
+  refute_output
+  refute_stderr
 }
 
 @test "sdkmanrc_java_home: empty when .sdkmanrc declares no java key" {
@@ -285,8 +285,8 @@ setup() {
   printf 'gradle=8.5\n' > "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
   run --separate-stderr sdkman::sdkmanrc_java_home "${BATS_TEST_TMPDIR}/proj"
   assert_success
-  assert_output ''
-  [[ -z "${stderr}" ]]
+  refute_output
+  refute_stderr
 }
 
 @test "sdkmanrc_java_home: warns to stderr and prints nothing when the pinned JDK is not installed" {
@@ -295,9 +295,9 @@ setup() {
   printf 'java=99.0.0-tem\n' > "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
   run --separate-stderr sdkman::sdkmanrc_java_home "${BATS_TEST_TMPDIR}/proj"
   assert_success
-  assert_output ''
-  [[ "${stderr}" == *'pins java=99.0.0-tem'* ]]
-  [[ "${stderr}" == *'not installed'* ]]
+  refute_output
+  assert_stderr --partial 'pins java=99.0.0-tem'
+  assert_stderr --partial 'not installed'
 }
 
 @test "sdkmanrc_java_home: dies with no args" {
