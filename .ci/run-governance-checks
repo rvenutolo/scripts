@@ -37,6 +37,7 @@ function main() {
     check-links-allowed-endpoints \
     check-pr-workflows-no-secrets \
     check-codecov-strict \
+    check-readme-workflow-table \
     check-renovate-invariants \
     check-required-checks-no-paths \
     check-protect-main \
