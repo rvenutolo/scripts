@@ -18,6 +18,7 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | every host linked from markdown is in the Links workflow allowed-endpoints | `check-links-allowed-endpoints` | `governance` | `governance` |
 | no PR-triggered workflow references secrets other than GITHUB_TOKEN | `check-pr-workflows-no-secrets` | `governance` | `governance` |
 | every codecov-action step keeps fail_ci_if_error true and no validation bypass | `check-codecov-strict` | `governance` | `governance` |
+| the README workflow table lists exactly the workflows that exist | `check-readme-workflow-table` | `governance` | `governance` |
 | renovate.json carries all security-critical invariants | `check-renovate-invariants` | `governance` | `governance` |
 | no required-check workflow declares path filters under pull_request | `check-required-checks-no-paths` | `governance` | `governance` |
 | protect-main ruleset matches the required security posture | `check-protect-main` | `governance` | `governance` |

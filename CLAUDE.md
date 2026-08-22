@@ -696,6 +696,10 @@ compromised dependency.
   `governance`, `nix-flake-check`, and `coverage`. `reviewdog` and `commitlint` were deliberately
   left out — they carry different allowlists and neither installs Nix, so neither hits the
   runner watchdog/orchestrator hosts this wildcard exists for.
+  The intra-label form is **proven**, not assumed: before the change the Post Run step logged
+  `domain not allowed: hosted-compute-watchdog-prod-eus-02.githubapp.com.`, and after it the same
+  host logs as `domain resolved`. harden-runner honors a `*` in the middle of a label, so the
+  broader `*.githubapp.com` was not needed.
 
 - **`keybase.io:443` in `coverage.yml` is load-bearing — never prune it.** `codecov-action` fetches the
   Codecov signing key from keybase.io to verify the CLI it just downloaded. The fetch uses a bare

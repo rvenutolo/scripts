@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+
+# @description Assert the README's workflow table lists exactly the workflows
+#              present under `.github/workflows/`, one row each, with both
+#              descriptive cells filled in. The table is the only human-facing
+#              index of what CI does, and nothing else keeps it honest: a
+#              workflow added without a row is invisible, and a row left behind
+#              by a deleted workflow documents something that no longer runs.
+#              Both drifted undetected until #289 (`protect-main-drift-check`
+#              and `pr-title-lint` were missing).
+#
+#              The table is delimited by `<!-- workflow-table:begin -->` and
+#              `<!-- workflow-table:end -->` markers rather than being located
+#              by position, mirroring `.docs/required-checks.md`. Without them
+#              the check would match any pipe-delimited row anywhere in the
+#              file, and the README carries several unrelated tables.
+#
+#              The comparison is bidirectional: a workflow with no row and a
+#              row naming no workflow both fail.
+# @noargs
+# @stderr One line per drifted entry, plus a final count.
+# @exitcode 0 the table and the workflow directory agree.
+# @exitcode 1 they disagree, a cell is empty, or the markers are missing.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'gawk'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly README_MD="${README_OVERRIDE:-${REPO_DIR}/README.md}"
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
+
+# @description Print each workflow-table row as `name<TAB>trigger<TAB>purpose`.
+#              Only rows between the begin/end markers are considered; the
+#              header row and the `---` separator are skipped, as is any row
+#              outside the markers.
+# @arg $1 md path to the markdown file holding the table
+# @stdout Zero or more tab-separated rows.
+function table_rows() {
+  args::check_exactly_1_arg "$@"
+  local -r md="$1"
+  gawk '
+    function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+    /<!-- workflow-table:begin -->/ { inblock = 1; next }
+    /<!-- workflow-table:end -->/   { inblock = 0; next }
+    !inblock { next }
+    $0 !~ /\|/ { next }
+    /^[[:space:]]*\|[[:space:]:|-]*$/ { next }
+    {
+      split($0, cells, "|")
+      name = trim(cells[2]); trigger = trim(cells[3]); purpose = trim(cells[4])
+      if (name == "Workflow") next
+      gsub(/`/, "", name)
+      printf("%s\t%s\t%s\n", name, trigger, purpose)
+    }
+  ' "${md}"
+}
+
+# @description Print the basename of every workflow file in a directory.
+# @arg $1 dir path to the workflows directory
+# @stdout Zero or more workflow filenames.
+function workflow_files() {
+  args::check_exactly_1_arg "$@"
+  local -r dir="$1"
+  local found_tmp
+  files::create_temp found_tmp
+  find "${dir}" -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) -printf '%f\n' > "${found_tmp}"
+  sort "${found_tmp}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  files::assert_exists "${README_MD}"
+  dirs::assert_exists "${WORKFLOWS_DIR}"
+  if ! grep --quiet --fixed-strings '<!-- workflow-table:begin -->' "${README_MD}"; then
+    log::die "no <!-- workflow-table:begin --> marker in ${README_MD}"
+  fi
+
+  local rows_tmp names_tmp files_tmp missing_tmp extra_tmp
+  files::create_temp rows_tmp
+  files::create_temp names_tmp
+  files::create_temp files_tmp
+  files::create_temp missing_tmp
+  files::create_temp extra_tmp
+  table_rows "${README_MD}" > "${rows_tmp}"
+  cut --fields=1 "${rows_tmp}" | sort --unique > "${names_tmp}"
+  workflow_files "${WORKFLOWS_DIR}" > "${files_tmp}"
+
+  local failed=0
+  local name trigger purpose
+  comm -23 "${files_tmp}" "${names_tmp}" > "${missing_tmp}" # no long-form equivalent
+  comm -13 "${files_tmp}" "${names_tmp}" > "${extra_tmp}"   # no long-form equivalent
+  while IFS= read -r name; do
+    strings::is_empty "${name}" && continue
+    printf 'workflow missing from README table: %s\n' "${name}" >&2
+    failed=1
+  done < "${missing_tmp}"
+  while IFS= read -r name; do
+    strings::is_empty "${name}" && continue
+    printf 'README table row is not a workflow: %s\n' "${name}" >&2
+    failed=1
+  done < "${extra_tmp}"
+  while IFS=$'\t' read -r name trigger purpose; do
+    strings::is_empty "${name}" && continue
+    if strings::is_blank "${trigger}" || strings::is_blank "${purpose}"; then
+      printf 'README table row has empty Trigger or Purpose: %s\n' "${name}" >&2
+      failed=1
+    fi
+  done < "${rows_tmp}"
+
+  if ((failed != 0)); then
+    printf 'README workflow table is out of sync with %s\n' "${WORKFLOWS_DIR}" >&2
+    exit 1
+  fi
+  exit 0
+}
+
+main "$@"
