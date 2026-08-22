@@ -73,7 +73,7 @@ EOF
   install_download_shim
   run downloads::download_to_temp_file 'https://example.com/foo'
   assert_success
-  [[ -n "${output}" ]]
+  assert_output
 }
 
 @test "download_to_temp_file: dies with wrong arg count" {

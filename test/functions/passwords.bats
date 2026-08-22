@@ -36,7 +36,7 @@ setup() {
 @test "generate: alphanumeric only (no symbols)" {
   run passwords::generate 64
   assert_success
-  [[ "${output}" =~ ^[A-Za-z0-9]+$ ]]
+  assert_output --regexp '^[A-Za-z0-9]+$'
 }
 
 @test "generate: two consecutive calls produce different output" {

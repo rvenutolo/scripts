@@ -409,7 +409,7 @@ setup() {
   run files::size_gb "${BATS_TEST_TMPDIR}/f"
   assert_success
   # bc outputs '0' for 0/N at scale=2; encode actual behavior, not idealized form.
-  [[ "${output}" == '0' || "${output}" =~ ^[0-9]*\.[0-9]+$ || "${output}" =~ ^\.[0-9]+$ ]]
+  assert_output --regexp '^(0|[0-9]*\.[0-9]+)$'
 }
 
 @test "size_gb: missing dies" {

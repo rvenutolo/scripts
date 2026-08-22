@@ -106,7 +106,7 @@ baseline() {
   baseline
   run_check "${CHECK}"
   [ "${status}" -eq 0 ]
-  [ -z "${output}" ]
+  refute_output
 }
 
 @test "fails when an EXEMPT entry names no .ci executable" {
@@ -156,7 +156,7 @@ baseline() {
   make_ci check-orphan
   run_check "${CHECK}"
   [ "${status}" -eq 1 ]
-  [[ "${output}" == *"check-orphan"* ]]
+  assert_output --partial 'check-orphan'
 }
 
 @test "fails when an Enforcer cell does not resolve to a .ci executable" {
@@ -168,7 +168,7 @@ baseline() {
   write_runner check-foo check-ghost
   run_check "${CHECK}"
   [ "${status}" -eq 1 ]
-  [[ "${output}" == *"check-ghost"* ]]
+  assert_output --partial 'check-ghost'
 }
 
 @test "fails when a CI job cell does not resolve to a workflow job" {
@@ -178,7 +178,7 @@ baseline() {
     "bar invariant|check-bar|nonexistent-job|check-scripts"
   run_check "${CHECK}"
   [ "${status}" -eq 1 ]
-  [[ "${output}" == *"nonexistent-job"* ]]
+  assert_output --partial 'nonexistent-job'
 }
 
 @test "fails when a Required check cell does not resolve to a ruleset context" {
@@ -188,7 +188,7 @@ baseline() {
     "bar invariant|check-bar|check-scripts|not-required"
   run_check "${CHECK}"
   [ "${status}" -eq 1 ]
-  [[ "${output}" == *"not-required"* ]]
+  assert_output --partial 'not-required'
 }
 
 @test "passes when a Required check cell is blank" {
@@ -215,7 +215,7 @@ baseline() {
   write_index "|check-foo|governance|governance"
   run_check "${CHECK}"
   [ "${status}" -eq 1 ]
-  [[ "${output}" == *"empty"* ]]
+  assert_output --partial 'empty'
 }
 
 @test "fails on an empty Enforcer cell" {
@@ -228,8 +228,8 @@ baseline() {
     "bad invariant||governance|governance"
   run_check "${CHECK}"
   [ "${status}" -eq 1 ]
-  [[ "${output}" == *"empty"* ]]
-  [[ "${output}" == *"Enforcer"* ]]
+  assert_output --partial 'empty'
+  assert_output --partial 'Enforcer'
 }
 
 @test "fails on an empty CI job cell" {
@@ -242,8 +242,8 @@ baseline() {
     "bar invariant|check-bar||check-scripts"
   run_check "${CHECK}"
   [ "${status}" -eq 1 ]
-  [[ "${output}" == *"empty"* ]]
-  [[ "${output}" == *"CI job"* ]]
+  assert_output --partial 'empty'
+  assert_output --partial 'CI job'
 }
 
 @test "fails when a governance-job row's enforcer is not in the runner" {
@@ -251,7 +251,7 @@ baseline() {
   write_runner # empty runner
   run_check "${CHECK}"
   [ "${status}" -eq 1 ]
-  [[ "${output}" == *"check-foo"* ]]
+  assert_output --partial 'check-foo'
 }
 
 @test "fails when a runner entry has no governance-job row" {
@@ -259,7 +259,7 @@ baseline() {
   write_runner check-foo check-bar # check-bar is a check-scripts row
   run_check "${CHECK}"
   [ "${status}" -eq 1 ]
-  [[ "${output}" == *"check-bar"* ]]
+  assert_output --partial 'check-bar'
 }
 
 @test "dies when the index file is missing" {
@@ -296,5 +296,5 @@ baseline() {
   } > "${INDEX}"
   run_check "${CHECK}"
   [ "${status}" -eq 0 ]
-  [ -z "${output}" ]
+  refute_output
 }

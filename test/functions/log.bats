@@ -14,7 +14,7 @@ setup() {
 @test "log::log: writes message to stderr with green ANSI" {
   run --separate-stderr log::log 'hello world'
   assert_success
-  [[ -z "${output}" ]]
+  refute_output
   assert_stderr --partial 'hello world'
   assert_stderr --partial $'\033[0;32m'
   assert_stderr --partial $'\033[0m'
@@ -106,9 +106,9 @@ setup() {
     echo unreachable
   "
   assert_failure
-  [[ "${output}" != *'unreachable'* ]]
-  [[ "${output}" == *'ERROR: line'* ]]
-  [[ "${output}" == *'false'* ]]
+  refute_output --partial 'unreachable'
+  assert_output --partial 'ERROR: line'
+  assert_output --partial 'false'
 }
 
 @test "enable_err_trap: dies with args" {
