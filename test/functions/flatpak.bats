@@ -46,6 +46,7 @@ setup() {
   # No flatpak shim installed; commands::assert_executable_exists should die.
   run flatpak::assert_installed 'org.example.App'
   assert_failure
+  assert_output --partial 'Flatpak application not installed: org.example.App'
 }
 
 @test "assert_installed: flatpak info exits 0 -> success" {
@@ -72,6 +73,7 @@ setup() {
 @test "exec_gui: missing flatpak dies" {
   run flatpak::exec_gui 'org.example.App'
   assert_failure
+  assert_output --partial 'Flatpak application not installed: org.example.App'
 }
 
 @test "exec_gui: not installed -> dies before exec" {
@@ -141,12 +143,14 @@ setup() {
 @test "exec: missing flatpak dies" {
   run flatpak::exec 'org.example.App'
   assert_failure
+  assert_output --partial 'Flatpak application not installed: org.example.App'
 }
 
 @test "exec: not installed -> dies, flatpak run not invoked" {
   cli_shim::record_with_output 'flatpak' '' 1
   run flatpak::exec 'org.example.App' '--foo'
   assert_failure
+  assert_output --partial 'Flatpak application not installed: org.example.App'
   run cat "${BATS_TEST_TMPDIR}/flatpak.calls"
   refute_output --partial 'run org.example.App'
 }

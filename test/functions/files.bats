@@ -438,6 +438,7 @@ setup() {
 @test "mtime_epoch: missing file dies" {
   run files::mtime_epoch "${BATS_TEST_TMPDIR}/does-not-exist"
   assert_failure
+  assert_output --partial 'does not exist'
 }
 
 @test "mtime_epoch: 0 args dies" {
@@ -703,6 +704,7 @@ setup() {
   : > "${BATS_TEST_TMPDIR}/x"
   run files::move_no_prompt "${BATS_TEST_TMPDIR}/x" "${BATS_TEST_TMPDIR}/x"
   assert_failure
+  assert_output --partial 'File paths are the same'
 }
 
 @test "move_no_prompt_quiet: no log lines and unconditional overwrite" {

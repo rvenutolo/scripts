@@ -220,6 +220,7 @@ write_tools_file() {
   export REQUIRED_TOOLS_FILE_OVERRIDE="${BATS_TEST_TMPDIR}/no-such-file"
   run "${CHECK}"
   assert_failure
+  assert_output --partial 'no-such-file does not exist'
 }
 
 @test "does not flag its own source" {

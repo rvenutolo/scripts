@@ -737,6 +737,7 @@ fixture_default_symlink() {
   stub_jdks_and_sdk
   run sdkman_jdks::check_installed_tem_jdk_major_version 11
   assert_failure
+  assert_output --partial 'Java version 11 is not installed'
 }
 
 @test "check_installed_tem_jdk_major_version: dies with 0 args" {
@@ -862,6 +863,7 @@ fixture_default_symlink() {
   # setup() creates candidates/java with no current symlink
   run sdkman_jdks::get_current_default_jdk_major_version
   assert_failure
+  assert_output --partial 'Symbolic link does not exist'
 }
 
 @test "get_current_default_jdk_major_version: dies with wrong arg count" {

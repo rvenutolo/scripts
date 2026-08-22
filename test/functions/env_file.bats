@@ -76,6 +76,7 @@ prompt_via_stdin() {
 @test "assert_var_exists: file missing dies" {
   run env_file::assert_var_exists '/nonexistent/path' 'KEY'
   assert_failure
+  assert_output --partial 'does not exist'
 }
 
 @test "assert_var_exists: var name with regex meta is rejected" {
@@ -200,6 +201,7 @@ prompt_via_stdin() {
 @test "get_var_value: file missing dies" {
   run env_file::get_var_value '/nonexistent/path' 'KEY'
   assert_failure
+  assert_output --partial 'does not exist'
 }
 
 @test "get_var_value: var missing dies via assert_var_exists chain" {
@@ -289,6 +291,7 @@ prompt_via_stdin() {
 @test "is_var_value_empty: file missing dies" {
   run env_file::is_var_value_empty '/nonexistent/path' 'KEY'
   assert_failure
+  assert_output --partial 'does not exist'
 }
 
 @test "is_var_value_empty: var missing dies" {
@@ -444,6 +447,7 @@ read_back() {
 @test "set_var_value: file missing dies" {
   run env_file::set_var_value '/nonexistent/path' 'KEY' 'value'
   assert_failure
+  assert_output --partial 'does not exist'
 }
 
 @test "set_var_value: multiple matching lines are all updated" {
@@ -508,6 +512,7 @@ read_back() {
 @test "set_var_value_if_empty: file missing dies" {
   run env_file::set_var_value_if_empty '/nonexistent/path' 'KEY' 'new'
   assert_failure
+  assert_output --partial 'does not exist'
 }
 
 @test "set_var_value_if_empty: var name with regex meta is rejected" {
@@ -597,6 +602,7 @@ read_back() {
 @test "prompt_var_value: file missing dies" {
   SCRIPTS_AUTO_ANSWER=y run env_file::prompt_var_value '/nonexistent/path' 'KEY' '' 'value'
   assert_failure
+  assert_output --partial 'does not exist'
 }
 
 @test "prompt_var_value: dies with 1 arg" {
