@@ -443,11 +443,13 @@ setup() {
 @test "mtime_epoch: 0 args dies" {
   run files::mtime_epoch
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "mtime_epoch: 2 args dies" {
   run files::mtime_epoch a b
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- files::hash ----------
@@ -1160,6 +1162,7 @@ setup_files_root_helpers() {
   setup_files_root_helpers
   run files::root_transform
   assert_failure
+  assert_output --partial 'Expected at least 2 arguments'
 }
 
 @test "root_transform: dies with 1 arg" {
@@ -1168,6 +1171,7 @@ setup_files_root_helpers() {
   printf 'x\n' > "${target}"
   run files::root_transform "${target}"
   assert_failure
+  assert_output --partial 'Expected at least 2 arguments'
 }
 
 # ---------- files::largest_files ----------
@@ -1187,16 +1191,19 @@ setup_files_root_helpers() {
 @test "largest_files: dies with 0 args" {
   run files::largest_files
   assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 @test "largest_files: dies with 1 arg" {
   run files::largest_files "${BATS_TEST_TMPDIR}"
   assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 @test "largest_files: dies with 3 args" {
   run files::largest_files "${BATS_TEST_TMPDIR}" 5 extra
   assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 @test "largest_files: empty directory yields no output" {
@@ -1224,16 +1231,19 @@ setup_files_root_helpers() {
 @test "largest_dirs: dies with 0 args" {
   run files::largest_dirs
   assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 @test "largest_dirs: dies with 1 arg" {
   run files::largest_dirs "${BATS_TEST_TMPDIR}"
   assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 @test "largest_dirs: dies with 3 args" {
   run files::largest_dirs "${BATS_TEST_TMPDIR}" 5 extra
   assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 # ---------- files::largest_all ----------
@@ -1250,16 +1260,19 @@ setup_files_root_helpers() {
 @test "largest_all: dies with 0 args" {
   run files::largest_all
   assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 @test "largest_all: dies with 1 arg" {
   run files::largest_all "${BATS_TEST_TMPDIR}"
   assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 @test "largest_all: dies with 3 args" {
   run files::largest_all "${BATS_TEST_TMPDIR}" 5 extra
   assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 # ---------- files::find_duplicates ----------
@@ -1312,6 +1325,7 @@ setup_files_root_helpers() {
 @test "find_duplicates: dies with 2 args" {
   run files::find_duplicates a b
   assert_failure
+  assert_output --partial 'Expected at most 1 argument'
 }
 
 @test "find_duplicates: no args scans the current directory" {
@@ -1393,6 +1407,7 @@ setup_files_root_helpers() {
 @test "plan_renames: dies with fewer than 3 args" {
   run files::plan_renames 'a' 'b'
   assert_failure
+  assert_output --partial 'Expected at least 3 arguments'
 }
 
 # ---------- files::largest_dirs / files::largest_all — empty-directory edge cases ----------

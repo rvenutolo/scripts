@@ -304,6 +304,7 @@ assert_died_expecting() {
 @test "has_at_least_num_args: dies with 0 args" {
   run args::has_at_least_num_args
   assert_failure
+  assert_output --partial 'Expected at least 1 argument'
 }
 
 @test "has_at_least_num_args 0: true with 0 remaining" {
