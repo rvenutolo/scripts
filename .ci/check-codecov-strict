@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+
+# @description Assert every `codecov/codecov-action` step keeps the Codecov
+#              CLI's integrity checking armed. With `fail_ci_if_error` false or
+#              absent, codecov.sh's `exit_if_error` only prints and returns, so
+#              a failed GPG signature check falls through to `chmod +x` and the
+#              CLI runs with no verified provenance (#199), and a rejected
+#              upload still reports green (#200). Three further inputs bypass
+#              validation outright — `skip_validation`, `binary`, `use_pypi` —
+#              so guarding `fail_ci_if_error` alone would leave three ways to
+#              reintroduce the same hole.
+# @noargs
+# @stderr One line per violation, plus a final count.
+# @exitcode 0 every codecov-action step is strict.
+# @exitcode 1 one or more codecov-action steps are not.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'yq'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
+
+# @description Emit one pipe-joined record per codecov-action step in a
+#              workflow: job|fail_ci_if_error|skip_validation|binary|use_pypi.
+#              Values pass through `tostring`, so an absent input reads as the
+#              literal `null`. Do NOT rewrite this with yq's `//` operator:
+#              `//` returns its RHS when the LHS is null OR false, which would
+#              render a real `fail_ci_if_error: false` indistinguishable from
+#              an absent one. mikefarah yq has no `if/then/else`.
+# @arg $1 file path to a workflow YAML
+# @stdout Zero or more `job|v|v|v|v` records.
+function codecov_steps() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  # shellcheck disable=SC2016 # yq program literal; $j is yq syntax, not shell
+  yq eval '
+    .jobs | to_entries | .[] as $j
+    | $j.value.steps[]
+    | select((.uses // "") | test("^codecov/codecov-action@"))
+    | [$j.key,
+       (.with.fail_ci_if_error | tostring),
+       (.with.skip_validation | tostring),
+       (.with.binary | tostring),
+       (.with.use_pypi | tostring)]
+    | join("|")
+  ' "${file}"
+}
+
+# @description Scan one workflow for non-strict codecov-action steps. Prints
+#              violations to stderr; echoes the violation count to stdout.
+# @arg $1 file path to a workflow YAML
+# @stdout integer violation count
+function scan_codecov() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local records_tmp
+  files::create_temp records_tmp
+  codecov_steps "${file}" > "${records_tmp}"
+  local count=0
+  local job fail_ci skip_val binary use_pypi
+  while IFS='|' read -r job fail_ci skip_val binary use_pypi; do
+    strings::is_empty "${job}" && continue
+    if [[ "${fail_ci}" != 'true' ]]; then
+      printf '%s: job %s: fail_ci_if_error must be true (found: %s)\n' \
+        "${file}" "${job}" "${fail_ci}" >&2
+      count=$((count + 1))
+    fi
+    if [[ "${skip_val}" == 'true' ]]; then
+      printf '%s: job %s: skip_validation bypasses CLI integrity checking\n' \
+        "${file}" "${job}" >&2
+      count=$((count + 1))
+    fi
+    if [[ "${binary}" != 'null' ]]; then
+      printf '%s: job %s: binary bypasses CLI integrity checking (found: %s)\n' \
+        "${file}" "${job}" "${binary}" >&2
+      count=$((count + 1))
+    fi
+    if [[ "${use_pypi}" == 'true' ]]; then
+      printf '%s: job %s: use_pypi bypasses CLI integrity checking\n' \
+        "${file}" "${job}" >&2
+      count=$((count + 1))
+    fi
+  done < "${records_tmp}"
+  printf '%s\n' "${count}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  if ! dirs::exists "${WORKFLOWS_DIR}"; then
+    exit 0
+  fi
+  local files_tmp
+  files::create_temp files_tmp
+  find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
+  local total=0
+  local file n
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    n="$(scan_codecov "${file}")"
+    total=$((total + n))
+  done < "${files_tmp}"
+  if ((total > 0)); then
+    printf '%d codecov-action violation(s)\n' "${total}" >&2
+    exit 1
+  fi
+  exit 0
+}
+
+main "$@"

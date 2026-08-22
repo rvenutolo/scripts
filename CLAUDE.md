@@ -689,6 +689,25 @@ compromised dependency.
 - **Prefer exact hosts over wildcards.** A wildcard entry permits every subdomain. Use one only when the
   host name genuinely rotates between runs (for example an Azure storage-account number), and then
   narrow it as far as the observed family allows and comment why.
+  `hosted-compute-*.githubapp.com:443` is the sanctioned instance of this: GitHub's own runner
+  watchdog and request-orchestrator hosts carry a per-run region/index suffix (`eus-01`,
+  `iad-02`, …), so no exact host exists to prefer (#201).
+  Six jobs observed the blocked hosts and carry this wildcard: `check-scripts`, `bats`, `lint`,
+  `governance`, `nix-flake-check`, and `coverage`. `reviewdog` and `commitlint` were deliberately
+  left out — they carry different allowlists and neither installs Nix, so neither hits the
+  runner watchdog/orchestrator hosts this wildcard exists for.
+
+- **`keybase.io:443` in `coverage.yml` is load-bearing — never prune it.** `codecov-action` fetches the
+  Codecov signing key from keybase.io to verify the CLI it just downloaded. The fetch uses a bare
+  `curl -s` inside a command substitution, so a blocked request yields an empty key rather than an
+  error; `gpg --verify` then fails, and with `fail_ci_if_error: false` the script's `exit_if_error`
+  merely prints and returns, falling through to run the unverified binary (#199). The entry looks
+  unused because nothing in the workflow names it — it is the least obviously necessary and
+  highest-value host in that allowlist.
+
+- **Codecov's Sentry telemetry host is blocked deliberately.** `o26192.ingest.us.sentry.io` is crash
+  reporting, not part of the upload path. It is recorded here so a future allowlist harvest does not
+  relitigate it.
 
 - **`links.yml` carries a second, stricter gate.** `.ci/check-links-allowed-endpoints` requires every
   host linked from tracked markdown to appear in that workflow's allowlist. The comparison is one-way:

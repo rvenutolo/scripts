@@ -36,6 +36,7 @@ function main() {
     check-harden-runner-disable-sudo \
     check-links-allowed-endpoints \
     check-pr-workflows-no-secrets \
+    check-codecov-strict \
     check-renovate-invariants \
     check-required-checks-no-paths \
     check-protect-main \
