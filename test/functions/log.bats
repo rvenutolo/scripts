@@ -15,21 +15,21 @@ setup() {
   run --separate-stderr log::log 'hello world'
   assert_success
   [[ -z "${output}" ]]
-  [[ "${stderr}" == *'hello world'* ]]
-  [[ "${stderr}" == *$'\033[0;32m'* ]]
-  [[ "${stderr}" == *$'\033[0m'* ]]
+  assert_stderr --partial 'hello world'
+  assert_stderr --partial $'\033[0;32m'
+  assert_stderr --partial $'\033[0m'
 }
 
 @test "log::log: includes time prefix HH:MM:SS" {
   run --separate-stderr log::log 'msg'
   assert_success
-  [[ "${stderr}" =~ \[[0-9]{2}:[0-9]{2}:[0-9]{2} ]]
+  assert_stderr --regexp '\[[0-9]{2}:[0-9]{2}:[0-9]{2}'
 }
 
 @test "log::log: joins multiple args with spaces" {
   run --separate-stderr log::log 'foo' 'bar' 'baz'
   assert_success
-  [[ "${stderr}" == *'foo bar baz'* ]]
+  assert_stderr --partial 'foo bar baz'
 }
 
 # ---------- log::with_date ----------
@@ -37,9 +37,9 @@ setup() {
 @test "log::with_date: includes full date YYYY-MM-DD" {
   run --separate-stderr log::with_date 'msg'
   assert_success
-  [[ "${stderr}" =~ \[[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2} ]]
-  [[ "${stderr}" == *'msg'* ]]
-  [[ "${stderr}" == *$'\033[0;32m'* ]]
+  assert_stderr --regexp '\[[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}'
+  assert_stderr --partial 'msg'
+  assert_stderr --partial $'\033[0;32m'
 }
 
 # ---------- log::warn ----------
@@ -47,8 +47,8 @@ setup() {
 @test "log::warn: writes WARN to stderr with yellow ANSI" {
   run --separate-stderr log::warn 'careful'
   assert_success
-  [[ "${stderr}" == *'WARN: careful'* ]]
-  [[ "${stderr}" == *$'\033[0;33m'* ]]
+  assert_stderr --partial 'WARN: careful'
+  assert_stderr --partial $'\033[0;33m'
 }
 
 # ---------- log::die ----------
@@ -57,15 +57,15 @@ setup() {
   run --separate-stderr log::die 'something broke'
   assert_failure
   [[ "${status}" -eq 1 ]]
-  [[ "${stderr}" == *'DIE: something broke'* ]]
-  [[ "${stderr}" == *$'\033[0;31m'* ]]
+  assert_stderr --partial 'DIE: something broke'
+  assert_stderr --partial $'\033[0;31m'
 }
 
 @test "log::die: includes caller context (source:func:line)" {
   call_die_helper() { log::die 'boom'; }
   run --separate-stderr call_die_helper
   assert_failure
-  [[ "${stderr}" == *'call_die_helper'* ]]
+  assert_stderr --partial 'call_die_helper'
 }
 
 # ---------- log::_err_trap_handler ----------
@@ -73,8 +73,8 @@ setup() {
 @test "_err_trap_handler: prints exit/line/cmd in red to stderr" {
   run --separate-stderr log::_err_trap_handler 7 42 'false'
   assert_success
-  [[ "${stderr}" == *'ERROR: line 42 (exit 7): false'* ]]
-  [[ "${stderr}" == *$'\033[0;31m'* ]]
+  assert_stderr --partial 'ERROR: line 42 (exit 7): false'
+  assert_stderr --partial $'\033[0;31m'
 }
 
 @test "_err_trap_handler: dies with 0 args" {
