@@ -105,7 +105,7 @@ baseline() {
 @test "passes on a self-consistent fixture" {
   baseline
   run_check "${CHECK}"
-  [ "${status}" -eq 0 ]
+  assert_success
   refute_output
 }
 
@@ -155,7 +155,7 @@ baseline() {
   baseline
   make_ci check-orphan
   run_check "${CHECK}"
-  [ "${status}" -eq 1 ]
+  assert_failure 1
   assert_output --partial 'check-orphan'
 }
 
@@ -167,7 +167,7 @@ baseline() {
     "ghost invariant|check-ghost|governance|governance"
   write_runner check-foo check-ghost
   run_check "${CHECK}"
-  [ "${status}" -eq 1 ]
+  assert_failure 1
   assert_output --partial 'check-ghost'
 }
 
@@ -177,7 +177,7 @@ baseline() {
     "foo invariant|check-foo|governance|governance" \
     "bar invariant|check-bar|nonexistent-job|check-scripts"
   run_check "${CHECK}"
-  [ "${status}" -eq 1 ]
+  assert_failure 1
   assert_output --partial 'nonexistent-job'
 }
 
@@ -187,7 +187,7 @@ baseline() {
     "foo invariant|check-foo|governance|governance" \
     "bar invariant|check-bar|check-scripts|not-required"
   run_check "${CHECK}"
-  [ "${status}" -eq 1 ]
+  assert_failure 1
   assert_output --partial 'not-required'
 }
 
@@ -204,7 +204,7 @@ baseline() {
     "foo invariant|check-foo|governance|governance" \
     "baz invariant|check-baz|baz-job|"
   run_check "${CHECK}"
-  [ "${status}" -eq 0 ]
+  assert_success
 }
 
 @test "fails on an empty Invariant cell" {
@@ -214,7 +214,7 @@ baseline() {
   write_ruleset governance
   write_index "|check-foo|governance|governance"
   run_check "${CHECK}"
-  [ "${status}" -eq 1 ]
+  assert_failure 1
   assert_output --partial 'empty'
 }
 
@@ -227,7 +227,7 @@ baseline() {
     "foo invariant|check-foo|governance|governance" \
     "bad invariant||governance|governance"
   run_check "${CHECK}"
-  [ "${status}" -eq 1 ]
+  assert_failure 1
   assert_output --partial 'empty'
   assert_output --partial 'Enforcer'
 }
@@ -241,7 +241,7 @@ baseline() {
     "foo invariant|check-foo|governance|governance" \
     "bar invariant|check-bar||check-scripts"
   run_check "${CHECK}"
-  [ "${status}" -eq 1 ]
+  assert_failure 1
   assert_output --partial 'empty'
   assert_output --partial 'CI job'
 }
@@ -250,7 +250,7 @@ baseline() {
   baseline
   write_runner # empty runner
   run_check "${CHECK}"
-  [ "${status}" -eq 1 ]
+  assert_failure 1
   assert_output --partial 'check-foo'
 }
 
@@ -258,7 +258,7 @@ baseline() {
   baseline
   write_runner check-foo check-bar # check-bar is a check-scripts row
   run_check "${CHECK}"
-  [ "${status}" -eq 1 ]
+  assert_failure 1
   assert_output --partial 'check-bar'
 }
 
@@ -266,17 +266,17 @@ baseline() {
   baseline
   rm -f "${INDEX}"
   run_check "${CHECK}"
-  [ "${status}" -ne 0 ]
+  assert_failure
 }
 
 @test "prints help and exits 0 with --help" {
   run_check "${CHECK}" --help
-  [ "${status}" -eq 0 ]
+  assert_success
 }
 
 @test "dies when given an argument" {
   run_check "${CHECK}" bogus
-  [ "${status}" -ne 0 ]
+  assert_failure
 }
 
 @test "passes when CI-job and Required-check cells are backtick-wrapped" {
@@ -295,6 +295,6 @@ baseline() {
     echo "<!-- invariant-index:end -->"
   } > "${INDEX}"
   run_check "${CHECK}"
-  [ "${status}" -eq 0 ]
+  assert_success
   refute_output
 }

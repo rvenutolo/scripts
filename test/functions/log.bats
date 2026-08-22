@@ -55,8 +55,7 @@ setup() {
 
 @test "log::die: exits 1 with red DIE message on stderr" {
   run --separate-stderr log::die 'something broke'
-  assert_failure
-  [[ "${status}" -eq 1 ]]
+  assert_failure 1
   assert_stderr --partial 'DIE: something broke'
   assert_stderr --partial $'\033[0;31m'
 }

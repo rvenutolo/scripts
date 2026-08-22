@@ -214,11 +214,7 @@ EOF
       exit 1
     fi
   "
-  assert_failure
-  [[ "${status}" -eq 1 ]] || {
-    echo \"unexpected status: ${status}\"
-    return 1
-  }
+  assert_failure 1
   refute_output --partial 'CAUGHT_ERR_TRAP'
 }
 
