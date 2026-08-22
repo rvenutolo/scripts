@@ -212,14 +212,16 @@ EOF
   printf 'default: check\n' > "${ROOT}/.justfile"
   rm "${ROOT}/.justfile"
   run_check
-  assert_failure
+  assert_failure 1
+  assert_output --partial 'no justfile found at'
 }
 
 @test "dies when README is missing" {
   make_justfile
   make_pr_template
   run_check
-  assert_failure
+  assert_failure 1
+  assert_output --partial 'README.md does not exist'
 }
 
 @test "rejects an unexpected argument" {
@@ -227,7 +229,8 @@ EOF
   make_readme
   make_pr_template
   run_check unexpected
-  assert_failure
+  assert_failure 1
+  assert_output --partial 'Expected no arguments'
 }
 
 @test "--help exits 0 and prints the description" {

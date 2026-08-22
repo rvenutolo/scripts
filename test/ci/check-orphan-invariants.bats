@@ -266,7 +266,8 @@ baseline() {
   baseline
   rm -f "${INDEX}"
   run_check "${CHECK}"
-  assert_failure
+  assert_failure 1
+  assert_output --partial 'invariant-index.md does not exist'
 }
 
 @test "prints help and exits 0 with --help" {
@@ -276,7 +277,8 @@ baseline() {
 
 @test "dies when given an argument" {
   run_check "${CHECK}" bogus
-  assert_failure
+  assert_failure 1
+  assert_output --partial 'Expected no arguments'
 }
 
 @test "passes when CI-job and Required-check cells are backtick-wrapped" {
