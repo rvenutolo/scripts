@@ -882,5 +882,5 @@ function _seed_repo_on_branch() {
 @test "clear_local_env: dies with 1 arg" {
   run --separate-stderr git::clear_local_env 'x'
   assert_failure
-  [[ "${stderr}" == *'Expected no arguments'* ]]
+  assert_stderr --partial 'Expected no arguments'
 }
