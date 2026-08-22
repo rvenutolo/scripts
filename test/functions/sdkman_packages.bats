@@ -67,6 +67,7 @@ setup() {
 @test "install_sdkman_package: dies with wrong arg count" {
   run sdkman_packages::install_sdkman_package
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- uninstall_package_version ----------
@@ -81,6 +82,7 @@ setup() {
 @test "uninstall_package_version: dies with wrong arg count" {
   run sdkman_packages::uninstall_package_version gradle
   assert_failure
+  assert_output --partial 'Expected exactly 2 arguments'
 }
 
 # ---------- get_installed_packages ----------
@@ -126,6 +128,7 @@ setup() {
 @test "get_installed_packages_versions: dies with wrong arg count" {
   run sdkman_packages::get_installed_packages_versions
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- get_current_package_version ----------
@@ -141,6 +144,7 @@ setup() {
 @test "get_current_package_version: dies with wrong arg count" {
   run sdkman_packages::get_current_package_version
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- prune_sdkman_package ----------
@@ -265,11 +269,13 @@ setup() {
 @test "install_sdkman_packages: dies with 0 args" {
   run sdkman_packages::install_sdkman_packages
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "install_sdkman_packages: dies with 2 args" {
   run sdkman_packages::install_sdkman_packages failed_count unexpected
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- prune_sdkman_packages ----------

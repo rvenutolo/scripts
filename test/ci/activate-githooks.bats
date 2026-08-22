@@ -92,6 +92,7 @@ run_activate() {
   export GIT_CEILING_DIRECTORIES="${TMP_ROOT}"
   run git -C "${not_a_repo}" rev-parse --show-toplevel
   assert_failure
+  assert_output --partial 'not a git repository'
   cd "${not_a_repo}"
   run "${SCRIPT}"
   assert_failure

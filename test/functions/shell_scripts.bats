@@ -423,9 +423,11 @@ EOF
 @test "shell_scripts::requires_help_flag dies with 0 args" {
   run shell_scripts::requires_help_flag
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "shell_scripts::requires_help_flag dies with 2 args" {
   run shell_scripts::requires_help_flag a b
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }

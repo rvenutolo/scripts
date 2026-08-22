@@ -155,6 +155,7 @@ setup() {
 @test "key_paths: dies with 2 args" {
   run bash -c "source '${SCRIPTS_DIR}/.functions.bash'; json::key_paths a b"
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "key_paths: null and false leaves omitted, true listed via stdin" {

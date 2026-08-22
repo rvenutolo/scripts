@@ -185,6 +185,7 @@ EOF
 @test "dies with an unexpected argument" {
   run "${CHECK}" extra-arg
   assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 @test "prints help and exits 0 with --help" {

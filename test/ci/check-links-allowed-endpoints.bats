@@ -166,6 +166,7 @@ run_check() {
     MARKDOWN_ROOT_OVERRIDE="${ROOT}" \
     run "${CHECK}"
   assert_failure
+  assert_output --partial 'absent.yml does not exist'
 }
 
 @test "dies when given an argument" {

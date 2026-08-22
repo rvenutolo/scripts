@@ -38,28 +38,34 @@ setup() {
 @test "assert_confined: dies on empty path" {
   run --separate-stderr git_fixture::assert_confined ''
   assert_failure
+  [[ "${stderr}" == *"git_fixture: path is not absolute: ''"* ]]
 }
 
 @test "assert_confined: dies on relative path" {
   run --separate-stderr git_fixture::assert_confined 'repo'
   assert_failure
+  [[ "${stderr}" == *"git_fixture: path is not absolute: 'repo'"* ]]
 }
 
 @test "assert_confined: dies on absolute path outside tmpdir" {
   run --separate-stderr git_fixture::assert_confined "${REPO_DIR}"
   assert_failure
+  [[ "${stderr}" == *'git_fixture: path escapes BATS_TEST_TMPDIR'* ]]
 }
 
 @test "assert_confined: dies on dot-dot escape from tmpdir" {
   run --separate-stderr git_fixture::assert_confined "${BATS_TEST_TMPDIR}/../escape"
   assert_failure
+  [[ "${stderr}" == *'git_fixture: path escapes BATS_TEST_TMPDIR'* ]]
 }
 
 @test "assert_confined: dies with 0 and 2 args" {
   run --separate-stderr git_fixture::assert_confined
   assert_failure
+  [[ "${stderr}" == *'Expected exactly 1 argument'* ]]
   run --separate-stderr git_fixture::assert_confined "${BATS_TEST_TMPDIR}" 'extra'
   assert_failure
+  [[ "${stderr}" == *'Expected exactly 1 argument'* ]]
 }
 
 # ---------- git_fixture::init / init_bare ----------
@@ -79,6 +85,7 @@ setup() {
 @test "init: dies on a path outside tmpdir" {
   run --separate-stderr git_fixture::init '/tmp/definitely-outside-248'
   assert_failure
+  [[ "${stderr}" == *'git_fixture: path escapes BATS_TEST_TMPDIR'* ]]
   [[ ! -e '/tmp/definitely-outside-248' ]]
 }
 
@@ -114,6 +121,7 @@ setup() {
 @test "run: dies with fewer than 2 args" {
   run --separate-stderr git_fixture::run "${BATS_TEST_TMPDIR}"
   assert_failure
+  [[ "${stderr}" == *'Expected at least 2 arguments'* ]]
 }
 
 # ---------- #248 regression: hostile inherited GIT_DIR cannot retarget fixtures ----------

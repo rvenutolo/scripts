@@ -420,6 +420,7 @@ make_multiline_session() {
   f="$(make_full_session)"
   run claude::session_preview "${f}" xyz
   assert_failure
+  assert_output --partial 'count must be a positive integer: xyz'
 }
 
 @test "session_preview: dies on missing file" {

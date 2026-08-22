@@ -84,6 +84,7 @@ EOF
 @test "get_jdk_major_version: dies with wrong arg count" {
   run sdkman_jdks::get_jdk_major_version
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- filter_for_installed ----------
@@ -134,6 +135,7 @@ EOF
     printf 'x\n' | sdkman_jdks::filter_for_major_version
   "
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- filter_for_latest_per_major_version ----------
@@ -277,6 +279,7 @@ fixture_default_symlink() {
 @test "fetch_tem_jdk_catalog: dies with args" {
   run sdkman_jdks::fetch_tem_jdk_catalog extra
   assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 # ---------- catalog_cache_file ----------
@@ -290,6 +293,7 @@ fixture_default_symlink() {
 @test "catalog_cache_file: dies with args" {
   run sdkman_jdks::catalog_cache_file extra
   assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 # ---------- get_tem_jdk_catalog (memoization) ----------
@@ -373,6 +377,7 @@ fixture_default_symlink() {
 @test "get_tem_jdk_catalog: dies with args" {
   run sdkman_jdks::get_tem_jdk_catalog extra
   assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 # ---------- get_formatted_all_tem_jdks (installed annotation) ----------
@@ -425,6 +430,7 @@ fixture_default_symlink() {
 @test "get_formatted_all_tem_jdks: dies with args" {
   run sdkman_jdks::get_formatted_all_tem_jdks extra
   assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 # ---------- install_jdk / uninstall_jdk / set_default_jdk_by_id ----------
@@ -631,6 +637,7 @@ fixture_default_symlink() {
 @test "get_formatted_installed_tem_jdks: dies with args" {
   run sdkman_jdks::get_formatted_installed_tem_jdks extra
   assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 # ---------- installed-jdk family ----------
@@ -730,6 +737,7 @@ fixture_default_symlink() {
   stub_jdks_and_sdk
   run sdkman_jdks::check_installed_tem_jdk_major_version 11
   assert_failure
+  assert_output --partial 'Java version 11 is not installed'
 }
 
 @test "check_installed_tem_jdk_major_version: dies with 0 args" {
@@ -832,6 +840,7 @@ fixture_default_symlink() {
 @test "has_default_jdk: dies with wrong arg count" {
   run sdkman_jdks::has_default_jdk x
   assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 # ---------- get_current_default_jdk_major_version ----------
@@ -854,11 +863,13 @@ fixture_default_symlink() {
   # setup() creates candidates/java with no current symlink
   run sdkman_jdks::get_current_default_jdk_major_version
   assert_failure
+  assert_output --partial 'Symbolic link does not exist'
 }
 
 @test "get_current_default_jdk_major_version: dies with wrong arg count" {
   run sdkman_jdks::get_current_default_jdk_major_version x
   assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 # ---------- set_default_jdk_to_latest_patch_of_current_major ----------

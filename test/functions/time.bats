@@ -93,6 +93,7 @@ setup() {
 @test "calc_elapsed: end < start -> dies" {
   run time::calc_elapsed 100 50
   assert_failure
+  assert_output --partial 'end_time must be >= start_time'
 }
 
 # ---------- time::shell_elapsed_time ----------

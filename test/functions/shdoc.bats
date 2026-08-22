@@ -70,11 +70,13 @@ EOF
 @test "shdoc::file_has_description dies with 0 args" {
   run shdoc::file_has_description
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "shdoc::file_has_description dies with 2 args" {
   run shdoc::file_has_description a b
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "shdoc::find_unannotated_functions returns names of helpers missing @-tag above" {
@@ -148,6 +150,7 @@ EOF
 @test "shdoc::find_unannotated_functions dies with 0 args" {
   run shdoc::find_unannotated_functions
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "shdoc::find_unannotated_functions emits nothing for a file with no helper functions" {
@@ -388,11 +391,13 @@ EOF
 @test "shdoc::header_has_placeholder dies with 0 args" {
   run shdoc::header_has_placeholder
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "shdoc::header_has_placeholder dies with 2 args" {
   run shdoc::header_has_placeholder a b
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "shdoc::find_unannotated_functions reports a namespaced function with no annotation" {
@@ -675,11 +680,13 @@ EOF
 @test "shdoc::find_placeholder_functions dies with 0 args" {
   run shdoc::find_placeholder_functions
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "shdoc::find_placeholder_functions dies with 2 args" {
   run shdoc::find_placeholder_functions a b
   assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
 }
 
 @test "shdoc::header_has_placeholder allows a backticked TODO in the header" {
