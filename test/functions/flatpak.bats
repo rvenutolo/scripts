@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+# shellcheck disable=SC2030,SC2031 # BATS isolates each @test in its own subshell; the PATH mutations below are intentional and correctly scoped per-test
+
 bats_require_minimum_version 1.5.0
 
 setup() {
@@ -26,6 +28,14 @@ setup() {
   export REAL_SCRIPTS_DIR="${SCRIPTS_DIR}"
   SCRIPTS_DIR="${BATS_TEST_TMPDIR}"
   mkdir --parents "${SCRIPTS_DIR}/main" "${SCRIPTS_DIR}/other"
+  # Capture PATH so teardown can restore it. The missing-flatpak tests below pin PATH
+  # to an empty dir, and BATS's own cleanup shells out to rm — same reason
+  # test/functions/path.bats carries this pair.
+  ORIGINAL_PATH="${PATH}"
+}
+
+teardown() {
+  PATH="${ORIGINAL_PATH}"
 }
 
 # ---------- flatpak::assert_installed ----------
@@ -43,10 +53,16 @@ setup() {
 }
 
 @test "assert_installed: flatpak missing dies" {
-  # No flatpak shim installed; commands::assert_executable_exists should die.
+  # Pin PATH to an empty dir for the duration of the call so flatpak is genuinely
+  # absent and commands::assert_executable_exists dies before `flatpak info` is
+  # reached. Without the pin this exercises the missing-binary path only on hosts
+  # that happen not to have flatpak installed, and a different path everywhere else.
+  # PATH is restored immediately: bats' own teardown shells out to rm.
+  mkdir --parents "${BATS_TEST_TMPDIR}/bin"
+  PATH="${BATS_TEST_TMPDIR}/bin"
   run flatpak::assert_installed 'org.example.App'
   assert_failure
-  assert_output --partial 'Flatpak application not installed: org.example.App'
+  assert_output --partial 'flatpak executable not found'
 }
 
 @test "assert_installed: flatpak info exits 0 -> success" {
@@ -71,9 +87,12 @@ setup() {
 }
 
 @test "exec_gui: missing flatpak dies" {
+  # See "assert_installed: flatpak missing dies" for why PATH is pinned and restored.
+  mkdir --parents "${BATS_TEST_TMPDIR}/bin"
+  PATH="${BATS_TEST_TMPDIR}/bin"
   run flatpak::exec_gui 'org.example.App'
   assert_failure
-  assert_output --partial 'Flatpak application not installed: org.example.App'
+  assert_output --partial 'flatpak executable not found'
 }
 
 @test "exec_gui: not installed -> dies before exec" {
@@ -141,9 +160,12 @@ setup() {
 }
 
 @test "exec: missing flatpak dies" {
+  # See "assert_installed: flatpak missing dies" for why PATH is pinned and restored.
+  mkdir --parents "${BATS_TEST_TMPDIR}/bin"
+  PATH="${BATS_TEST_TMPDIR}/bin"
   run flatpak::exec 'org.example.App'
   assert_failure
-  assert_output --partial 'Flatpak application not installed: org.example.App'
+  assert_output --partial 'flatpak executable not found'
 }
 
 @test "exec: not installed -> dies, flatpak run not invoked" {
