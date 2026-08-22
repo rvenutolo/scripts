@@ -692,6 +692,10 @@ compromised dependency.
   `hosted-compute-*.githubapp.com:443` is the sanctioned instance of this: GitHub's own runner
   watchdog and request-orchestrator hosts carry a per-run region/index suffix (`eus-01`,
   `iad-02`, …), so no exact host exists to prefer (#201).
+  Six jobs observed the blocked hosts and carry this wildcard: `check-scripts`, `bats`, `lint`,
+  `governance`, `nix-flake-check`, and `coverage`. `reviewdog` and `commitlint` were deliberately
+  left out — they carry different allowlists and neither installs Nix, so neither hits the
+  runner watchdog/orchestrator hosts this wildcard exists for.
 
 - **`keybase.io:443` in `coverage.yml` is load-bearing — never prune it.** `codecov-action` fetches the
   Codecov signing key from keybase.io to verify the CLI it just downloaded. The fetch uses a bare
