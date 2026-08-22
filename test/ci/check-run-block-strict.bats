@@ -281,5 +281,6 @@ EOF
 
 @test "dies when given an argument" {
   run_check extra
-  assert_failure
+  assert_failure 1
+  assert_output --partial 'Expected no arguments'
 }
