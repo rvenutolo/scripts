@@ -8,7 +8,9 @@
   "timezone": "America/New_York",
   "schedule": ["before 6am on saturday"],
   "minimumReleaseAge": "7 days",
-  "commitMessagePrefix": "chore",
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "",
   "labels": ["dependencies"],
   "git-submodules": {
     "enabled": true
