@@ -1,24 +1,34 @@
 #!/usr/bin/env bash
 
-# @description Assert every BATS test asserts on stderr through bats-assert rather
-#              than a hand-rolled glob. `run --separate-stderr` splits the streams,
-#              so a `log::die` message lands in $stderr and never in $output. Two
-#              rules. Rule 1: no raw stderr expansion inside a `[[ ]]` test — the
-#              glob works but prints no diagnostic when it fails, while
-#              assert_stderr prints the substring and the actual stderr. Rule 2:
-#              inside a @test block whose `run` carried --separate-stderr, an
-#              assert_output / refute_output / assert_line / refute_line carrying an
-#              expectation is the trap issue #274 documents: it reads correctly and
-#              can never match. A bare assert_output, a bare refute_output, and
-#              `assert_output ''` are allowed, because asserting that stdout is empty
-#              while stderr carries the message is a legitimate shape.
+# @description Assert every BATS test asserts on the variables `run` sets through
+#              bats-assert rather than a hand-rolled glob. A glob works, but on
+#              failure BATS prints only the bare failed-bracket line and nothing
+#              about what the stream or the exit code actually held, while the
+#              bats-assert helpers name both the expectation and the real value.
+#              Four rules. Rule 1: no raw stderr expansion inside a bracket test —
+#              use assert_stderr / refute_stderr. Rule 2: inside a @test block whose
+#              `run` carried --separate-stderr, an assert_output / refute_output /
+#              assert_line / refute_line carrying an expectation is the trap issue
+#              #274 documents: it reads correctly and can never match, because
+#              --separate-stderr leaves $output holding stdout alone. A bare
+#              assert_output, a bare refute_output, and `assert_output ''` are
+#              allowed, because asserting that stdout is empty while stderr carries
+#              the message is a legitimate shape. Rule 3: no raw stdout expansion
+#              inside a bracket test — use assert_output / refute_output. A numeric
+#              comparison is exempt, because bats-assert has no numeric helper and
+#              `[ "$output" -ge 3 ]` has no better spelling. A `${#output}` length
+#              test is likewise untouched: the pattern matches the expansion, not
+#              the length. Rule 4: no raw status expansion inside a bracket test —
+#              use assert_success, or assert_failure with the expected code. That
+#              rule carries no numeric carve-out, since a numeric status compare is
+#              exactly what assert_failure N replaces.
 #              Scope is every *.bats file under test/functions, test/ci, test/root.
 #              Vendored bats submodules are out of scope. Each exemption must stay
 #              warranted — an entry naming no in-scope file, or naming one with no
 #              flagged line, fails the lint rather than silently disarming it.
 # @noargs
 # @stderr One line per offending file and line, and one per stale exemption.
-# @exitcode 0 every in-scope test file asserts on stderr through bats-assert.
+# @exitcode 0 every in-scope test file asserts through bats-assert.
 # @exitcode 1 an offending line, or a stale EXEMPT entry.
 
 set -Eeuo pipefail
@@ -35,15 +45,15 @@ REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
 readonly TEST_DIR="${TEST_DIR_OVERRIDE:-${REPO_DIR}/test}"
 
-# No exemptions. A new test file that trips either rule fails the gate until it uses
-# the bats-assert stream helpers. Entries are bare basenames and must contain no
+# No exemptions. A new test file that trips any rule fails the gate until it uses
+# the bats-assert helpers. Entries are bare basenames and must contain no
 # spaces — arrays::from_env_override splits the override on spaces.
 readonly EXEMPT=()
 
 # @description Print every offending line in a .bats file as "LINENO: RULE: TEXT".
-#              The stderr expansion is spelled \$[{]stderr[}] rather than literally so
-#              this script never matches its own source. The paired test composes its
-#              fixture lines at runtime for the same reason.
+#              Each expansion the rules look for is spelled \$[{]name[}] rather than
+#              literally, so this script never matches its own source. The paired test
+#              composes its fixture lines at runtime for the same reason.
 # @arg $1 file path to an in-scope .bats file
 # @stdout One "LINENO: RULE: TEXT" line per offending line; nothing when the file is clean.
 function offending_lines() {
@@ -58,9 +68,27 @@ function offending_lines() {
     # the rule off lines that merely quote the flag as fixture text — which is how
     # this lint would otherwise flag its own paired test.
     /^[[:space:]]*([A-Za-z_][A-Za-z_0-9]*=[^[:space:]]*[[:space:]]+)*run[[:space:]]+.*--separate-stderr/ { sep = 1 }
-    # Rule 1 — a raw stderr expansion inside a [[ ]] test.
-    /\[\[/ && /\$[{]stderr[}]/ {
+    # A bracket test in either spelling. Single-bracket counts because
+    # `[ "$status" -eq 1 ]` is as opaque on failure as the double-bracket form,
+    # and the check-orphan-invariants suite was written that way throughout.
+    { bracket = ($0 ~ /\[\[/) || ($0 ~ /(^|[[:space:]!(&|;])\[[[:space:]]/) }
+    # Rule 1 — a raw stderr expansion inside a bracket test.
+    bracket && /\$[{]stderr[}]/ {
       printf "%d: rule1: raw stderr glob, use assert_stderr/refute_stderr: %s\n", FNR, $0
+      next
+    }
+    # Rule 3 — a raw stdout expansion inside a bracket test. A numeric comparison is
+    # left alone: bats-assert offers no numeric helper, so `[ "$output" -ge 3 ]` has
+    # nowhere better to go. `${#output}` never reaches here — the pattern matches the
+    # expansion itself, not the length of it.
+    bracket && /\$[{]output[}]/ && $0 !~ /[[:space:]]-(eq|ne|lt|le|gt|ge)[[:space:]]/ {
+      printf "%d: rule3: raw stdout glob, use assert_output/refute_output: %s\n", FNR, $0
+      next
+    }
+    # Rule 4 — a raw status expansion inside a bracket test. No numeric carve-out
+    # here: a numeric status compare is precisely what assert_failure N replaces.
+    bracket && /\$[{]status[}]/ {
+      printf "%d: rule4: raw status test, use assert_success/assert_failure: %s\n", FNR, $0
       next
     }
     # Rule 2 — a stdout assertion carrying an expectation in a split-stream block.
@@ -133,13 +161,13 @@ function main() {
   local entry
   for entry in ${exempt[@]+"${exempt[@]}"}; do
     if ! grep --quiet --line-regexp --fixed-strings "${entry}" "${seen_tmp}"; then
-      printf 'stale EXEMPT entry: %s has no flagged stderr assertion\n' "${entry}" >&2
+      printf 'stale EXEMPT entry: %s has no flagged assertion\n' "${entry}" >&2
       rc=1
     fi
   done
 
   if ((rc != 0)); then
-    log::warn 'stderr-assertion audit failed — use assert_stderr/refute_stderr, not a raw glob.'
+    log::warn 'assertion audit failed — use the bats-assert helpers, not a raw glob.'
   fi
   exit "${rc}"
 }

@@ -29,7 +29,7 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | every multi-line bash run: block begins with set -Eeuo pipefail | `check-run-block-strict` | `governance` | `governance` |
 | every .ci/ script has a paired bats test file | `check-script-has-test` | `governance` | `governance` |
 | every arity-violating test asserts its guard message | `check-vacuous-arity-tests` | `governance` | `governance` |
-| every BATS test asserts on stderr through bats-assert | `check-stderr-assertions` | `governance` | `governance` |
+| every BATS test asserts on stderr, stdout, and status through bats-assert | `check-stderr-assertions` | `governance` | `governance` |
 | no tree-inspecting repo tool resolves a scan root from SCRIPTS_DIR | `check-tree-scan-root` | `governance` | `governance` |
 | required-checks table, protect-main ruleset, and workflow jobs agree | `check-ci-job-in-summary` | `governance` | `governance` |
 | every top-level script and library function has a shdoc annotation | `check-shdoc-headers` | `check-scripts` | `check-scripts` |

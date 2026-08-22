@@ -43,6 +43,52 @@ raw_stderr_glob() {
   printf '  [[ "${%s}" == *%s* ]]' 'stderr' "'boom'"
 }
 
+# A single-bracket stderr test. Rule 1 covers both bracket spellings.
+raw_stderr_bracket() {
+  printf '  [ -z "${%s}" ]' 'stderr'
+}
+
+# A line holding a raw stdout glob, same device.
+raw_output_glob() {
+  printf '  [[ "${%s}" == *%s* ]]' 'output' "'boom'"
+}
+
+# A single-bracket stdout test.
+raw_output_bracket() {
+  printf '  [ -z "${%s}" ]' 'output'
+}
+
+# A numeric stdout comparison — rule 3's carve-out, since bats-assert has no
+# numeric helper.
+numeric_output_test() {
+  printf '  [ "${%s}" -ge 3 ]' 'output'
+}
+
+# A stdout length test. Rule 3 matches the expansion, not the length of it.
+length_output_test() {
+  printf '  [[ "${#%s}" -eq 32 ]]' 'output'
+}
+
+# A stdout expansion outside any bracket test, which no rule may flag.
+plain_output_use() {
+  printf '  local captured="${%s}"' 'output'
+}
+
+# A line holding a raw status test, same device.
+raw_status_test() {
+  printf '  [[ "${%s}" -eq 1 ]]' 'status'
+}
+
+# A single-bracket status test.
+raw_status_bracket() {
+  printf '  [ "${%s}" -ne 0 ]' 'status'
+}
+
+# A status expansion outside any bracket test, which no rule may flag.
+plain_status_use() {
+  printf '  echo "${%s}"' 'status'
+}
+
 @test "passes on an empty scope" {
   run "${CHECK}"
   assert_success
@@ -141,6 +187,131 @@ raw_stderr_glob() {
     '@test "merged" {' \
     '  run some::fn x' \
     "  assert_output --partial 'Expected no arguments'" \
+    '}'
+  run "${CHECK}"
+  assert_success
+}
+
+@test "rule 1: fires on a single-bracket stderr test too" {
+  write_test_file "${FIXTURE_TEST}/functions/single.bats" \
+    '@test "x" {' \
+    '  run --separate-stderr some::fn' \
+    "$(raw_stderr_bracket)" \
+    '}'
+  run "${CHECK}"
+  assert_failure
+  assert_output --partial 'rule1'
+}
+
+@test "rule 3: fails on a raw stdout glob" {
+  write_test_file "${FIXTURE_TEST}/functions/out.bats" \
+    '@test "x" {' \
+    '  run some::fn x' \
+    "$(raw_output_glob)" \
+    '}'
+  run "${CHECK}"
+  assert_failure
+  assert_output --partial 'out.bats'
+  assert_output --partial 'rule3'
+}
+
+@test "rule 3: fails on a single-bracket stdout test" {
+  write_test_file "${FIXTURE_TEST}/functions/outb.bats" \
+    '@test "x" {' \
+    '  run some::fn' \
+    "$(raw_output_bracket)" \
+    '}'
+  run "${CHECK}"
+  assert_failure
+  assert_output --partial 'rule3'
+}
+
+@test "rule 3: applies in test/ci and test/root too" {
+  write_test_file "${FIXTURE_TEST}/ci/out.bats" \
+    '@test "x" {' \
+    "$(raw_output_glob)" \
+    '}'
+  write_test_file "${FIXTURE_TEST}/root/out.bats" \
+    '@test "x" {' \
+    "$(raw_output_glob)" \
+    '}'
+  run "${CHECK}"
+  assert_failure
+  assert_output --partial 'ci/out.bats'
+  assert_output --partial 'root/out.bats'
+}
+
+@test "rule 3: allows a numeric stdout comparison" {
+  write_test_file "${FIXTURE_TEST}/functions/count.bats" \
+    '@test "x" {' \
+    '  run some::fn' \
+    "$(numeric_output_test)" \
+    '}'
+  run "${CHECK}"
+  assert_success
+}
+
+@test "rule 3: allows a stdout length test" {
+  write_test_file "${FIXTURE_TEST}/functions/len.bats" \
+    '@test "x" {' \
+    '  run some::fn' \
+    "$(length_output_test)" \
+    '}'
+  run "${CHECK}"
+  assert_success
+}
+
+@test "rule 3: does not fire outside a bracket test" {
+  write_test_file "${FIXTURE_TEST}/functions/capture.bats" \
+    '@test "x" {' \
+    '  run some::fn' \
+    "$(plain_output_use)" \
+    '}'
+  run "${CHECK}"
+  assert_success
+}
+
+@test "rule 4: fails on a raw status test" {
+  write_test_file "${FIXTURE_TEST}/functions/st.bats" \
+    '@test "x" {' \
+    '  run some::fn x' \
+    "$(raw_status_test)" \
+    '}'
+  run "${CHECK}"
+  assert_failure
+  assert_output --partial 'st.bats'
+  assert_output --partial 'rule4'
+}
+
+@test "rule 4: fails on a single-bracket status test" {
+  write_test_file "${FIXTURE_TEST}/functions/stb.bats" \
+    '@test "x" {' \
+    '  run some::fn' \
+    "$(raw_status_bracket)" \
+    '}'
+  run "${CHECK}"
+  assert_failure
+  assert_output --partial 'rule4'
+}
+
+@test "rule 4 has no numeric carve-out where rule 3 does" {
+  write_test_file "${FIXTURE_TEST}/functions/stnum.bats" \
+    '@test "x" {' \
+    '  run some::fn' \
+    "$(numeric_output_test)" \
+    "$(raw_status_test)" \
+    '}'
+  run "${CHECK}"
+  assert_failure
+  assert_output --partial 'rule4'
+  refute_output --partial 'rule3'
+}
+
+@test "rule 4: does not fire outside a bracket test" {
+  write_test_file "${FIXTURE_TEST}/functions/echo.bats" \
+    '@test "x" {' \
+    '  run some::fn' \
+    "$(plain_status_use)" \
     '}'
   run "${CHECK}"
   assert_success
