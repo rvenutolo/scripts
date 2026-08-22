@@ -27,7 +27,7 @@ jobs:
           egress-policy: block
           allowed-endpoints: >-
             api.github.com:443 cache.nixos.org:443 channels.nixos.org:443 codeload.github.com:443 github.com:443 install.determinate.systems:443 nixos.org:443 objects.githubusercontent.com:443 releases.nixos.org:443 rubygems.org:443 tarballs.nixos.org:443
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
