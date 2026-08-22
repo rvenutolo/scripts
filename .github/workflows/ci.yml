@@ -185,6 +185,11 @@ jobs:
     name: coverage
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # The Codecov upload lives in coverage.yml, which is push-triggered so it
+    # can carry CODECOV_TOKEN (.ci/check-pr-workflows-no-secrets forbids any
+    # non-GITHUB_TOKEN secret in a PR-triggered file). This job is the PR half:
+    # it produces the report as a downloadable artifact and uploads nothing.
+    if: github.event_name == 'pull_request'
     permissions:
       contents: read
     steps:
@@ -192,7 +197,7 @@ jobs:
         with:
           egress-policy: block
           allowed-endpoints: >-
-            api.github.com:443 cache.nixos.org:443 channels.nixos.org:443 cli.codecov.io:443 codeload.github.com:443 github.com:443 ingest.codecov.io:443 install.determinate.systems:443 nixos.org:443 objects.githubusercontent.com:443 raw.githubusercontent.com:443 releases.nixos.org:443 rubygems.org:443 tarballs.nixos.org:443
+            api.github.com:443 cache.nixos.org:443 channels.nixos.org:443 codeload.github.com:443 github.com:443 install.determinate.systems:443 nixos.org:443 objects.githubusercontent.com:443 raw.githubusercontent.com:443 releases.nixos.org:443 rubygems.org:443 tarballs.nixos.org:443
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
@@ -205,18 +210,8 @@ jobs:
         uses: ./.github/actions/changed-tests
       - uses: ./.github/actions/setup
         if: steps.changes.outputs.run == 'true'
-      - name: Run BATS under bashcov
+      - uses: ./.github/actions/coverage
         if: steps.changes.outputs.run == 'true'
-        env:
-          SCRIPTS_DIR: ${{ github.workspace }}/scripts
-        # bashcov + simplecov-cobertura come from the flake's bundlerEnv
-        # (.nix/bashcov/gemset.nix); kcov is in the flake too. Fully hermetic.
-        run: nix develop --command bashcov --root . -- ./test/bats/bin/bats --recursive test/functions
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
-        if: steps.changes.outputs.run == 'true'
-        with:
-          files: coverage/coverage.xml
-          fail_ci_if_error: false
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always() && steps.changes.outputs.run == 'true'
         with:
