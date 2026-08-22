@@ -328,6 +328,7 @@ $(pkg_record 'twopkg' "${two}")"
   add_devshell_tool 'faketool'
   run "${CHECK}" unexpected
   assert_failure
+  assert_output --partial 'Expected no arguments'
 }
 
 @test "--help exits 0 and prints the description" {
