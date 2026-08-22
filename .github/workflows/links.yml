@@ -23,7 +23,7 @@ jobs:
           # list must cover those hosts plus anything they redirect to.
           allowed-endpoints: >-
             api.github.com:443 app.codecov.io:443 codecov.io:443 codeload.github.com:443 direnv.net:443 github.com:443 img.shields.io:443 nixos.org:443 objects.githubusercontent.com:443 release-assets.githubusercontent.com:443 rvenutolo.github.io:443 www.conventionalcommits.org:443
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
