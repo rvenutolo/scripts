@@ -215,6 +215,24 @@ covers every stderr assertion in the suite.
 - Both die with `stderr: parameter not set` when the `run` omitted `--separate-stderr`,
   which is a clearer failure than the silent empty-string compare it replaces.
 
+`.ci/check-stderr-assertions` enforces this. Rule 1 rejects a raw stderr expansion
+inside a `[[ ]]` test in any `.bats` file under `test/functions`, `test/ci`, or
+`test/root`. Rule 2 rejects an `assert_output` / `refute_output` / `assert_line` /
+`refute_line` carrying an expectation inside a `@test` whose `run` used
+`--separate-stderr` — the #274 trap, where the assertion reads correctly and can never
+match. A bare call or an explicit `''` is allowed, because asserting that stdout is
+empty while stderr carries the message is a legitimate shape.
+
+Its block trigger is anchored to a real `run` invocation rather than matching
+`--separate-stderr` anywhere on a line, so a fixture string that merely quotes the flag
+does not open a block. That is load bearing: with a bare match the lint flagged its own
+paired test. For the same reason the rule-1 pattern is spelled `\$[{]stderr[}]`, and both
+`test/ci/check-stderr-assertions.bats` and the `@@STDERR@@` sentinel in
+`test/ci/check-vacuous-arity-tests.bats` compose their offending fixture lines at runtime
+rather than spelling them literally. A lint that scans the real tree cannot tell a fixture
+string from an assertion, so any new fixture holding a deliberate violation needs the same
+treatment.
+
 ### Standard top-level skeleton
 
 Carry the file-level shdoc header (see [Shdoc annotations for top-level scripts](#shdoc-annotations-for-top-level-scripts)), source the function library, enable the `ERR` trap, handle `-h`/`--help`, then guard arg count:
