@@ -148,6 +148,55 @@ Files excluded from `shell_scripts::find` (`.shdoc/`, `scripts/other/`, vendored
 
 Library files under `functions/*.bash` follow a related but distinct rule: every function must have a preceding shdoc annotation block, but the file-level `@description` is intentionally not required because library files are documented function-by-function. `.ci/check-shdoc-headers` enforces both rules in a single audit pass (top-level scripts get the file-level + per-helper check; library files get the per-function check, minus the file-level `@description`). Both arms also reject placeholder text in a function's annotation block, per the rule above. Both contribute to the audit's exit code, and the audit is wired into `check-scripts` so any regression fails the aggregate gate.
 
+### Arity tests must assert the guard message
+
+A test that invokes a helper with a deliberately wrong argument count and then
+asserts only `assert_failure` passes whenever the helper fails for *any* reason, so
+it does not pin the arity guard it claims to test. Assert the message too:
+
+```bash
+@test "mtime_epoch: 2 args dies" {
+  run files::mtime_epoch 'a' 'b'
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+```
+
+Bare `assert_failure` remains correct where failure itself is the whole
+specification — a predicate helper such as `strings::is_empty` or `os::is_debian`
+returning non-zero has no message to assert.
+
+**`run --separate-stderr` needs `assert_stderr` instead.** `log::die` writes to
+stderr, so under that flag `${output}` is empty and `assert_output` can never match:
+
+```bash
+run --separate-stderr git::clear_local_env 'x'
+assert_failure
+assert_stderr --partial 'Expected no arguments'
+```
+
+`assert_stderr` and `refute_stderr` are easy to overlook — the vendored bats-assert
+defines them inside `src/assert_output.bash` and `src/refute_output.bash` rather than
+in files of their own. Some older tests use a `[[ "${stderr}" == *'…'* ]]` glob; that
+works, but `assert_stderr` prints expected-vs-actual on failure where the glob prints
+nothing.
+
+`.ci/check-vacuous-arity-tests` enforces this. It resolves each `run` target to the
+`args::check_*` guard the helper declares and flags the test only when the argument
+count on the `run` line violates that guard — it reads no test titles, so the prefix
+collisions, loop-based tests, and competing title conventions that broke the #251
+sweep cannot affect it. It abstains rather than guesses on any shape it cannot parse:
+external commands, variable targets, dynamic argument lists, unbalanced or
+continued lines, command substitution, and multi-line `bash -c` strings. Two
+consequences follow. `test/ci/` and `test/root/` are **not** covered, because they
+invoke their subject through `"${CHECK}"`. And non-arity deaths — a missing file, an
+absent tool — are not covered either, since no static rule can predict them; assert
+those messages anyway, just without a lint to enforce it.
+
+Exemptions are keyed `<repo-relative-file>::<helper>#<argcount>`. The key carries no
+spaces because `arrays::from_env_override` splits its override on spaces, and it
+survives a test moving within its file, which a line number does not.
+
 ### Standard top-level skeleton
 
 Carry the file-level shdoc header (see [Shdoc annotations for top-level scripts](#shdoc-annotations-for-top-level-scripts)), source the function library, enable the `ERR` trap, handle `-h`/`--help`, then guard arg count:

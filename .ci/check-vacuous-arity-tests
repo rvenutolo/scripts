@@ -1,0 +1,297 @@
+#!/usr/bin/env bash
+
+# @description Assert that no BATS test asserts only `assert_failure` after invoking
+#              a helper with an argument count its `args::check_*` guard rejects.
+#              Such a test passes whenever the helper fails for any reason, so it
+#              does not pin the arity guard it claims to test (#265). The check
+#              resolves each `run` target to the guard the helper declares, counts
+#              the arguments on the `run` line, and flags the test only when that
+#              count violates the guard — so predicate helpers returning false are
+#              never flagged, and an unrecognised invocation shape is passed over
+#              rather than guessed at. Exemptions are keyed
+#              `<file>::<helper>#<argcount>` — deliberately free of spaces, because
+#              arrays::from_env_override splits the override on spaces — and each
+#              must stay warranted: an entry naming no such invocation, or naming
+#              one that is no longer flagged, fails the lint rather than silently
+#              disarming it.
+# @noargs
+# @stderr One line per vacuous test, and one per stale exemption.
+# @exitcode 0 every arity-violating test asserts its guard message.
+# @exitcode 1 a vacuous arity test, or a stale EXEMPT entry.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'gawk'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly TEST_DIR="${TEST_DIR_OVERRIDE:-${REPO_DIR}/test}"
+readonly FUNCTIONS_DIR="${FUNCTIONS_DIR_OVERRIDE:-${REPO_DIR}/scripts/functions}"
+
+# Invocations exempt from the rule, keyed `<repo-relative-file>::<helper>#<argcount>`.
+# The key carries no spaces on purpose: arrays::from_env_override splits the
+# override variable on spaces, so a title-based key would be torn apart. It is also
+# stable when a test moves within its file, which a line number is not. Ships empty:
+# the sweep in #265 cleared every hit, so a new entry means a genuine exception that
+# could not be strengthened, and it must carry a reason.
+readonly EXEMPT=()
+
+# @description Print `function<TAB>guard-kind` for every function that declares an
+#              args::check_* arity guard, across the library and the test helpers.
+#              Only the FIRST guard in a function body counts: dual-mode helpers
+#              branch on `$#` and guard each branch, and the first is the one a
+#              wrong-arity call reaches.
+# @arg $@ paths shell files to scan
+# @stdout One `function<TAB>guard` line per guarded function.
+function guard_map() {
+  args::check_at_least_1_arg "$@"
+  gawk '
+    /^function[[:space:]]+[A-Za-z_][A-Za-z0-9_:]*\(\)/ { fn = $2; sub(/\(\)$/, "", fn); cur = fn; next }
+    cur && /^\}/ { cur = ""; next }
+    cur && !(cur in guardof) {
+      if (match($0, /args::check_(no_args|at_most_[0-9]_args?|exactly_[0-9]_args?|at_least_[0-9]_args?)/)) {
+        guardof[cur] = substr($0, RSTART + 12, RLENGTH - 12)
+      }
+    }
+    END { for (f in guardof) printf "%s\t%s\n", f, guardof[f] }
+  ' "$@" | sort
+}
+
+# @description Print one tab-separated record per vacuous arity test:
+#              file, line, title, helper, argument count, guard kind, expected message.
+# @arg $1 guards path to the guard-map file produced by guard_map
+# @arg $@ paths .bats files to scan
+# @stdout One record per vacuous arity test; nothing when the suite is clean.
+function vacuous_tests() {
+  args::check_at_least_2_args "$@"
+  local -r guards="$1"
+  shift
+  gawk -v GUARDS="${guards}" '
+    # Tokenise a shell-ish argument list; a single- or double-quoted run is one token.
+    function tokenize(s, arr,   n, t, c) {
+      n = 0
+      delete arr
+      while (length(s) > 0) {
+        sub(/^[[:space:]]+/, "", s)
+        if (length(s) == 0) break
+        c = substr(s, 1, 1)
+        # ANSI-C and locale quoting (a $ immediately followed by a quote) form a single
+        # token: strip the $ and fall through to the ordinary quote handling below.
+        if (c == "$" && (substr(s, 2, 1) == "\047" || substr(s, 2, 1) == "\"")) {
+          s = substr(s, 2); c = substr(s, 1, 1)
+        }
+        if (c == "\"") {
+          if (match(s, /^"([^"\\]|\\.)*"/)) { t = substr(s, RSTART, RLENGTH); s = substr(s, RLENGTH + 1) }
+          else { t = s; s = "" }
+        } else if (c == "\047") {
+          if (match(s, /^\047[^\047]*\047/)) { t = substr(s, RSTART, RLENGTH); s = substr(s, RLENGTH + 1) }
+          else { t = s; s = "" }
+        } else {
+          match(s, /^[^[:space:]]+/); t = substr(s, RSTART, RLENGTH); s = substr(s, RLENGTH + 1)
+        }
+        arr[++n] = t
+      }
+      return n
+    }
+
+    # Expected-count spec for a guard kind: sets KIND and NUM globals.
+    function guard_spec(g) {
+      if (g == "no_args") { KIND = "eq"; NUM = 0; return }
+      match(g, /[0-9]/); NUM = substr(g, RSTART, 1) + 0
+      if (g ~ /^at_most/)  { KIND = "le"; return }
+      if (g ~ /^exactly/)  { KIND = "eq"; return }
+      KIND = "ge"
+    }
+
+    function guard_message(g,   n, noun) {
+      if (g == "no_args") return "Expected no arguments"
+      match(g, /[0-9]/); n = substr(g, RSTART, 1) + 0
+      noun = (n == 1) ? "argument" : "arguments"
+      if (g ~ /^at_most/)  return "Expected at most " n " " noun
+      if (g ~ /^exactly/)  return "Expected exactly " n " " noun
+      return "Expected at least " n " " noun
+    }
+
+    # Extract "ns::fn <args>" from the last ;-segment of a simple `bash -c "..."` string.
+    # Returns the segment, or "" when the shape is not the simple one.
+    function bash_c_segment(toks, n,   i, s, k, seg, parts, m) {
+      for (i = 1; i <= n; i++) if (toks[i] == "-c") break
+      if (i > n || i + 1 > n) return ""
+      s = toks[i + 1]
+      if (substr(s, 1, 1) != "\"") return ""
+      # Extra positional args after the -c string mean $1-style indirection; abstain.
+      if (n > i + 1) return ""
+      s = substr(s, 2, length(s) - 2)
+      m = split(s, parts, ";")
+      seg = parts[m]
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", seg)
+      if (seg !~ /^[a-z_]+::[a-zA-Z0-9_]+([[:space:]]|$)/) return ""
+      if (seg ~ /[$`|&<>]/) return ""
+      return seg
+    }
+
+    # True when the line is a self-contained shell fragment: balanced double quotes and
+    # balanced parentheses. A `run` line whose arguments continue onto the next physical
+    # line is not, and its argument count cannot be read from this line alone.
+    function balanced(s,   i, c, q, depth) {
+      q = 0; depth = 0
+      for (i = 1; i <= length(s); i++) {
+        c = substr(s, i, 1)
+        if (c == "\\") { i++; continue }
+        if (c == "\"") { q = 1 - q; continue }
+        if (q) continue
+        if (c == "(") depth++
+        else if (c == ")") depth--
+      }
+      return (q == 0 && depth == 0)
+    }
+
+    function report(   toks, n, i, j, fn, argc, tok, seg, sub_toks, sub_n) {
+      if (!balanced(pend_run)) return
+      # Command substitution carries its own nested quoting, which no line-local
+      # tokeniser can split correctly. Abstain rather than mis-count.
+      if (pend_run ~ /\$\(/ || pend_run ~ /`/) return
+      n = tokenize(pend_run, toks)
+      for (i = 1; i <= n; i++) if (toks[i] == "run") break
+      if (i > n) return
+      i++
+      while (i <= n && toks[i] ~ /^--/) i++
+      if (i > n) return
+      fn = toks[i]
+
+      if (fn == "bash") {
+        for (j = i; j <= n; j++) sub_toks[j - i + 1] = toks[j]
+        sub_n = n - i + 1
+        seg = bash_c_segment(sub_toks, sub_n)
+        if (seg == "") return
+        n = tokenize(seg, toks)
+        i = 1
+        fn = toks[1]
+      }
+
+      if (!(fn in guard)) return
+
+      argc = 0
+      for (j = i + 1; j <= n; j++) {
+        tok = toks[j]
+        if (tok ~ /\[@\]/ || tok == "\"$@\"" || tok ~ /^[<>|]/ || tok == "&&" || tok == "||") return
+        argc++
+      }
+
+      guard_spec(guard[fn])
+      if ((KIND == "eq" && argc == NUM) || (KIND == "le" && argc <= NUM) || (KIND == "ge" && argc >= NUM)) return
+      printf "%s\t%d\t%s\t%s\t%d\t%s\t%s\n", pend_file, pend_line, pend_title, fn, argc, guard[fn], guard_message(guard[fn])
+    }
+
+    FILENAME == GUARDS { split($0, a, "\t"); guard[a[1]] = a[2]; next }
+
+    /^@test / {
+      intest = 1
+      title = $0
+      sub(/^@test[[:space:]]+/, "", title)
+      sub(/[[:space:]]*\{[[:space:]]*$/, "", title)
+      gsub(/^["\047]|["\047]$/, "", title)
+      nl = FNR; pend_run = ""; runline = ""; armed = 0
+      next
+    }
+    !intest { next }
+    /^\}/ { if (pend_run != "") report(); intest = 0; pend_run = ""; next }
+    {
+      if ($0 ~ /(^|[^[:alnum:]_])run[[:space:]]/ && $0 !~ /^[[:space:]]*#/) {
+        if (pend_run != "") report()
+        runline = $0; pend_run = ""; armed = 1
+        next
+      }
+      if ($0 ~ /assert_failure/) {
+        if (armed) { pend_run = runline; pend_file = FILENAME; pend_line = nl; pend_title = title }
+        next
+      }
+      if ($0 ~ /assert_output|assert_line|refute_output|refute_line|assert_equal|stderr/) { pend_run = ""; next }
+    }
+  ' "${guards}" "$@"
+}
+
+function main() {
+  args::check_no_args "$@"
+  local -a exempt=()
+  arrays::from_env_override exempt EXEMPT_OVERRIDE ${EXEMPT[@]+"${EXEMPT[@]}"}
+
+  local -a sources=() bats_files=()
+  local guards_tmp sources_tmp bats_tmp hits_tmp seen_tmp
+  files::create_temp guards_tmp
+  files::create_temp sources_tmp
+  files::create_temp bats_tmp
+  files::create_temp hits_tmp
+  files::create_temp seen_tmp
+
+  # Guard sources: the function library, plus the test helpers — git_fixture::run
+  # and git_fixture::assert_confined carry real guards and real tests. Each root is
+  # probed first: find exits non-zero on a missing directory, which under set -e
+  # would kill the lint rather than report an empty scan.
+  local -a guard_roots=()
+  dirs::exists "${FUNCTIONS_DIR}" && guard_roots+=("${FUNCTIONS_DIR}")
+  dirs::exists "${TEST_DIR}/test_helper" && guard_roots+=("${TEST_DIR}/test_helper")
+  if [[ "${#guard_roots[@]}" -gt 0 ]]; then
+    find "${guard_roots[@]}" -maxdepth 1 -name '*.bash' -type f | sort > "${sources_tmp}"
+  fi
+  if dirs::exists "${TEST_DIR}"; then
+    # Exclude the vendored submodules by their exact paths. A loose '*/bats-*/*'
+    # glob also matches BATS's own run directory (bats-run-XXXXXX), which silently
+    # dropped every file when the scan root was a fixture tree under BATS_TEST_TMPDIR
+    # — the lint found nothing and exited 0, which is indistinguishable from a clean
+    # suite. Its own tests caught this; nothing in the production tree would have.
+    find "${TEST_DIR}" -name '*.bats' -type f \
+      -not -path '*/test/bats/*' \
+      -not -path '*/test_helper/bats-assert/*' \
+      -not -path '*/test_helper/bats-support/*' \
+      | sort > "${bats_tmp}"
+  fi
+
+  mapfile -t sources < "${sources_tmp}"
+  mapfile -t bats_files < "${bats_tmp}"
+  if [[ "${#sources[@]}" -eq 0 || "${#bats_files[@]}" -eq 0 ]]; then
+    exit 0
+  fi
+
+  guard_map "${sources[@]}" > "${guards_tmp}"
+  vacuous_tests "${guards_tmp}" "${bats_files[@]}" > "${hits_tmp}"
+
+  local rc=0
+  local file line title helper argc guard message key
+  while IFS=$'\t' read -r file line title helper argc guard message; do
+    strings::is_empty "${file}" && continue
+    file="${file#"${REPO_DIR}/"}"
+    key="${file}::${helper}#${argc}"
+    if arrays::contains "${key}" ${exempt[@]+"${exempt[@]}"}; then
+      printf '%s\n' "${key}" >> "${seen_tmp}"
+      continue
+    fi
+    printf '%s:%s: %s -- run %s with %s arg(s) violates %s; assert: %s\n' \
+      "${file}" "${line}" "${title}" "${helper}" "${argc}" "${guard}" "${message}" >&2
+    rc=1
+  done < "${hits_tmp}"
+
+  # One check covers both staleness directions: an entry naming a test that no
+  # longer exists never lands in seen_tmp, and neither does one naming a test that
+  # is no longer flagged.
+  local entry
+  for entry in ${exempt[@]+"${exempt[@]}"}; do
+    if ! grep --quiet --line-regexp --fixed-strings "${entry}" "${seen_tmp}"; then
+      printf 'stale EXEMPT entry: %s is not a flagged vacuous arity invocation\n' "${entry}" >&2
+      rc=1
+    fi
+  done
+
+  if ((rc != 0)); then
+    log::warn 'vacuous arity tests found — assert the guard message, not just assert_failure.'
+  fi
+  exit "${rc}"
+}
+
+main "$@"
