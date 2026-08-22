@@ -44,7 +44,7 @@ echo \$(( current + 1 )) > \"\${count_file}\"
   SUCCEED_ON_CALL=999 run --separate-stderr retry::with_linear_backoff 3 5 flaky_cmd
   assert_failure
   assert_equal "$(cat "${BATS_TEST_TMPDIR}/flaky_count")" '3'
-  [[ "${stderr}" == *'Failed after 3 tries'* ]]
+  assert_stderr --partial 'Failed after 3 tries'
 }
 
 @test "with_linear_backoff: too few args triggers arity guard" {
@@ -74,7 +74,7 @@ echo \$(( current + 1 )) > \"\${count_file}\"
   SUCCEED_ON_CALL=999 run --separate-stderr retry::with_exponential_backoff 3 5 flaky_cmd
   assert_failure
   assert_equal "$(cat "${BATS_TEST_TMPDIR}/flaky_count")" '3'
-  [[ "${stderr}" == *'Failed after 3 tries'* ]]
+  assert_stderr --partial 'Failed after 3 tries'
 }
 
 @test "with_exponential_backoff: too few args triggers arity guard" {
@@ -127,7 +127,7 @@ exec /usr/bin/sleep \"\$1\""
 exec /usr/bin/sleep \"\$1\""
   run --separate-stderr retry::until_deadline 1 1 false
   assert_failure
-  [[ "${stderr}" == *'Timed out after 1s waiting for'* ]]
+  assert_stderr --partial 'Timed out after 1s waiting for'
 }
 
 @test "until_deadline: no args triggers arity guard" {
