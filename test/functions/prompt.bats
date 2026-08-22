@@ -112,13 +112,13 @@ prompt_via_stdin() {
 @test "for_value: typed value with default echoes typed" {
   prompt_via_stdin 'typed' "prompt::for_value 'Name' 'default-val'"
   assert_success
-  [[ "${output}" == *'typed'* ]]
+  assert_output --partial 'typed'
 }
 
 @test "for_value: blank input with default echoes default" {
   prompt_via_stdin '' "prompt::for_value 'Name' 'default-val'"
   assert_success
-  [[ "${output}" == *'default-val'* ]]
+  assert_output --partial 'default-val'
 }
 
 @test "for_value: auto_answer with default echoes default" {
@@ -126,13 +126,13 @@ prompt_via_stdin() {
   export SCRIPTS_AUTO_ANSWER=y # intentional: export reaches child process via `run`
   run prompt::for_value 'Name' 'default-val'
   assert_success
-  [[ "${output}" == *'default-val'* ]]
+  assert_output --partial 'default-val'
 }
 
 @test "for_value: typed value without default echoes typed" {
   prompt_via_stdin 'typed' "prompt::for_value 'Name'"
   assert_success
-  [[ "${output}" == *'typed'* ]]
+  assert_output --partial 'typed'
 }
 
 @test "for_value: dies with 0 args" {

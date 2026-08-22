@@ -198,11 +198,12 @@ Exemptions are keyed `<repo-relative-file>::<helper>#<argcount>`. The key carrie
 spaces because `arrays::from_env_override` splits its override on spaces, and it
 survives a test moving within its file, which a line number does not.
 
-**Never hand-roll `[[ "${stderr}" == *'…'* ]]`.** The glob works, but on failure BATS
-prints only the bare failed-`[[` line with no indication of what stderr actually held,
-while `assert_stderr` prints a `-- stderr does not contain substring --` block naming
-both the substring and the real stderr. The rule is not limited to arity tests — it
-covers every stderr assertion in the suite.
+**Never hand-roll a bracket test against `${stderr}`, `${output}`, or `${status}`.**
+The glob works, but on failure BATS prints only the bare failed-bracket line with no
+indication of what the stream or the exit code actually held, while `assert_stderr`
+prints a `-- stderr does not contain substring --` block naming both the substring and
+the real stderr, and `assert_failure` names the expected and actual exit codes. The
+rule is not limited to arity tests — it covers every such assertion in the suite.
 
 - `assert_stderr --partial 'X'` / `refute_stderr --partial 'X'` — substring present or
   absent.
@@ -215,18 +216,42 @@ covers every stderr assertion in the suite.
 - Both die with `stderr: parameter not set` when the `run` omitted `--separate-stderr`,
   which is a clearer failure than the silent empty-string compare it replaces.
 
-`.ci/check-stderr-assertions` enforces this. Rule 1 rejects a raw stderr expansion
-inside a `[[ ]]` test in any `.bats` file under `test/functions`, `test/ci`, or
-`test/root`. Rule 2 rejects an `assert_output` / `refute_output` / `assert_line` /
-`refute_line` carrying an expectation inside a `@test` whose `run` used
-`--separate-stderr` — the #274 trap, where the assertion reads correctly and can never
-match. A bare call or an explicit `''` is allowed, because asserting that stdout is
-empty while stderr carries the message is a legitimate shape.
+The stdout and status halves follow the same shape:
 
-Its block trigger is anchored to a real `run` invocation rather than matching
+- `assert_output --partial 'X'` replaces `== *X*`, `refute_output --partial 'X'`
+  replaces `!= *X*`, and `assert_output --regexp 'RE'` replaces `=~ RE`. Bare
+  `assert_output` and bare `refute_output` replace `-n` and `-z`.
+- `assert_success` replaces `-eq 0`. `assert_failure N` replaces `-eq N` — prefer it
+  over bare `assert_failure`, which accepts any non-zero status and silently widens
+  the assertion.
+- Two things stay as brackets, because bats-assert has no replacement: a numeric
+  comparison on stdout (`[ "${output}" -ge 3 ]`, a count) and a length test
+  (`[[ "${#output}" -eq 32 ]]`).
+
+`.ci/check-stderr-assertions` enforces this across four rules, over any `.bats` file
+under `test/functions`, `test/ci`, or `test/root`. Its name predates rules 3 and 4 and
+is kept for continuity; its scope is every variable `run` sets, not stderr alone.
+
+- **Rule 1** rejects a raw `${stderr}` expansion inside a bracket test.
+- **Rule 2** rejects an `assert_output` / `refute_output` / `assert_line` /
+  `refute_line` carrying an expectation inside a `@test` whose `run` used
+  `--separate-stderr` — the #274 trap, where the assertion reads correctly and can
+  never match. A bare call or an explicit `''` is allowed, because asserting that
+  stdout is empty while stderr carries the message is a legitimate shape.
+- **Rule 3** rejects a raw `${output}` expansion inside a bracket test, except under a
+  numeric operator (`-eq -ne -lt -le -gt -ge`). `${#output}` is never matched — the
+  pattern targets the expansion, not the length of it.
+- **Rule 4** rejects a raw `${status}` expansion inside a bracket test, with no numeric
+  carve-out: a numeric status compare is exactly what `assert_failure N` replaces.
+
+All four accept either bracket spelling. `[ "${status}" -eq 1 ]` is as opaque on
+failure as the `[[ ]]` form, and `test/ci/check-orphan-invariants.bats` was written in
+single brackets throughout.
+
+Rule 2's block trigger is anchored to a real `run` invocation rather than matching
 `--separate-stderr` anywhere on a line, so a fixture string that merely quotes the flag
 does not open a block. That is load bearing: with a bare match the lint flagged its own
-paired test. For the same reason the rule-1 pattern is spelled `\$[{]stderr[}]`, and both
+paired test. For the same reason each rule's pattern is spelled `\$[{]name[}]`, and both
 `test/ci/check-stderr-assertions.bats` and the `@@STDERR@@` sentinel in
 `test/ci/check-vacuous-arity-tests.bats` compose their offending fixture lines at runtime
 rather than spelling them literally. A lint that scans the real tree cannot tell a fixture

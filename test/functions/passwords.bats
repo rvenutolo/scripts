@@ -36,7 +36,7 @@ setup() {
 @test "generate: alphanumeric only (no symbols)" {
   run passwords::generate 64
   assert_success
-  [[ "${output}" =~ ^[A-Za-z0-9]+$ ]]
+  assert_output --regexp '^[A-Za-z0-9]+$'
 }
 
 @test "generate: two consecutive calls produce different output" {
@@ -69,10 +69,11 @@ setup() {
 
 @test "generate_with_symbols: excludes the disallowed character set" {
   # --remove-chars excludes: !&*{}[],#>|@`"%-.$\/:;='
-  # Output must NOT contain any of these.
+  # Output must NOT contain any of these. ']' leads the bracket expression and '-'
+  # trails it so both are literal members rather than a terminator and a range.
   run passwords::generate_with_symbols 64
   assert_success
-  [[ ! "${output}" =~ [\!\&\*\{\}\[\],\#\>\|\@\`\"\%\.\$\\/\:\;\=\'-] ]]
+  refute_output --regexp '[]!&*{}[,#>|@`"%.$\/:;='"'"'-]'
 }
 
 @test "generate_with_symbols: two consecutive calls differ" {

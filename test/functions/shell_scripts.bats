@@ -108,12 +108,12 @@ make_fixture() {
 @test "find: dir arg returns recursive shell files" {
   run shell_scripts::find "${TREE}"
   assert_success
-  [[ "${output}" == *"a.sh"* ]]
-  [[ "${output}" == *"b.bash"* ]]
-  [[ "${output}" == *"c.bats"* ]]
-  [[ "${output}" == *"sub/g.sh"* ]]
-  [[ "${output}" == *"f"* ]]
-  [[ "${output}" != *"d.txt"* ]]
+  assert_output --partial 'a.sh'
+  assert_output --partial 'b.bash'
+  assert_output --partial 'c.bats'
+  assert_output --partial 'sub/g.sh'
+  assert_output --partial "${TREE}/f"
+  refute_output --partial 'd.txt'
 }
 
 @test "find: file arg returns the file as-is" {
@@ -125,8 +125,8 @@ make_fixture() {
 @test "find: mixed file+dir args" {
   run shell_scripts::find "${TREE}/a.sh" "${TREE}/sub"
   assert_success
-  [[ "${output}" == *"${TREE}/a.sh"* ]]
-  [[ "${output}" == *"sub/g.sh"* ]]
+  assert_output --partial "${TREE}/a.sh"
+  assert_output --partial 'sub/g.sh'
 }
 
 # ---------- filter ----------
