@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+
+# @description Assert every BATS test asserts on stderr through bats-assert rather
+#              than a hand-rolled glob. `run --separate-stderr` splits the streams,
+#              so a `log::die` message lands in $stderr and never in $output. Two
+#              rules. Rule 1: no raw stderr expansion inside a `[[ ]]` test — the
+#              glob works but prints no diagnostic when it fails, while
+#              assert_stderr prints the substring and the actual stderr. Rule 2:
+#              inside a @test block whose `run` carried --separate-stderr, an
+#              assert_output / refute_output / assert_line / refute_line carrying an
+#              expectation is the trap issue #274 documents: it reads correctly and
+#              can never match. A bare assert_output, a bare refute_output, and
+#              `assert_output ''` are allowed, because asserting that stdout is empty
+#              while stderr carries the message is a legitimate shape.
+#              Scope is every *.bats file under test/functions, test/ci, test/root.
+#              Vendored bats submodules are out of scope. Each exemption must stay
+#              warranted — an entry naming no in-scope file, or naming one with no
+#              flagged line, fails the lint rather than silently disarming it.
+# @noargs
+# @stderr One line per offending file and line, and one per stale exemption.
+# @exitcode 0 every in-scope test file asserts on stderr through bats-assert.
+# @exitcode 1 an offending line, or a stale EXEMPT entry.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'gawk'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly TEST_DIR="${TEST_DIR_OVERRIDE:-${REPO_DIR}/test}"
+
+# No exemptions. A new test file that trips either rule fails the gate until it uses
+# the bats-assert stream helpers. Entries are bare basenames and must contain no
+# spaces — arrays::from_env_override splits the override on spaces.
+readonly EXEMPT=()
+
+# @description Print every offending line in a .bats file as "LINENO: RULE: TEXT".
+#              The stderr expansion is spelled \$[{]stderr[}] rather than literally so
+#              this script never matches its own source. The paired test composes its
+#              fixture lines at runtime for the same reason.
+# @arg $1 file path to an in-scope .bats file
+# @stdout One "LINENO: RULE: TEXT" line per offending line; nothing when the file is clean.
+function offending_lines() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  gawk '
+    # Block state: a @test opens one, a column-zero brace closes it.
+    /^@test/ { sep = 0 }
+    /^}/     { sep = 0 }
+    # Only a real run invocation opens a split-stream block: optional leading
+    # environment assignments, then `run`, then the flag. Anchoring this way keeps
+    # the rule off lines that merely quote the flag as fixture text — which is how
+    # this lint would otherwise flag its own paired test.
+    /^[[:space:]]*([A-Za-z_][A-Za-z_0-9]*=[^[:space:]]*[[:space:]]+)*run[[:space:]]+.*--separate-stderr/ { sep = 1 }
+    # Rule 1 — a raw stderr expansion inside a [[ ]] test.
+    /\[\[/ && /\$[{]stderr[}]/ {
+      printf "%d: rule1: raw stderr glob, use assert_stderr/refute_stderr: %s\n", FNR, $0
+      next
+    }
+    # Rule 2 — a stdout assertion carrying an expectation in a split-stream block.
+    sep && /^[[:space:]]*(assert_output|refute_output|assert_line|refute_line)([[:space:]]|$)/ {
+      rest = $0
+      sub(/^[[:space:]]*(assert_output|refute_output|assert_line|refute_line)/, "", rest)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", rest)
+      # A bare call, or an explicit empty-string expectation, asserts that stdout is
+      # empty. That is correct and common after --separate-stderr.
+      if (rest == "" || rest == "'"''"'" || rest == "\"\"") next
+      printf "%d: rule2: stdout assertion after --separate-stderr, did you mean assert_stderr?: %s\n", FNR, $0
+    }
+  ' "${file}"
+}
+
+# @description Print every in-scope .bats file path, one per line. Only the three
+#              suite directories are scanned; the vendored bats submodules under
+#              test/bats and test/test_helper are never in scope.
+# @noargs
+# @stdout File paths, one per line.
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+function collect_in_scope_files() {
+  args::check_no_args "$@"
+  local subdir entry
+  for subdir in functions ci root; do
+    if ! dirs::exists "${TEST_DIR}/${subdir}"; then
+      continue
+    fi
+    for entry in "${TEST_DIR}/${subdir}"/*.bats; do
+      if files::exists "${entry}"; then
+        printf '%s\n' "${entry}"
+      fi
+    done
+  done
+}
+
+function main() {
+  args::check_no_args "$@"
+  local -a exempt=()
+  arrays::from_env_override exempt EXEMPT_OVERRIDE ${EXEMPT[@]+"${EXEMPT[@]}"}
+
+  local files_tmp seen_tmp hits_tmp
+  files::create_temp files_tmp
+  files::create_temp seen_tmp
+  files::create_temp hits_tmp
+  # shellcheck disable=SC2119 # no args intended; SC2120 disable on function def suppresses the pair
+  collect_in_scope_files > "${files_tmp}"
+
+  local rc=0
+  local file name hit
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    offending_lines "${file}" > "${hits_tmp}"
+    if [[ ! -s "${hits_tmp}" ]]; then
+      continue
+    fi
+    name="$(basename -- "${file}")"
+    if arrays::contains "${name}" ${exempt[@]+"${exempt[@]}"}; then
+      printf '%s\n' "${name}" >> "${seen_tmp}"
+      continue
+    fi
+    while IFS= read -r hit; do
+      printf '%s:%s\n' "${file#"${REPO_DIR}/"}" "${hit}" >&2
+      rc=1
+    done < "${hits_tmp}"
+  done < "${files_tmp}"
+
+  # One check covers both staleness directions: an entry naming a file that does not
+  # exist never lands in seen_tmp, and neither does one naming a file with no flagged line.
+  local entry
+  for entry in ${exempt[@]+"${exempt[@]}"}; do
+    if ! grep --quiet --line-regexp --fixed-strings "${entry}" "${seen_tmp}"; then
+      printf 'stale EXEMPT entry: %s has no flagged stderr assertion\n' "${entry}" >&2
+      rc=1
+    fi
+  done
+
+  if ((rc != 0)); then
+    log::warn 'stderr-assertion audit failed — use assert_stderr/refute_stderr, not a raw glob.'
+  fi
+  exit "${rc}"
+}
+
+main "$@"
