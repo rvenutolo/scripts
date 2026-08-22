@@ -50,6 +50,7 @@ echo \$(( current + 1 )) > \"\${count_file}\"
 @test "with_linear_backoff: too few args triggers arity guard" {
   run retry::with_linear_backoff 3 5
   assert_failure
+  assert_output --partial 'Expected at least 3 arguments'
 }
 
 # ---------- retry::with_exponential_backoff ----------
@@ -79,6 +80,7 @@ echo \$(( current + 1 )) > \"\${count_file}\"
 @test "with_exponential_backoff: too few args triggers arity guard" {
   run retry::with_exponential_backoff 3 5
   assert_failure
+  assert_output --partial 'Expected at least 3 arguments'
 }
 
 # ---------- retry::until_success ----------
@@ -99,6 +101,7 @@ echo \$(( current + 1 )) > \"\${count_file}\"
 @test "until_success: no args triggers arity guard" {
   run retry::until_success
   assert_failure
+  assert_output --partial 'Expected at least 1 argument'
 }
 
 # ---------- retry::until_deadline ----------
@@ -130,14 +133,17 @@ exec /usr/bin/sleep \"\$1\""
 @test "until_deadline: no args triggers arity guard" {
   run retry::until_deadline
   assert_failure
+  assert_output --partial 'Expected at least 3 arguments'
 }
 
 @test "until_deadline: one arg triggers arity guard" {
   run retry::until_deadline 10
   assert_failure
+  assert_output --partial 'Expected at least 3 arguments'
 }
 
 @test "until_deadline: two args triggers arity guard" {
   run retry::until_deadline 10 1
   assert_failure
+  assert_output --partial 'Expected at least 3 arguments'
 }
