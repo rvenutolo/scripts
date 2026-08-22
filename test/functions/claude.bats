@@ -539,3 +539,102 @@ make_multiline_session() {
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
+
+# ---------- claude::profile_dirs ----------
+
+@test "profile_dirs: prints both profile dirs, personal first" {
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${XDG_CONFIG_HOME}/claude/personal" "${XDG_CONFIG_HOME}/claude/work"
+  run claude::profile_dirs
+  assert_success
+  assert_line --index 0 "${XDG_CONFIG_HOME}/claude/personal"
+  assert_line --index 1 "${XDG_CONFIG_HOME}/claude/work"
+  assert_equal "${#lines[@]}" 2
+}
+
+@test "profile_dirs: prints only personal when work is absent" {
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${XDG_CONFIG_HOME}/claude/personal"
+  run claude::profile_dirs
+  assert_success
+  assert_output "${XDG_CONFIG_HOME}/claude/personal"
+}
+
+@test "profile_dirs: prints only work when personal is absent" {
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${XDG_CONFIG_HOME}/claude/work"
+  run claude::profile_dirs
+  assert_success
+  assert_output "${XDG_CONFIG_HOME}/claude/work"
+}
+
+@test "profile_dirs: prints nothing and succeeds when neither profile exists" {
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${XDG_CONFIG_HOME}/claude"
+  run claude::profile_dirs
+  assert_success
+  refute_output
+}
+
+@test "profile_dirs: prints nothing when the claude config parent itself is absent" {
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/nonexistent"
+  run claude::profile_dirs
+  assert_success
+  refute_output
+}
+
+@test "profile_dirs: skips a profile path that is a regular file" {
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${XDG_CONFIG_HOME}/claude/work"
+  touch "${XDG_CONFIG_HOME}/claude/personal"
+  run claude::profile_dirs
+  assert_success
+  assert_output "${XDG_CONFIG_HOME}/claude/work"
+}
+
+@test "profile_dirs: follows a symlink pointing at a real dir" {
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${XDG_CONFIG_HOME}/claude" "${BATS_TEST_TMPDIR}/elsewhere"
+  ln --symbolic "${BATS_TEST_TMPDIR}/elsewhere" "${XDG_CONFIG_HOME}/claude/personal"
+  run claude::profile_dirs
+  assert_success
+  assert_output "${XDG_CONFIG_HOME}/claude/personal"
+}
+
+@test "profile_dirs: skips a symlink pointing at a nonexistent target" {
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  mkdir --parents "${XDG_CONFIG_HOME}/claude/work"
+  ln --symbolic "${BATS_TEST_TMPDIR}/gone" "${XDG_CONFIG_HOME}/claude/personal"
+  run claude::profile_dirs
+  assert_success
+  assert_output "${XDG_CONFIG_HOME}/claude/work"
+}
+
+@test "profile_dirs: ignores a set CLAUDE_CONFIG_DIR" {
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  export CLAUDE_CONFIG_DIR='/custom/dir'
+  mkdir --parents "${XDG_CONFIG_HOME}/claude/personal" "${XDG_CONFIG_HOME}/claude/work"
+  run claude::profile_dirs
+  assert_success
+  assert_line --index 0 "${XDG_CONFIG_HOME}/claude/personal"
+  assert_line --index 1 "${XDG_CONFIG_HOME}/claude/work"
+  refute_line '/custom/dir'
+}
+
+@test "profile_dirs: ignores PWD under the work projects tree" {
+  unset CLAUDE_CONFIG_DIR
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  export WORK_PROJECTS_DIR="${BATS_TEST_TMPDIR}/Work"
+  mkdir --parents "${XDG_CONFIG_HOME}/claude/personal" "${XDG_CONFIG_HOME}/claude/work" "${WORK_PROJECTS_DIR}/repo"
+  cd "${WORK_PROJECTS_DIR}/repo"
+  run claude::profile_dirs
+  assert_success
+  assert_equal "${#lines[@]}" 2
+}
+
+@test "profile_dirs: dies with 1 arg" {
+  export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
+  run claude::profile_dirs extra
+  assert_failure 1
+  assert_output --partial 'Expected no arguments'
+}
