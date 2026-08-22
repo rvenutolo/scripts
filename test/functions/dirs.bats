@@ -113,15 +113,15 @@ setup() {
 @test "create: emits Creating/Created log lines on stderr" {
   run --separate-stderr dirs::create "${BATS_TEST_TMPDIR}/loud"
   assert_success
-  [[ "${stderr}" == *'Creating'* ]]
-  [[ "${stderr}" == *'Created'* ]]
+  assert_stderr --partial 'Creating'
+  assert_stderr --partial 'Created'
 }
 
 @test "create: existing dir produces no log lines" {
   mkdir --parents "${BATS_TEST_TMPDIR}/quiet"
   run --separate-stderr dirs::create "${BATS_TEST_TMPDIR}/quiet"
   assert_success
-  [[ "${stderr}" != *'Creating'* ]]
+  refute_stderr --partial 'Creating'
 }
 
 @test "create: dies with 0 args" {
