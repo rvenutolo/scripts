@@ -1,4 +1,3 @@
-#!/usr/bin/env bats
 # shellcheck disable=SC2030,SC2031 # BATS isolates each @test in a subshell; SDK_FAILING_PACKAGES edits are per-test
 
 bats_require_minimum_version 1.5.0

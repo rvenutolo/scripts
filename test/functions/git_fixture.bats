@@ -1,5 +1,3 @@
-#!/usr/bin/env bats
-
 # Tests for test/test_helper/git_fixture.bash (helper lives in test_helper/, not
 # scripts/functions/ — this dir is used because the runner only scans functions/ci/root).
 

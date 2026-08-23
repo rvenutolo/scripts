@@ -1,5 +1,3 @@
-#!/usr/bin/env bats
-
 # shellcheck disable=SC2123 # tests intentionally mutate PATH to exercise path::* helpers
 
 bats_require_minimum_version 1.5.0

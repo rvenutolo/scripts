@@ -1,4 +1,3 @@
-#!/usr/bin/env bats
 # shellcheck disable=SC2030,SC2031 # BATS isolates each @test in its own subshell
 
 bats_require_minimum_version 1.5.0

@@ -1,5 +1,3 @@
-#!/usr/bin/env bats
-
 # shellcheck disable=SC2030,SC2031 # BATS runs each @test in a subshell; the *_OVERRIDE mutations are intentional and correctly scoped per-test
 # shellcheck disable=SC2016 # the $-expansions in fixture bodies are literal script text the lint must read, never expansions here
 

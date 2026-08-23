@@ -1,4 +1,3 @@
-#!/usr/bin/env bats
 # shellcheck disable=SC2030,SC2031 # BATS runs each @test in a subshell; subshell-local mutations are intentional
 
 bats_require_minimum_version 1.5.0

@@ -1,5 +1,3 @@
-#!/usr/bin/env bats
-
 # shellcheck disable=SC2016 # $-tokens are literal text inside fixture shdoc headers
 
 bats_require_minimum_version 1.5.0

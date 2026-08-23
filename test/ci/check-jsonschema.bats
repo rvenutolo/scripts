@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 setup() {
   load '../test_helper/common'
   load '../test_helper/path_shim'
