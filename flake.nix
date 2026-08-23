@@ -71,8 +71,31 @@
               # test_helper/common.bash loads them with `bats_load_library` and a bats
               # that is not this one fails loudly instead of silently missing them.
               (bats.withLibraries (l: [
-                l.bats-support
-                l.bats-assert
+                # Both libraries are pinned to the exact revisions this repo's
+                # submodules carried, NOT to the nixpkgs releases. nixpkgs ships
+                # bats-assert 2.1.0, which has no assert_stderr / refute_stderr:
+                # those live only on master, and this repo's whole #274 stderr
+                # convention -- plus .ci/check-stderr-assertions, which enforces
+                # it -- is built on them. Taking the release would break ~30
+                # tests and silently un-enforce a documented rule.
+                (l.bats-support.overrideAttrs (_: {
+                  version = "0-unstable-2024-07-08";
+                  src = fetchFromGitHub {
+                    owner = "bats-core";
+                    repo = "bats-support";
+                    rev = "0954abb9925cad550424cebca2b99255d4eabe96";
+                    hash = "sha256-iO/swXzoIqG9b0Ts1ToX94scPPPPGYcFf+bGOd5DF2c=";
+                  };
+                }))
+                (l.bats-assert.overrideAttrs (_: {
+                  version = "0-unstable-2024-12-08";
+                  src = fetchFromGitHub {
+                    owner = "bats-core";
+                    repo = "bats-assert";
+                    rev = "697471b7a89d3ab38571f38c6c7c4b460d1f5e35";
+                    hash = "sha256-eap1BIyJCiTlAWCyWGEQt0240ytLQZ532luWOBL7dws=";
+                  };
+                }))
               ]))
               parallel
               # flock, for `bats --jobs`. bats refuses to parallelize within a file
