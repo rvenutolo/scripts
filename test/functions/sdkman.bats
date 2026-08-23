@@ -1,4 +1,3 @@
-#!/usr/bin/env bats
 # shellcheck disable=SC2030,SC2031 # BATS isolates each @test in its own subshell; HOME mutations are intentional and correctly scoped per-test
 
 bats_require_minimum_version 1.5.0

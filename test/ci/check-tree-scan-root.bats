@@ -1,5 +1,3 @@
-#!/usr/bin/env bats
-
 # shellcheck disable=SC2016 # ${SCRIPTS_DIR} is literal fixture content the lint must match, never an expansion
 
 setup() {

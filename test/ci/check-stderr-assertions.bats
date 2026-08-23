@@ -1,5 +1,3 @@
-#!/usr/bin/env bats
-
 # shellcheck disable=SC2016 # the printf format holds a literal ${...} the lint must see, never an expansion
 
 bats_require_minimum_version 1.5.0

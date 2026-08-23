@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 setup() {
   load '../test_helper/common'
   CHECK="${REPO_DIR}/.ci/check-renovate-invariants"

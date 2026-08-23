@@ -1,5 +1,3 @@
-#!/usr/bin/env bats
-
 # shellcheck disable=SC2016 # the fixture bodies below are literal .bats content; their ${...} and $(...) are text the lint must parse, never expansions
 
 # Every fixture helper below is namespaced `fixture::`, which exists nowhere in

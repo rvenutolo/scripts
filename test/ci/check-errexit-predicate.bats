@@ -1,5 +1,3 @@
-#!/usr/bin/env bats
-
 # shellcheck disable=SC2016 # fixture bodies are literal shell text the lint reads, never expansions
 bats_require_minimum_version 1.5.0
 

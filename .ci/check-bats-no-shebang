@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+# @description Assert that no .bats test file opens with a shebang. Since #215 made
+#              shfmt and shellcheck coverage extension-based, a shebang on a .bats
+#              file buys no tooling behavior — and check-executable-bit forbids
+#              .bats files from being executable, so the shebang can never be
+#              exercised. The corpus standardized on no shebang (#264); this lint
+#              keeps new files consistent. Only the first line of each file is
+#              judged, so a shebang literal inside a fixture string is never
+#              flagged. Scope is every *.bats file under test/functions, test/ci,
+#              and test/root; the vendored bats submodules are out of scope.
+# @noargs
+# @stderr One line per offending file.
+# @exitcode 0 no in-scope .bats file opens with a shebang.
+# @exitcode 1 at least one offending file.
+
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0 (#290).
+shopt -s inherit_errexit
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly TEST_DIR="${TEST_DIR_OVERRIDE:-${REPO_DIR}/test}"
+
+# @description Print every in-scope .bats file path, one per line. Only the three
+#              suite directories are scanned; the vendored bats submodules under
+#              test/bats and test/test_helper are never in scope.
+# @noargs
+# @stdout File paths, one per line.
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+function collect_in_scope_files() {
+  args::check_no_args "$@"
+  local subdir entry
+  for subdir in functions ci root; do
+    if ! dirs::exists "${TEST_DIR}/${subdir}"; then
+      continue
+    fi
+    for entry in "${TEST_DIR}/${subdir}"/*.bats; do
+      if files::exists "${entry}"; then
+        printf '%s\n' "${entry}"
+      fi
+    done
+  done
+}
+
+function main() {
+  args::check_no_args "$@"
+
+  local files_tmp
+  files::create_temp files_tmp
+  # shellcheck disable=SC2119 # no args intended; SC2120 disable on function def suppresses the pair
+  collect_in_scope_files > "${files_tmp}"
+
+  local rc=0
+  local file first_line
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    first_line="$(head --lines=1 -- "${file}")"
+    if [[ "${first_line}" == '#!'* ]]; then
+      printf '%s: .bats files carry no shebang (#264): %s\n' "${file#"${REPO_DIR}/"}" "${first_line}" >&2
+      rc=1
+    fi
+  done < "${files_tmp}"
+
+  if ((rc != 0)); then
+    log::warn 'shebang audit failed — delete the first line; .bats files are matched by extension.'
+  fi
+  exit "${rc}"
+}
+
+main "$@"
