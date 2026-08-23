@@ -2,6 +2,7 @@
 
 setup() {
   load '../test_helper/common'
+  load '../test_helper/path_shim'
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/args.bash"
   # shellcheck disable=SC1091
@@ -700,4 +701,23 @@ echo hi
 EOF
   run shdoc::header_has_placeholder "${f}"
   assert_failure
+}
+
+@test "shdoc::find_unannotated_functions propagates a failure of its awk" {
+  # The caller in check-shdoc-headers routes this helper's stdout to a temp
+  # file and reads emptiness as "clean", so a swallowed awk failure would
+  # manufacture a clean verdict (#294, #297). The status must pass through.
+  local f="${BATS_TEST_TMPDIR}/s-awk-fail"
+  cat > "${f}" << 'EOF'
+#!/usr/bin/env bash
+
+function ns::helper() {
+  echo hi
+}
+EOF
+  path_shim::add 'awk' '#!/usr/bin/env bash
+exit 7'
+  run shdoc::find_unannotated_functions "${f}"
+  assert_failure 7
+  refute_output
 }
