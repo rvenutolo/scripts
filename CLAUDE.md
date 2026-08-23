@@ -870,10 +870,15 @@ compromised dependency.
   `hosted-compute-*.githubapp.com:443` is the sanctioned instance of this: GitHub's own runner
   watchdog and request-orchestrator hosts carry a per-run region/index suffix (`eus-01`,
   `iad-02`, …), so no exact host exists to prefer (#201).
-  Six jobs observed the blocked hosts and carry this wildcard: `check-scripts`, `bats`, `lint`,
-  `governance`, `nix-flake-check`, and `coverage`. `reviewdog` and `commitlint` were deliberately
-  left out — they carry different allowlists and neither installs Nix, so neither hits the
-  runner watchdog/orchestrator hosts this wildcard exists for.
+  **Every job that installs Nix carries this wildcard**, which is the rule to apply when adding a
+  workflow — not a fixed list to copy. Today that is nine: `check-scripts`, `bats`, `lint`,
+  `governance`, `nix-flake-check`, `coverage`, plus `pages`' build job, `pr-title-lint`, and
+  `protect-main-drift-check`. The last three were missed when the wildcard first landed and were
+  added in #301; `pr-title-lint` had been logging `domain not allowed` for both hosts on every
+  green run, which is precisely how silent this failure mode is. `reviewdog` and `commitlint` are
+  deliberately out — they carry different allowlists and neither installs Nix, so neither reaches
+  the runner watchdog/orchestrator hosts this wildcard exists for. `pages`' `deploy` job is out for
+  the same reason.
   The intra-label form is **proven**, not assumed: before the change the Post Run step logged
   `domain not allowed: hosted-compute-watchdog-prod-eus-02.githubapp.com.`, and after it the same
   host logs as `domain resolved`. harden-runner honors a `*` in the middle of a label, so the
