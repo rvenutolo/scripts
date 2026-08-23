@@ -16,7 +16,7 @@
 # @noargs
 # @stderr One line per violation.
 # @exitcode 0 the justfile is unique, canonical, and agrees with the docs.
-# @exitcode 1 a duplicate or missing justfile, an unparseable justfile, a missing README command table, a recipe/README mismatch, gate-name drift, or an undocumented public recipe.
+# @exitcode 1 a duplicate or missing justfile, an unparsable justfile, a missing README command table, a recipe/README mismatch, gate-name drift, or an undocumented public recipe.
 
 set -Eeuo pipefail
 # Without this, errexit is off inside every $(...) subshell, so a helper called
