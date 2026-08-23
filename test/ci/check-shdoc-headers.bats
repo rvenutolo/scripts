@@ -5,6 +5,7 @@ setup() {
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/log.bash"
   load '../test_helper/git_fixture'
+  load '../test_helper/path_shim'
   # Capture the real check path BEFORE any cd into the fixture repo — REPO_DIR
   # from common.bash points at the real repo here, and the tests cd away.
   CHECK="${REPO_DIR}/.ci/check-shdoc-headers"
@@ -425,4 +426,21 @@ EOF
   assert_output --partial 'scaffolded-helper'
   assert_output --partial 'collect_things'
   assert_output --partial 'placeholder'
+}
+
+@test "aborts loudly when a tool inside the audit fails instead of reading clean" {
+  # Pins the #296 producer conversion: before it, audit_one ran as an `if`
+  # condition, so a failed scan left its temp file empty and the emptiness test
+  # read as "clean" — this exact setup exited 0 (#294, #297). The shim targets
+  # gawk, not awk: only shdoc.bash uses gawk, so the failure is confined to the
+  # audit, while a global awk shim destabilizes the whole run (#297).
+  path_shim::add 'gawk' '#!/usr/bin/env bash
+exit 1'
+  cd "${REPO}"
+  # Clear BASH_ENV so the check's bash startup does not re-source ~/.bashrc,
+  # which would re-prepend the real gawk ahead of the shim.
+  BASH_ENV='' run_check
+  assert_failure 1
+  assert_output --partial 'ERROR:'
+  assert_output --partial 'gawk'
 }
