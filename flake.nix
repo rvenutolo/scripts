@@ -6,6 +6,14 @@
     systems.url = "github:nix-systems/default-linux";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
+    bats-support = {
+      url = "github:bats-core/bats-support";
+      flake = false;
+    };
+    bats-assert = {
+      url = "github:bats-core/bats-assert";
+      flake = false;
+    };
   };
 
   outputs =
@@ -14,10 +22,22 @@
       nixpkgs,
       systems,
       treefmt-nix,
+      bats-support,
+      bats-assert,
     }:
     let
       eachSystem = f: nixpkgs.lib.genAttrs (import systems) (system: f nixpkgs.legacyPackages.${system});
       treefmtEval = eachSystem (pkgs: treefmt-nix.lib.evalModule pkgs ./.treefmt.nix);
+      # nixpkgs' unstable-version convention, derived from the input's own
+      # lastModifiedDate so a Renovate bump of flake.lock relabels the store path
+      # too. A hardcoded date silently goes stale on the first bump, which is the
+      # whole reason these stopped being hand-written fetchFromGitHub pins.
+      unstableVersion =
+        input:
+        let
+          d = input.lastModifiedDate;
+        in
+        "0-unstable-${builtins.substring 0 4 d}-${builtins.substring 4 2 d}-${builtins.substring 6 2 d}";
     in
     {
       formatter = eachSystem (pkgs: treefmtEval.${pkgs.stdenv.hostPlatform.system}.config.build.wrapper);
@@ -71,13 +91,14 @@
               # test_helper/common.bash loads them with `bats_load_library` and a bats
               # that is not this one fails loudly instead of silently missing them.
               (bats.withLibraries (l: [
-                # Both libraries are pinned to the exact revisions this repo's
-                # submodules carried, NOT to the nixpkgs releases. nixpkgs ships
-                # bats-assert 2.1.0, which has no assert_stderr / refute_stderr:
-                # those live only on master, and this repo's whole #274 stderr
-                # convention -- plus .ci/check-stderr-assertions, which enforces
-                # it -- is built on them. Taking the release would break ~30
-                # tests and silently un-enforce a documented rule.
+                # Both libraries come from flake INPUTS pinned in flake.lock, not
+                # from the nixpkgs releases. nixpkgs ships bats-assert 2.1.0,
+                # which has no assert_stderr / refute_stderr: those live only on
+                # master, and this repo's whole #274 stderr convention -- plus
+                # .ci/check-stderr-assertions, which enforces it -- is built on
+                # them. Taking the release would break ~30 tests and silently
+                # un-enforce a documented rule. flake.lock carries the rev and the
+                # narHash together, so Renovate's nix manager updates both.
                 #
                 # .github/renovate.json carries one regex custom manager per repo
                 # that tracks these revs against master, so the pins are not
@@ -91,22 +112,12 @@
                 # Take the "hash" field of that JSON. The red CI is the point --
                 # the alternative is a silent freeze on a rev nobody revisits.
                 (l.bats-support.overrideAttrs (_: {
-                  version = "0-unstable-2024-07-08";
-                  src = fetchFromGitHub {
-                    owner = "bats-core";
-                    repo = "bats-support";
-                    rev = "0954abb9925cad550424cebca2b99255d4eabe96";
-                    hash = "sha256-iO/swXzoIqG9b0Ts1ToX94scPPPPGYcFf+bGOd5DF2c=";
-                  };
+                  src = bats-support;
+                  version = unstableVersion bats-support;
                 }))
                 (l.bats-assert.overrideAttrs (_: {
-                  version = "0-unstable-2024-12-08";
-                  src = fetchFromGitHub {
-                    owner = "bats-core";
-                    repo = "bats-assert";
-                    rev = "697471b7a89d3ab38571f38c6c7c4b460d1f5e35";
-                    hash = "sha256-eap1BIyJCiTlAWCyWGEQt0240ytLQZ532luWOBL7dws=";
-                  };
+                  src = bats-assert;
+                  version = unstableVersion bats-assert;
                 }))
               ]))
               parallel
