@@ -31,8 +31,8 @@ readonly REPO_DIR
 readonly TEST_DIR="${TEST_DIR_OVERRIDE:-${REPO_DIR}/test}"
 
 # @description Print every in-scope .bats file path, one per line. Only the three
-#              suite directories are scanned; the vendored bats submodules under
-#              test/bats and test/test_helper are never in scope.
+#              suite directories are scanned; anything else under test/, such as
+#              the shared helpers in test_helper/, is never in scope.
 # @noargs
 # @stdout File paths, one per line.
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
