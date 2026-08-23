@@ -77,12 +77,18 @@ function collect_library_files() {
   done
 }
 
-# @description Audit a single top-level script. Print a block on stderr if
-#              it lacks a file-level @description or has any unannotated
-#              helper functions other than `main`.
+# @description Audit a single top-level script. Print a report block on stdout
+#              if it lacks a file-level @description or has any unannotated
+#              helper functions other than `main`; print nothing when it is
+#              clean, so the caller decides by whether output appeared.
+#
+#              A producer rather than a predicate returning 0/1. As a predicate
+#              it was called from an `if`, which disables errexit for its whole
+#              call tree — so a failure in the awk that enumerates functions
+#              yielded no output and read as "this file is clean" (#294). Called
+#              as a plain command, that failure aborts the lint.
 # @arg $1 file path to script
-# @exitcode 0 clean
-# @exitcode 1 reported violations
+# @stdout A file-name line followed by one `  - reason` line per violation.
 function audit_one() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
@@ -116,23 +122,22 @@ function audit_one() {
     done < "${placeholder_file}"
   fi
   if [[ "${#violations[@]}" -eq 0 ]]; then
-    return 0
+    return
   fi
-  printf '%s\n' "${file}" >&2
+  printf '%s\n' "${file}"
   local v
   for v in "${violations[@]}"; do
-    printf '  - %s\n' "${v}" >&2
+    printf '  - %s\n' "${v}"
   done
-  return 1
 }
 
 # @description Audit a single library file under functions/. Library files
 #              are documented per-function, so the file-level @description
 #              check is skipped — unannotated functions and annotation blocks
-#              carrying placeholder text are both flagged.
+#              carrying placeholder text are both flagged. A producer, for the
+#              same reason as audit_one above.
 # @arg $1 file path to library file
-# @exitcode 0 clean
-# @exitcode 1 reported violations
+# @stdout A file-name line followed by one `  - reason` line per violation.
 function audit_library_one() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
@@ -156,19 +161,24 @@ function audit_library_one() {
     done < "${placeholder_file}"
   fi
   if [[ "${#violations[@]}" -eq 0 ]]; then
-    return 0
+    return
   fi
-  printf '%s\n' "${file}" >&2
+  printf '%s\n' "${file}"
   local v
   for v in "${violations[@]}"; do
-    printf '  - %s\n' "${v}" >&2
+    printf '  - %s\n' "${v}"
   done
-  return 1
 }
 
 function main() {
   args::check_no_args "$@"
   local rc=0
+
+  # The two audit helpers are plain commands here, not `if` conditions: an `if`
+  # would disable errexit through their whole call tree and turn a failed awk
+  # into a clean report (#294).
+  local report_tmp
+  files::create_temp report_tmp
 
   local scripts_file
   files::create_temp scripts_file
@@ -176,7 +186,9 @@ function main() {
   collect_in_scope_scripts > "${scripts_file}"
   local script
   while IFS= read -r script; do
-    if ! audit_one "${script}"; then
+    audit_one "${script}" > "${report_tmp}"
+    if [[ -s "${report_tmp}" ]]; then
+      cat "${report_tmp}" >&2
       rc=1
     fi
   done < "${scripts_file}"
@@ -187,7 +199,9 @@ function main() {
   collect_library_files > "${lib_file}"
   local lib
   while IFS= read -r lib; do
-    if ! audit_library_one "${lib}"; then
+    audit_library_one "${lib}" > "${report_tmp}"
+    if [[ -s "${report_tmp}" ]]; then
+      cat "${report_tmp}" >&2
       rc=1
     fi
   done < "${lib_file}"

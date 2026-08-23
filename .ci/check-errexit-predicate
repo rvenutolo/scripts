@@ -1,0 +1,237 @@
+#!/usr/bin/env bash
+
+# @description Assert no gate script calls a parser-backed helper from a
+#              condition. Bash disables errexit for a function's ENTIRE call
+#              tree when that function is invoked as an `if`/`while`/`until`
+#              condition or on the left of `||`/`&&`. A helper that shells out
+#              to yq or jq therefore swallows a parse failure and answers with
+#              whatever its final command returns — which reads as a real
+#              answer about the file rather than as the failure it is. That is
+#              how a lint came to report an unreadable workflow as clean (#294).
+#              `shopt -s inherit_errexit` does not help: it governs command
+#              substitution, a different suppression (#290).
+#
+#              Deliberately narrow. It matches only a function DEFINED in the
+#              scanned file whose OWN body runs one of the parsers, called from
+#              a condition in that same file — no transitive analysis. Four of
+#              the five call sites #294 first suspected turned out to be pure
+#              bash with nothing to suppress, so the condition shape alone is a
+#              poor signal; the parser in the body is what makes it dangerous.
+#              The fix is always the same: make the helper a producer called as
+#              a plain command, and keep only the test whose non-zero result is
+#              meaningful inside the condition.
+# @noargs
+# @stderr One line per offending call site, and one per stale exemption.
+# @exitcode 0 no parser-backed helper is called from a condition.
+# @exitcode 1 an offending call site, or a stale EXEMPT entry.
+
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0 (#290).
+shopt -s inherit_errexit
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly CI_DIR="${CI_DIR_OVERRIDE:-${REPO_DIR}/.ci}"
+readonly HOOKS_DIR="${HOOKS_DIR_OVERRIDE:-${REPO_DIR}/.githooks}"
+readonly ROOT_DIR="${ROOT_DIR_OVERRIDE:-${REPO_DIR}}"
+
+# The parser names are spelled with a bracketed final character on purpose, so
+# this script's own source does not match the pattern it searches for. Without
+# it, every helper below reads as parser-backed and the lint flags itself — the
+# same self-reference trap that check-tree-scan-root documents. `y[q]` and
+# `j[q]` are exactly equivalent to the literal spellings as regex.
+readonly PARSER_PATTERN='(^|[^[:alnum:]_])(y[q]|j[q])([^[:alnum:]_]|$)'
+
+# Call shapes that suppress errexit for the callee's whole call tree. NAME is
+# substituted in. `||` and `&&` count only when the call opens the line, which
+# is the accumulator idiom (`fn || rc=1`); a trailing `&&` inside a longer
+# pipeline is left alone because the leading command owns the status there.
+readonly CONDITION_SHAPES=(
+  '^[[:space:]]*(el)?if[[:space:]]+(![[:space:]]*)?NAME([[:space:]]|$)'
+  '^[[:space:]]*(while|until)[[:space:]]+(![[:space:]]*)?NAME([[:space:]]|$)'
+  '^[[:space:]]*NAME([[:space:]].*)?[[:space:]]*(\|\||&&)'
+)
+
+# Deliberately empty: the #294 sweep left no in-scope violation behind. An entry
+# naming no in-scope file, or naming one with no flagged call site, fails the
+# lint rather than silently disarming it.
+readonly EXEMPT=()
+
+# @description Print the name of every function defined in a file whose own body
+#              runs one of the parsers. Body extent is the conventional
+#              `function name() {` opener through a closing brace at column 0,
+#              which is what shfmt produces for every file in scope.
+# @arg $1 file path to the file to scan
+# @stdout One function name per line; nothing when the file defines none.
+function parser_backed_functions() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local current='' body=''
+  local line
+  while IFS= read -r line; do
+    if [[ -z "${current}" ]]; then
+      if [[ "${line}" =~ ^function[[:space:]]+([A-Za-z_][A-Za-z0-9_:]*)\(\)[[:space:]]*\{ ]]; then
+        current="${BASH_REMATCH[1]}"
+        body=''
+      fi
+      continue
+    fi
+    if [[ "${line}" == '}' ]]; then
+      if [[ "${body}" =~ ${PARSER_PATTERN} ]]; then
+        printf '%s\n' "${current}"
+      fi
+      current=''
+      body=''
+      continue
+    fi
+    # Comments describe the shape without running it, so they must not count.
+    if [[ ! "${line}" =~ ^[[:space:]]*# ]]; then
+      body+="${line}"$'\n'
+    fi
+  done < "${file}"
+}
+
+# @description Print every line in a file that calls the named function from a
+#              condition, as "LINENO: TEXT". The definition line itself is
+#              skipped, as are comments.
+# @arg $1 file path to the file to scan
+# @arg $2 name function name to look for
+# @stdout Zero or more `LINENO: TEXT` records.
+function condition_call_sites() {
+  args::check_exactly_2_args "$@"
+  local -r file="$1"
+  local -r name="$2"
+  local number=0
+  local line shape pattern
+  while IFS= read -r line; do
+    number=$((number + 1))
+    if [[ "${line}" =~ ^[[:space:]]*# ]] || [[ "${line}" =~ ^function[[:space:]] ]]; then
+      continue
+    fi
+    for shape in "${CONDITION_SHAPES[@]}"; do
+      pattern="${shape//NAME/${name}}"
+      if [[ "${line}" =~ ${pattern} ]]; then
+        printf '%s: %s\n' "${number}" "${line#"${line%%[![:space:]]*}"}"
+        break
+      fi
+    done
+  done < "${file}"
+}
+
+# @description Print every repo-root entry that is a shell file, one per line.
+#              Non-recursive, so it yields the runner executables and not the
+#              scripts nested under scripts/ or .ci/. Hand-rolled rather than
+#              shell_scripts::find_root_only, which resolves the repo root
+#              itself and so cannot be pointed at a fixture tree.
+# @arg $1 root_dir directory to scan
+# @stdout One path per line; nothing when the directory holds no shell files.
+function root_shell_files() {
+  args::check_exactly_1_arg "$@"
+  local -r root_dir="$1"
+  local entry
+  for entry in "${root_dir}"/*; do
+    if files::exists "${entry}" && shell_scripts::is_shell_file "${entry}"; then
+      printf '%s\n' "${entry}"
+    fi
+  done
+}
+
+# @description Print every in-scope file path, one per line: shebang-bearing
+#              executables under .ci/ and .githooks/, plus the repo-root
+#              runners.
+# @noargs
+# @stdout File paths, one per line.
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+function collect_in_scope_files() {
+  args::check_no_args "$@"
+  if dirs::exists "${CI_DIR}"; then
+    shell_scripts::find "${CI_DIR}"
+  fi
+  if dirs::exists "${HOOKS_DIR}"; then
+    shell_scripts::find "${HOOKS_DIR}"
+  fi
+  if dirs::exists "${ROOT_DIR}"; then
+    root_shell_files "${ROOT_DIR}"
+  fi
+}
+
+# @description Print every offending call site in one file, as
+#              "LINENO: TEXT (via NAME)".
+# @arg $1 file path to the file to audit
+# @stdout Zero or more records.
+function offending_call_sites() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local names_tmp hits_tmp
+  files::create_temp names_tmp
+  files::create_temp hits_tmp
+  parser_backed_functions "${file}" > "${names_tmp}"
+  local name hit
+  while IFS= read -r name; do
+    strings::is_empty "${name}" && continue
+    condition_call_sites "${file}" "${name}" > "${hits_tmp}"
+    while IFS= read -r hit; do
+      strings::is_empty "${hit}" && continue
+      printf '%s (via %s)\n' "${hit}" "${name}"
+    done < "${hits_tmp}"
+  done < "${names_tmp}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  local -a exempt=()
+  arrays::from_env_override exempt EXEMPT_OVERRIDE ${EXEMPT[@]+"${EXEMPT[@]}"}
+
+  local files_tmp seen_tmp hits_tmp
+  files::create_temp files_tmp
+  files::create_temp seen_tmp
+  files::create_temp hits_tmp
+  # shellcheck disable=SC2119 # no args intended; SC2120 disable on function def suppresses the pair
+  collect_in_scope_files > "${files_tmp}"
+
+  local rc=0
+  local file name hit
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    offending_call_sites "${file}" > "${hits_tmp}"
+    if [[ ! -s "${hits_tmp}" ]]; then
+      continue
+    fi
+    name="$(basename -- "${file}")"
+    if arrays::contains "${name}" ${exempt[@]+"${exempt[@]}"}; then
+      printf '%s\n' "${name}" >> "${seen_tmp}"
+      continue
+    fi
+    while IFS= read -r hit; do
+      printf '%s:%s\n' "${file#"${REPO_DIR}/"}" "${hit}" >&2
+      rc=1
+    done < "${hits_tmp}"
+  done < "${files_tmp}"
+
+  # One check covers both staleness directions: an entry naming a file that does
+  # not exist never lands in seen_tmp, and neither does one naming a file with no
+  # flagged call site.
+  local entry
+  for entry in ${exempt[@]+"${exempt[@]}"}; do
+    if ! grep --quiet --line-regexp --fixed-strings "${entry}" "${seen_tmp}"; then
+      printf 'stale EXEMPT entry: %s has no parser-backed helper called from a condition\n' \
+        "${entry}" >&2
+      rc=1
+    fi
+  done
+
+  if ((rc != 0)); then
+    log::warn 'errexit-predicate audit failed — make the helper a producer called as a plain command.'
+  fi
+  exit "${rc}"
+}
+
+main "$@"

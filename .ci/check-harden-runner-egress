@@ -59,22 +59,27 @@ function harden_runner_with() {
   ' "${file}"
 }
 
-# @description Print whether the given job has a harden-runner step.
+# @description Print the number of harden-runner steps a job declares.
+#              A producer rather than a `has_harden_runner` predicate: a
+#              predicate gets called from an `if`, which disables errexit for its
+#              whole call tree, so a `yq` failure would yield an empty count and
+#              read as "this job has no harden-runner step" — a real finding
+#              invented out of a parse error (#294). Called as a command
+#              substitution under inherit_errexit, a `yq` failure aborts the lint
+#              instead.
 # @arg $1 file path to a workflow YAML
-# @arg $2 job the job key
-# @exitcode 0 the job has a harden-runner step
-# @exitcode 1 it does not
-function has_harden_runner() {
+# @arg $2 job_name key of the job to inspect
+# @stdout The count of harden-runner steps in that job.
+function harden_runner_count() {
   args::check_exactly_2_args "$@"
   local -r file="$1"
   local -r job_name="$2"
-  local count
-  count="$(job="${job_name}" yq eval '
+  # shellcheck disable=SC2016 # yq program literal; strenv is yq syntax, not shell
+  job="${job_name}" yq eval '
     [.jobs[strenv(job)].steps[]
       | select((.uses // "") | test("^step-security/harden-runner@"))]
     | length
-  ' "${file}")"
-  ((count > 0))
+  ' "${file}"
 }
 
 function main() {
@@ -93,7 +98,7 @@ function main() {
   find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
 
   local total=0
-  local file name job entry policy endpoints
+  local file name job entry hr_count policy endpoints
   while IFS= read -r file; do
     strings::is_empty "${file}" && continue
     name="$(basename "${file}")"
@@ -102,7 +107,8 @@ function main() {
     while IFS= read -r job; do
       strings::is_empty "${job}" && continue
       entry="${name}:${job}"
-      if ! has_harden_runner "${file}" "${job}"; then
+      hr_count="$(harden_runner_count "${file}" "${job}")"
+      if ((hr_count == 0)); then
         if arrays::contains "${entry}" "${exempt_entries[@]}"; then
           printf '%s\n' "${entry}" >> "${seen_tmp}"
           continue

@@ -27,19 +27,6 @@ args::check_no_args "$@"
 REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
 
-# @description Validate that every JSON file under .github parses cleanly.
-#              Mirrors the JSON half of the former "yaml + json lint" CI job.
-# @noargs
-# @exitcode 0 all JSON parses; non-zero otherwise.
-# shellcheck disable=SC2120 # args::check_no_args "$@" is the repo's no-args guard; SC2120 is a false positive
-function lint_json() {
-  args::check_no_args "$@"
-  local json_tmp
-  files::create_temp json_tmp
-  find "${REPO_DIR}/.github" -name '*.json' -print0 > "${json_tmp}"
-  xargs --null --no-run-if-empty --max-args=1 jq empty < "${json_tmp}"
-}
-
 function main() {
   args::check_no_args "$@"
   local rc=0
@@ -62,8 +49,17 @@ function main() {
   (cd "${REPO_DIR}" && git ls-files -z -- '*.yml' '*.yaml') > "${yaml_tmp}"
   (cd "${REPO_DIR}" && xargs --null --no-run-if-empty yamllint < "${yaml_tmp}") || rc=1
   log::log 'running json lint'
-  # shellcheck disable=SC2119 # no args passed; args::check_no_args "$@" is the repo's no-args guard
-  lint_json || rc=1
+  # Inlined rather than a lint_json helper called as `lint_json || rc=1`: that
+  # shape disables errexit through the helper's whole call tree, so a failing
+  # `find` left an empty list, `--no-run-if-empty` ran nothing, and every JSON
+  # file went unlinted while the step reported success (#294). Inline, only the
+  # xargs status — the one that means "a JSON file is malformed" — reaches the
+  # accumulator, matching the yamllint and markdownlint steps around it.
+  local json_tmp
+  files::create_temp json_tmp
+  # -name has no long-form equivalent in find.
+  find "${REPO_DIR}/.github" -name '*.json' -print0 > "${json_tmp}"
+  xargs --null --no-run-if-empty --max-args=1 jq empty < "${json_tmp}" || rc=1
   log::log 'running markdownlint-cli2'
   # Lint the tracked markdown set — exactly what CI's clean, submodule-less
   # checkout sees. Globbing the working tree would pull in gitignored scratch

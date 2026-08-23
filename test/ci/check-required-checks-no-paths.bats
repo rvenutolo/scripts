@@ -80,3 +80,49 @@ EOF
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
+
+@test "fails loudly on a workflow yq cannot parse" {
+  # Regression for #294. The yq call used to carry
+  # `2> /dev/null || printf 'false'`, so an unreadable document reported
+  # "declares no path filter" and the check exited 0 having never inspected it.
+  printf -- '- a\n- b\n' > "${WF}/seq.yml"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure 1
+}
+
+@test "passes on a flow-list on: trigger" {
+  # The shape the deleted fallback was really covering: `.on.pull_request`
+  # errors while indexing a sequence, before any select on the result can
+  # filter it. Guarding `.on` itself is what makes the fallback unnecessary.
+  cat > "${WF}/a.yml" << 'EOF2'
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+EOF2
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_success
+}
+
+@test "passes on a scalar on: trigger" {
+  cat > "${WF}/a.yml" << 'EOF2'
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+EOF2
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_success
+}
+
+@test "still fails on paths-ignore, not only paths" {
+  cat > "${WF}/a.yml" << 'EOF2'
+on:
+  pull_request:
+    paths-ignore:
+      - '**.md'
+EOF2
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'declares paths/paths-ignore under on.pull_request'
+}
