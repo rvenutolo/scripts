@@ -12,6 +12,9 @@
 # @exitcode 1 one or more workflows declare it.
 
 set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0 (#290).
+shopt -s inherit_errexit
 IFS=$'\n\t'
 
 # shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
@@ -25,21 +28,23 @@ REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
 readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
 
-# @description Determine whether a workflow declares the `pull_request_target`
-#              trigger. Enumerates `.on` triggers across all three shapes —
-#              scalar (`on: pull_request_target`), sequence
-#              (`on: [push, pull_request_target]`), and map
-#              (`on:\n  pull_request_target:`) — via yq, so a commented-out or
-#              string-literal mention is ignored. The exact-line match avoids a
-#              false positive on the `pull_request` trigger.
+# @description Print every trigger name a workflow declares, one per line.
+#              Handles all three shapes of `.on`: scalar (`on: pull_request`),
+#              sequence (`on: [push, pull_request]`), and map
+#              (`on:\n  pull_request:`). Reading them via yq rather than by
+#              grepping the text means a commented-out or string-literal mention
+#              is ignored.
+#
+#              Deliberately a producer rather than a predicate. As a predicate it
+#              was called from an `if`, which disables errexit for its whole call
+#              tree — so a `yq` failure on an unparsable workflow read as "not
+#              triggered", the file went unscanned, and the lint still exited 0
+#              (#290). Called as a plain command, a `yq` failure aborts the lint.
 # @arg $1 file path to a workflow YAML
-# @exitcode 0 workflow declares pull_request_target.
-# @exitcode 1 workflow does not.
-function declares_pull_request_target() {
+# @stdout One trigger name per line.
+function workflow_triggers() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
-  local triggers_tmp
-  files::create_temp triggers_tmp
   # Emit every trigger name regardless of `.on` shape: map keys, sequence
   # members, and a bare scalar. Each branch is guarded by select(type) so the
   # other two shapes contribute nothing instead of erroring.
@@ -47,8 +52,7 @@ function declares_pull_request_target() {
     (.on | select(type == "!!map") | keys | .[]),
     (.on | select(type == "!!seq") | .[]),
     (.on | select(type == "!!str"))
-  ' "${file}" > "${triggers_tmp}"
-  grep --line-regexp --quiet 'pull_request_target' "${triggers_tmp}"
+  ' "${file}"
 }
 
 function main() {
@@ -56,14 +60,16 @@ function main() {
   if ! dirs::exists "${WORKFLOWS_DIR}"; then
     exit 0
   fi
-  local files_tmp
+  local files_tmp triggers_tmp
   files::create_temp files_tmp
+  files::create_temp triggers_tmp
   find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
   local total=0
   local file
   while IFS= read -r file; do
     strings::is_empty "${file}" && continue
-    if declares_pull_request_target "${file}"; then
+    workflow_triggers "${file}" > "${triggers_tmp}"
+    if grep --line-regexp --quiet 'pull_request_target' "${triggers_tmp}"; then
       printf '%s: declares the pull_request_target trigger\n' "${file}" >&2
       total=$((total + 1))
     fi

@@ -11,6 +11,9 @@
 # @exitcode 1 one or more governance checks failed.
 
 set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0 (#290).
+shopt -s inherit_errexit
 IFS=$'\n\t'
 
 # shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
@@ -52,6 +55,7 @@ function main() {
     check-vacuous-arity-tests \
     check-stderr-assertions \
     check-tree-scan-root \
+    check-inherit-errexit \
     check-ci-job-in-summary \
     check-orphan-invariants \
     check-justfile-invariants \

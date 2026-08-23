@@ -2,7 +2,12 @@ setup() {
   load '../test_helper/common'
   CHECK="${REPO_DIR}/.ci/check-codecov-strict"
   WF="${BATS_TEST_TMPDIR}/wf"
-  mkdir -p "${WF}"
+  ACT="${BATS_TEST_TMPDIR}/actions/coverage"
+  mkdir -p "${WF}" "${ACT}"
+  # Point the composite scan at an empty fixture by default so a test that only
+  # overrides the workflows dir does not silently pull in the real
+  # .github/actions tree. The real-repo test below unsets it again.
+  export ACTIONS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/actions"
 }
 
 # .ci/check-codecov-strict derives its own repo root via
@@ -158,7 +163,8 @@ EOF
   assert_success
 }
 
-@test "passes against the real repository workflows" {
+@test "passes against the real repository workflows and actions" {
+  unset ACTIONS_DIR_OVERRIDE
   run_check "${CHECK}"
   assert_success
 }
@@ -167,4 +173,163 @@ EOF
   run_check "${CHECK}" 'unexpected'
   assert_failure
   assert_output --partial 'Expected no arguments'
+}
+
+@test "fails loudly on a workflow yq cannot parse" {
+  # Regression for #290. The per-file helper runs inside a command substitution,
+  # where bash unsets errexit unless inherit_errexit is set. A failing yq used to
+  # leave the helper running past it, echoing a zero count, so the check exited 0
+  # with the unparsable file never scanned.
+  printf -- '- a\n- b\n' > "${WF}/seq.yml"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure 1
+}
+
+@test "fails: composite action step with fail_ci_if_error false" {
+  # #291: a codecov step moved into a composite must stay in scope. A composite
+  # has no job, so the violation names the file alone.
+  cat > "${ACT}/action.yml" << 'EOF'
+name: coverage
+runs:
+  using: composite
+  steps:
+    - uses: codecov/codecov-action@abc123
+      with:
+        fail_ci_if_error: false
+EOF
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'action.yml: fail_ci_if_error must be true (found: false)'
+  refute_output --partial 'job'
+}
+
+@test "passes: composite action step with fail_ci_if_error true" {
+  cat > "${ACT}/action.yml" << 'EOF'
+name: coverage
+runs:
+  using: composite
+  steps:
+    - uses: codecov/codecov-action@abc123
+      with:
+        fail_ci_if_error: true
+EOF
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_success
+}
+
+@test "fails: composite action step setting skip_validation" {
+  cat > "${ACT}/action.yml" << 'EOF'
+name: coverage
+runs:
+  using: composite
+  steps:
+    - uses: codecov/codecov-action@abc123
+      with:
+        fail_ci_if_error: true
+        skip_validation: true
+EOF
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'skip_validation bypasses CLI integrity checking'
+}
+
+@test "fails: composite action step setting binary" {
+  cat > "${ACT}/action.yml" << 'EOF'
+name: coverage
+runs:
+  using: composite
+  steps:
+    - uses: codecov/codecov-action@abc123
+      with:
+        fail_ci_if_error: true
+        binary: ./codecov
+EOF
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'binary bypasses CLI integrity checking'
+}
+
+@test "fails: composite action step setting use_pypi" {
+  cat > "${ACT}/action.yml" << 'EOF'
+name: coverage
+runs:
+  using: composite
+  steps:
+    - uses: codecov/codecov-action@abc123
+      with:
+        fail_ci_if_error: true
+        use_pypi: true
+EOF
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'use_pypi bypasses CLI integrity checking'
+}
+
+@test "a workflow violation still names its job" {
+  cat > "${WF}/a.yml" << 'EOF'
+jobs:
+  coverage:
+    steps:
+      - uses: codecov/codecov-action@abc123
+        with:
+          fail_ci_if_error: false
+EOF
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'job coverage: fail_ci_if_error must be true'
+}
+
+@test "ignores a composite action with no codecov step" {
+  cat > "${ACT}/action.yml" << 'EOF'
+name: setup
+runs:
+  using: composite
+  steps:
+    - run: true
+      shell: bash
+EOF
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_success
+}
+
+@test "ignores an action that runs no steps at all" {
+  cat > "${ACT}/action.yml" << 'EOF'
+name: js-action
+runs:
+  using: node20
+  main: index.js
+EOF
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_success
+}
+
+@test "exits 0 when neither scan directory exists" {
+  WORKFLOWS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/nope" \
+    ACTIONS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/nope" run_check "${CHECK}"
+  assert_success
+}
+
+@test "scans both directories in one run" {
+  cat > "${WF}/a.yml" << 'EOF'
+jobs:
+  coverage:
+    steps:
+      - uses: codecov/codecov-action@abc123
+        with:
+          fail_ci_if_error: false
+EOF
+  cat > "${ACT}/action.yml" << 'EOF'
+name: coverage
+runs:
+  using: composite
+  steps:
+    - uses: codecov/codecov-action@abc123
+      with:
+        fail_ci_if_error: false
+EOF
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'job coverage: fail_ci_if_error must be true'
+  assert_output --partial 'action.yml: fail_ci_if_error must be true'
+  assert_output --partial '2 codecov-action violation(s)'
 }

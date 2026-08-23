@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+
+# @description Assert every gate script enables `inherit_errexit`. Bash unsets
+#              errexit inside a command-substitution subshell unless this shopt
+#              is set, so a helper invoked as `n="$(scan "${file}")"` keeps
+#              running past a failed command, echoes a zero count, and the lint
+#              exits 0 while the input it could not parse goes unchecked (#290).
+#              The ERR trap fires and prints, which makes the failure look
+#              reported when it is not — the same false-green shape as #250.
+#              Scope is every shebang-bearing executable under .ci/ and
+#              .githooks/, plus the repo-root runners: the three places where a
+#              wrong exit code is indistinguishable from a clean gate. The
+#              bootstrap script that cannot source the function library is
+#              exempt by name, and the exemption must stay warranted — an entry
+#              naming no in-scope file, or naming one that already sets the
+#              shopt, fails the lint rather than silently disarming it.
+# @noargs
+# @stderr One line per offending file, and one per stale exemption.
+# @exitcode 0 every in-scope file enables inherit_errexit after strict mode.
+# @exitcode 1 a file omits or misorders the shopt, or an EXEMPT entry is stale.
+
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0 (#290).
+shopt -s inherit_errexit
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly CI_DIR="${CI_DIR_OVERRIDE:-${REPO_DIR}/.ci}"
+readonly HOOKS_DIR="${HOOKS_DIR_OVERRIDE:-${REPO_DIR}/.githooks}"
+readonly ROOT_DIR="${ROOT_DIR_OVERRIDE:-${REPO_DIR}}"
+
+readonly STRICT_MODE_LINE='set -Eeuo pipefail'
+readonly SHOPT_LINE='shopt -s inherit_errexit'
+
+# The one in-scope file exempt from the rule. activate-githooks runs from the
+# flake devShell's shellHook, including under `nix develop --ignore-environment`
+# where SCRIPTS_DIR does not exist, so it deliberately sources nothing and
+# inlines its own helpers (#231). It runs no scan and calls no helper through a
+# command substitution, so it has no exposure to the shape this lint guards, and
+# editing its strict-mode block is the change that broke it before.
+readonly EXEMPT=(activate-githooks)
+
+# @description Print the 1-based line number of the first line equal to the
+#              given text, or nothing when no line matches. A bash loop rather
+#              than grep because grep exits 1 on no-match, which under the
+#              repo's strict mode plus inherit_errexit would kill this script on
+#              exactly the input it exists to report.
+# @arg $1 file path to the file to scan
+# @arg $2 text line content to match, compared for full equality
+# @stdout The matching line number, or nothing.
+function line_number_of() {
+  args::check_exactly_2_args "$@"
+  local -r file="$1"
+  local -r text="$2"
+  local number=0
+  local line
+  while IFS= read -r line; do
+    number=$((number + 1))
+    if [[ "${line}" == "${text}" ]]; then
+      printf '%s\n' "${number}"
+      return
+    fi
+  done < "${file}"
+}
+
+# @description Print why a file violates the rule, or nothing when it complies.
+#              A file complies when it carries the shopt line and that line
+#              comes after the strict-mode pragma — before it, the shopt would
+#              still apply, but the pair would no longer read as one block and
+#              the next editor would have no anchor to keep them together.
+# @arg $1 file path to the file to check
+# @stdout One reason line, or nothing.
+function violation_reason() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local shopt_number strict_number
+  shopt_number="$(line_number_of "${file}" "${SHOPT_LINE}")"
+  if strings::is_empty "${shopt_number}"; then
+    printf "missing '%s'\n" "${SHOPT_LINE}"
+    return
+  fi
+  strict_number="$(line_number_of "${file}" "${STRICT_MODE_LINE}")"
+  if strings::is_empty "${strict_number}"; then
+    printf "has '%s' but no '%s'\n" "${SHOPT_LINE}" "${STRICT_MODE_LINE}"
+    return
+  fi
+  if ((shopt_number < strict_number)); then
+    printf "'%s' on line %s precedes '%s' on line %s\n" \
+      "${SHOPT_LINE}" "${shopt_number}" "${STRICT_MODE_LINE}" "${strict_number}"
+  fi
+}
+
+# @description Print every repo-root entry that is a shell file, one per line.
+#              Non-recursive, so it yields the runner executables and not the
+#              scripts nested under scripts/ or .ci/. Hand-rolled rather than
+#              shell_scripts::find_root_only, which resolves the repo root
+#              itself and so cannot be pointed at a fixture tree. Dotfiles are
+#              not globbed, so the root-level .functions.bash loader is excluded
+#              without a special case.
+# @arg $1 root_dir directory to scan
+# @stdout One path per line; nothing when the directory holds no shell files.
+function root_shell_files() {
+  args::check_exactly_1_arg "$@"
+  local -r root_dir="$1"
+  local entry
+  for entry in "${root_dir}"/*; do
+    if files::exists "${entry}" && shell_scripts::is_shell_file "${entry}"; then
+      printf '%s\n' "${entry}"
+    fi
+  done
+}
+
+# @description Print every in-scope file path, one per line: shebang-bearing
+#              executables under .ci/ and .githooks/, plus the repo-root
+#              runners.
+# @noargs
+# @stdout File paths, one per line.
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+function collect_in_scope_files() {
+  args::check_no_args "$@"
+  if dirs::exists "${CI_DIR}"; then
+    shell_scripts::find "${CI_DIR}"
+  fi
+  if dirs::exists "${HOOKS_DIR}"; then
+    shell_scripts::find "${HOOKS_DIR}"
+  fi
+  if dirs::exists "${ROOT_DIR}"; then
+    root_shell_files "${ROOT_DIR}"
+  fi
+}
+
+function main() {
+  args::check_no_args "$@"
+  local -a exempt=()
+  arrays::from_env_override exempt EXEMPT_OVERRIDE "${EXEMPT[@]}"
+
+  local files_tmp seen_tmp
+  files::create_temp files_tmp
+  files::create_temp seen_tmp
+  # shellcheck disable=SC2119 # no args intended; SC2120 disable on function def suppresses the pair
+  collect_in_scope_files > "${files_tmp}"
+
+  local rc=0
+  local file name reason
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    reason="$(violation_reason "${file}")"
+    if strings::is_empty "${reason}"; then
+      continue
+    fi
+    name="$(basename -- "${file}")"
+    if arrays::contains "${name}" ${exempt[@]+"${exempt[@]}"}; then
+      printf '%s\n' "${name}" >> "${seen_tmp}"
+      continue
+    fi
+    printf '%s: %s\n' "${file#"${REPO_DIR}/"}" "${reason}" >&2
+    rc=1
+  done < "${files_tmp}"
+
+  # One check covers both staleness directions: an entry naming a file that does
+  # not exist never lands in seen_tmp, and neither does one naming a file that
+  # already complies.
+  local entry
+  for entry in ${exempt[@]+"${exempt[@]}"}; do
+    if ! grep --quiet --line-regexp --fixed-strings "${entry}" "${seen_tmp}"; then
+      printf 'stale EXEMPT entry: %s is not an in-scope file missing the shopt\n' "${entry}" >&2
+      rc=1
+    fi
+  done
+
+  if ((rc != 0)); then
+    log::warn 'inherit_errexit audit failed — a gate script can exit 0 on a failed command substitution.'
+  fi
+  exit "${rc}"
+}
+
+main "$@"
