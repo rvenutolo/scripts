@@ -33,14 +33,13 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Fetch live ruleset and diff against in-tree mirror
         env:
-          SCRIPTS_DIR: ${{ github.workspace }}/scripts
           GH_TOKEN: ${{ secrets.RULESET_READ_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
-          # shellcheck disable=SC2016 # GH_REPO/SCRIPTS_DIR and the gh --jq selector
-          # must expand inside the nix develop bash -c (which has gh/jq from the
-          # flake), not in the runner shell — single quotes are intentional.
-          nix develop --command bash -c '
+          # shellcheck disable=SC2016 # GH_REPO and the gh --jq selector must expand
+          # inside the in-devshell bash -c (which has gh/jq from the flake), not in
+          # the runner shell — single quotes are intentional.
+          ./.ci/in-devshell bash -c '
             set -Eeuo pipefail
             IFS=$'"'"'\n\t'"'"'
             live="$(mktemp)"

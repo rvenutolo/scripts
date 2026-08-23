@@ -31,17 +31,18 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Build docs
-        env:
-          SCRIPTS_DIR: ${{ github.workspace }}/scripts
         run: |
           set -Eeuo pipefail
-          nix develop --command ./.ci/build-docs
-          nix develop --command mkdocs build --strict --config-file .mkdocs.yml
+          ./.ci/in-devshell ./.ci/build-docs
+          ./.ci/in-devshell mkdocs build --strict --config-file .mkdocs.yml
       - name: Generate BATS test count badge
         run: |
           set -Eeuo pipefail
-          count=$(./test/bats/bin/bats --count --recursive test/functions)
-          jq --null-input --arg count "${count}" \
+          count="$(./.ci/in-devshell bats --count --recursive test/functions)"
+          # shellcheck disable=SC2016 # $count is a jq variable bound by --arg, not
+          # a shell one — single quotes intended. shellcheck only special-cases the
+          # jq program when jq is the command word, which it no longer is here.
+          ./.ci/in-devshell jq --null-input --arg count "${count}" \
             '{schemaVersion: 1, label: "tests", message: $count, color: "blue"}' \
             > site/badge.json
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

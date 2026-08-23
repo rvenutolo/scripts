@@ -30,9 +30,12 @@ jobs:
       - name: lint PR title
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
+          # PR_TITLE is attacker-influenced PR text, so it is not on .ci/in-devshell's
+          # fixed --keep list; this appends it for this step alone.
+          IN_DEVSHELL_KEEP: PR_TITLE
         run: |
           # shellcheck disable=SC2016 # ${PR_TITLE} must expand inside the inner
           # bash -c (which has PR_TITLE from the env: block), not the runner
           # shell — single quotes intended; this avoids PR-title injection.
-          nix develop --command bash -c \
+          ./.ci/in-devshell bash -c \
             'printf "%s\n" "${PR_TITLE}" | commitlint --config .commitlintrc.yml'
