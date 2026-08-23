@@ -1,5 +1,37 @@
 {
   "nodes": {
+    "bats-assert": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1762432057,
+        "narHash": "sha256-eap1BIyJCiTlAWCyWGEQt0240ytLQZ532luWOBL7dws=",
+        "owner": "bats-core",
+        "repo": "bats-assert",
+        "rev": "697471b7a89d3ab38571f38c6c7c4b460d1f5e35",
+        "type": "github"
+      },
+      "original": {
+        "owner": "bats-core",
+        "repo": "bats-assert",
+        "type": "github"
+      }
+    },
+    "bats-support": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1755779893,
+        "narHash": "sha256-iO/swXzoIqG9b0Ts1ToX94scPPPPGYcFf+bGOd5DF2c=",
+        "owner": "bats-core",
+        "repo": "bats-support",
+        "rev": "0954abb9925cad550424cebca2b99255d4eabe96",
+        "type": "github"
+      },
+      "original": {
+        "owner": "bats-core",
+        "repo": "bats-support",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1779414690,
@@ -18,6 +50,8 @@
     },
     "root": {
       "inputs": {
+        "bats-assert": "bats-assert",
+        "bats-support": "bats-support",
         "nixpkgs": "nixpkgs",
         "systems": "systems",
         "treefmt-nix": "treefmt-nix"
