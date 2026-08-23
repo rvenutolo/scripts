@@ -6,6 +6,9 @@
 # @exitcode 1 sudo validation failed or one of the set_up scripts exited non-zero.
 
 set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0 (#290).
+shopt -s inherit_errexit
 IFS=$'\n\t'
 
 if [[ -f "${HOME}/.profile" ]]; then

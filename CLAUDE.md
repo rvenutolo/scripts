@@ -365,6 +365,42 @@ runners. Its `EXEMPT` array holds the two provisioning runners and carries stale
 detection: an entry naming no in-scope file, or naming one with no flagged reference, fails
 the lint rather than silently disarming it.
 
+### Gate scripts enable `inherit_errexit`
+
+Bash unsets `errexit` inside a command-substitution subshell unless `inherit_errexit` is
+set. A helper invoked as `n="$(scan "${file}")"` therefore keeps running after a command
+inside it fails, echoes a zero count, and the caller exits 0 on input it never managed to
+check. The `ERR` trap still fires and prints a red line, which makes the failure look
+reported when nothing acted on it — the same silent false-green as #250, and how a lint came
+to grade a workflow it could not parse (#290).
+
+Every shebang-bearing executable under `.ci/` and `.githooks/`, plus the repo-root runners,
+carries the shopt directly below the strict-mode pragma:
+
+```bash
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0 (#290).
+shopt -s inherit_errexit
+IFS=$'\n\t'
+```
+
+`.ci/check-inherit-errexit` enforces it. Its `EXEMPT` array holds only
+`.ci/activate-githooks` — the bootstrap script that sources nothing (#231) and calls no
+helper through a command substitution — and carries the usual bidirectional staleness
+detection.
+
+**The shopt does not cover the sibling suppression.** `errexit` is also disabled for a
+function's entire call tree when that function is invoked as an `if` condition or on the left
+of `||`. A predicate that shells out to `yq` swallows the parse failure and answers "no",
+which reads as a clean file. Two lints had this shape and were rewritten to producers —
+`workflow_triggers` prints the trigger names as a plain command, and only the `grep` whose
+non-zero result is meaningful stays inside the `if`. Write parser-backed helpers as producers
+called plainly, never as predicates called from a condition.
+
+Scripts under `scripts/` are outside this rule: it targets the gates, where a wrong exit code
+is indistinguishable from a clean run.
+
 ### Standalone `misc/` ERR trap
 
 Standalone scripts that do NOT source this repo's `.functions.bash` (everything in `misc/`) cannot call `log::enable_err_trap`. Inline the trap directly after the `IFS=` line. (Note: scripts that source `${DOCKER_COMPOSE_DIR}/functions.bash` DO have access to this repo's helpers — that file transitively sources `${SCRIPTS_DIR}/.functions.bash` — so use `log::enable_err_trap` there, not the inline form.)

@@ -98,3 +98,12 @@ EOF
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
+
+@test "fails loudly on a workflow yq cannot parse" {
+  # Regression for #290. The trigger enumeration used to be a predicate called
+  # from an `if`, which disables errexit for its whole call tree: a failing yq
+  # read as "not triggered", the file went unscanned, and the check exited 0.
+  printf -- '- a\n- b\n' > "${WF}/seq.yml"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure 1
+}

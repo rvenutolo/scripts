@@ -82,3 +82,13 @@ EOF
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
+
+@test "fails loudly on a workflow yq cannot parse" {
+  # Regression for #290. The per-file helper runs inside a command substitution,
+  # where bash unsets errexit unless inherit_errexit is set. A failing yq used to
+  # leave the helper running past it, echoing a zero count, so the check exited 0
+  # with the unparsable file never scanned.
+  printf -- '- a\n- b\n' > "${WF}/seq.yml"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure 1
+}
