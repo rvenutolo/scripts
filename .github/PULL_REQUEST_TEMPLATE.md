@@ -3,4 +3,4 @@
 ## Test plan
 
 - [ ] `nix fmt`
-- [ ] `./run-all-checks`
+- [ ] `./.ci/in-devshell ./run-all-checks`

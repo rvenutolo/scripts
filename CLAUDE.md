@@ -30,6 +30,8 @@ Stays at the **repo root** (NOT under `scripts/`): `lib/` (vendored Groovy jars,
 
 The repo's tooling is provided by a **Nix flake devShell**: contributors install Nix + direnv, run `direnv allow` (or `nix develop`), and every tool (shfmt, shellcheck, bats, formatters, etc.) is available — nothing else to install. CI uses the same flake, so there is no version drift.
 
+Every gate additionally runs *hermetically*, through `.ci/in-devshell` — see [Gates run inside the hermetic devShell](#gates-run-inside-the-hermetic-devshell). The local gate is `nix fmt` followed by `./.ci/in-devshell ./run-all-checks`.
+
 The user's `~/.profile` exports a fixed set of env vars (`SCRIPTS_DIR`, `XDG_*`, `PERSONAL_PROJECTS_DIR`, etc.) that this repo relies on. They are always set in the environment by the time any script runs — interactive shells source `~/.profile`, and the `run-install-scripts` / `run-set-up-scripts` runners source it explicitly. Treat the full set as guaranteed. Read `~/.profile` to enumerate the available vars and their definitions.
 
 - **Reuse, don't hardcode.** When a script references a path or hostname covered by one of these vars, use the env var literal directly: `"${SCRIPTS_DIR}/.functions.bash"`, `"${XDG_CONFIG_HOME}/foo/bar"`, `"${PERSONAL_PROJECTS_DIR}/some-repo"`, etc. Shell expands env vars natively — no templating needed.
@@ -52,7 +54,7 @@ Every non-`misc/` script sources `"${SCRIPTS_DIR}/.functions.bash"`. Exception: 
 
 ## Common Commands
 
-Tooling is provided by a **Nix flake devShell** (see [Required Environment](#required-environment)). Run `nix fmt` / `nix flake check` from the repo; the repo scripts below run inside the flake devShell (`nix develop --command ...` or via direnv).
+Tooling is provided by a **Nix flake devShell** (see [Required Environment](#required-environment)). Run `nix fmt` / `nix flake check` from the repo; every repo script below runs inside the hermetic boundary — `./.ci/in-devshell <script>` — or, interactively, from an already-entered direnv shell.
 
 - `nix fmt` — formats files via treefmt (shfmt for shell, plus the other configured formatters). Replaces the now-retired in-place formatter script. **It does not cover every shell file:** treefmt matches formatters by file extension, so its shfmt only sees `*.sh` / `*.bash` / `*.envrc`. The extensionless top-level executables and `*.bats` files are outside its reach — `./check-scripts` carries the shfmt gate for those (see below).
 
@@ -80,7 +82,7 @@ Note that `switch_case_indent`, `binary_next_line`, and `space_redirects` are sh
 
 - `scripts/non-interactive/new-script <path>` — scaffolds a new script with the standard header + exec bit.
 
-- `./run-tests [<bats-args>...]` — runs BATS tests under `test/functions/`, `test/ci/`, and `test/root/` recursively when called with no args, or forwards args to the vendored bats binary. Default invocation uses `bats --jobs $(nproc)` for parallel execution.
+- `./run-tests [<bats-args>...]` — runs BATS tests under `test/functions/`, `test/ci/`, and `test/root/` recursively when called with no args, or forwards args to the devShell's `bats` from `PATH`. Default invocation uses `bats --jobs $(nproc)` for parallel execution.
 
 To gate a script from the `install`/`set_up runners`, remove its executable bit (`chmod -x`).
 
@@ -144,7 +146,7 @@ files. A backtick-quoted `` `TODO` `` is allowed — that is prose about the tok
 it. This does not restrict `TODO:` for marking deferred work inside a function body, or in a
 comment separated from the definition by a blank line.
 
-Files excluded from `shell_scripts::find` (`.shdoc/`, `scripts/other/`, vendored bats submodules under `test/`) are excluded from this rule.
+Files excluded from `shell_scripts::find` (`.shdoc/`, `.direnv/`, `scripts/other/`) are excluded from this rule.
 
 Library files under `functions/*.bash` follow a related but distinct rule: every function must have a preceding shdoc annotation block, but the file-level `@description` is intentionally not required because library files are documented function-by-function. `.ci/check-shdoc-headers` enforces both rules in a single audit pass (top-level scripts get the file-level + per-helper check; library files get the per-function check, minus the file-level `@description`). Both arms also reject placeholder text in a function's annotation block, per the rule above. Both contribute to the audit's exit code, and the audit is wired into `check-scripts` so any regression fails the aggregate gate.
 
@@ -175,12 +177,30 @@ assert_failure
 assert_stderr --partial 'Expected no arguments'
 ```
 
-`assert_stderr` and `refute_stderr` are easy to overlook — the vendored bats-assert
-defines them inside `src/assert_output.bash` and `src/refute_output.bash` rather than
-in files of their own, along with `assert_stderr_line` and `refute_stderr_line` in the
-`*_line.bash` pair. All four delegate to a shared `__assert_stream` that picks the
-stream from the caller's name. There is no `src/assert_stderr.bash`, which is why an
-`ls src/` once concluded they were missing (#274).
+`assert_stderr` and `refute_stderr` are easy to overlook — bats-assert defines them
+inside `src/assert_output.bash` and `src/refute_output.bash` rather than in files of
+their own, along with `assert_stderr_line` and `refute_stderr_line` in the `*_line.bash`
+pair. All four delegate to a shared `__assert_stream` that picks the stream from the
+caller's name. There is no `src/assert_stderr.bash`, which is why an `ls src/` once
+concluded they were missing (#274).
+
+**`flake.nix` pins bats-assert and bats-support to specific git revisions, and that is
+load-bearing — never "simplify" it back to a bare `l.bats-assert` / `l.bats-support`.**
+Both libraries come from the devShell's `bats.withLibraries`, but each is wrapped in an
+`overrideAttrs` that swaps in a `fetchFromGitHub` at the exact revision this repo's
+submodules used to carry. nixpkgs ships **bats-assert 2.1.0, which has no
+`assert_stderr` / `refute_stderr` at all** — they exist only on master. Taking the
+nixpkgs release would break roughly 30 tests and silently un-enforce
+`.ci/check-stderr-assertions` along with the entire convention documented here.
+
+Two Renovate regex custom managers in `.github/renovate.json` — one per repo — watch
+these revisions against `git-refs` on master, so the pins are not frozen with nothing
+looking at them. Renovate cannot compute a `fetchFromGitHub` hash, though, so a rev bump
+it opens **will be red until the matching `hash` is regenerated by hand** — the command
+is in the comment beside the pins in `flake.nix`. That is a deliberate loud failure, the same shape as the
+allowlist breakage documented under [Renovate action bumps can break an
+allowlist](#renovate-action-bumps-can-break-an-allowlist): a red PR with a one-line fix
+beats a silent freeze.
 
 `.ci/check-vacuous-arity-tests` enforces this. It resolves each `run` target to the
 `args::check_*` guard the helper declares and flags the test only when the argument
@@ -343,6 +363,91 @@ Scripts under `set_up/` must be idempotent and self-gate — check current state
 `run-install-scripts` and `run-set-up-scripts` read their script directory through `INSTALL_DIR_OVERRIDE` / `SET_UP_DIR_OVERRIDE`, defaulting to `${SCRIPTS_DIR}/install` and `${SCRIPTS_DIR}/set_up`. Production leaves both unset; `test/root/` uses them to drive the runners against fixture trees, with `sudo` stubbed via `cli_shim::record` and `HOME` pointed at an empty tmpdir so the `~/.profile` branch is skipped.
 
 **Never run these two runners without a seam in order to observe a "failure" — they execute the real provisioning scripts against the live machine.** Stubbing `sudo` does not prevent that; the scripts under `install/` and `set_up/` run for real. To exercise the fallback path, copy the repo to a tmpdir and empty those directories there.
+
+### Gates run inside the hermetic devShell
+
+Every gate — `./run-all-checks` and each of its five sub-gates, every `just` recipe that
+runs one, `.githooks/pre-push`, and every workflow step that shells out — is invoked
+through `.ci/in-devshell`. Nothing else in the repo may spell `nix develop`.
+
+`.ci/in-devshell <command> [args…]` re-execs the command under
+`nix develop "${REPO_DIR}" --ignore-environment --keep … --command`. The
+`--ignore-environment` is the whole point. A plain `nix develop --command` *prepends* the
+devShell PATH and leaves the ambient PATH reachable behind it, so every gate resolved its
+tools by precedence rather than by guarantee: a tool missing from `flake.nix` still
+resolved from the maintainer's machine and from the runner's `/usr/bin`, and the build was
+green. That is the same class of false green as #219, #228, and #250, and the existing
+`check-tool-declarations` + `check-devshell-provides` pair cannot catch it — those verify
+that declared tools *are provided*, never that undeclared tools are *unavailable*.
+
+**The boundary paid for itself on the first hermetic run.** It found exactly two
+dependencies that were in no declaration and had been resolving silently all along:
+`flock` (`bats --jobs` refuses to parallelize within a file without it and the nixpkgs
+bats wrapper does not carry it, so the entire suite dies on its absence) and `bc` (piped
+through by `files::size_gb`, whose test passed while the helper exited 127). Both are now
+devShell packages. Neither was findable by inspection; only removing the ambient PATH
+surfaced them.
+
+The boundary applies to CI, `./run-all-checks`, `just`, and `pre-push` alike. CI-only
+hermeticity would preserve exactly the local/CI gap the change exists to close.
+
+- **`--keep` is a fixed allowlist**, spelled once, in `.ci/in-devshell`'s `KEEP_VARS`:
+  `HOME`, `TERM`, `CI`, `SCRIPTS_DIR`, `IN_DEVSHELL`, `NIX_SSL_CERT_FILE`, the
+  `GITHUB_*` workflow-context names, `GITHUB_TOKEN` / `GH_TOKEN` / `GH_REPO`, and
+  `RUNNER_OS` / `RUNNER_TEMP`. Anything not on that list does not cross. Every name is
+  passed unconditionally — `--keep` on an unset variable is silent and harmless — so no
+  set-checking branch is needed for the `GITHUB_*` names that are absent locally.
+
+- **`IN_DEVSHELL_KEEP` is the per-call-site escape:** a space-separated list of extra
+  names appended at runtime. Use it for a variable meaningful to one step only, rather
+  than growing the fixed list. `pr-title-lint.yml` uses it for `PR_TITLE`, which must stay
+  off the fixed list precisely because it is attacker-influenced PR text.
+
+- **The wrapper owns `SCRIPTS_DIR`.** It derives `REPO_DIR` from
+  `git rev-parse --show-toplevel` and exports `SCRIPTS_DIR="${REPO_DIR}/scripts"`, which
+  is why the `env: SCRIPTS_DIR:` block is gone from every converted job. It also passes
+  `"${REPO_DIR}"` as the flake reference, so a worktree or second clone builds its own
+  devShell instead of silently grading itself with the main checkout's (#250).
+
+- **Nesting is free.** `IN_DEVSHELL=1` is exported and kept, and the wrapper `exec`s the
+  command directly when it is already set, so a wrapped `./run-all-checks` pays one nix
+  evaluation for all five sub-gates instead of six. Call it from anywhere without checking.
+
+- **It is a bootstrap script**, in the `.ci/activate-githooks` mold (#231): it runs before
+  the environment it creates, so it sources nothing, omits `args::handle_help_flag` (every
+  argument belongs to the wrapped command, so a `--help` would have to be forwarded
+  anyway), and inlines the standalone `ERR` trap. It needs only bash, git, and nix from
+  the host. It does carry `shopt -s inherit_errexit` — it calls `$(git rev-parse …)`.
+
+- **`nix fmt` stays outside**, and so does `just new-script`. `nix fmt` is a nix
+  invocation, not repo tooling running under the devShell, so wrapping it is circular.
+  `new-script` invokes a `scripts/` payload script, and `scripts/` is outside the boundary
+  by design — payload scripts expect their tools from the machine.
+
+- **`.githooks/commit-msg` is deliberately outside.** It shells out to exactly one tool,
+  `commitlint`, from the ambient (direnv) PATH. Wrapping it would buy a nix evaluation on
+  every single commit in exchange for one binary. This is a decision, not an oversight —
+  do not "fix" it.
+
+`.ci/check-workflow-hermetic` enforces the boundary over `.github/workflows/*.yml` and
+`.github/actions/*/action.yml`, in two rules. Rule 1: every step carrying a `run:` key must
+invoke `.ci/in-devshell`, or be listed in `EXEMPT`. Rule 2: no workflow may spell
+`nix develop` at all — that spelling belongs to the wrapper alone, because the wrapper is
+what supplies `--ignore-environment` and the keep list, and a direct invocation is a
+boundary with its walls taken down while still looking correct. Rule 1 asks only whether
+the wrapper appears somewhere in the run body: the reducer that would have to split a block
+into commands is quote-unaware, so the inner script of an `.ci/in-devshell bash -c '…'`
+would read as a row of unwrapped commands. Rule 2 is what closes the gap that leaves, and
+the two together are what CI actually depends on.
+
+`EXEMPT` keys are `<repo-relative-file>::<step-id>`, with the usual bidirectional staleness
+detection — an entry naming no run step, or naming one that *does* go through the wrapper,
+fails the lint rather than silently disarming it. Because a key needs a step id, an exempt
+step must carry a YAML `id:`; a non-compliant step without one is reported as an error
+naming that fix rather than being keyed on its `name:`, which is free text and drifts. The
+single shipped exemption is `changed-tests`' `decide` step, which runs deliberately before
+Nix is installed on the runner — installing Nix merely to decide whether the job needs to
+do anything would defeat the skip it exists to provide. That exemption is permanent.
 
 ### Scan roots come from `REPO_DIR`, not `SCRIPTS_DIR`
 
@@ -557,7 +662,7 @@ The generic ban on `<(...)` and `cmd &` from `.claude/rules/shell-scripts.md` ap
 
 ## Testing
 
-Every helper in `functions/*.bash` is exercised under [BATS](https://github.com/bats-core/bats-core); each `functions/<topic>.bash` has a matching `test/functions/<topic>.bats` (or a topic-prefixed group of `.bats` files). BATS itself, plus `bats-support` and `bats-assert`, are vendored as git submodules under `test/`.
+Every helper in `functions/*.bash` is exercised under [BATS](https://github.com/bats-core/bats-core); each `functions/<topic>.bash` has a matching `test/functions/<topic>.bats` (or a topic-prefixed group of `.bats` files). BATS itself, plus `bats-support` and `bats-assert`, come from the flake devShell (`bats.withLibraries` in `flake.nix`) — they are no longer vendored as git submodules. `test/test_helper/common.bash` loads the two libraries with `bats_load_library`, which resolves through the `BATS_LIB_PATH` that bats wrapper exports, so a bats that is not the flake's fails loudly at `setup()` instead of silently missing them.
 
 The mandate that every new public helper ships with thorough BATS tests in the same PR is documented under [BATS test coverage for helpers](#bats-test-coverage-for-helpers) above. Private `_`-prefixed internal helpers may be covered indirectly through the public callers that exercise them.
 
@@ -565,10 +670,7 @@ The mandate that every new public helper ships with thorough BATS tests in the s
 
 ```text
 test/
-  bats/                       # submodule — bats-core (excluded from format/shellcheck)
   test_helper/
-    bats-support/             # submodule (excluded)
-    bats-assert/              # submodule (excluded)
     common.bash               # shared loader; sourced by each .bats setup()
   functions/
     strings.bats              # tests for functions/strings.bash
@@ -586,6 +688,9 @@ test/
 
 ### Running
 
+Prefix any of these with `./.ci/in-devshell` (or run them from an already-entered direnv
+shell); outside the devShell there is no `bats` on `PATH` and `run-tests` says so.
+
 - `./run-tests` — runs everything under `test/functions/`, `test/ci/`, and `test/root/`.
 
 - `./run-tests test/functions/strings.bats` — single file.
@@ -598,7 +703,15 @@ test/
 git submodule update --init --recursive
 ```
 
-The `run-tests` wrapper aborts with this hint if `test/bats/bin/bats` is missing.
+Still required — but only for `.shdoc`, which is the one remaining submodule. bats,
+`bats-support`, and `bats-assert` used to live under `test/` as submodules and now come
+from the flake devShell, so what a fresh clone needs for them is `direnv allow` (or
+`nix develop`), not a submodule init.
+
+`run-tests` no longer carries a submodule hint. It guards `bats`, `flock`, and `parallel`
+by name, and the missing-bats message points at `./.ci/in-devshell ./run-tests` and
+`just test`. `flock` gets its own guard because `bats --jobs` dies inside GNU parallel
+without it, with a message that says nothing about how this repo is meant to be run.
 
 ### Fixture-escape hardening (#248)
 
@@ -662,7 +775,7 @@ Note: `read -rp` writes the prompt text to `/dev/tty`, which BATS `run` does not
 
 ## Before Committing
 
-The gate is two steps, both inside the flake devShell (`nix develop` or via direnv): `nix fmt` (format every file via treefmt), then `./run-all-checks`. Both must be clean.
+The gate is two steps: `nix fmt` (format every file via treefmt), then `./.ci/in-devshell ./run-all-checks` (the full gate, hermetically). Both must be clean. `nix fmt` deliberately stays outside the wrapper — it is a nix invocation, not repo tooling running under the devShell, so wrapping it is circular. See [Gates run inside the hermetic devShell](#gates-run-inside-the-hermetic-devshell).
 
 `./run-all-checks` is the single definition of the local gate. It runs, in order:
 
@@ -682,7 +795,7 @@ It is **verify-only** — it never rewrites the tree. That is why `nix fmt` stay
 
 The tracked hooks under `.githooks/` activate **automatically**: the flake devShell's `shellHook` invokes `.ci/activate-githooks`, which points `core.hooksPath` at `.githooks`. `direnv allow` / `nix develop` is all that is required — there is no manual `git config --local core.hooksPath` step, and this section used to document one. Because repo-local config cannot be committed, that manual step silently never happened and both tracked hooks sat inert (#212). Activation is idempotent and silent once the value is correct; a foreign `core.hooksPath` is overwritten and logged.
 
-`.githooks/pre-push` runs `./run-all-checks` — the same gate, including the BATS suite — so local and push-time verification cannot drift apart. It previously ran a hand-maintained four-step list that omitted the tests, which is exactly the drift the single runner exists to prevent. Bypass with `git push --no-verify`.
+`.githooks/pre-push` runs `./.ci/in-devshell ./run-all-checks` — the same gate, hermetically, including the BATS suite — so local and push-time verification cannot drift apart. It previously ran a hand-maintained four-step list that omitted the tests, which is exactly the drift the single runner exists to prevent. Bypass with `git push --no-verify`.
 
 ## Changed-Path Test Gating
 

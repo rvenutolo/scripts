@@ -32,19 +32,19 @@ All script directories live under a top-level `scripts/` dir; `SCRIPTS_DIR` poin
 
 Most repo-level operations have both a shell script and a `just` recipe (see [`.justfile`](.justfile)). Either form works; `just` is shorter for the common ones.
 
-| Shell script                                                          | `just` recipe            | Purpose                                                                                       |
-| --------------------------------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------- |
-| `./.ci/build-docs && mkdocs build --strict --config-file .mkdocs.yml` | `just docs`              | Build the docs site locally.                                                                  |
-| `./.ci/check-shdoc-headers`                                           | `just shdoc-check`       | Audit shdoc header coverage on scripts and library helpers.                                   |
-| `./.ci/run-governance-checks`                                         | `just governance`        | Run the repo-governance lint suite (workflow posture, Renovate, ruleset).                     |
-| `./.ci/run-lint-checks`                                               | `just lint`              | Run the config/markup lint suite (actionlint, yamllint, JSON, markdown, typos, editorconfig). |
-| `./check-scripts [<paths>...]`                                        | `just check` (default)   | Combined `shellcheck`, shdoc-header, and executable-bit audit; non-zero exit on failure.      |
-| `nix fmt`                                                             | `just format`            | Format every file via treefmt (shfmt for shell).                                              |
-| `nix flake check`                                                     | `just format-check`      | Verify formatting (treefmt) and run flake checks.                                             |
-| `./run-all-checks`                                                    | `just all`               | Full local gate: `check-scripts`, `nix flake check`, governance, lint, and BATS suites.       |
-| `./run-tests [<bats-args>...]`                                        | `just test`              | Run BATS tests under `test/functions/`, `test/ci/`, and `test/root/`.                         |
-| `./shellcheck-scripts [<paths>...]`                                   | `just shellcheck`        | Run `shellcheck` over shell scripts.                                                          |
-| `scripts/non-interactive/new-script <path>`                           | `just new-script <path>` | Scaffold a new top-level script with the standard header and exec bit.                        |
+| Shell script                                                                                              | `just` recipe            | Purpose                                                                                       |
+| --------------------------------------------------------------------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------- |
+| `./.ci/in-devshell ./.ci/build-docs && ./.ci/in-devshell mkdocs build --strict --config-file .mkdocs.yml` | `just docs`              | Build the docs site locally.                                                                  |
+| `./.ci/in-devshell ./.ci/check-shdoc-headers`                                                             | `just shdoc-check`       | Audit shdoc header coverage on scripts and library helpers.                                   |
+| `./.ci/in-devshell ./.ci/run-governance-checks`                                                           | `just governance`        | Run the repo-governance lint suite (workflow posture, Renovate, ruleset).                     |
+| `./.ci/in-devshell ./.ci/run-lint-checks`                                                                 | `just lint`              | Run the config/markup lint suite (actionlint, yamllint, JSON, markdown, typos, editorconfig). |
+| `./.ci/in-devshell ./check-scripts [<paths>...]`                                                          | `just check` (default)   | Combined `shellcheck`, shdoc-header, and executable-bit audit; non-zero exit on failure.      |
+| `nix fmt`                                                                                                 | `just format`            | Format every file via treefmt (shfmt for shell).                                              |
+| `nix flake check`                                                                                         | `just format-check`      | Verify formatting (treefmt) and run flake checks.                                             |
+| `./.ci/in-devshell ./run-all-checks`                                                                      | `just all`               | Full local gate: `check-scripts`, `nix flake check`, governance, lint, and BATS suites.       |
+| `./.ci/in-devshell ./run-tests [<bats-args>...]`                                                          | `just test`              | Run BATS tests under `test/functions/`, `test/ci/`, and `test/root/`.                         |
+| `./.ci/in-devshell ./shellcheck-scripts [<paths>...]`                                                     | `just shellcheck`        | Run `shellcheck` over shell scripts.                                                          |
+| `scripts/non-interactive/new-script <path>`                                                               | `just new-script <path>` | Scaffold a new top-level script with the standard header and exec bit.                        |
 
 ## Required environment
 
@@ -52,29 +52,33 @@ Set `SCRIPTS_DIR` to `repo-root/scripts`. Every script sources `${SCRIPTS_DIR}/.
 
 ## Development
 
-Tooling is provided by a Nix flake devShell. Install [Nix](https://nixos.org/) and [direnv](https://direnv.net/), then run `direnv allow` (or `nix develop`) in the repo root. Every tool (shfmt, shellcheck, bats, formatters, etc.) is then available — nothing else to install, and CI uses the same flake. Entering the devShell also activates the tracked git hooks (see [Git hooks](#git-hooks)). The local gate is `nix fmt` followed by `./run-all-checks`.
+Tooling is provided by a Nix flake devShell. Install [Nix](https://nixos.org/) and [direnv](https://direnv.net/), then run `direnv allow` (or `nix develop`) in the repo root. Every tool (shfmt, shellcheck, bats, formatters, etc.) is then available — nothing else to install, and CI uses the same flake. Entering the devShell also activates the tracked git hooks (see [Git hooks](#git-hooks)). The local gate is `nix fmt` followed by `./.ci/in-devshell ./run-all-checks`.
+
+Every gate runs through [`.ci/in-devshell`](.ci/in-devshell), which re-execs the command under `nix develop --ignore-environment`. The ambient `PATH` is gone inside that boundary, so a tool missing from `flake.nix` fails loudly instead of resolving from the machine or the runner image. CI, `just`, and the `pre-push` hook all go through the same wrapper, so local and CI runs cannot diverge.
 
 ## Git hooks
 
 Tracked hooks live under `.githooks/`. They activate automatically: the flake devShell's `shellHook` runs `.ci/activate-githooks`, which points `core.hooksPath` at `.githooks`. Running `direnv allow` (or `nix develop`) is all that is required — there is no manual `git config` step. Activation is idempotent and silent once the value is already correct.
 
-| Hook         | When         | What it does                                                                                                                   |
-| ------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `commit-msg` | `git commit` | Runs `commitlint` against the staged commit message (Conventional Commits). Fails the commit if `commitlint` is not on `PATH`. |
-| `pre-push`   | `git push`   | Runs `./run-all-checks` — the full local gate, including the BATS suite; aborts the push on failure.                           |
+| Hook         | When         | What it does                                                                                                                                                                                                                   |
+| ------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `commit-msg` | `git commit` | Runs `commitlint` against the staged commit message (Conventional Commits). Fails the commit if `commitlint` is not on `PATH`. Deliberately outside the hermetic boundary — one tool is not worth a nix evaluation per commit. |
+| `pre-push`   | `git push`   | Runs `./.ci/in-devshell ./run-all-checks` — the full local gate, including the BATS suite; aborts the push on failure.                                                                                                         |
 
 Bypass any hook with `--no-verify` on the corresponding git command.
 
 ## Testing
 
 ```bash
-git submodule update --init --recursive   # one-time, on fresh clones
-./run-tests                                # test/functions/, test/ci/, and test/root/
-./run-tests test/functions/strings.bats    # single file
-./run-tests --filter 'is_blank' test/functions/strings.bats   # subset by name
+git submodule update --init --recursive   # one-time, on fresh clones (for .shdoc)
+./.ci/in-devshell ./run-tests                              # test/functions/, test/ci/, and test/root/
+./.ci/in-devshell ./run-tests test/functions/strings.bats  # single file
+./.ci/in-devshell ./run-tests --filter 'is_blank' test/functions/strings.bats   # subset by name
 ```
 
-BATS plus `bats-support` and `bats-assert` are vendored as git submodules under `test/`. Every helper in `functions/*.bash` has a matching `test/functions/<topic>.bats` (or topic-prefixed group) — coverage is mandatory for new helpers. Shared fixtures live under `test/test_helper/` (CLI shims, env-file fixtures, `os-release` overrides, prompt mocks, etc.).
+BATS, `bats-support`, and `bats-assert` come from the flake devShell — `bats.withLibraries` in [`flake.nix`](flake.nix) — and are no longer vendored as git submodules. The wrapper it produces exports `BATS_LIB_PATH`, so `test/test_helper/common.bash` loads the two libraries with `bats_load_library` and a bats that is not the flake's fails loudly instead of silently missing them. `.shdoc` is still a submodule, which is why the bootstrap line above stays.
+
+Every helper in `functions/*.bash` has a matching `test/functions/<topic>.bats` (or topic-prefixed group) — coverage is mandatory for new helpers. Shared fixtures live under `test/test_helper/` (CLI shims, env-file fixtures, `os-release` overrides, prompt mocks, etc.).
 
 Tests are spec-driven: each test encodes what the function *should* do based on its name, doc comment, and reasonable invariants — not what the current implementation happens to do.
 
@@ -104,7 +108,7 @@ Workflows under `.github/workflows/`.
 
 ### Renovate
 
-`.github/renovate.json` runs the Renovate App on a weekly schedule (Saturday before 6am, `America/New_York`). Pins GitHub Actions to SHAs, groups `github-actions` and `bats-submodules` updates, and auto-merges everything.
+`.github/renovate.json` runs the Renovate App on a weekly schedule (Saturday before 6am, `America/New_York`). Pins GitHub Actions to SHAs, groups `github-actions` and `submodules` updates, and auto-merges the actions, submodule, and `flake.lock` rules. Regex custom managers additionally track upstream revisions no packaged datasource covers: the SchemaStore SHA in `.ci/check-jsonschema`, and the `bats-support` / `bats-assert` revisions pinned in `flake.nix`. Those last two do not auto-merge — Renovate cannot recompute the `fetchFromGitHub` hash, so a rev bump is red until the hash is regenerated by hand (the command is in the comment beside the pins).
 
 ## License
 
