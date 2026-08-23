@@ -124,3 +124,14 @@ EOF
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
+
+@test "a workflow yq cannot parse aborts instead of inventing a finding" {
+  # Regression for #294. has_harden_runner was a predicate called from an `if`,
+  # which disables errexit for its whole call tree: a yq failure left an empty
+  # count, the arithmetic read it as zero, and the job was reported as having no
+  # harden-runner step — a real-looking finding manufactured from a parse error.
+  printf -- '- a\n- b\n' > "${WF}/seq.yml"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure
+  refute_output --partial 'has no harden-runner step'
+}

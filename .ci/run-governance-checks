@@ -56,6 +56,7 @@ function main() {
     check-stderr-assertions \
     check-tree-scan-root \
     check-inherit-errexit \
+    check-errexit-predicate \
     check-ci-job-in-summary \
     check-orphan-invariants \
     check-justfile-invariants \

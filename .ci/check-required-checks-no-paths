@@ -38,12 +38,23 @@ function main() {
   local file has_filter
   while IFS= read -r file; do
     strings::is_empty "${file}" && continue
-    # select(type == "!!map") guards the case where .on.pull_request is a
-    # scalar/list (e.g. `on: [pull_request]`) — only a map can carry the path
-    # filter keys, so other shapes contribute nothing instead of erroring.
+    # Both select(type == "!!map") guards are load bearing, and the outer one
+    # is the reason this no longer swallows errors. `.on.pull_request` on a
+    # flow-list trigger (`on: [pull_request]`) errors while indexing, BEFORE any
+    # select on the result can filter it — so guarding only the inner value left
+    # a `yq` failure on a legitimate workflow, which the old
+    # `2> /dev/null || printf 'false'` fallback then hid. That fallback also hid
+    # a genuinely unreadable document, reporting it as "declares no path filter"
+    # and exiting 0 (#294). Guarding `.on` itself handles every legal shape
+    # without erroring, so the fallback is gone and a real parse failure now
+    # aborts the lint.
     has_filter="$(yq eval '
-      (.on.pull_request | select(type == "!!map") | (has("paths") or has("paths-ignore"))) // false
-    ' "${file}" 2> /dev/null || printf 'false\n')"
+      (.on
+        | select(type == "!!map")
+        | .pull_request
+        | select(type == "!!map")
+        | (has("paths") or has("paths-ignore"))) // false
+    ' "${file}")"
     if [[ "${has_filter}" == 'true' ]]; then
       printf '%s: declares paths/paths-ignore under on.pull_request\n' "${file}" >&2
       failed=1

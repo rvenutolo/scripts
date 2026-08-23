@@ -391,12 +391,38 @@ helper through a command substitution — and carries the usual bidirectional st
 detection.
 
 **The shopt does not cover the sibling suppression.** `errexit` is also disabled for a
-function's entire call tree when that function is invoked as an `if` condition or on the left
-of `||`. A predicate that shells out to `yq` swallows the parse failure and answers "no",
-which reads as a clean file. Two lints had this shape and were rewritten to producers —
-`workflow_triggers` prints the trigger names as a plain command, and only the `grep` whose
-non-zero result is meaningful stays inside the `if`. Write parser-backed helpers as producers
-called plainly, never as predicates called from a condition.
+function's entire call tree when that function is invoked as an `if`/`while`/`until` condition
+or on the left of `||`/`&&`. A predicate that shells out to `yq` swallows the parse failure
+and answers "no", which reads as a clean file. Write parser-backed helpers as producers called
+plainly, never as predicates called from a condition — keep only the test whose non-zero
+result is *meaningful* (a `grep`, a `jq empty`) inside the condition.
+
+`.ci/check-errexit-predicate` enforces this over the same scope, and its `EXEMPT` array ships
+empty. It is deliberately narrow: it flags a function **defined in the scanned file** whose
+**own body** runs `yq` or `jq`, called from a condition **in that same file**. No transitive
+analysis, because the condition shape alone is a poor signal — of the five call sites #294
+first suspected, four turned out to be pure bash with nothing to suppress, and a pure
+predicate called from an `if` is correct bash. The parser in the body is what makes the shape
+dangerous.
+
+Because the lint searches for the parser names, its own source spells them `y[q]` and `j[q]`
+so it does not flag itself, the same self-reference device `check-tree-scan-root` uses.
+
+Known-good conversions, all from #290/#294: `workflow_triggers` prints trigger names as a
+plain command; `harden_runner_count` replaced a `has_harden_runner` predicate whose `yq`
+failure manufactured a "job has no harden-runner step" finding out of a parse error;
+`check-shdoc-headers`'s `audit_one`/`audit_library_one` print their report to stdout and the
+caller judges by whether output appeared, so a failure in the `awk` that enumerates functions
+can no longer read as "this file is clean"; and `run-lint-checks` inlined its `lint_json`
+helper, whose suppressed `find` failure left `xargs --no-run-if-empty` with nothing to do and
+every JSON file unlinted under a green step.
+
+**A deliberate swallow is the same bug.** `check-required-checks-no-paths` carried
+`2> /dev/null || printf 'false'`, which reported an unreadable workflow as "declares no path
+filter". The fallback existed for a real shape — `.on.pull_request` errors while indexing a
+flow-list `on: [pull_request]`, *before* any `select` on the result can filter it — but it
+covered a genuine parse failure at the same time. Guard `.on` itself and the fallback becomes
+unnecessary; no lint catches this form, so it is a review matter.
 
 Scripts under `scripts/` are outside this rule: it targets the gates, where a wrong exit code
 is indistinguishable from a clean run.
