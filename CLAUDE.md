@@ -624,7 +624,10 @@ Tests are **specification-driven**: each test encodes what the function *should*
 ### Adding tests
 
 1. Pick a `functions/<name>.bash` file.
-1. Create `test/functions/<name>.bats`.
+1. Create `test/functions/<name>.bats`. **No shebang** — `.bats` files start directly
+   with `setup()` (or `bats_require_minimum_version`). All tooling matches them by
+   extension, and `check-executable-bit` forbids the exec bit, so a shebang is dead
+   metadata; `.ci/check-bats-no-shebang` enforces this (#264).
 1. In `setup()`, `load '../test_helper/common'` and `source` the file under test plus any of its dependencies (e.g. `args.bash` for any helper that uses `args::check_*`).
 1. Per function: one assertion per intended behavior, plus the standard edge-case sweep — empty input, whitespace-only, single char, multi-line, leading/trailing separators, arg-count boundaries.
 1. Run `./run-tests test/functions/<name>.bats` and triage failures: genuine bug → fix the function; ambiguity → escalate; test bug → fix the test.
