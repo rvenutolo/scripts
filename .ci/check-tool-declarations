@@ -46,12 +46,13 @@ readonly HOOKS_DIR="${HOOKS_DIR_OVERRIDE:-${REPO_DIR}/.githooks}"
 readonly ROOT_DIR="${ROOT_DIR_OVERRIDE:-${REPO_DIR}}"
 readonly REQUIRED_TOOLS_FILE="${REQUIRED_TOOLS_FILE_OVERRIDE:-${REPO_DIR}/.ci/required-tools}"
 
-# Tools a call site may name without declaring. `nix` provides the devShell and
-# so cannot be provided by it — declaring it would make check-devshell-provides
-# demand that the devShell's own PATH carry the binary that built it. Every entry
-# is staleness-checked below: an entry no call site names, or one that is also
+# Tools a call site may name without declaring. The array ships EMPTY, and that
+# is the point: the flake devShell now provides `nix` itself, so every tool the
+# repo's own tooling names is declarable in .ci/required-tools and a future
+# exemption has to be a reviewed, centrally visible edit. Every entry is
+# staleness-checked below: an entry no call site names, or one that is also
 # declared and therefore needs no exemption, fails the lint.
-readonly EXEMPT_TOOLS=(nix)
+readonly EXEMPT_TOOLS=()
 
 # @description Print the tool names held in a required-tools data file, one per
 #              line. `#` comments (whole-line or trailing) and blank lines are

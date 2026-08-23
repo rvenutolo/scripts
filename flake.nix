@@ -65,10 +65,36 @@
               lychee
               # tests / runtime
               commitlint
-              bats
+              # withLibraries, not bare bats: bats-support and bats-assert used to be
+              # git submodules under test/test_helper/, loaded by relative path. The
+              # wrapper this produces exports BATS_LIB_PATH at its own share/bats, so
+              # test_helper/common.bash loads them with `bats_load_library` and a bats
+              # that is not this one fails loudly instead of silently missing them.
+              (bats.withLibraries (l: [
+                l.bats-support
+                l.bats-assert
+              ]))
               parallel
+              # flock, for `bats --jobs`. bats refuses to parallelize within a file
+              # without it, and the nixpkgs bats wrapper does not carry it. Until the
+              # gate went hermetic this resolved from the machine's /usr/bin and so
+              # was invisible; under `nix develop --ignore-environment` the whole
+              # suite dies on its absence.
+              util-linux
+              # nix itself. Three gates shell out to it -- run-all-checks,
+              # .ci/check-devshell-provides, .ci/check-flake-eval-warnings -- and
+              # `--ignore-environment` strips the host's nix off PATH along with
+              # everything else. Declaring it here is what lets .ci/required-tools
+              # drop its "nix cannot be provided by the devShell" exception instead
+              # of trading it for a new one.
+              nix
               just
               pwgen
+              # bc, for files::size_gb. Payload tooling like pwgen above -- scripts/
+              # expects it from the machine -- but test/functions/files.bats exercises
+              # that helper from inside the hermetic gate, where an absent bc makes the
+              # test pass while the helper exits 127.
+              bc
               gawk
               kcov
               bashcovEnv # bashcov + simplecov-cobertura (gemset under .nix/bashcov)
