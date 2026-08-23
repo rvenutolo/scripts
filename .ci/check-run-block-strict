@@ -4,8 +4,8 @@
 #              a composite action — begins with a `set -Eeuo pipefail` strict-mode
 #              prelude. Without it a command that fails mid-block can be masked and
 #              the step still reports success. Exempt: single-statement blocks,
-#              non-bash shells, and `nix develop …` wrappers (whose strict mode
-#              lives in the inner shell).
+#              non-bash shells, and `.ci/in-devshell …` wrappers (whose strict
+#              mode lives in the inner shell).
 # @noargs
 # @stderr One line per offending run block, plus a final count.
 # @exitcode 0 every multi-line bash run block has the strict-mode prelude.
@@ -150,7 +150,10 @@ function main() {
       mapfile -t mlines < "${reduced_tmp}"
       ((${#mlines[@]} < 2)) && continue
       first="${mlines[0]}"
-      [[ "${first}" =~ ^nix\ develop($|[[:space:]]) ]] && continue
+      # The hermetic wrapper: its strict mode lives in the inner shell, exactly
+      # as the `nix develop` spelling this replaced did. That spelling is gone
+      # from every workflow, so keeping it here would be a stale exclusion.
+      [[ "${first}" =~ ^(\./)?\.ci/in-devshell($|[[:space:]]) ]] && continue
       if ! is_strict_prelude "${first}"; then
         printf '%s: %s/%s run block missing strict-mode prelude (set -Eeuo pipefail)\n' \
           "${file}" "${job}" "${name:-<unnamed>}" >&2

@@ -244,16 +244,13 @@ function main() {
     find "${guard_roots[@]}" -maxdepth 1 -name '*.bash' -type f | sort > "${sources_tmp}"
   fi
   if dirs::exists "${TEST_DIR}"; then
-    # Exclude the vendored submodules by their exact paths. A loose '*/bats-*/*'
-    # glob also matches BATS's own run directory (bats-run-XXXXXX), which silently
-    # dropped every file when the scan root was a fixture tree under BATS_TEST_TMPDIR
-    # — the lint found nothing and exited 0, which is indistinguishable from a clean
-    # suite. Its own tests caught this; nothing in the production tree would have.
-    find "${TEST_DIR}" -name '*.bats' -type f \
-      -not -path '*/test/bats/*' \
-      -not -path '*/test_helper/bats-assert/*' \
-      -not -path '*/test_helper/bats-support/*' \
-      | sort > "${bats_tmp}"
+    # Scanned unfiltered: the vendored bats submodules that used to need excluding
+    # are gone, and bats now comes from the devShell. Should a path filter ever be
+    # needed again, spell it exactly — a loose '*/bats-*/*' glob also matches BATS's
+    # own run directory (bats-run-XXXXXX), which silently dropped every file when the
+    # scan root was a fixture tree under BATS_TEST_TMPDIR: the lint found nothing and
+    # exited 0, indistinguishable from a clean suite.
+    find "${TEST_DIR}" -name '*.bats' -type f | sort > "${bats_tmp}"
   fi
 
   mapfile -t sources < "${sources_tmp}"

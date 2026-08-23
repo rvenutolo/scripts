@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+
+# @description Run a command inside this repo's Nix devShell with a hermetic
+#              environment. This is the single entrypoint for every gate: the
+#              pre-push hook, the .justfile recipes, and every CI workflow step
+#              go through it, so local and CI runs cannot drift apart and no gate
+#              can silently resolve a tool from the ambient machine.
+#
+#              `nix develop --ignore-environment` is what makes the boundary
+#              real: without it the devShell inherits the caller's PATH and an
+#              undeclared dependency keeps resolving from /usr/bin, which is
+#              exactly how `flock` and `bc` went undeclared for as long as they
+#              did. Because the environment is wiped, the handful of variables
+#              the gates genuinely need are re-admitted one at a time through the
+#              fixed KEEP_VARS allowlist below; a call site that needs one more
+#              appends it at runtime via IN_DEVSHELL_KEEP.
+#
+#              Nesting is free. IN_DEVSHELL is exported into the shell and kept
+#              across the boundary, so a wrapped ./run-all-checks pays one nix
+#              evaluation for all five of its sub-gates instead of six.
+#
+#              Standalone on purpose, in the .ci/activate-githooks mold: it runs
+#              *before* the environment it creates, so it cannot source
+#              "${SCRIPTS_DIR}/.functions.bash" (SCRIPTS_DIR is this script's own
+#              output, and sourcing the library under --ignore-environment died
+#              under set -u in #231). It therefore inlines the ERR trap the way
+#              scripts/misc/ standalone scripts do, and omits
+#              args::handle_help_flag: every argument belongs to the wrapped
+#              command, so a --help here would have to be forwarded anyway. It
+#              needs only bash, git, and nix from the host.
+# @arg $@ command the command to run inside the devShell, plus its arguments
+# @stderr A usage line when no command is given, or a diagnostic when the working
+#         directory is not inside a git repo. Everything else is the wrapped
+#         command's own output.
+# @exitcode 0 the wrapped command succeeded.
+# @exitcode 1 no command was given, or the working directory is not inside a git repo.
+# @exitcode * otherwise the exit status of the wrapped command, which replaces this process.
+# @example
+#   .ci/in-devshell ./run-all-checks
+#   IN_DEVSHELL_KEEP='PR_TITLE' .ci/in-devshell ./.ci/check-foo
+
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0 (#290).
+shopt -s inherit_errexit
+IFS=$'\n\t'
+
+trap 'printf "\033[0;31m[%s %s] ERROR: line %s (exit %s): %s\033[0m\n" "$(date +%T)" "${0##*/}" "${LINENO}" "$?" "${BASH_COMMAND}" >&2' ERR
+
+# The fixed --keep allowlist. Every name is passed unconditionally: `--keep` on an
+# unset variable is silent and harmless (verified by probe), and most of these are
+# absent outside CI, so set-checking logic would buy nothing but branches.
+readonly KEEP_VARS=(
+  # Baseline shell context. SCRIPTS_DIR and IN_DEVSHELL are exported by this
+  # script below, so they are values it carries in rather than passes through.
+  # NIX_SSL_CERT_FILE is exported by Determinate's installer on the runner and a
+  # wiped environment would strip it — a TLS failure inside harden-runner is
+  # indistinguishable from a blocked-egress mystery, so it is cheaper to keep
+  # than to debug.
+  HOME
+  TERM
+  CI
+  SCRIPTS_DIR
+  IN_DEVSHELL
+  NIX_SSL_CERT_FILE
+  # Workflow context. The gates read these to locate the checkout, write step
+  # outputs and the job summary, and report which ref they are grading.
+  GITHUB_ACTIONS
+  GITHUB_OUTPUT
+  GITHUB_ENV
+  GITHUB_STEP_SUMMARY
+  GITHUB_WORKSPACE
+  GITHUB_REPOSITORY
+  GITHUB_REF
+  GITHUB_REF_NAME
+  GITHUB_SHA
+  GITHUB_EVENT_NAME
+  # gh authentication and target, for the gates that query the live repo.
+  GITHUB_TOKEN
+  GH_TOKEN
+  GH_REPO
+  # Runner facts.
+  RUNNER_OS
+  RUNNER_TEMP
+)
+
+function main() {
+  if (($# == 0)); then
+    printf 'usage: %s <command> [args...]\n' "${0##*/}" >&2
+    exit 1
+  fi
+
+  # Nesting short-circuit: already inside the boundary, so run the command
+  # directly and skip a second nix evaluation.
+  # Inline [[ -n ]] rather than strings::is_not_empty — the function library is
+  # unavailable to this bootstrap script, as it is to .ci/activate-githooks.
+  if [[ -n "${IN_DEVSHELL:-}" ]]; then
+    exec "$@"
+  fi
+
+  local repo_dir
+  if ! repo_dir="$(git rev-parse --show-toplevel 2> '/dev/null')"; then
+    printf '%s: not a git repo: %s\n' "${0##*/}" "$(pwd)" >&2
+    exit 1
+  fi
+  readonly repo_dir
+
+  # The flake reference is the repo this script was invoked in, never a relative
+  # path and never an environment variable: a gate must evaluate the tree it is
+  # grading, or a worktree silently gets the main checkout's devShell (#250).
+  export SCRIPTS_DIR="${repo_dir}/scripts"
+  export IN_DEVSHELL=1
+
+  local -a extra_keeps=()
+  # Space-separated, per the IN_DEVSHELL_KEEP contract. IFS is pinned to
+  # newline+tab above, so the default split would not break the list apart —
+  # scope IFS to this one read.
+  if [[ -n "${IN_DEVSHELL_KEEP:-}" ]]; then
+    IFS=' ' read -r -a extra_keeps <<< "${IN_DEVSHELL_KEEP}"
+  fi
+
+  local -a nix_args=(develop "${repo_dir}" --ignore-environment)
+  local keep_var
+  for keep_var in "${KEEP_VARS[@]}"; do
+    nix_args+=(--keep "${keep_var}")
+  done
+  for keep_var in ${extra_keeps[@]+"${extra_keeps[@]}"}; do
+    nix_args+=(--keep "${keep_var}")
+  done
+  nix_args+=(--command)
+
+  exec nix "${nix_args[@]}" "$@"
+}
+
+main "$@"

@@ -12,28 +12,28 @@
 #   repo-root runners must appear here.
 #
 # Deliberately absent:
-# - nix: it provides the devShell and so cannot be provided by it. It is named by
-#   real call sites, so check-tool-declarations exempts it explicitly.
-# - bats: run-tests invokes the vendored ./test/bats/bin/bats submodule, not a
-#   PATH binary.
 # - prettier, yamlfmt, taplo, nixfmt, mdformat: treefmt resolves these from the
 #   Nix store directly, never through PATH.
 # - lychee, zizmor, kcov, bashcov: invoked by CI actions, not by any script in
 #   this repo.
-# - flatpak, appman, apt, dnf, pacman, pwgen and friends: invoked by scripts/,
-#   which is the repo's payload rather than its tooling. Those are expected to
-#   come from the machine.
+# - flatpak, appman, apt, dnf, pacman, pwgen, bc and friends: invoked by
+#   scripts/, which is the repo's payload rather than its tooling. Those are
+#   expected to come from the machine.
 #
 # Entries are alphabetical; each carries the call site that warrants it.
 
 # invoked directly by .ci/run-lint-checks
 actionlint
+# run-tests invokes bats from PATH; the flake devShell provides it
+bats
 # invoked by .ci/check-jsonschema
 check-jsonschema
 # invoked by .githooks/commit-msg to validate the prospective commit message
 commitlint
 # invoked directly by .ci/run-lint-checks
 editorconfig-checker
+# run-tests' default `bats --jobs` path dies without flock
+flock
 # asserted by the .ci/check-* workflow lints
 gawk
 # asserted by .ci/apply-repo-settings
@@ -48,6 +48,8 @@ just
 markdownlint-cli2
 # the .justfile `docs` recipe and the Pages workflow
 mkdocs
+# asserted by .ci/check-devshell-provides and .ci/check-flake-eval-warnings
+nix
 # run-tests' default `bats --jobs` path needs GNU parallel
 parallel
 # the check-scripts / shellcheck-scripts gate

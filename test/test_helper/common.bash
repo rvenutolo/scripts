@@ -9,7 +9,7 @@
 #   SCRIPTS_DIR  — = repo-root/scripts, the function library
 #
 # bats-support / bats-assert are loaded here so individual test files do not
-# repeat the relative-path dance.
+# each repeat the load.
 
 # BATS_TEST_DIRNAME points at test/functions (the dir of the running .bats file).
 # Repo root is two levels up; the function library lives under scripts/.
@@ -82,8 +82,12 @@ unset _bats_tmp_real
 # `git -C "${var}"` call resolves to CWD, which must never be the real checkout (#248).
 cd "${BATS_TEST_TMPDIR}" || return 1
 
-load "${REPO_DIR}/test/test_helper/bats-support/load"
-load "${REPO_DIR}/test/test_helper/bats-assert/load"
+# Both libraries resolve through BATS_LIB_PATH, which the flake devShell's bats wrapper
+# exports at its own share/bats (`bats.withLibraries` in flake.nix) — not from a vendored
+# path under test/test_helper/. A bats that did not come from the devShell therefore fails
+# loudly here — "unable to find library" — instead of silently omitting assert_*.
+bats_load_library bats-support
+bats_load_library bats-assert
 
 # log.bash is sourced eagerly because args::check_* helpers call log::die on failure.
 # shellcheck disable=SC1091 # path resolved at runtime via SCRIPTS_DIR

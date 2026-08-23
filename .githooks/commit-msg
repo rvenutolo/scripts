@@ -19,6 +19,11 @@ args::check_exactly_1_arg "$@"
 
 readonly COMMIT_MSG_FILE="$1"
 
+# Deliberately outside the hermetic .ci/in-devshell boundary that every other gate
+# goes through: this hook shells out to exactly one tool, and paying a nix evaluation
+# on every single commit to hermetically resolve one binary is not worth it. commitlint
+# comes from the ambient (direnv) PATH. Do not "fix" this — see CLAUDE.md, "Gates run
+# inside the hermetic devShell".
 if ! commands::executable_exists 'commitlint'; then
   log::die 'commit-msg: commitlint not found on PATH — install it or bypass with --no-verify'
 fi

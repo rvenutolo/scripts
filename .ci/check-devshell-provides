@@ -72,11 +72,20 @@ readonly EXCLUDED_PACKAGES=(
   lychee
   kcov
   bashcov-env
-  # run-tests invokes the vendored ./test/bats/bin/bats submodule, not a PATH
-  # binary; the package is here so a contributor still gets `bats` interactively.
-  bats
+  # nix is genuinely provided by the devShell and IS declared in
+  # .ci/required-tools — the forward arm proves that, and it is the guarantee
+  # that matters. The reverse arm cannot see it: it derives a package's bin
+  # directories from the outPath `nix eval` computes for each entry of
+  # `p.outputs`, and for nix that path is never realized. `nix develop` puts a
+  # DIFFERENT realization of the same version on the devShell PATH, a splicing
+  # artifact of nativeBuildInputs, so every one of the four eval-computed bin
+  # dirs is absent from disk and provides_declared_tool finds nothing. Verified
+  # empirically. The entry is self-policing: drop nix from flake.nix and the
+  # staleness arm fires.
+  nix
   # Payload tooling: used by scripts/, which expects its tools from the machine.
   pwgen
+  bc
   # Base packages. Present so the devShell carries a predictable POSIX
   # toolchain, not because repo tooling invokes a specific binary of theirs by
   # name — the shell builtins and coreutils calls are unqualified.

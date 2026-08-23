@@ -60,7 +60,7 @@ EOF
   assert_success
 }
 
-@test "passes: nix develop --command wrapper, single physical line" {
+@test "passes: .ci/in-devshell wrapper, single physical line" {
   cat > "${WF}/a.yml" << 'EOF'
 on: push
 jobs:
@@ -68,34 +68,48 @@ jobs:
     steps:
       - run: |
           # a comment
-          nix develop --command ./.ci/run-governance-checks
+          ./.ci/in-devshell ./.ci/run-governance-checks
 EOF
   run_check
   assert_success
 }
 
-@test "passes: nix develop --command bash -c with backslash continuation" {
+@test "passes: .ci/in-devshell spelled without the leading ./" {
   cat > "${WF}/a.yml" << 'EOF'
 on: push
 jobs:
   build:
     steps:
       - run: |
-          nix develop --command bash -c \
+          # a comment
+          .ci/in-devshell ./.ci/run-governance-checks
+EOF
+  run_check
+  assert_success
+}
+
+@test "passes: .ci/in-devshell bash -c with backslash continuation" {
+  cat > "${WF}/a.yml" << 'EOF'
+on: push
+jobs:
+  build:
+    steps:
+      - run: |
+          ./.ci/in-devshell bash -c \
             'set -Eeuo pipefail; echo hi'
 EOF
   run_check
   assert_success
 }
 
-@test "passes: nix develop --command bash -c with multi-line quoted inner script" {
+@test "passes: .ci/in-devshell bash -c with multi-line quoted inner script" {
   cat > "${WF}/a.yml" << 'EOF'
 on: push
 jobs:
   build:
     steps:
       - run: |
-          nix develop --command bash -c '
+          ./.ci/in-devshell bash -c '
             set -Eeuo pipefail
             echo one
             echo two
@@ -241,6 +255,21 @@ jobs:
 EOF
   run_check
   assert_failure
+}
+
+@test "fails: bare nix develop is no longer an exemption" {
+  cat > "${WF}/a.yml" << 'EOF'
+on: push
+jobs:
+  build:
+    steps:
+      - run: |
+          nix develop --command ./.ci/run-governance-checks
+          echo after
+EOF
+  run_check
+  assert_failure
+  assert_output --partial 'missing strict-mode prelude'
 }
 
 @test "fails: composite action run step lacks prelude" {

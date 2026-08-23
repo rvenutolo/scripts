@@ -8,8 +8,6 @@ runs:
   steps:
     - name: Run BATS under bashcov
       shell: bash
-      env:
-        SCRIPTS_DIR: ${{ github.workspace }}/scripts
       # bashcov + simplecov-cobertura come from the flake's bundlerEnv
-      # (.nix/bashcov/gemset.nix); kcov is in the flake too. Fully hermetic.
-      run: nix develop --command bashcov --root . -- ./test/bats/bin/bats --recursive test/functions
+      # (.nix/bashcov/gemset.nix); kcov and bats are in the flake too. Fully hermetic.
+      run: ./.ci/in-devshell bashcov --root . -- bats --recursive test/functions

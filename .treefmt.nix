@@ -51,9 +51,6 @@ in
 
   settings.global.excludes = [
     "scripts/other/**"
-    "test/bats/**"
-    "test/test_helper/bats-support/**"
-    "test/test_helper/bats-assert/**"
     ".shdoc/**"
     "site/**"
     "lib/**"

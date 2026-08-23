@@ -28,7 +28,7 @@ log::enable_err_trap
 # pass-through: git passes ref/sha pairs on stdin we ignore
 
 log::log 'pre-push: running the full local gate'
-if ! nix develop --command "${REPO_DIR}/run-all-checks"; then
+if ! "${REPO_DIR}/.ci/in-devshell" "${REPO_DIR}/run-all-checks"; then
   log::die 'run-all-checks failed — push aborted. Fix issues or rerun with --no-verify to bypass.'
 fi
 log::log 'pre-push: gate passed'
