@@ -9,6 +9,11 @@
 #              validation outright — `skip_validation`, `binary`, `use_pypi` —
 #              so guarding `fail_ci_if_error` alone would leave three ways to
 #              reintroduce the same hole.
+#
+#              Scans .github/actions/ as well as .github/workflows/. Moving a
+#              codecov step into a composite action is the established way to
+#              share it in this repo, and a workflow-only scan would let that
+#              move carry the step out of the lint's reach (#291).
 # @noargs
 # @stderr One line per violation, plus a final count.
 # @exitcode 0 every codecov-action step is strict.
@@ -30,25 +35,38 @@ commands::assert_executable_exists 'yq'
 REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
 readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
+readonly ACTIONS_DIR="${ACTIONS_DIR_OVERRIDE:-${REPO_DIR}/.github/actions}"
 
-# @description Emit one pipe-joined record per codecov-action step in a
-#              workflow: job|fail_ci_if_error|skip_validation|binary|use_pypi.
-#              Values pass through `tostring`, so an absent input reads as the
-#              literal `null`. Do NOT rewrite this with yq's `//` operator:
-#              `//` returns its RHS when the LHS is null OR false, which would
-#              render a real `fail_ci_if_error: false` indistinguishable from
-#              an absent one. mikefarah yq has no `if/then/else`.
-# @arg $1 file path to a workflow YAML
-# @stdout Zero or more `job|v|v|v|v` records.
+# @description Emit one pipe-joined record per codecov-action step in a file:
+#              kind|job|fail_ci_if_error|skip_validation|binary|use_pypi. `kind`
+#              is `job` for a workflow step and `composite` for one under an
+#              action's `.runs.steps`, which is the only structural difference
+#              between the two files this lint reads. Values pass through
+#              `tostring`, so an absent input reads as the literal `null`. Do NOT
+#              rewrite this with yq's `//` operator: `//` returns its RHS when
+#              the LHS is null OR false, which would render a real
+#              `fail_ci_if_error: false` indistinguishable from an absent one.
+#              mikefarah yq has no `if/then/else`.
+#
+#              `.jobs // {}` and `select(has("runs"))` make each shape
+#              contribute nothing to the other kind of file rather than
+#              erroring. A document that is neither — a root-level sequence, say
+#              — still errors, and must: that is a file this lint cannot read,
+#              and reporting it clean would be a false green (#290).
+# @arg $1 file path to a workflow or composite-action YAML
+# @stdout Zero or more `kind|job|v|v|v|v` records.
 function codecov_steps() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
-  # shellcheck disable=SC2016 # yq program literal; $j is yq syntax, not shell
+  # shellcheck disable=SC2016 # yq program literal; $ctx is yq syntax, not shell
   yq eval '
-    .jobs | to_entries | .[] as $j
-    | $j.value.steps[]
+    [ (.jobs // {} | to_entries | .[] | {"kind": "job", "name": .key, "steps": .value.steps}),
+      (select(has("runs")) | {"kind": "composite", "name": "", "steps": .runs.steps}) ]
+    | .[] as $ctx
+    | $ctx.steps[]
     | select((.uses // "") | test("^codecov/codecov-action@"))
-    | [$j.key,
+    | [$ctx.kind,
+       $ctx.name,
        (.with.fail_ci_if_error | tostring),
        (.with.skip_validation | tostring),
        (.with.binary | tostring),
@@ -57,9 +75,11 @@ function codecov_steps() {
   ' "${file}"
 }
 
-# @description Scan one workflow for non-strict codecov-action steps. Prints
-#              violations to stderr; echoes the violation count to stdout.
-# @arg $1 file path to a workflow YAML
+# @description Scan one file for non-strict codecov-action steps. Prints
+#              violations to stderr; echoes the violation count to stdout. A
+#              workflow violation names the job it is in; a composite one names
+#              only the file, because a composite action has no job to name.
+# @arg $1 file path to a workflow or composite-action YAML
 # @stdout integer violation count
 function scan_codecov() {
   args::check_exactly_1_arg "$@"
@@ -68,27 +88,30 @@ function scan_codecov() {
   files::create_temp records_tmp
   codecov_steps "${file}" > "${records_tmp}"
   local count=0
-  local job fail_ci skip_val binary use_pypi
-  while IFS='|' read -r job fail_ci skip_val binary use_pypi; do
-    strings::is_empty "${job}" && continue
+  local kind job where fail_ci skip_val binary use_pypi
+  while IFS='|' read -r kind job fail_ci skip_val binary use_pypi; do
+    strings::is_empty "${kind}" && continue
+    if [[ "${kind}" == 'job' ]]; then
+      where="${file}: job ${job}"
+    else
+      where="${file}"
+    fi
     if [[ "${fail_ci}" != 'true' ]]; then
-      printf '%s: job %s: fail_ci_if_error must be true (found: %s)\n' \
-        "${file}" "${job}" "${fail_ci}" >&2
+      printf '%s: fail_ci_if_error must be true (found: %s)\n' \
+        "${where}" "${fail_ci}" >&2
       count=$((count + 1))
     fi
     if [[ "${skip_val}" == 'true' ]]; then
-      printf '%s: job %s: skip_validation bypasses CLI integrity checking\n' \
-        "${file}" "${job}" >&2
+      printf '%s: skip_validation bypasses CLI integrity checking\n' "${where}" >&2
       count=$((count + 1))
     fi
     if [[ "${binary}" != 'null' ]]; then
-      printf '%s: job %s: binary bypasses CLI integrity checking (found: %s)\n' \
-        "${file}" "${job}" "${binary}" >&2
+      printf '%s: binary bypasses CLI integrity checking (found: %s)\n' \
+        "${where}" "${binary}" >&2
       count=$((count + 1))
     fi
     if [[ "${use_pypi}" == 'true' ]]; then
-      printf '%s: job %s: use_pypi bypasses CLI integrity checking\n' \
-        "${file}" "${job}" >&2
+      printf '%s: use_pypi bypasses CLI integrity checking\n' "${where}" >&2
       count=$((count + 1))
     fi
   done < "${records_tmp}"
@@ -97,12 +120,14 @@ function scan_codecov() {
 
 function main() {
   args::check_no_args "$@"
-  if ! dirs::exists "${WORKFLOWS_DIR}"; then
-    exit 0
-  fi
   local files_tmp
   files::create_temp files_tmp
-  find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
+  local dir
+  for dir in "${WORKFLOWS_DIR}" "${ACTIONS_DIR}"; do
+    dirs::exists "${dir}" || continue
+    # -name globs have no long-form equivalent in find.
+    find "${dir}" -type f \( -name '*.yml' -o -name '*.yaml' \) >> "${files_tmp}"
+  done
   local total=0
   local file n
   while IFS= read -r file; do
