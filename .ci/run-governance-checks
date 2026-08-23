@@ -51,6 +51,7 @@ function main() {
     check-checkout-persist-credentials \
     check-upload-artifact-strict \
     check-run-block-strict \
+    check-workflow-hermetic \
     check-script-has-test \
     check-vacuous-arity-tests \
     check-stderr-assertions \

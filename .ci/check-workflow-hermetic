@@ -1,0 +1,213 @@
+#!/usr/bin/env bash
+
+# @description Assert that every GitHub Actions step which runs a command runs
+#              it inside this repo's hermetic Nix devShell. Two rules, over
+#              .github/workflows/*.yml and .github/actions/*/action.yml:
+#
+#              Rule 1 — every step carrying a `run:` key must invoke
+#              .ci/in-devshell, or be listed in EXEMPT. A step that shells out on
+#              the bare runner resolves its tools from whatever the runner image
+#              happens to ship, which is exactly the ambient-dependency drift the
+#              boundary exists to prevent: `flock` and `bc` went undeclared for
+#              as long as they did because something always provided them.
+#
+#              Rule 2 — no workflow may enter the devShell directly. That
+#              spelling belongs to .ci/in-devshell alone, because the wrapper is
+#              what supplies --ignore-environment and the fixed --keep allowlist;
+#              a direct invocation is a boundary with its walls taken down, and
+#              it looks correct while being no boundary at all.
+#
+#              Rule 1 asks only whether the wrapper appears in the run body. A
+#              tighter per-line rule is not available: the reducer that would
+#              have to split a block into commands is quote-unaware, so the
+#              inner script of an `.ci/in-devshell bash -c '...'` would read as a
+#              row of unwrapped commands. Rule 2 is what closes the gap that
+#              leaves, and the two together are what CI actually depends on.
+#
+#              EXEMPT keys are <repo-relative-file>::<step-id>, and staleness is
+#              bidirectional: an entry naming no run step, or naming one that
+#              does go through the wrapper, fails the lint rather than silently
+#              disarming it. Because a key needs a step id, a non-compliant step
+#              with no YAML `id:` is reported as an error naming that fix rather
+#              than being keyed on its `name:`, which is free text and drifts.
+# @noargs
+# @stderr One line per offending step or spelling, one per stale exemption, plus a final count.
+# @exitcode 0 every run step goes through the wrapper and no workflow enters the devShell directly.
+# @exitcode 1 a rule-1 or rule-2 violation, or a stale EXEMPT entry.
+
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0 (#290).
+shopt -s inherit_errexit
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'yq'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
+readonly ACTIONS_DIR="${ACTIONS_DIR_OVERRIDE:-${REPO_DIR}/.github/actions}"
+
+# The wrapper a compliant run body must name.
+readonly WRAPPER='.ci/in-devshell'
+
+# The forbidden direct-entry spelling is assembled from two words, and searched
+# for as a regex with a character class where its space would be, so this
+# script's own source never contains the string it forbids. That is the
+# self-reference device .ci/check-tree-scan-root and .ci/check-errexit-predicate
+# both document; here it also buys tolerance of runs of whitespace, which a
+# literal would not have. The surrounding classes are word boundaries, so
+# `in-devshell` and `nix-installer-action` do not match.
+readonly NIX_WORD='nix'
+readonly DEVELOP_WORD='develop'
+readonly FORBIDDEN_SPELLING="${NIX_WORD} ${DEVELOP_WORD}"
+readonly FORBIDDEN_PATTERN="(^|[^[:alnum:]_-])${NIX_WORD}[[:space:]]+${DEVELOP_WORD}([^[:alnum:]_-]|\$)"
+
+# Run steps exempt from rule 1, keyed <repo-relative-file>::<step-id>. Keys carry
+# no spaces because arrays::from_env_override splits its override on spaces.
+#
+# Permanent, not a grandfathered debt: the changed-tests `decide` step runs
+# before ./.github/actions/setup installs Nix, deliberately. It is what decides
+# whether the Nix-backed jobs run at all, so it cannot itself depend on them; it
+# needs only bash and SCRIPTS_DIR, both present on the bare runner.
+readonly EXEMPT=('.github/actions/changed-tests/action.yml::decide')
+
+# @description Emit one record per step that carries a `run:` key, for both the
+#              workflow (`.jobs[].steps[]`) and composite-action
+#              (`.runs.steps[]`) shapes. Each record is
+#              `job|index|id_base64|name_base64|run_base64`; id, name, and the
+#              run body are base64 so a `|` or a newline in any of them cannot
+#              break the record apart. Absent id/name encode as empty.
+# @arg $1 file path to a workflow or action YAML
+# @stdout One `job|index|id_base64|name_base64|run_base64` line per run step.
+function extract_run_steps() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  # shellcheck disable=SC2016 # yq program literal; $job and @base64 are yq syntax, not shell
+  yq eval '
+    [
+      (.jobs // {} | to_entries | .[] | .key as $job
+         | ((.value.steps // []) | to_entries | .[])
+         | {"j": $job, "i": (.key | tostring), "v": .value}),
+      ((.runs.steps // []) | to_entries | .[]
+         | {"j": "runs", "i": (.key | tostring), "v": .value})
+    ]
+    | .[]
+    | select(.v | has("run"))
+    | [.j, .i, ((.v.id // "") | @base64), ((.v.name // "") | @base64), (.v.run | @base64)]
+    | join("|")
+  ' "${file}"
+}
+
+# @description Decode a base64 field from an extract_run_steps record.
+# @arg $1 encoded base64 text, possibly empty
+# @stdout The decoded text, with any trailing newlines stripped.
+function decode_field() {
+  args::check_exactly_1_arg "$@"
+  local -r encoded="$1"
+  printf '%s' "${encoded}" | base64 --decode
+}
+
+# @description Print a human-readable identifier for a step, used to report a
+#              step that has no YAML id to key an exemption on.
+# @arg $1 job job key, or `runs` for a composite action
+# @arg $2 index zero-based position of the step within its job
+# @arg $3 name the step's `name:`, possibly empty
+# @stdout One line, e.g. `job 'bats' step #2 (Run BATS)`.
+function step_label() {
+  args::check_exactly_3_args "$@"
+  local -r job="$1"
+  local -r index="$2"
+  local -r name="$3"
+  if strings::is_empty "${name}"; then
+    printf "job '%s' step #%s\n" "${job}" "${index}"
+  else
+    printf "job '%s' step #%s (%s)\n" "${job}" "${index}" "${name}"
+  fi
+}
+
+function main() {
+  args::check_no_args "$@"
+  local -a exempt=()
+  arrays::from_env_override exempt EXEMPT_OVERRIDE ${EXEMPT[@]+"${EXEMPT[@]}"}
+
+  # Each line is `<repo-relative-path>|<absolute-path>`. find's %P is the path
+  # relative to the starting point, so the key half stays canonical even when a
+  # test drives the scan through the directory override seams.
+  local files_tmp seen_tmp
+  files::create_temp files_tmp
+  files::create_temp seen_tmp
+  if dirs::exists "${WORKFLOWS_DIR}"; then
+    find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) \
+      -printf '.github/workflows/%P|%p\n' >> "${files_tmp}"
+  fi
+  if dirs::exists "${ACTIONS_DIR}"; then
+    find "${ACTIONS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) \
+      -printf '.github/actions/%P|%p\n' >> "${files_tmp}"
+  fi
+
+  local total=0
+  local rel file steps_tmp job index id_b64 name_b64 run_b64 id name run_body key
+  local compliant exempted label
+  while IFS='|' read -r rel file; do
+    strings::is_empty "${file}" && continue
+    if grep --extended-regexp --quiet "${FORBIDDEN_PATTERN}" "${file}"; then
+      printf '%s: spells "%s"; only %s may enter the devShell\n' \
+        "${rel}" "${FORBIDDEN_SPELLING}" "${WRAPPER}" >&2
+      total=$((total + 1))
+    fi
+    files::create_temp steps_tmp
+    extract_run_steps "${file}" > "${steps_tmp}"
+    while IFS='|' read -r job index id_b64 name_b64 run_b64; do
+      strings::is_empty "${job}" && continue
+      id="$(decode_field "${id_b64}")"
+      name="$(decode_field "${name_b64}")"
+      run_body="$(decode_field "${run_b64}")"
+      compliant=0
+      [[ "${run_body}" == *"${WRAPPER}"* ]] && compliant=1
+      exempted=0
+      if strings::is_not_empty "${id}"; then
+        key="${rel}::${id}"
+        printf '%s|%d\n' "${key}" "${compliant}" >> "${seen_tmp}"
+        if arrays::contains "${key}" ${exempt[@]+"${exempt[@]}"}; then
+          exempted=1
+        fi
+      fi
+      if ((compliant == 1 || exempted == 1)); then
+        continue
+      fi
+      if strings::is_empty "${id}"; then
+        label="$(step_label "${job}" "${index}" "${name}")"
+        printf '%s: %s does not invoke %s and has no YAML id:; add one (EXEMPT keys are <file>::<id>)\n' \
+          "${rel}" "${label}" "${WRAPPER}" >&2
+      else
+        printf '%s::%s: run step does not invoke %s\n' "${rel}" "${id}" "${WRAPPER}" >&2
+      fi
+      total=$((total + 1))
+    done < "${steps_tmp}"
+  done < "${files_tmp}"
+
+  local entry
+  for entry in ${exempt[@]+"${exempt[@]}"}; do
+    if grep --quiet --fixed-strings --line-regexp "${entry}|1" "${seen_tmp}"; then
+      printf 'stale EXEMPT entry: %s already invokes %s\n' "${entry}" "${WRAPPER}" >&2
+      total=$((total + 1))
+    elif ! grep --quiet --fixed-strings --line-regexp "${entry}|0" "${seen_tmp}"; then
+      printf 'stale EXEMPT entry: %s matches no run step\n' "${entry}" >&2
+      total=$((total + 1))
+    fi
+  done
+
+  if ((total > 0)); then
+    printf '%d hermetic-boundary violation(s)\n' "${total}" >&2
+    exit 1
+  fi
+  exit 0
+}
+
+main "$@"
