@@ -45,6 +45,7 @@ readonly GOVERNANCE_RUNNER="${GOVERNANCE_RUNNER_OVERRIDE:-${REPO_DIR}/.ci/run-go
 # - decide-changed-tests: decides whether the BATS suite must run for a change
 #   set; a CI utility consumed by .github/actions/changed-tests, not an enforcer.
 # - diff-ruleset: prints a ruleset diff; not an enforcer.
+# - in-devshell: runs a command inside the flake devShell; a wrapper, not an enforcer.
 # - run-governance-checks / run-lint-checks: aggregate runners, not enforcers.
 readonly EXEMPT=(
   activate-githooks
@@ -52,6 +53,7 @@ readonly EXEMPT=(
   build-docs
   decide-changed-tests
   diff-ruleset
+  in-devshell
   run-governance-checks
   run-lint-checks
 )
