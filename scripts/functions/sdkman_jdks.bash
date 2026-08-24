@@ -474,7 +474,13 @@ function sdkman_jdks::set_default_jdk_to_latest_patch_of_current_major() {
 ### PRUNE JDKS
 
 # @description Uninstall all installed Temurin JDKs for the given major version except the latest available.
+#   Refuses to act when the latest available artifact is not itself installed: every installed
+#   artifact then differs from the keeper, so the sweep would leave the major with nothing
+#   installed at all. That is reachable whenever the newest remote artifact has not been pulled
+#   down yet — and an artifact SDKMAN has since stopped serving cannot be reinstalled once it is
+#   gone. Install the keeper first (sdkman-update does), then prune on the next run.
 # @arg $1 major java version
+# @stderr A warning naming the major version when pruning is declined for the reason above.
 function sdkman_jdks::prune_tem_jdks_for_major_version() {
   args::check_exactly_1_arg "$@"
   local -r major_version="$1"
@@ -491,6 +497,10 @@ function sdkman_jdks::prune_tem_jdks_for_major_version() {
     | sdkman_jdks::get_formatted_tem_jdk_artifact_id_field \
       > "${artifact_ids_tmp}"
   mapfile -t artifact_ids < "${artifact_ids_tmp}"
+  if [[ "${#artifact_ids[@]}" -gt 0 ]] && ! arrays::contains "${latest_artifact_id}" "${artifact_ids[@]}"; then
+    log::warn "Not pruning Java ${major_version}: latest available ${latest_artifact_id} is not installed"
+    return
+  fi
   for artifact_id in "${artifact_ids[@]}"; do
     if [[ "${artifact_id}" != "${latest_artifact_id}" ]]; then
       sdkman_jdks::uninstall_jdk "${artifact_id}"
