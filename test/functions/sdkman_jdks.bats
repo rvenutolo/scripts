@@ -75,6 +75,27 @@ EOF
   export -f sdk
 }
 
+# A table where the local-only row sorts ABOVE the newest remote one for its major, which is the
+# arrangement that turns the stale-catalog bug into a real failure: latest-per-major takes the
+# first row, so an unfiltered catalog hands `sdk install java` an artifact nobody can download and
+# makes prune keep it while uninstalling the genuinely-current one.
+stub_sdk_catalog_local_only_first() {
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() {
+    printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"
+    if [[ "$1" == 'list' ]]; then
+      cat << 'EOF'
+ Vendor         | Use | Version            | Identifier
+--------------------------------------------------------------------------------
+ Temurin        |   + | 21.0.9             | 21.0.9-tem
+                |     | 21.0.5             | 21.0.5-tem
+                |   * | 17.0.10            | 17.0.10-tem
+EOF
+    fi
+  }
+  export -f sdk
+}
+
 # ---------- get_jdk_major_version ----------
 
 @test "get_jdk_major_version: extracts from artifact id" {
@@ -299,6 +320,8 @@ fixture_default_symlink() {
 }
 
 @test "fetch_tem_jdk_catalog: keeps a version carrying a build suffix" {
+  # The `+` inside 21.0.12+1.1 must not be mistaken for the local-only marker. The marker is a
+  # standalone glyph cell; a version field always carries digits, so the two never collide.
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdk() {
     cat << 'EOF'
@@ -311,8 +334,82 @@ EOF
   export -f sdk
   run sdkman_jdks::fetch_tem_jdk_catalog
   assert_success
-  assert_line --index 0 '21;21.0.12+1.1;21.0.12+1.1-tem'
-  assert_line --index 1 '21;21.0.12;21.0.12-tem'
+  assert_output '21;21.0.12+1.1;21.0.12+1.1-tem'
+}
+
+@test "fetch_tem_jdk_catalog: drops rows SDKMAN marks local only" {
+  # A `+` in the Use column means the version is present in the local candidates dir but is no
+  # longer downloadable from the SDKMAN API. The catalog answers "what can be installed", so a
+  # local-only row has no business in it.
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() {
+    cat << 'EOF'
+ Vendor         | Use | Version            | Identifier
+--------------------------------------------------------------------------------
+ Temurin        |   + | 21.0.9             | 21.0.9-tem
+                |     | 21.0.5             | 21.0.5-tem
+EOF
+  }
+  export -f sdk
+  run sdkman_jdks::fetch_tem_jdk_catalog
+  assert_success
+  assert_output '21;21.0.5;21.0.5-tem'
+}
+
+@test "fetch_tem_jdk_catalog: drops legacy six-column rows marked local only" {
+  # Before the Dist and Status columns were dropped the same state was the literal text
+  # 'local only' in Status, not a glyph. Both spellings must be filtered.
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() {
+    cat << 'EOF'
+ Vendor        | Use | Version      | Dist    | Status     | Identifier
+--------------------------------------------------------------------------------
+ Temurin       |     | 21.0.9       | tem     | local only | 21.0.9-tem
+ Temurin       |     | 21.0.5       | tem     |            | 21.0.5-tem
+EOF
+  }
+  export -f sdk
+  run sdkman_jdks::fetch_tem_jdk_catalog
+  assert_success
+  assert_output '21;21.0.5;21.0.5-tem'
+}
+
+@test "fetch_tem_jdk_catalog: keeps in-use and installed rows in both layouts" {
+  # Only `+` marks local-only. The `>` and `*` glyphs, the legacy `>>>` in-use marker, the
+  # legacy 'installed' Status text, and an empty marker cell all denote installable versions.
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() {
+    cat << 'EOF'
+ Vendor         | Use | Version            | Identifier
+--------------------------------------------------------------------------------
+ Temurin        | > * | 21.0.5             | 21.0.5-tem
+                |   * | 17.0.10            | 17.0.10-tem
+                |     | 11.0.22            | 11.0.22-tem
+EOF
+  }
+  export -f sdk
+  run sdkman_jdks::fetch_tem_jdk_catalog
+  assert_success
+  assert_line --index 0 '21;21.0.5;21.0.5-tem'
+  assert_line --index 1 '17;17.0.10;17.0.10-tem'
+  assert_line --index 2 '11;11.0.22;11.0.22-tem'
+}
+
+@test "fetch_tem_jdk_catalog: keeps legacy in-use and installed rows" {
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() {
+    cat << 'EOF'
+ Vendor        | Use | Version      | Dist    | Status     | Identifier
+--------------------------------------------------------------------------------
+ Temurin       | >>> | 21.0.5       | tem     | installed  | 21.0.5-tem
+ Temurin       |     | 17.0.10      | tem     |            | 17.0.10-tem
+EOF
+  }
+  export -f sdk
+  run sdkman_jdks::fetch_tem_jdk_catalog
+  assert_success
+  assert_line --index 0 '21;21.0.5;21.0.5-tem'
+  assert_line --index 1 '17;17.0.10;17.0.10-tem'
 }
 
 @test "fetch_tem_jdk_catalog: ignores table furniture and non-temurin rows" {
@@ -866,6 +963,17 @@ EOF
   assert_output --partial 'Expected exactly 1 argument'
 }
 
+@test "install_latest_tem_jdk: ignores a local-only artifact sorting above the newest remote" {
+  # The failure #304 describes: 21.0.9 is local only and sorts first for major 21, so an
+  # unfiltered catalog would hand `sdk install java` an artifact the API no longer serves.
+  stub_sdk_catalog_local_only_first
+  run sdkman_jdks::install_latest_tem_jdk 21
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  refute_output --partial 'install java 21.0.9-tem'
+  assert_output --partial 'install java 21.0.5-tem'
+}
+
 @test "install_latest_tem_jdks: installs latest for every major" {
   stub_jdks_and_sdk
   run sdkman_jdks::install_latest_tem_jdks
@@ -980,6 +1088,18 @@ EOF
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output 'uninstall java 21.0.3-tem'
+}
+
+@test "prune_tem_jdks_for_major_version: keeps the newest remote over a local-only artifact" {
+  # Mirror of the install case: with 21.0.9 local only and sorting first, an unfiltered catalog
+  # would make it the keeper and uninstall 21.0.5 — the one that can still be downloaded.
+  stub_sdk_catalog_local_only_first
+  fixture_installed_jdks '21.0.9-tem' '21.0.5-tem'
+  run sdkman_jdks::prune_tem_jdks_for_major_version 21
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  assert_output --partial 'uninstall java 21.0.9-tem'
+  refute_output --partial 'uninstall java 21.0.5-tem'
 }
 
 @test "prune_tem_jdks_for_major_version: dies with 0 args" {
