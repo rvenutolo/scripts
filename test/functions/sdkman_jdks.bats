@@ -5,6 +5,8 @@ setup() {
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/args.bash"
   # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/arrays.bash"
+  # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/strings.bash"
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/text.bash"
@@ -1100,6 +1102,34 @@ EOF
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output --partial 'uninstall java 21.0.9-tem'
   refute_output --partial 'uninstall java 21.0.5-tem'
+}
+
+@test "prune_tem_jdks_for_major_version: warns instead of pruning when the keeper is not installed" {
+  # 21.0.5 is the keeper but is not on disk, so every installed artifact for major 21 differs
+  # from it and the sweep would strip the major bare — irreversibly, for a local-only artifact.
+  stub_sdk_catalog_local_only_first
+  fixture_installed_jdks '21.0.9-tem'
+  run --separate-stderr sdkman_jdks::prune_tem_jdks_for_major_version 21
+  assert_success
+  assert_stderr --partial 'Not pruning Java 21'
+  assert_stderr --partial '21.0.5-tem is not installed'
+}
+
+@test "prune_tem_jdks_for_major_version: uninstalls nothing when the keeper is not installed" {
+  stub_sdk_catalog_local_only_first
+  fixture_installed_jdks '21.0.9-tem'
+  run sdkman_jdks::prune_tem_jdks_for_major_version 21
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  refute_output --partial 'uninstall'
+}
+
+@test "prune_tem_jdks_for_major_version: is a silent no-op when nothing is installed for the major" {
+  # The guard must not turn a major with no installed JDKs at all into a warning.
+  stub_sdk_catalog_local_only_first
+  run --separate-stderr sdkman_jdks::prune_tem_jdks_for_major_version 17
+  assert_success
+  refute_stderr
 }
 
 @test "prune_tem_jdks_for_major_version: dies with 0 args" {
