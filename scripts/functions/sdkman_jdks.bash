@@ -50,6 +50,15 @@ function sdkman_jdks::set_default_jdk_by_id() {
 #   `$4 == tem` / print-`$6` form silently matched nothing and every caller saw an empty catalog
 #   — `sdkman-clean` died with "Java version 8 is not available" and `sdkman-update` skipped
 #   every JDK without a word. Keying on `$NF` parses the 4-column and 6-column layouts alike.
+#   Rows SDKMAN marks "local only" are dropped: those versions sit in the candidates dir but the
+#   API no longer serves them, so they are not available to install, and every consumer of this
+#   catalog means exactly that. Left in, one that sorted above the newest remote row for its major
+#   would make install_latest_tem_jdk hand `sdk install java` an undownloadable artifact and make
+#   prune_tem_jdks_for_major_version keep it while uninstalling the current one (#304).
+#   The marker is matched by shape rather than by column, for the same reason `$NF` is: it is a
+#   `+` among the Use column's `> * +` glyphs today and was the literal text `local only` in the
+#   six-column layout's Status column. No other cell can collide — a Version always carries
+#   digits, an Identifier ends in `-tem`, and a Vendor is alphabetic.
 # Output: stdout — lines with fields: major;version;artifact-id
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
@@ -57,6 +66,11 @@ function sdkman_jdks::fetch_tem_jdk_catalog() {
   args::check_no_args "$@"
   sdk list java \
     | awk --field-separator '|' 'NF >= 4 && $NF ~ /-tem[[:space:]]*$/ {
+      for (i = 1; i <= NF; i++) {
+        marker = $i
+        gsub(/^[ \t]+|[ \t]+$/, "", marker)
+        if ((marker ~ /^[>*+ ]+$/ && marker ~ /\+/) || marker == "local only") next
+      }
       gsub(/^[ \t]+|[ \t]+$/, "", $3)
       gsub(/^[ \t]+|[ \t]+$/, "", $NF)
       match($3, /^[0-9]+/)
