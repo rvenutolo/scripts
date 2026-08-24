@@ -1,0 +1,38 @@
+# Both statuses are informational until #307 is fixed.
+#
+# The coverage measurement is currently nondeterministic. Three consecutive runs of the
+# CI command on an unmodified tree reported 59.10% / 55.18% / 56.57% — a 3.92-point
+# spread, with 40 of 42 library files reporting different numbers, while all three runs
+# executed an identical set of 1620 tests with zero failures. bashcov streams every PS4
+# record through one pipe to a Ruby reader and loses hits under this suite's volume,
+# silently: its only loud failure mode (XtraceError / "Aborting early") appears in no CI
+# log. Both the numerator and the denominator move.
+#
+# Codecov's defaults are `target: auto, threshold: 0`, so any downward movement fails.
+# Against a ±4-point noise floor that means codecov/project cannot pass reliably no
+# matter what the code does — the status was red on main for reasons unrelated to the
+# commits it blamed. A red status nobody can act on is worse than no status: it trains
+# everyone to ignore the one place a real regression would show up.
+#
+# `informational: true` keeps the numbers visible and the PR comment posted, but stops
+# either status reporting failure. Neither is a required check in the protect-main
+# ruleset, so this changes no merge behavior — it only stops main sitting permanently
+# red on a number we know is noise.
+#
+# Restore real targets once #307 lands and the measurement is stable. Set them against a
+# post-fix baseline, not the numbers above: making --root absolute pulls never-executed
+# files back into the denominator, so the honest percentage is LOWER than what was
+# reported before.
+#
+# patch additionally under-counts shell diffs by construction. bashcov's lexer
+# instruments the body of an embedded awk/sed program as if the lines were bash, but
+# they only ever execute inside awk, so they can never be hit — a diff that is mostly
+# embedded awk fails patch no matter how well tested it is.
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
