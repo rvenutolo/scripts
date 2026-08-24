@@ -34,8 +34,30 @@ setup() {
 }
 
 # Serve a canned `sdk list java` payload and record every sdk invocation, so tests can assert how
-# many network round-trips a code path would make.
+# many network round-trips a code path would make. The payload mirrors the table SDKMAN prints
+# today: four columns, the vendor name only on a vendor's first row, and the installed/in-use
+# state carried by `*` / `>` / `+` glyphs in the Use column rather than a Status column.
 stub_sdk_catalog() {
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() {
+    printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"
+    if [[ "$1" == 'list' ]]; then
+      cat << 'EOF'
+ Vendor         | Use | Version            | Identifier
+--------------------------------------------------------------------------------
+ Temurin        |     | 21.0.5             | 21.0.5-tem
+                | > * | 21.0.3             | 21.0.3-tem
+                |   * | 17.0.10            | 17.0.10-tem
+ Eclipse        |     | 21.0.5             | 21.0.5-sapmchn
+EOF
+    fi
+  }
+  export -f sdk
+}
+
+# The six-column table SDKMAN printed before the Dist and Status columns were dropped. Same rows
+# as stub_sdk_catalog, so the parser must yield byte-identical output from either layout.
+stub_sdk_catalog_legacy_columns() {
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdk() {
     printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"
@@ -262,6 +284,59 @@ fixture_default_symlink() {
   assert_line --index 1 '21;21.0.3;21.0.3-tem'
   assert_line --index 2 '17;17.0.10;17.0.10-tem'
   refute_output --partial 'sapmchn'
+}
+
+@test "fetch_tem_jdk_catalog: parses the legacy six-column sdk list java output" {
+  # SDKMAN dropped the Dist and Status columns; a parser keyed on a fixed field index matched
+  # nothing after that and handed every caller an empty catalog. Both layouts must parse.
+  stub_sdk_catalog_legacy_columns
+  run sdkman_jdks::fetch_tem_jdk_catalog
+  assert_success
+  assert_line --index 0 '21;21.0.5;21.0.5-tem'
+  assert_line --index 1 '21;21.0.3;21.0.3-tem'
+  assert_line --index 2 '17;17.0.10;17.0.10-tem'
+  refute_output --partial 'sapmchn'
+}
+
+@test "fetch_tem_jdk_catalog: keeps a version carrying a build suffix" {
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() {
+    cat << 'EOF'
+ Vendor         | Use | Version            | Identifier
+--------------------------------------------------------------------------------
+ Temurin        |     | 21.0.12+1.1        | 21.0.12+1.1-tem
+                |   + | 21.0.12            | 21.0.12-tem
+EOF
+  }
+  export -f sdk
+  run sdkman_jdks::fetch_tem_jdk_catalog
+  assert_success
+  assert_line --index 0 '21;21.0.12+1.1;21.0.12+1.1-tem'
+  assert_line --index 1 '21;21.0.12;21.0.12-tem'
+}
+
+@test "fetch_tem_jdk_catalog: ignores table furniture and non-temurin rows" {
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() {
+    cat << 'EOF'
+================================================================================
+Available Java Versions for Linux 64bit
+================================================================================
+ Vendor         | Use | Version            | Identifier
+--------------------------------------------------------------------------------
+ Corretto       |     | 21.0.12            | 21.0.12-amzn
+ Temurin        |   * | 17.0.20            | 17.0.20-tem
+================================================================================
+ > in use   * installed   + local only
+--------------------------------------------------------------------------------
+ $ sdk install java <Identifier>    install a specific version
+================================================================================
+EOF
+  }
+  export -f sdk
+  run sdkman_jdks::fetch_tem_jdk_catalog
+  assert_success
+  assert_output '17;17.0.20;17.0.20-tem'
 }
 
 @test "fetch_tem_jdk_catalog: discards the sdk-reported installed status" {

@@ -43,20 +43,25 @@ function sdkman_jdks::set_default_jdk_by_id() {
 # @description Fetch the remote Temurin JDK catalog, newest first. Always performs a network
 #   round-trip: `sdk list java` issues an uncached HTTPS request to the SDKMAN API (~0.4s).
 #   Callers want sdkman_jdks::get_tem_jdk_catalog, which memoizes this per process.
-#   The installed status column of `sdk list java` is deliberately discarded — installed state is
-#   owned by the candidates dir (see sdkman_jdks::get_formatted_installed_tem_jdks).
+#   The installed/in-use markers `sdk list java` prints are deliberately discarded — installed
+#   state is owned by the candidates dir (see sdkman_jdks::get_formatted_installed_tem_jdks).
+#   Vendor rows are selected by the `-tem` suffix on the trailing Identifier column, not by a
+#   fixed field index: SDKMAN dropped the Dist and Status columns from the table, so the old
+#   `$4 == tem` / print-`$6` form silently matched nothing and every caller saw an empty catalog
+#   — `sdkman-clean` died with "Java version 8 is not available" and `sdkman-update` skipped
+#   every JDK without a word. Keying on `$NF` parses the 4-column and 6-column layouts alike.
 # Output: stdout — lines with fields: major;version;artifact-id
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
 function sdkman_jdks::fetch_tem_jdk_catalog() {
   args::check_no_args "$@"
   sdk list java \
-    | awk --field-separator '|' '$4 ~ /^[[:space:]]*tem[[:space:]]*$/ {
+    | awk --field-separator '|' 'NF >= 4 && $NF ~ /-tem[[:space:]]*$/ {
       gsub(/^[ \t]+|[ \t]+$/, "", $3)
-      gsub(/^[ \t]+|[ \t]+$/, "", $6)
+      gsub(/^[ \t]+|[ \t]+$/, "", $NF)
       match($3, /^[0-9]+/)
-      major = substr($3, RSTART, RLENGTH)
-      print major ";" $3 ";" $6
+      if (RSTART == 0) next
+      print substr($3, RSTART, RLENGTH) ";" $3 ";" $NF
     }'
 }
 
