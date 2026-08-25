@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# @description Return true if the named executable is on PATH, excluding wrappers in interactive/, non-interactive/, and other/.
+# @description Return true if the named executable is on PATH, excluding wrappers in scripts/interactive/, scripts/non-interactive/, and scripts/other/.
 # @arg $1 executable name
 # @exitcode 0 if true
 # @exitcode 1 if false
@@ -17,7 +17,7 @@ function commands::executable_exists() {
   )
 }
 
-# @description Print the absolute path of an executable (first match on PATH), excluding wrappers in interactive/, non-interactive/, and other/.
+# @description Print the absolute path of an executable (first match on PATH), excluding wrappers in scripts/interactive/, scripts/non-interactive/, and scripts/other/.
 # Output: stdout — absolute path, or empty string if not found
 # @arg $1 executable name
 function commands::executable_path() {
@@ -30,7 +30,7 @@ function commands::executable_path() {
   )
 }
 
-# @description Die if the named executable is not found on PATH (excluding wrappers in interactive/, non-interactive/, and other/).
+# @description Die if the named executable is not found on PATH (excluding wrappers in scripts/interactive/, scripts/non-interactive/, and scripts/other/).
 # @arg $1 executable name
 # @exitcode 0 if the executable exists
 # @exitcode 1 via log::die if not (process exits)
