@@ -813,8 +813,8 @@ headline number describes. Facts that are load-bearing, from #307 and #310:
   with no error. Three runs on an unchanged tree spread 3.92 points; the same three runs under kcov
   produce byte-identical per-line hits, in ~9 minutes against bashcov's projected ~29 once its pipe
   is fixed. The post-switch baseline was 81.1% (1634 / 2015) against 54.1% through the lossy pipe;
-  the current baseline is **96.4% (1943 / 2015)** after #310 and #312 filled the real branch gaps
-  and #311 fixed the quote-parsing loss below. **Never diagnose a Codecov delta from before those
+  the current baseline is **96.5% (1944 / 2015)** after #310, #312 and #313 filled the real branch
+  gaps and #311 fixed the quote-parsing loss below. **Never diagnose a Codecov delta from before those
   changes by reading the diff.**
 
 - **kcov silently discarded every trace line after a `$'...'` one, and did it with exit 0** (#310).
@@ -854,7 +854,7 @@ headline number describes. Facts that are load-bearing, from #307 and #310:
   every `@test`. Both are covered behaviourally by tests that run in a child process, which the
   harness cannot attribute. Do not try to cover them in-process — it is not possible.
 
-- **Some lines can never be hit, and they set the ceiling.** Roughly 60 of the 72 still-uncovered
+- **Some lines can never be hit, and they set the ceiling.** Roughly 60 of the 71 still-uncovered
   lines are lexer artifacts, not gaps: embedded awk/sed program bodies (`sdkman_jdks.bash` 69–79,
   `shdoc.bash` 53–65/91–94/134–148, `sdkman.bash` 101–110, `git.bash` 174–177), bare subshell `(`
   and `)` lines, every `done <redirect>` line in the tree, and the opening line of a condition or

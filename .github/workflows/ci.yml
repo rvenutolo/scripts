@@ -99,7 +99,7 @@ jobs:
           level: warning
           fail_on_error: false
           exclude: |
-            ./other/*
+            ./scripts/other/*
             ./lib/*
             ./.shdoc/*
   lint:

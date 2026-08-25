@@ -10,27 +10,28 @@ docs:
 functions:
   - changed-files:
       - any-glob-to-any-file:
-          - functions/**
+          - scripts/functions/**
 install:
   - changed-files:
       - any-glob-to-any-file:
-          - install/**
-main:
+          - scripts/install/**
+scripts:
   - changed-files:
       - any-glob-to-any-file:
-          - main/**
+          - scripts/non-interactive/**
+          - scripts/interactive/**
 misc:
   - changed-files:
       - any-glob-to-any-file:
-          - misc/**
+          - scripts/misc/**
 other:
   - changed-files:
       - any-glob-to-any-file:
-          - other/**
+          - scripts/other/**
 set_up:
   - changed-files:
       - any-glob-to-any-file:
-          - set_up/**
+          - scripts/set_up/**
 test:
   - changed-files:
       - any-glob-to-any-file:

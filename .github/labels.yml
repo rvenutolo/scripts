@@ -9,25 +9,30 @@
   description: Documentation, README, comments
 - name: functions
   color: 5319e7
-  description: Touches functions/
+  description: Touches scripts/functions/
 - name: idea
   color: a2eeef
   description: Proposal captured via the idea issue template
 - name: install
   color: 0e8a16
-  description: Touches install/
-- name: main
+  description: Touches scripts/install/
+# Renamed from `main`, which labelled the pre-reorganisation main/ directory —
+# now scripts/non-interactive/, alongside scripts/interactive/. from_name renames
+# the label in place; dropping it instead would delete it, and the sync runs with
+# skip-delete: false, so it would come off every issue and PR already carrying it.
+- name: scripts
+  from_name: main
   color: 1d76db
-  description: Touches main/
+  description: Touches scripts/non-interactive/ or scripts/interactive/
 - name: misc
   color: c5def5
-  description: Touches misc/
+  description: Touches scripts/misc/
 - name: other
   color: d4c5f9
-  description: Touches other/ (third-party scripts)
+  description: Touches scripts/other/ (third-party scripts)
 - name: set_up
   color: 0e8a16
-  description: Touches set_up/
+  description: Touches scripts/set_up/
 - name: test
   color: fbca04
   description: Touches test/
