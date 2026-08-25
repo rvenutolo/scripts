@@ -35,10 +35,14 @@ readonly TEST_CI_DIR="${TEST_CI_DIR_OVERRIDE:-${REPO_DIR}/test/ci}"
 readonly ROOT_DIR="${ROOT_DIR_OVERRIDE:-${REPO_DIR}}"
 readonly TEST_ROOT_DIR="${TEST_ROOT_DIR_OVERRIDE:-${REPO_DIR}/test/root}"
 
-# Scripts exempt from the paired-test mandate:
-# - apply-repo-settings: mutates the live GitHub repo via the gh API; it is
-#   side-effecting, not CI-run, and has nothing deterministic to assert.
-readonly EXEMPT=(apply-repo-settings)
+# Scripts under .ci/ exempt from the paired-test mandate. Deliberately empty:
+# all .ci scripts have paired tests under test/ci/. apply-repo-settings was the
+# last holdout, on the grounds that it mutates the live GitHub repo via gh and
+# so had "nothing deterministic to assert" — untrue: shimming gh pins the API
+# calls it issues and its create-vs-update ruleset branch. An entry here that
+# names no script, or names one that does have a test, fails the lint rather
+# than silently disarming it.
+readonly EXEMPT=()
 
 # Repo-root runners exempt from the mandate. Deliberately empty: all six
 # runners have paired tests under test/root/. An entry here that names no

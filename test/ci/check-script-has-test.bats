@@ -6,10 +6,11 @@ setup() {
   ROOT="${BATS_TEST_TMPDIR}/root"
   TEST_ROOT="${BATS_TEST_TMPDIR}/test_root"
   mkdir -p "${CI}" "${TEST_CI}" "${ROOT}" "${TEST_ROOT}"
-  # The shipped EXEMPT list names scripts in the real repo, which do not exist in
-  # the synthetic fixture dirs below — every entry would read as stale. Set-but-
-  # empty clears it; tests that need an exemption re-set it on the command
-  # itself, and the two tests that pin the shipped defaults unset it.
+  # Both shipped lists are empty today, but an entry added later would name a
+  # script in the real repo that does not exist in the synthetic fixture dirs
+  # below, and would read as stale. Set-but-empty clears them regardless; tests
+  # that need an exemption re-set it on the command itself, and the two tests
+  # that pin the shipped defaults unset it.
   export EXEMPT_OVERRIDE=''
   export ROOT_EXEMPT_OVERRIDE=''
 }
@@ -80,11 +81,16 @@ run_check() {
   assert_success
 }
 
-@test "the shipped .ci exemption list exempts apply-repo-settings" {
+@test "the shipped .ci exemption list is empty" {
+  # apply-repo-settings was the last entry, exempted on the grounds that a script
+  # which mutates the live repo via gh has nothing deterministic to assert. It
+  # now has test/ci/apply-repo-settings.bats (gh shimmed via cli_shim), so the
+  # entry went with it and no .ci script is exempt any more.
   unset EXEMPT_OVERRIDE
   make_ci_script 'apply-repo-settings'
   run_check
-  assert_success
+  assert_failure
+  assert_output --partial 'test/ci/apply-repo-settings.bats'
 }
 
 @test "a .ci exemption naming no script is stale" {

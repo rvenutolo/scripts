@@ -15,6 +15,16 @@ run_check() {
   run "$@"
 }
 
+# page_count <dir> — generated per-file pages in a docs dir, excluding its index.
+page_count() {
+  find "$1" -maxdepth 1 -type f -name '*.md' ! -name 'index.md' | wc --lines
+}
+
+# index_link_count <dir> — bullet links the dir's index.md carries.
+index_link_count() {
+  grep --count '^- \[' "$1/index.md"
+}
+
 @test "clean run exits 0" {
   run_check "${CHECK}"
   assert_success
@@ -65,4 +75,105 @@ run_check() {
   run find "${DOCS_DIR_OVERRIDE}/scripts/non-interactive" -type f -name 'new-script.md'
   assert_success
   assert_output --partial 'new-script.md'
+}
+
+@test "every generated functions page is linked from the functions index" {
+  # write_index enumerates the directory it just filled, so a page that exists
+  # but is unlinked (or a link to a page that was never written) means the index
+  # and the generator disagree about what was built.
+  run_check "${CHECK}"
+  assert_success
+  local -r dir="${DOCS_DIR_OVERRIDE}/functions"
+  [ "$(page_count "${dir}")" -eq "$(index_link_count "${dir}")" ]
+  [ "$(page_count "${dir}")" -ge 40 ]
+}
+
+@test "every generated script page is linked from its per-directory index" {
+  run_check "${CHECK}"
+  assert_success
+  local -r dir="${DOCS_DIR_OVERRIDE}/scripts/non-interactive"
+  [ "$(page_count "${dir}")" -eq "$(index_link_count "${dir}")" ]
+  [ "$(page_count "${dir}")" -ge 100 ]
+}
+
+@test "the top-level scripts index links every per-directory index that exists" {
+  run_check "${CHECK}"
+  assert_success
+  local -r top="${DOCS_DIR_OVERRIDE}/scripts/index.md"
+  local subdir
+  for subdir in non-interactive interactive install set_up misc root; do
+    run grep --fixed-strings "(${subdir}/index.md)" "${top}"
+    assert_success
+  done
+}
+
+@test "a script page renders its file-level shdoc header, not just its name" {
+  # render_script_header exists because shdoc drops every file-level tag except
+  # @description. These four sections are the gap it fills.
+  run_check "${CHECK}"
+  assert_success
+  run cat "${DOCS_DIR_OVERRIDE}/scripts/non-interactive/new-script.md"
+  assert_success
+  assert_output --partial '# new-script'
+  assert_output --partial '## Overview'
+  assert_output --partial '## Arguments'
+  assert_output --partial '## Exit codes'
+  # @arg $@ files -> a bulleted, name-annotated entry.
+  # shellcheck disable=SC2016 # $@ is literal text in the rendered markdown, not an expansion
+  assert_output --partial '- **$@** (`files`)'
+  # @exitcode 1 ... -> a bulleted, number-annotated entry.
+  assert_output --partial '- **1**:'
+}
+
+@test "a @noargs script renders an explicit empty Arguments section" {
+  # The @noargs arm of render_script_header. Silence would be indistinguishable
+  # from a header the renderer failed to parse.
+  run_check "${CHECK}"
+  assert_success
+  run cat "${DOCS_DIR_OVERRIDE}/scripts/root/run-all-checks.md"
+  assert_success
+  assert_output --partial '## Arguments'
+  assert_output --partial 'None.'
+}
+
+@test "a functions page carries its per-function shdoc docs" {
+  # The functions arm runs shdoc directly (no header renderer), so the evidence
+  # that it worked is the presence of the library's own function entries.
+  run_check "${CHECK}"
+  assert_success
+  run cat "${DOCS_DIR_OVERRIDE}/functions/strings.md"
+  assert_success
+  assert_output --partial 'strings::is_empty'
+}
+
+@test "the home page is a copy of README.md" {
+  run_check "${CHECK}"
+  assert_success
+  run cmp --silent "${DOCS_DIR_OVERRIDE}/index.md" "${REPO_DIR}/README.md"
+  assert_success
+}
+
+@test "a rebuild wipes pages left over from the previous build" {
+  # reset_output_dirs. Without it a renamed or deleted script keeps a stale page
+  # on the published site forever, and nothing else in the pipeline notices.
+  run_check "${CHECK}"
+  assert_success
+  local -r stale="${DOCS_DIR_OVERRIDE}/functions/no-such-topic.md"
+  printf '%s\n' '# leftover from an earlier build' > "${stale}"
+
+  run_check "${CHECK}"
+  assert_success
+
+  run test -e "${stale}"
+  assert_failure
+}
+
+@test "no generated page is empty" {
+  # An empty page means shdoc or the header renderer produced nothing for a real
+  # input file — a silent per-file failure the exit code does not surface.
+  run_check "${CHECK}"
+  assert_success
+  run find "${DOCS_DIR_OVERRIDE}" -type f -name '*.md' -empty
+  assert_success
+  refute_output
 }
