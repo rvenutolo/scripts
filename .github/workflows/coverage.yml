@@ -10,6 +10,10 @@ concurrency:
   # latest-wins, so cancelling a superseded run loses nothing, whereas an
   # interrupted site deploy can half-publish.
   cancel-in-progress: true
+# The two measurements are separate jobs rather than two steps of one, so
+# neither serializes behind the other's timeout and each carries only the
+# egress its own upload needs. They upload to the same Codecov project under
+# different flags; .codecov.yml is what keeps their statuses apart.
 jobs:
   coverage:
     name: coverage
@@ -36,13 +40,50 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/coverage
+        with:
+          scope: functions
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           # Written by ./.github/actions/coverage outside the tree; see its comment.
-          files: ${{ runner.temp }}/coverage/bats/cobertura.xml
+          files: ${{ runner.temp }}/coverage/functions/bats/cobertura.xml
+          # The flag is what keeps `codecov/project` measuring scripts/functions
+          # alone. Without it both uploads land in one undifferentiated total and
+          # the headline number silently changes meaning. See .codecov.yml.
+          flags: functions
           token: ${{ secrets.CODECOV_TOKEN }}
           # MUST stay true. With it false, codecov.sh's exit_if_error only
           # prints and returns, so a failed GPG verification falls through to
           # `chmod +x` and the CLI runs unverified (#199), and a rejected
           # upload reports green (#200). Enforced by .ci/check-codecov-strict.
+          fail_ci_if_error: true
+  coverage-gates:
+    name: coverage-gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: block
+          # Same allowlist as the `coverage` job above, and for the same
+          # reasons — keybase.io and storage.googleapis.com are both load-bearing
+          # parts of the codecov-action upload path, not incidental. See CLAUDE.md.
+          allowed-endpoints: >-
+            api.github.com:443 cache.nixos.org:443 channels.nixos.org:443 cli.codecov.io:443 codeload.github.com:443 github.com:443 hosted-compute-*.githubapp.com:443 ingest.codecov.io:443 install.determinate.systems:443 keybase.io:443 nixos.org:443 objects.githubusercontent.com:443 raw.githubusercontent.com:443 releases.nixos.org:443 storage.googleapis.com:443 tarballs.nixos.org:443
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/coverage
+        with:
+          scope: gates
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          # Written by ./.github/actions/coverage outside the tree; see its comment.
+          files: ${{ runner.temp }}/coverage/gates/bats/cobertura.xml
+          flags: gates
+          token: ${{ secrets.CODECOV_TOKEN }}
+          # See the `coverage` job above: this MUST stay true.
           fail_ci_if_error: true

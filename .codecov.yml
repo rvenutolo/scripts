@@ -1,11 +1,25 @@
-# Coverage is collected by kcov (.github/actions/coverage) over test/functions only;
-# scripts/functions is the measured tree. The measurement is deterministic: three
-# full runs on an unchanged tree produce byte-identical per-line hits, so a moved
-# number means the code moved (#307).
+# Coverage is collected by kcov (.github/actions/coverage) as two independent
+# measurements, uploaded from coverage.yml under two flags:
 #
-# It used to be collected by bashcov, which handed bash a non-blocking pipe and
-# silently dropped about three quarters of the trace, so both statuses were
-# `informational: true` for a while — the number wandered ±4 points on an
+#   functions — scripts/functions, exercised by test/functions. The helper
+#               library the repo ships. This is the headline number.
+#   gates     — .ci/ plus the repo-root runners, exercised by test/ci and
+#               test/root. The tooling that grades the library.
+#
+# They are kept apart on purpose. Merging them would change what the headline
+# number means, and a regression in one tree must not be masked by the other's
+# size. `project.default` is therefore pinned to `flags: [functions]` so
+# `codecov/project` measures exactly what it measured before the gates flag
+# existed; the gates measurement gets its own status. The README badge is
+# likewise pinned with `?flag=functions`.
+#
+# Both measurements are deterministic: three full runs on an unchanged tree
+# produce byte-identical per-line hits, so a moved number means the code moved
+# (#307).
+#
+# Coverage used to be collected by bashcov, which handed bash a non-blocking
+# pipe and silently dropped about three quarters of the trace, so both statuses
+# were `informational: true` for a while — the number wandered ±4 points on an
 # unchanged tree and a red status nobody could act on is worse than none. The
 # post-fix baseline on main was 81.1% (1634 / 2015), against 54.1% collected
 # through the lossy pipe.
@@ -14,17 +28,41 @@
 # quote parser and every later line was discarded, exit 0, no diagnostic (#310).
 # Seven files read far below their real coverage — systemctl.bash 24% with every
 # branch tested. With that patched and the genuine branch gaps filled, the
-# baseline on main is 96.5% (1944 / 2015). Roughly 60 of the 71 lines still
-# uncovered are lexer artifacts that can never be hit; see CLAUDE.md.
+# functions baseline on main is 96.5% (1944 / 2015). Roughly 60 of the 71 lines
+# still uncovered are lexer artifacts that can never be hit; see CLAUDE.md.
+flags:
+  functions:
+    # carryforward keeps a flag's last known coverage when its job did not
+    # upload. Without it a transient failure in one of the two coverage jobs
+    # reads as that tree's coverage collapsing to nothing, which is a false
+    # alarm indistinguishable from a real one.
+    carryforward: true
+  gates:
+    carryforward: true
 coverage:
   status:
     project:
       default:
+        # Scoped to the functions flag so this status keeps its pre-existing
+        # meaning exactly. Widening it to both flags would silently redefine
+        # the one number this repo gates on.
+        flags:
+          - functions
         # `auto` compares to the base commit. The 1% threshold is not a noise
         # allowance — the number is deterministic now — but ordinary refactors
         # legitimately move a 2000-line denominator by a few lines, and a
         # required-looking red status on a half-point dip trains everyone to
         # ignore the one place a real regression would show.
+        target: auto
+        threshold: 1%
+      gates:
+        flags:
+          - gates
+        # Informational until the measurement has a couple of real baselines on
+        # main. The first upload can only happen after this lands, so gating on
+        # a number nobody has seen would mean a red build on day one for no
+        # signal. Flip to a real target once the baseline is established.
+        informational: true
         target: auto
         threshold: 1%
     patch:
