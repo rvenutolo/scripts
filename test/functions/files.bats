@@ -567,10 +567,7 @@ setup() {
 
 @test "write: different content with prompt rejected -> preserves old" {
   printf '%s\n' 'old' > "${BATS_TEST_TMPDIR}/f"
-  run bash -c "
-    source '${SCRIPTS_DIR}/.functions.bash'
-    files::write '${BATS_TEST_TMPDIR}/f' 'new'
-  " <<< 'n'
+  run files::write "${BATS_TEST_TMPDIR}/f" 'new' <<< 'n'
   assert_success
   [[ "$(< "${BATS_TEST_TMPDIR}/f")" == 'old' ]]
 }
@@ -613,6 +610,20 @@ setup() {
   refute_stderr --partial 'Writing'
   refute_stderr --partial 'Wrote'
   [[ "$(< "${BATS_TEST_TMPDIR}/f")" == 'content' ]]
+}
+
+@test "write_quiet: identical content short-circuits" {
+  printf '%s\n' 'same' > "${BATS_TEST_TMPDIR}/f"
+  run files::write_quiet "${BATS_TEST_TMPDIR}/f" 'same'
+  assert_success
+  [[ "$(< "${BATS_TEST_TMPDIR}/f")" == 'same' ]]
+}
+
+@test "write_quiet: different content with prompt rejected -> preserves old" {
+  printf '%s\n' 'old' > "${BATS_TEST_TMPDIR}/f"
+  run files::write_quiet "${BATS_TEST_TMPDIR}/f" 'new' <<< 'n'
+  assert_success
+  [[ "$(< "${BATS_TEST_TMPDIR}/f")" == 'old' ]]
 }
 
 @test "write_quiet: dies with 1 arg" {
@@ -677,6 +688,23 @@ setup() {
   assert_output --partial 'Expected exactly 2 arguments'
 }
 
+@test "move: different dest with prompt rejected -> both files preserved" {
+  printf '%s\n' 'new' > "${BATS_TEST_TMPDIR}/src"
+  printf '%s\n' 'old' > "${BATS_TEST_TMPDIR}/dest"
+  run files::move "${BATS_TEST_TMPDIR}/src" "${BATS_TEST_TMPDIR}/dest" <<< 'n'
+  assert_success
+  [[ "$(< "${BATS_TEST_TMPDIR}/src")" == 'new' ]]
+  [[ "$(< "${BATS_TEST_TMPDIR}/dest")" == 'old' ]]
+}
+
+@test "move: nonexistent dest with prompt rejected -> src stays put" {
+  printf '%s\n' 'data' > "${BATS_TEST_TMPDIR}/src"
+  run files::move "${BATS_TEST_TMPDIR}/src" "${BATS_TEST_TMPDIR}/dest" <<< 'n'
+  assert_success
+  [[ "$(< "${BATS_TEST_TMPDIR}/src")" == 'data' ]]
+  [[ ! -e "${BATS_TEST_TMPDIR}/dest" ]]
+}
+
 # ---------- move variants ----------
 
 @test "move_quiet: no log lines" {
@@ -713,6 +741,46 @@ setup() {
   assert_success
   refute_stderr --partial 'Moving'
   [[ ! -e "${BATS_TEST_TMPDIR}/src" ]]
+}
+
+@test "move_quiet: src == dest dies" {
+  : > "${BATS_TEST_TMPDIR}/x"
+  run files::move_quiet "${BATS_TEST_TMPDIR}/x" "${BATS_TEST_TMPDIR}/x"
+  assert_failure
+  assert_output --partial 'File paths are the same'
+}
+
+@test "move_quiet: byte-identical dest -> src removed, no prompt" {
+  printf '%s\n' 'same' > "${BATS_TEST_TMPDIR}/src"
+  printf '%s\n' 'same' > "${BATS_TEST_TMPDIR}/dest"
+  run files::move_quiet "${BATS_TEST_TMPDIR}/src" "${BATS_TEST_TMPDIR}/dest"
+  assert_success
+  [[ ! -e "${BATS_TEST_TMPDIR}/src" ]]
+  [[ "$(< "${BATS_TEST_TMPDIR}/dest")" == 'same' ]]
+}
+
+@test "move_quiet: different dest with prompt rejected -> both files preserved" {
+  printf '%s\n' 'new' > "${BATS_TEST_TMPDIR}/src"
+  printf '%s\n' 'old' > "${BATS_TEST_TMPDIR}/dest"
+  run files::move_quiet "${BATS_TEST_TMPDIR}/src" "${BATS_TEST_TMPDIR}/dest" <<< 'n'
+  assert_success
+  [[ "$(< "${BATS_TEST_TMPDIR}/src")" == 'new' ]]
+  [[ "$(< "${BATS_TEST_TMPDIR}/dest")" == 'old' ]]
+}
+
+@test "move_quiet: nonexistent dest with prompt rejected -> src stays put" {
+  printf '%s\n' 'data' > "${BATS_TEST_TMPDIR}/src"
+  run files::move_quiet "${BATS_TEST_TMPDIR}/src" "${BATS_TEST_TMPDIR}/dest" <<< 'n'
+  assert_success
+  [[ "$(< "${BATS_TEST_TMPDIR}/src")" == 'data' ]]
+  [[ ! -e "${BATS_TEST_TMPDIR}/dest" ]]
+}
+
+@test "move_no_prompt_quiet: src == dest dies" {
+  : > "${BATS_TEST_TMPDIR}/x"
+  run files::move_no_prompt_quiet "${BATS_TEST_TMPDIR}/x" "${BATS_TEST_TMPDIR}/x"
+  assert_failure
+  assert_output --partial 'File paths are the same'
 }
 
 @test "move_quiet: dies with 1 arg" {
@@ -773,6 +841,52 @@ setup() {
   assert_success
   refute_stderr --partial 'Copying'
   [[ -f "${BATS_TEST_TMPDIR}/dest" ]]
+}
+
+@test "copy: different dest with prompt rejected -> dest preserved" {
+  printf '%s\n' 'new' > "${BATS_TEST_TMPDIR}/src"
+  printf '%s\n' 'old' > "${BATS_TEST_TMPDIR}/dest"
+  run files::copy "${BATS_TEST_TMPDIR}/src" "${BATS_TEST_TMPDIR}/dest" <<< 'n'
+  assert_success
+  [[ "$(< "${BATS_TEST_TMPDIR}/dest")" == 'old' ]]
+}
+
+@test "copy: nonexistent dest with prompt rejected -> nothing created" {
+  printf '%s\n' 'data' > "${BATS_TEST_TMPDIR}/src"
+  run files::copy "${BATS_TEST_TMPDIR}/src" "${BATS_TEST_TMPDIR}/dest" <<< 'n'
+  assert_success
+  [[ ! -e "${BATS_TEST_TMPDIR}/dest" ]]
+}
+
+@test "copy_quiet: src == dest dies" {
+  : > "${BATS_TEST_TMPDIR}/x"
+  run files::copy_quiet "${BATS_TEST_TMPDIR}/x" "${BATS_TEST_TMPDIR}/x"
+  assert_failure
+  assert_output --partial 'File paths are the same'
+}
+
+@test "copy_quiet: byte-identical dest -> short-circuits, src preserved" {
+  printf '%s\n' 'same' > "${BATS_TEST_TMPDIR}/src"
+  printf '%s\n' 'same' > "${BATS_TEST_TMPDIR}/dest"
+  run files::copy_quiet "${BATS_TEST_TMPDIR}/src" "${BATS_TEST_TMPDIR}/dest"
+  assert_success
+  [[ "$(< "${BATS_TEST_TMPDIR}/src")" == 'same' ]]
+  [[ "$(< "${BATS_TEST_TMPDIR}/dest")" == 'same' ]]
+}
+
+@test "copy_quiet: different dest with prompt rejected -> dest preserved" {
+  printf '%s\n' 'new' > "${BATS_TEST_TMPDIR}/src"
+  printf '%s\n' 'old' > "${BATS_TEST_TMPDIR}/dest"
+  run files::copy_quiet "${BATS_TEST_TMPDIR}/src" "${BATS_TEST_TMPDIR}/dest" <<< 'n'
+  assert_success
+  [[ "$(< "${BATS_TEST_TMPDIR}/dest")" == 'old' ]]
+}
+
+@test "copy_quiet: nonexistent dest with prompt rejected -> nothing created" {
+  printf '%s\n' 'data' > "${BATS_TEST_TMPDIR}/src"
+  run files::copy_quiet "${BATS_TEST_TMPDIR}/src" "${BATS_TEST_TMPDIR}/dest" <<< 'n'
+  assert_success
+  [[ ! -e "${BATS_TEST_TMPDIR}/dest" ]]
 }
 
 @test "copy: dies with 1 arg" {
@@ -935,6 +1049,33 @@ setup_files_root_helpers() {
   refute_output --partial 'Writing'
 }
 
+@test "root_write: different content with prompt rejected -> preserves old" {
+  setup_files_root_helpers
+  local target="${BATS_TEST_TMPDIR}/out"
+  printf 'old\n' > "${target}"
+  run files::root_write "${target}" 'new' <<< 'n'
+  assert_success
+  [[ "$(< "${target}")" == 'old' ]]
+}
+
+@test "root_write_quiet: identical content short-circuits" {
+  setup_files_root_helpers
+  local target="${BATS_TEST_TMPDIR}/out"
+  printf 'same\n' > "${target}"
+  run files::root_write_quiet "${target}" 'same'
+  assert_success
+  [[ "$(< "${target}")" == 'same' ]]
+}
+
+@test "root_write_quiet: different content with prompt rejected -> preserves old" {
+  setup_files_root_helpers
+  local target="${BATS_TEST_TMPDIR}/out"
+  printf 'old\n' > "${target}"
+  run files::root_write_quiet "${target}" 'new' <<< 'n'
+  assert_success
+  [[ "$(< "${target}")" == 'old' ]]
+}
+
 @test "root_write_quiet: dies with 1 arg" {
   setup_files_root_helpers
   run files::root_write_quiet 'a0' < /dev/null
@@ -1044,6 +1185,71 @@ setup_files_root_helpers() {
   refute_output --partial 'Moving'
 }
 
+@test "root_move: different dest with prompt rejected -> both files preserved" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  local dest="${BATS_TEST_TMPDIR}/dest"
+  printf 'new\n' > "${src}"
+  printf 'old\n' > "${dest}"
+  run files::root_move "${src}" "${dest}" <<< 'n'
+  assert_success
+  [[ "$(< "${src}")" == 'new' ]]
+  [[ "$(< "${dest}")" == 'old' ]]
+}
+
+@test "root_move: nonexistent dest with prompt rejected -> src stays put" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  printf 'data\n' > "${src}"
+  run files::root_move "${src}" "${BATS_TEST_TMPDIR}/dest" <<< 'n'
+  assert_success
+  [[ "$(< "${src}")" == 'data' ]]
+  [[ ! -e "${BATS_TEST_TMPDIR}/dest" ]]
+}
+
+@test "root_move_quiet: src == dest dies" {
+  setup_files_root_helpers
+  local p="${BATS_TEST_TMPDIR}/p"
+  printf 'x\n' > "${p}"
+  run files::root_move_quiet "${p}" "${p}"
+  assert_failure
+  assert_output --partial 'File paths are the same'
+}
+
+@test "root_move_quiet: deletes src when dest is byte-identical" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  local dest="${BATS_TEST_TMPDIR}/dest"
+  printf 'same\n' > "${src}"
+  printf 'same\n' > "${dest}"
+  run files::root_move_quiet "${src}" "${dest}"
+  assert_success
+  [[ ! -f "${src}" ]]
+  [[ "$(< "${dest}")" == 'same' ]]
+}
+
+@test "root_move_quiet: different dest with prompt rejected -> both files preserved" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  local dest="${BATS_TEST_TMPDIR}/dest"
+  printf 'new\n' > "${src}"
+  printf 'old\n' > "${dest}"
+  run files::root_move_quiet "${src}" "${dest}" <<< 'n'
+  assert_success
+  [[ "$(< "${src}")" == 'new' ]]
+  [[ "$(< "${dest}")" == 'old' ]]
+}
+
+@test "root_move_quiet: nonexistent dest with prompt rejected -> src stays put" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  printf 'data\n' > "${src}"
+  run files::root_move_quiet "${src}" "${BATS_TEST_TMPDIR}/dest" <<< 'n'
+  assert_success
+  [[ "$(< "${src}")" == 'data' ]]
+  [[ ! -e "${BATS_TEST_TMPDIR}/dest" ]]
+}
+
 @test "root_move_quiet: dies with 1 arg" {
   setup_files_root_helpers
   run files::root_move_quiet 'a0' < /dev/null
@@ -1100,6 +1306,75 @@ setup_files_root_helpers() {
   run files::root_copy_quiet "${src}" "${dest}"
   assert_success
   refute_output --partial 'Copying'
+}
+
+@test "root_copy: src == dest dies" {
+  setup_files_root_helpers
+  local p="${BATS_TEST_TMPDIR}/p"
+  printf 'x\n' > "${p}"
+  run files::root_copy "${p}" "${p}"
+  assert_failure
+  assert_output --partial 'File paths are the same'
+}
+
+@test "root_copy: different dest with prompt rejected -> dest preserved" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  local dest="${BATS_TEST_TMPDIR}/dest"
+  printf 'new\n' > "${src}"
+  printf 'old\n' > "${dest}"
+  run files::root_copy "${src}" "${dest}" <<< 'n'
+  assert_success
+  [[ "$(< "${dest}")" == 'old' ]]
+}
+
+@test "root_copy: nonexistent dest with prompt rejected -> nothing created" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  printf 'data\n' > "${src}"
+  run files::root_copy "${src}" "${BATS_TEST_TMPDIR}/dest" <<< 'n'
+  assert_success
+  [[ ! -e "${BATS_TEST_TMPDIR}/dest" ]]
+}
+
+@test "root_copy_quiet: src == dest dies" {
+  setup_files_root_helpers
+  local p="${BATS_TEST_TMPDIR}/p"
+  printf 'x\n' > "${p}"
+  run files::root_copy_quiet "${p}" "${p}"
+  assert_failure
+  assert_output --partial 'File paths are the same'
+}
+
+@test "root_copy_quiet: byte-identical dest short-circuits" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  local dest="${BATS_TEST_TMPDIR}/dest"
+  printf 'same\n' > "${src}"
+  printf 'same\n' > "${dest}"
+  run files::root_copy_quiet "${src}" "${dest}"
+  assert_success
+  [[ "$(< "${src}")" == 'same' ]]
+}
+
+@test "root_copy_quiet: different dest with prompt rejected -> dest preserved" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  local dest="${BATS_TEST_TMPDIR}/dest"
+  printf 'new\n' > "${src}"
+  printf 'old\n' > "${dest}"
+  run files::root_copy_quiet "${src}" "${dest}" <<< 'n'
+  assert_success
+  [[ "$(< "${dest}")" == 'old' ]]
+}
+
+@test "root_copy_quiet: nonexistent dest with prompt rejected -> nothing created" {
+  setup_files_root_helpers
+  local src="${BATS_TEST_TMPDIR}/src"
+  printf 'data\n' > "${src}"
+  run files::root_copy_quiet "${src}" "${BATS_TEST_TMPDIR}/dest" <<< 'n'
+  assert_success
+  [[ ! -e "${BATS_TEST_TMPDIR}/dest" ]]
 }
 
 @test "root_copy_quiet: dies with 1 arg" {
