@@ -497,6 +497,40 @@ teach the check to tolerate an empty root: a fixture that does not mirror any re
 less than the guard it would have cost. Bending production code to accommodate a fixture is how a
 gate ends up reading clean over a tree it never scanned (#250, #290).
 
+### Configured paths must resolve
+
+Exclusion lists and label globs name directories by hand, and when a directory moves the stale
+entry simply matches nothing — no error, no warning, the config quietly stops working. The
+`scripts/` reorganisation left four behind: typos was scanning `scripts/other/` (third-party code
+the repo forbids editing, so a typo there would fail the gate with no legal fix), the PR
+auto-labeler had stopped labelling script changes entirely, and reviewdog was shellchecking the
+same third-party tree (#314, #315).
+
+`.ci/check-config-paths` enforces that every literal path configured in `.typos.toml`,
+`.github/labeler.yml`, `.yamllint.yml`, `.treefmt.nix`, and reviewdog's `exclude:` in
+`.github/workflows/ci.yml` still names something git knows about.
+
+**A path passes when it is tracked or deliberately gitignored** — both are intentional states, and
+neither query consults the working tree. That distinction is load-bearing: a plain `[ -e ]` check
+passes locally after a docs build and fails on a fresh CI checkout, because `site/` is generated.
+For the same reason the ignore query retries with a trailing slash — a directory-only rule like
+`site/` matches `git check-ignore site/` always, but matches bare `site` only while the directory
+exists on disk.
+
+An entry with no literal prefix (`**/*.md`) is skipped; there is nothing to resolve. The check
+verifies **existence, not intent** — it catches an entry naming a path that is gone, not one naming
+a real directory that is simply the wrong one.
+
+`EXEMPT` holds paths git genuinely cannot see, and ships with one: `lib`, the vendored Groovy jars,
+which were never committed and never ignored either. It carries the usual bidirectional staleness
+detection, and the ordering inside `main` is what buys the second direction — only an entry that
+actually fails to resolve is routed through the exemption, so an exemption whose path resolves on
+its own is reported stale rather than sitting there unnoticed.
+
+Adding a config file with a path list means adding it to `SOURCES` with an extractor function.
+`.github/labels.yml` prose descriptions are deliberately out of scope: pinning an English sentence
+shape would break the moment someone rewords one.
+
 ### Gate scripts enable `inherit_errexit`
 
 Bash unsets `errexit` inside a command-substitution subshell unless `inherit_errexit` is
