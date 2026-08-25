@@ -786,17 +786,39 @@ Note: `read -rp` writes the prompt text to `/dev/tty`, which BATS `run` does not
 `.github/actions/coverage` runs `test/functions` under **kcov** and uploads the Cobertura report
 to Codecov from `coverage.yml` (push to `main` only). `test/ci/` and `test/root/` are deliberately
 unmeasured: they drive `.ci/` and the root runners, not `scripts/functions`, which is the tree the
-headline number describes. Facts that are load-bearing, all from #307:
+headline number describes. Facts that are load-bearing, from #307 and #310:
 
 - **kcov replaced bashcov because bashcov's number was noise.** Ruby's `IO.pipe` hands bash a
   non-blocking `BASH_XTRACEFD`; when the Ruby reader lagged, bash's `write()` got `EAGAIN` and
   silently discarded the trace record. About three quarters of the hits were lost, timing-dependent,
   with no error. Three runs on an unchanged tree spread 3.92 points; the same three runs under kcov
   produce byte-identical per-line hits, in ~9 minutes against bashcov's projected ~29 once its pipe
-  is fixed. The post-switch baseline is 81.1% (1634 / 2015) against 54.1% through the lossy pipe.
-  **Never diagnose a Codecov delta from before the switch by reading the diff.**
+  is fixed. The post-switch baseline was 81.1% (1634 / 2015) against 54.1% through the lossy pipe;
+  the current baseline is **96.4% (1943 / 2015)** after #310 and #312 filled the real branch gaps
+  and #311 fixed the quote-parsing loss below. **Never diagnose a Codecov delta from before those
+  changes by reading the diff.**
 
-- **kcov carries a one-line patch in `flake.nix`** (`kcovPatched`): its PS4 is
+- **kcov silently discarded every trace line after a `$'...'` one, and did it with exit 0** (#310).
+  `BashEngine::getInputType()` carries single-quote state across trace lines but honours backslash
+  escapes only outside a quote. Bash renders any value containing a newline with ANSI-C quoting,
+  where `\'` is an escaped quote, so one such line — `printf '%s\n' $'#!/usr/bin/env bash\necho \'x\''` — left the parser latched in `INPUT_SINGLE_QUOTE`, and `checkEvent()` dropped everything
+  after it. No diagnostic, no non-zero exit, a well-formed report reading 0%.
+
+  Any test writing a multi-line script through a shell variable tripped it, which is every
+  `path_shim::add` call site. It costs 184 lines across seven files — `systemctl.bash` reads 24.1%
+  with every branch tested, `downloads.bash` 13%, `docker.bash` 63% — and read even lower before
+  #310 and #312 added tests to those files (`packages.bash` was 4.8%). `cli_shim` was unaffected
+  only because it writes shim bodies with `cat > file << EOF`, and bash never traces heredoc
+  contents — that difference is why some shim-using files looked fine and others did not.
+
+  `.nix/kcov-ansi-c-quoting.patch` fixes it, applied via `patches` on `kcovPatched`. A `*.patch`
+  rule in the maintainer's global gitignore hides such files, so the repo `.gitignore` carries an
+  explicit `!.nix/*.patch` negation — without it the patch is silently untracked and `nix` refuses
+  to evaluate the flake. **A silent 0% is the signature of this class of bug**: if a file's number
+  collapses while its tests pass, suspect the harness before the tests.
+
+- **kcov also carries a one-line PS4 fix in `flake.nix`** (`kcovPatched`, separate from the patch
+  above and applied via `postPatch` rather than `patches`): its PS4 is
   `kcov@${BASH_SOURCE}@${LINENO}@` with no default, so a `bash -c '… set -u …'` string — which has no
   `BASH_SOURCE` — dies inside PS4 expansion and the test around it fails. Four tests hit this
   (`log.bats`, `shdoc.bats`, `user.bats`). `--bash-method=DEBUG` avoids it but records nothing. The
@@ -807,8 +829,13 @@ headline number describes. Facts that are load-bearing, all from #307:
   `test/functions` run, all in the `kcov` process. Fine on a 16 GB runner; a leak-shaped ceiling
   around 6000 tests. Worth an eye when the suite doubles.
 
-- **Embedded awk/sed bodies score as unhit bash lines** under kcov exactly as under bashcov
-  (`sdkman_jdks.bash` 69–79). That is why `codecov/patch` is `informational` in `.codecov.yml`;
+- **Some lines can never be hit, and they set the ceiling.** Roughly 60 of the 72 still-uncovered
+  lines are lexer artifacts, not gaps: embedded awk/sed program bodies (`sdkman_jdks.bash` 69–79,
+  `shdoc.bash` 53–65/91–94/134–148, `sdkman.bash` 101–110, `git.bash` 174–177), bare subshell `(`
+  and `)` lines, every `done <redirect>` line in the tree, and the opening line of a condition or
+  command that wraps — kcov attributes a wrapped command to its last line. All 11 `done <redirect>`
+  lines score 0 with no exceptions, which is what identifies them as artifacts rather than gaps.
+  Do not chase them. That is also why `codecov/patch` is `informational` in `.codecov.yml`;
   `codecov/project` carries a real `auto` target with a 1% threshold.
 
 - **The report is written to `$RUNNER_TEMP`, not into the tree.** kcov drops shebang-bearing

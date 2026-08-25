@@ -60,6 +60,14 @@
           # build loudly instead of silently un-patching. The escaped `\$` is for
           # bash, so substituteInPlace receives the literal `${BASH_SOURCE}`.
           kcovPatched = pkgs.kcov.overrideAttrs (prev: {
+            # kcov's xtrace parser tracks single-quote state across lines, but only
+            # honours backslash escapes outside a quote. Bash renders any value
+            # containing a newline with ANSI-C quoting, where \' is an escaped
+            # quote, so one such trace line left the parser latched in
+            # INPUT_SINGLE_QUOTE and every later line was silently discarded — an
+            # empty report, no error, exit 0. Any test writing a multi-line shim
+            # body through a variable hit it (#310).
+            patches = (prev.patches or [ ]) ++ [ ./.nix/kcov-ansi-c-quoting.patch ];
             postPatch = (prev.postPatch or "") + ''
               substituteInPlace src/engines/bash-helper.sh src/engines/bash-helper-debug-trap.sh \
                 --replace-fail "\''${BASH_SOURCE}" "\''${BASH_SOURCE:-}"
