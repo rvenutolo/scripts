@@ -45,20 +45,26 @@ EOF
   )"
 }
 
-# Stub host detection: hostname=desktop, env vars set so hosts::is_personal && hosts::is_desktop true.
-# universal.csv: personal+desktop = col 4
-# distro.csv:    personal+desktop = col 2
-# sdkman.csv:    personal+desktop = col 3
-stub_personal_desktop() {
+# Stub host detection to the named hostname. The three env vars are always set to
+# the same fixed values, so which host predicate matches is decided purely by what
+# `hostname` reports; pass a name matching none of them for the unknown-host case.
+#
+# Column each host type selects:
+#   universal.csv  desktop 4  personal-laptop 5  work-laptop 6  server 7
+#   distro.csv     desktop 2  personal-laptop 3  work-laptop 4  server 5
+#   sdkman.csv     desktop 3  personal-laptop 4  work-laptop 5  server 6
+stub_host() {
+  local -r reported="$1"
   path_shim::add hostname "$(
-    cat << 'EOF'
-#!/usr/bin/env bash
-printf 'desktop\n'
-EOF
+    printf '#!/usr/bin/env bash\nprintf %s\n' "${reported}"
   )"
   export PERSONAL_DESKTOP_HOSTNAME='desktop'
   export PERSONAL_LAPTOP_HOSTNAME='laptop'
   export WORK_LAPTOP_HOSTNAME='work'
+}
+
+stub_personal_desktop() {
+  stub_host 'desktop'
 }
 
 # ---------- dpkg_package_installed ----------
@@ -209,6 +215,63 @@ CSV
   assert_output --partial 'Expected at least 1 argument'
 }
 
+@test "get_universal: personal laptop selects column 5" {
+  stub_host 'laptop'
+  install_download_shim
+  cat > "${BATS_TEST_TMPDIR}/csv" << 'CSV'
+1,appimage,desktop-only,y,n,n,n,
+2,appimage,laptop-pkg,n,y,n,n,
+CSV
+  run packages::get_universal appimage --quiet
+  assert_success
+  assert_output 'laptop-pkg'
+}
+
+@test "get_universal: work laptop selects column 6" {
+  stub_host 'work'
+  install_download_shim
+  cat > "${BATS_TEST_TMPDIR}/csv" << 'CSV'
+1,appimage,personal-laptop-only,n,y,n,n,
+2,appimage,work-pkg,n,n,y,n,
+CSV
+  run packages::get_universal appimage --quiet
+  assert_success
+  assert_output 'work-pkg'
+}
+
+@test "get_universal: server selects column 7" {
+  stub_host 'some-server'
+  install_download_shim
+  cat > "${BATS_TEST_TMPDIR}/csv" << 'CSV'
+1,appimage,work-only,n,n,y,n,
+2,appimage,server-pkg,n,n,n,y,
+CSV
+  run packages::get_universal appimage --quiet
+  assert_success
+  assert_output 'server-pkg'
+}
+
+@test "get_universal: --ignore with no following package dies" {
+  stub_personal_desktop
+  run packages::get_universal appimage --ignore
+  assert_failure
+  assert_output --partial '--ignore requires at least one argument'
+}
+
+@test "get_universal: unexpected flag dies" {
+  stub_personal_desktop
+  run packages::get_universal appimage --bogus
+  assert_failure
+  assert_output --partial "Unexpected flag '--bogus'"
+}
+
+@test "get_universal: unexpected positional argument dies" {
+  stub_personal_desktop
+  run packages::get_universal appimage stray
+  assert_failure
+  assert_output --partial "Unexpected argument 'stray'"
+}
+
 @test "get_universal: supports flatpak type" {
   stub_personal_desktop
   install_download_shim
@@ -325,6 +388,69 @@ CSV
   assert_line --index 2 'zzz'
 }
 
+@test "get_distro: personal laptop selects column 3" {
+  stub_host 'laptop'
+  cli_shim::record curl
+  install_download_shim
+  cat > "${BATS_TEST_TMPDIR}/csv" << 'CSV'
+desktop-only,y,n,n,n,
+laptop-pkg,n,y,n,n,
+CSV
+  run packages::get_distro 'ubuntu' 'noble' --quiet
+  assert_success
+  assert_output 'laptop-pkg'
+}
+
+@test "get_distro: work laptop selects column 4" {
+  stub_host 'work'
+  cli_shim::record curl
+  install_download_shim
+  cat > "${BATS_TEST_TMPDIR}/csv" << 'CSV'
+personal-laptop-only,n,y,n,n,
+work-pkg,n,n,y,n,
+CSV
+  run packages::get_distro 'ubuntu' 'noble' --quiet
+  assert_success
+  assert_output 'work-pkg'
+}
+
+@test "get_distro: server selects column 5" {
+  stub_host 'some-server'
+  cli_shim::record curl
+  install_download_shim
+  cat > "${BATS_TEST_TMPDIR}/csv" << 'CSV'
+work-only,n,n,y,n,
+server-pkg,n,n,n,y,
+CSV
+  run packages::get_distro 'ubuntu' 'noble' --quiet
+  assert_success
+  assert_output 'server-pkg'
+}
+
+@test "get_distro: --ignore with no following package dies" {
+  stub_personal_desktop
+  cli_shim::record curl
+  run packages::get_distro 'ubuntu' 'noble' --ignore
+  assert_failure
+  assert_output --partial '--ignore requires at least one argument'
+}
+
+@test "get_distro: unexpected flag dies" {
+  stub_personal_desktop
+  cli_shim::record curl
+  run packages::get_distro 'ubuntu' 'noble' --bogus
+  assert_failure
+  assert_output --partial "Unexpected flag '--bogus'"
+}
+
+@test "get_distro: unexpected positional argument dies" {
+  stub_personal_desktop
+  cli_shim::record curl
+  run packages::get_distro 'ubuntu' 'noble' stray
+  assert_failure
+  assert_output --partial "Unexpected argument 'stray'"
+}
+
 @test "get_distro: dies when HEAD check fails (no packages list for distro)" {
   stub_personal_desktop
   cli_shim::record_with_output curl '' 22
@@ -438,6 +564,63 @@ CSV
   assert_line --index 0 'aaa'
   assert_line --index 1 'mmm'
   assert_line --index 2 'zzz'
+}
+
+@test "get_sdkman: personal laptop selects column 4" {
+  stub_host 'laptop'
+  install_download_shim
+  cat > "${BATS_TEST_TMPDIR}/csv" << 'CSV'
+1,desktop-only,y,n,n,
+2,laptop-sdk,n,y,n,
+CSV
+  run packages::get_sdkman --quiet
+  assert_success
+  assert_output 'laptop-sdk'
+}
+
+@test "get_sdkman: work laptop selects column 5" {
+  stub_host 'work'
+  install_download_shim
+  cat > "${BATS_TEST_TMPDIR}/csv" << 'CSV'
+1,personal-laptop-only,n,y,n,
+2,work-sdk,n,n,y,
+CSV
+  run packages::get_sdkman --quiet
+  assert_success
+  assert_output 'work-sdk'
+}
+
+@test "get_sdkman: server selects column 6" {
+  stub_host 'some-server'
+  install_download_shim
+  cat > "${BATS_TEST_TMPDIR}/csv" << 'CSV'
+1,work-only,n,n,y,n,
+2,server-sdk,n,n,n,y,
+CSV
+  run packages::get_sdkman --quiet
+  assert_success
+  assert_output 'server-sdk'
+}
+
+@test "get_sdkman: --ignore with no following package dies" {
+  stub_personal_desktop
+  run packages::get_sdkman --ignore
+  assert_failure
+  assert_output --partial '--ignore requires at least one argument'
+}
+
+@test "get_sdkman: unexpected flag dies" {
+  stub_personal_desktop
+  run packages::get_sdkman --bogus
+  assert_failure
+  assert_output --partial "Unexpected flag '--bogus'"
+}
+
+@test "get_sdkman: unexpected positional argument dies" {
+  stub_personal_desktop
+  run packages::get_sdkman stray
+  assert_failure
+  assert_output --partial "Unexpected argument 'stray'"
 }
 
 @test "get_sdkman: returns empty output when no packages match" {
