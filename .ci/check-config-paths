@@ -1,0 +1,242 @@
+#!/usr/bin/env bash
+
+# @description Assert every literal path a repo config file configures still names
+#              something git knows about. Exclusion lists and label globs name
+#              directories by hand, and when a directory moves the stale entry
+#              simply matches nothing — no error, no warning, the config just
+#              stops doing its job. The scripts/ reorganisation left four such
+#              entries behind: typos was scanning scripts/other/, third-party code
+#              the repo forbids editing; the PR auto-labeler had silently stopped
+#              labelling script changes; and reviewdog was shellchecking the same
+#              third-party tree (#314, #315).
+#
+#              A path passes when it is tracked or deliberately gitignored. Both
+#              are intentional states, and neither consults the working tree, so
+#              the verdict is identical here and on a fresh CI checkout — a
+#              filesystem check would pass locally after a docs build and fail in
+#              CI. An entry with no literal prefix, such as `**/*.md`, is skipped:
+#              there is nothing to resolve.
+#
+#              This verifies existence, not intent. It catches an entry naming a
+#              path that is gone; it cannot catch one naming a real directory that
+#              is simply the wrong one.
+#
+#              Paths git genuinely cannot see are exempt by name, and each
+#              exemption must stay warranted — an entry naming a path no source
+#              configures, or naming one that now resolves, fails the lint rather
+#              than silently disarming it.
+# @noargs
+# @stderr One line per unresolvable entry, and one per stale exemption.
+# @exitcode 0 every configured literal path resolves.
+# @exitcode 1 an unresolvable entry, an unparsable source, or a stale EXEMPT entry.
+
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0 (#290).
+shopt -s inherit_errexit
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'yq'
+commands::assert_executable_exists 'nix'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly CONFIG_ROOT="${CONFIG_ROOT_OVERRIDE:-${REPO_DIR}}"
+
+# Config sources, as `relative-path::extractor`. The extractor names a function
+# below rather than an inline query so each one can be read, and so a source
+# whose format needs different handling does not distort the others.
+readonly SOURCES=(
+  '.typos.toml::extract_typos'
+  '.github/labeler.yml::extract_labeler'
+  '.yamllint.yml::extract_yamllint'
+  '.github/workflows/ci.yml::extract_reviewdog'
+  '.treefmt.nix::extract_treefmt'
+)
+
+# Paths git cannot see at all — neither tracked nor matched by a .gitignore rule.
+# lib/ holds vendored Groovy jars that were never committed and were never
+# ignored either, so no git query can vouch for them. Every other configured path
+# must resolve on its own.
+readonly EXEMPT=(lib)
+
+# @description Print each element of a JSON array on its own line.
+#              Used by extract_treefmt, whose source is evaluated rather than
+#              parsed and so arrives as JSON text.
+# @arg $1 json JSON array text
+# @stdout One element per line.
+# shellcheck disable=SC2329 # dispatched indirectly by name from SOURCES
+function json_array_lines() {
+  args::check_exactly_1_arg "$@"
+  local -r json="$1"
+  printf '%s' "${json}" | yq --input-format=json --output-format=yaml '.[]'
+}
+
+# @description Print the typos exclusion list, one entry per line.
+# @arg $1 file path to .typos.toml
+# @stdout One configured path per line.
+# shellcheck disable=SC2329 # dispatched indirectly by name from SOURCES
+function extract_typos() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  # yq reads TOML natively, so this needs no second parser. taplo would also do
+  # it, but .ci/required-tools deliberately keeps taplo off the PATH-tool list —
+  # treefmt resolves it from the Nix store directly.
+  yq --input-format=toml --output-format=yaml '.files.extend-exclude[]' "${file}"
+}
+
+# @description Print every labeler glob across all labels, one per line.
+# @arg $1 file path to .github/labeler.yml
+# @stdout One configured path per line.
+# shellcheck disable=SC2329 # dispatched indirectly by name from SOURCES
+function extract_labeler() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  yq '[.[][]."changed-files"[]."any-glob-to-any-file"[]] | .[]' "${file}"
+}
+
+# @description Print the yamllint ignore list, one entry per line. The value is a
+#              block scalar, so yq yields one newline-joined string.
+# @arg $1 file path to .yamllint.yml
+# @stdout One configured path per line.
+# shellcheck disable=SC2329 # dispatched indirectly by name from SOURCES
+function extract_yamllint() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  yq '.ignore' "${file}"
+}
+
+# @description Print every reviewdog `exclude:` entry in a workflow, one per line.
+#              Each value is a block scalar holding several paths.
+# @arg $1 file path to a workflow file
+# @stdout One configured path per line.
+# shellcheck disable=SC2329 # dispatched indirectly by name from SOURCES
+function extract_reviewdog() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  yq '[.jobs[].steps[]? | select(.with.exclude != null) | .with.exclude] | .[]' "${file}"
+}
+
+# @description Print the treefmt global excludes, one per line. The file is Nix,
+#              so it is evaluated rather than parsed. pkgs is unused by the
+#              excludes list, so null satisfies the import.
+# @arg $1 file path to .treefmt.nix
+# @stdout One configured path per line.
+# shellcheck disable=SC2329 # dispatched indirectly by name from SOURCES
+function extract_treefmt() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local json
+  json="$(nix eval --impure --json --expr "let f = import ${file} { pkgs = null; }; in f.settings.global.excludes")"
+  json_array_lines "${json}"
+}
+
+# @description Reduce a configured entry to the literal path prefix it pins.
+#              Everything from the first glob character onward is dropped, along
+#              with a leading `./` and any trailing slash. An entry that pins
+#              nothing yields the empty string.
+# @arg $1 entry configured path or glob
+# @stdout The literal prefix, possibly empty.
+function literal_prefix() {
+  args::check_exactly_1_arg "$@"
+  local prefix="${1%%\**}"
+  prefix="${prefix#./}"
+  prefix="${prefix%/}"
+  printf '%s\n' "${prefix}"
+}
+
+# @description Return true if git knows about the path: either it is tracked, or a
+#              .gitignore rule deliberately excludes it. Both are intentional
+#              states; anything else is an entry pointing at nothing.
+#
+#              Both queries read the index and the ignore rules, never the working
+#              tree, so the answer does not depend on whether a generated
+#              directory happens to have been built. The trailing-slash retry is
+#              what buys that for the ignore half: a directory-only rule such as
+#              `site/` matches `git check-ignore site/` always, but matches the
+#              bare `site` only while the directory exists on disk — so without
+#              the retry this gate would pass locally after a docs build and fail
+#              on a fresh CI checkout.
+# @arg $1 path repo-relative path
+# @exitcode 0 git knows about the path
+# @exitcode 1 git has never heard of it
+function git_knows_path() {
+  args::check_exactly_1_arg "$@"
+  local -r path="$1"
+  local tracked
+  tracked="$(git -C "${CONFIG_ROOT}" ls-files -- "${path}" | head --lines=1)"
+  if strings::is_not_empty "${tracked}"; then
+    return 0
+  fi
+  if git -C "${CONFIG_ROOT}" check-ignore --quiet -- "${path}"; then
+    return 0
+  fi
+  git -C "${CONFIG_ROOT}" check-ignore --quiet -- "${path}/"
+}
+
+function main() {
+  args::check_no_args "$@"
+  local -a exempt=()
+  arrays::from_env_override exempt EXEMPT_OVERRIDE "${EXEMPT[@]}"
+
+  local entries_tmp seen_tmp
+  files::create_temp entries_tmp
+  files::create_temp seen_tmp
+
+  local rc=0
+  local source rel extractor file entry prefix
+  for source in "${SOURCES[@]}"; do
+    rel="${source%%::*}"
+    extractor="${source##*::}"
+    file="${CONFIG_ROOT}/${rel}"
+    if ! files::exists "${file}"; then
+      printf '%s: configured source is missing\n' "${rel}" >&2
+      rc=1
+      continue
+    fi
+    # Called plainly, never as a condition: a parser failure must reach the ERR
+    # trap rather than be read as "this source configures no paths" (#294).
+    "${extractor}" "${file}" > "${entries_tmp}"
+    while IFS= read -r entry; do
+      strings::is_blank "${entry}" && continue
+      prefix="$(literal_prefix "${entry}")"
+      # No literal component — nothing to resolve.
+      strings::is_empty "${prefix}" && continue
+      git_knows_path "${prefix}" && continue
+      # Only an entry that actually fails to resolve is routed through the
+      # exemption, so an exemption whose path resolves on its own never lands in
+      # seen_tmp and is reported stale below. Checking membership first would
+      # record every exempt entry unconditionally and detect only half the rot.
+      if arrays::contains "${prefix}" ${exempt[@]+"${exempt[@]}"}; then
+        printf '%s\n' "${prefix}" >> "${seen_tmp}"
+        continue
+      fi
+      printf '%s: %s names %s, which git does not know\n' "${rel}" "${entry}" "${prefix}" >&2
+      rc=1
+    done < "${entries_tmp}"
+  done
+
+  # One check covers both staleness directions: an entry naming a path no source
+  # configures never lands in seen_tmp, and neither does one naming a path that
+  # resolves without needing the exemption.
+  local exempt_entry
+  for exempt_entry in ${exempt[@]+"${exempt[@]}"}; do
+    if ! grep --quiet --line-regexp --fixed-strings "${exempt_entry}" "${seen_tmp}"; then
+      printf 'stale EXEMPT entry: %s is configured nowhere, or resolves without the exemption\n' \
+        "${exempt_entry}" >&2
+      rc=1
+    fi
+  done
+
+  if ((rc != 0)); then
+    log::warn 'config path audit failed — a configured path names something git does not know.'
+  fi
+  exit "${rc}"
+}
+
+main "$@"
