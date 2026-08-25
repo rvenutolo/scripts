@@ -14,7 +14,7 @@
 # quote parser and every later line was discarded, exit 0, no diagnostic (#310).
 # Seven files read far below their real coverage — systemctl.bash 24% with every
 # branch tested. With that patched and the genuine branch gaps filled, the
-# baseline on main is 96.4% (1943 / 2015). Roughly 60 of the 72 lines still
+# baseline on main is 96.5% (1944 / 2015). Roughly 60 of the 71 lines still
 # uncovered are lexer artifacts that can never be hit; see CLAUDE.md.
 coverage:
   status:
