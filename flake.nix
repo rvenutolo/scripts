@@ -49,14 +49,22 @@
       devShells = eachSystem (
         pkgs:
         let
-          # bashcov is not packaged in nixpkgs; provide it (with simplecov-cobertura
-          # for the cobertura.xml the coverage job uploads to Codecov) via a pinned
-          # bundlerEnv — gemset.nix lives under .nix/bashcov/. Includes its own ruby.
-          bashcovEnv = pkgs.bundlerEnv {
-            name = "bashcov-env";
-            ruby = pkgs.ruby;
-            gemdir = ./.nix/bashcov;
-          };
+          # kcov collects coverage for the BATS suite (.github/actions/coverage). It
+          # replaced bashcov, whose Ruby reader hands bash a non-blocking pipe and
+          # silently drops trace records under load (#307). kcov's bash engine sets
+          # PS4='kcov@${BASH_SOURCE}@${LINENO}@' with no default expansion, so a
+          # `bash -c '… set -u …'` string — which has no BASH_SOURCE — dies inside
+          # PS4 expansion with "BASH_SOURCE: unbound variable" and the test around
+          # it fails (4 tests across log/shdoc/user.bats). The `:-` guard is the
+          # whole fix; --replace-fail makes a kcov bump that moves the line fail the
+          # build loudly instead of silently un-patching. The escaped `\$` is for
+          # bash, so substituteInPlace receives the literal `${BASH_SOURCE}`.
+          kcovPatched = pkgs.kcov.overrideAttrs (prev: {
+            postPatch = (prev.postPatch or "") + ''
+              substituteInPlace src/engines/bash-helper.sh src/engines/bash-helper-debug-trap.sh \
+                --replace-fail "\''${BASH_SOURCE}" "\''${BASH_SOURCE:-}"
+            '';
+          });
         in
         {
           default = pkgs.mkShellNoCC {
@@ -142,8 +150,7 @@
               # test pass while the helper exits 127.
               bc
               gawk
-              kcov
-              bashcovEnv # bashcov + simplecov-cobertura (gemset under .nix/bashcov)
+              kcovPatched # kcov with the PS4 guard above; only the coverage job runs it
               gh
               git
               coreutils

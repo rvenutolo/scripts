@@ -29,7 +29,7 @@ jobs:
           # actual report body to THAT host (Codecov's GCS-backed object
           # store) rather than to ingest itself. See CLAUDE.md.
           allowed-endpoints: >-
-            api.github.com:443 cache.nixos.org:443 channels.nixos.org:443 cli.codecov.io:443 codeload.github.com:443 github.com:443 hosted-compute-*.githubapp.com:443 ingest.codecov.io:443 install.determinate.systems:443 keybase.io:443 nixos.org:443 objects.githubusercontent.com:443 raw.githubusercontent.com:443 releases.nixos.org:443 rubygems.org:443 storage.googleapis.com:443 tarballs.nixos.org:443
+            api.github.com:443 cache.nixos.org:443 channels.nixos.org:443 cli.codecov.io:443 codeload.github.com:443 github.com:443 hosted-compute-*.githubapp.com:443 ingest.codecov.io:443 install.determinate.systems:443 keybase.io:443 nixos.org:443 objects.githubusercontent.com:443 raw.githubusercontent.com:443 releases.nixos.org:443 storage.googleapis.com:443 tarballs.nixos.org:443
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
@@ -38,7 +38,8 @@ jobs:
       - uses: ./.github/actions/coverage
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
-          files: coverage/coverage.xml
+          # Written by ./.github/actions/coverage outside the tree; see its comment.
+          files: ${{ runner.temp }}/coverage/bats/cobertura.xml
           token: ${{ secrets.CODECOV_TOKEN }}
           # MUST stay true. With it false, codecov.sh's exit_if_error only
           # prints and returns, so a failed GPG verification falls through to

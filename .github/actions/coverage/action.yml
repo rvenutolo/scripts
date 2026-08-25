@@ -1,25 +1,52 @@
 name: coverage
 # Caller must run actions/checkout and ./.github/actions/setup before this
 # composite: a local action cannot perform its own initial checkout, and the
-# bashcov invocation below needs the Nix devShell that setup installs.
-description: Run the BATS suite under bashcov, producing coverage/coverage.xml.
+# kcov invocation below needs the Nix devShell that setup installs.
+description: Run the BATS suite under kcov, producing $RUNNER_TEMP/coverage/bats/cobertura.xml.
 runs:
   using: composite
   steps:
-    - name: Run BATS under bashcov
+    - name: Run BATS under kcov
       shell: bash
-      # bashcov + simplecov-cobertura come from the flake's bundlerEnv
-      # (.nix/bashcov/gemset.nix); kcov and bats are in the flake too. Fully hermetic.
+      # kcov comes from the flake devShell (flake.nix carries a one-line PS4 patch
+      # on it — see the comment there). It replaced bashcov, whose Ruby reader
+      # handed bash a non-blocking pipe and silently dropped ~75% of the trace
+      # under this suite's volume, making every number it produced noise (#307).
+      # kcov's C++ reader keeps up, and three full runs on an unchanged tree
+      # produce byte-identical per-line hits.
       #
-      # --root MUST be absolute. With a relative root, Runner#tracked_files walks
-      # `Pathname.new(root).find` and yields relative paths, which SimpleCov's built-in
-      # root filter then discards — while executed files, keyed by absolute realpath,
-      # survive. The effect is that every never-executed file silently leaves the report
-      # instead of scoring 0%, inflating the percentage and making the denominator move
-      # from run to run. Proven by A/B on a two-file fixture: `--root .` reported
-      # 66.67% (2/3) with the uncovered file absent, `--root "$PWD"` 40.00% (2/5) with
-      # it present (#307). git rev-parse rather than $PWD so the root is the repo, not
-      # wherever the step happened to be invoked from — the same rule the .ci/ gates
-      # follow. Only bash and git are needed here, both of which .ci/in-devshell already
-      # requires from the host.
-      run: ./.ci/in-devshell bashcov --root "$(git rev-parse --show-toplevel)" -- bats --recursive test/functions
+      # --bash-parser: kcov defaults to /bin/bash, the runner's bash, to parse the
+      # scripts it reports on. The suite runs under the devShell's bash, so the
+      # parser and the executor must be the same binary.
+      # --bash-dont-parse-binary-dir: otherwise kcov also parses every script in
+      # bats' own bin/ and reports on it.
+      # --include-path: only scripts/functions is coverage-relevant — test/ is
+      # the suite, and the other scripts/ dirs are unmeasured payload.
+      # --bash-parse-files-in-dir: kcov only reports files it saw execute. This
+      # walks the directory so a never-executed helper file scores 0% instead of
+      # vanishing from the denominator, which is the same inflation bashcov's
+      # relative --root caused (#307 item 2).
+      #
+      # Every path is absolute via git rev-parse rather than $PWD, so the root is
+      # the repo, not wherever the step happened to be invoked from — the rule
+      # the .ci/ gates follow. Only bash and git are needed here, both of which
+      # .ci/in-devshell already requires from the host.
+      #
+      # The report goes to $RUNNER_TEMP, outside the tree, because kcov writes
+      # shebang-bearing helper scripts (bash-helper.sh and friends) into its output
+      # directory, and check-scripts walks the filesystem — a coverage/ dir inside
+      # the repo would hand those to shfmt and shellcheck. $RUNNER_TEMP is on
+      # .ci/in-devshell's keep list. The cobertura.xml lands under a subdirectory
+      # named after the traced binary, hence coverage/bats/.
+      run: |
+        set -Eeuo pipefail
+        repo="$(git rev-parse --show-toplevel)"
+        ./.ci/in-devshell bash -c '
+          kcov \
+            --bash-parser="$(type -P bash)" \
+            --bash-dont-parse-binary-dir \
+            --include-path="$1/scripts/functions" \
+            --bash-parse-files-in-dir="$1/scripts/functions" \
+            "${RUNNER_TEMP}/coverage" \
+            bats --recursive test/functions
+        ' _ "${repo}"

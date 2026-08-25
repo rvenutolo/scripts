@@ -71,7 +71,6 @@ readonly EXCLUDED_PACKAGES=(
   zizmor
   lychee
   kcov
-  bashcov-env
   # nix is genuinely provided by the devShell and IS declared in
   # .ci/required-tools — the forward arm proves that, and it is the guarantee
   # that matters. The reverse arm cannot see it: it derives a package's bin
