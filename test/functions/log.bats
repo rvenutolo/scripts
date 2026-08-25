@@ -108,6 +108,17 @@ setup() {
   assert_output --partial 'false'
 }
 
+@test "enable_err_trap: installs an ERR trap naming the handler" {
+  # In-process rather than via `bash -c`: a child shell is a separate process,
+  # so the installation itself was never attributed to the helper (#310).
+  local before after
+  before="$(trap -p ERR)"
+  log::enable_err_trap
+  after="$(trap -p ERR)"
+  [[ "${before}" != "${after}" ]]
+  [[ "${after}" == *'log::_err_trap_handler'* ]]
+}
+
 @test "enable_err_trap: dies with args" {
   run log::enable_err_trap 'extra'
   assert_failure

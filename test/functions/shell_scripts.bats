@@ -127,6 +127,41 @@ make_fixture() {
   assert_output --partial 'sub/g.sh'
 }
 
+@test "find: no args scans REPO_DIR and excludes other/, .shdoc/ and .direnv/" {
+  local root="${BATS_TEST_TMPDIR}/repo"
+  mkdir --parents "${root}/sub" "${root}/other" "${root}/.shdoc" "${root}/.direnv"
+  printf '%s\n' '#!/usr/bin/env bash' 'echo keep' > "${root}/keep.sh"
+  printf '%s\n' '#!/usr/bin/env bash' 'echo nested' > "${root}/sub/nested.sh"
+  printf '%s\n' '#!/usr/bin/env bash' 'echo third-party' > "${root}/other/third.sh"
+  printf '%s\n' '#!/usr/bin/env bash' 'echo vendored' > "${root}/.shdoc/vendored.sh"
+  printf '%s\n' '#!/usr/bin/env bash' 'echo cached' > "${root}/.direnv/cached.sh"
+
+  REPO_DIR="${root}" run shell_scripts::find
+  assert_success
+  assert_output --partial 'keep.sh'
+  assert_output --partial 'sub/nested.sh'
+  refute_output --partial 'third.sh'
+  refute_output --partial 'vendored.sh'
+  refute_output --partial 'cached.sh'
+}
+
+# TODO: decide whether the empty-tree exit status below should stay 1.
+# shell_scripts::find ends in `grep --invert-match`, which exits 1 when it
+# selects no lines, so a repo root holding no shell files fails rather than
+# emitting nothing. shell_scripts::find_root_only returns 0 in the same
+# situation. Left as-is deliberately: a loud non-zero beats a gate that reports
+# success over a tree it never managed to scan. Recorded here so the behavior is
+# pinned either way.
+@test "find: no args over a repo root with no shell files emits nothing and exits 1" {
+  local root="${BATS_TEST_TMPDIR}/empty-repo"
+  mkdir --parents "${root}"
+  printf '%s\n' 'plain text' > "${root}/notes.txt"
+
+  REPO_DIR="${root}" run shell_scripts::find
+  assert_failure 1
+  refute_output
+}
+
 # ---------- filter ----------
 
 @test "filter: keeps shell files, drops non-shell" {
@@ -230,6 +265,21 @@ make_fixture() {
   assert_success
   assert_line "${fake_root}/legit-script"
   refute_line "${fake_root}/.functions.bash"
+}
+
+@test "shell_scripts::find_root_only excludes every dotfile, loader or not" {
+  local fake_root="${BATS_TEST_TMPDIR}/repo_with_dotfiles"
+  mkdir -p "${fake_root}"
+  printf '#!/usr/bin/env bash\n' > "${fake_root}/.envrc"
+  printf '#!/usr/bin/env bash\n' > "${fake_root}/.hidden-script"
+  printf '#!/usr/bin/env bash\n' > "${fake_root}/visible-script"
+  chmod +x "${fake_root}/.hidden-script" "${fake_root}/visible-script"
+
+  REPO_DIR="${fake_root}" run shell_scripts::find_root_only
+  assert_success
+  assert_line "${fake_root}/visible-script"
+  refute_output --partial '/.envrc'
+  refute_output --partial '/.hidden-script'
 }
 
 @test "shell_scripts::find_root_only dies when called with any args" {
