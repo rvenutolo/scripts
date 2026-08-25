@@ -9,6 +9,13 @@
 # unchanged tree and a red status nobody could act on is worse than none. The
 # post-fix baseline on main was 81.1% (1634 / 2015), against 54.1% collected
 # through the lossy pipe.
+#
+# kcov then had a silent loss of its own: one `$'...'` trace line latched its
+# quote parser and every later line was discarded, exit 0, no diagnostic (#310).
+# Seven files read far below their real coverage — systemctl.bash 24% with every
+# branch tested. With that patched and the genuine branch gaps filled, the
+# baseline on main is 96.4% (1943 / 2015). Roughly 60 of the 72 lines still
+# uncovered are lexer artifacts that can never be hit; see CLAUDE.md.
 coverage:
   status:
     project:
