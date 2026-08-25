@@ -14,7 +14,7 @@
 # Deliberately absent:
 # - prettier, yamlfmt, taplo, nixfmt, mdformat: treefmt resolves these from the
 #   Nix store directly, never through PATH.
-# - lychee, zizmor, kcov, bashcov: invoked by CI actions, not by any script in
+# - lychee, zizmor, kcov: invoked by CI actions, not by any script in
 #   this repo.
 # - flatpak, appman, apt, dnf, pacman, pwgen, bc and friends: invoked by
 #   scripts/, which is the repo's payload rather than its tooling. Those are

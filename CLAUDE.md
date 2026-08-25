@@ -781,6 +781,53 @@ Note: `read -rp` writes the prompt text to `/dev/tty`, which BATS `run` does not
 
 `path::remove`, `path::append`, and `path::prepend` mutate the caller's `PATH`. Do NOT wrap them in `run` — `run` executes in a subshell and the mutation is discarded. Set a local `PATH`, call the function directly, then assert on `PATH`. BATS isolates each `@test` in its own subshell, so mutations do not leak between tests.
 
+### Coverage measurement
+
+`.github/actions/coverage` runs `test/functions` under **kcov** and uploads the Cobertura report
+to Codecov from `coverage.yml` (push to `main` only). `test/ci/` and `test/root/` are deliberately
+unmeasured: they drive `.ci/` and the root runners, not `scripts/functions`, which is the tree the
+headline number describes. Facts that are load-bearing, all from #307:
+
+- **kcov replaced bashcov because bashcov's number was noise.** Ruby's `IO.pipe` hands bash a
+  non-blocking `BASH_XTRACEFD`; when the Ruby reader lagged, bash's `write()` got `EAGAIN` and
+  silently discarded the trace record. About three quarters of the hits were lost, timing-dependent,
+  with no error. Three runs on an unchanged tree spread 3.92 points; the same three runs under kcov
+  produce byte-identical per-line hits, in ~9 minutes against bashcov's projected ~29 once its pipe
+  is fixed. The post-switch baseline is 81.1% (1634 / 2015) against 54.1% through the lossy pipe.
+  **Never diagnose a Codecov delta from before the switch by reading the diff.**
+
+- **kcov carries a one-line patch in `flake.nix`** (`kcovPatched`): its PS4 is
+  `kcov@${BASH_SOURCE}@${LINENO}@` with no default, so a `bash -c '… set -u …'` string — which has no
+  `BASH_SOURCE` — dies inside PS4 expansion and the test around it fails. Four tests hit this
+  (`log.bats`, `shdoc.bats`, `user.bats`). `--bash-method=DEBUG` avoids it but records nothing. The
+  `substituteInPlace --replace-fail` fails the build loudly if a kcov bump moves the line; fix the
+  patch, never drop it. Every devShell build compiles kcov from source (~1 min, then cached).
+
+- **kcov's RSS grows with trace volume** — about 2.6 MB per test, 4.35 GB peak for the full
+  `test/functions` run, all in the `kcov` process. Fine on a 16 GB runner; a leak-shaped ceiling
+  around 6000 tests. Worth an eye when the suite doubles.
+
+- **Embedded awk/sed bodies score as unhit bash lines** under kcov exactly as under bashcov
+  (`sdkman_jdks.bash` 69–79). That is why `codecov/patch` is `informational` in `.codecov.yml`;
+  `codecov/project` carries a real `auto` target with a 1% threshold.
+
+- **The report is written to `$RUNNER_TEMP`, not into the tree.** kcov drops shebang-bearing
+  `bash-helper*.sh` files into its output directory, and `check-scripts` walks the filesystem, so a
+  `coverage/` inside the repo hands those to shfmt and shellcheck. Reproduce locally the same way:
+
+  ```bash
+  ./.ci/in-devshell bash -c 'kcov --bash-parser="$(type -P bash)" --bash-dont-parse-binary-dir \
+    --include-path="$PWD/scripts/functions" --bash-parse-files-in-dir="$PWD/scripts/functions" \
+    /tmp/kcov-out bats --recursive test/functions'
+  ```
+
+  `--bash-parse-files-in-dir` is what keeps never-executed files in the denominator at 0% instead of
+  dropping them; `--bash-parser` pins the parser to the devShell's bash rather than `/bin/bash`.
+
+- **Denominators are lexer opinions on both sides.** bashcov counted `fi`, `esac`, `function … {`
+  and blank lines; kcov counts subshell parens and `local arr=()`. Neither is ground truth, so a
+  per-file line count is not comparable across the switch.
+
 ## Before Committing
 
 The gate is two steps: `nix fmt` (format every file via treefmt), then `./.ci/in-devshell ./run-all-checks` (the full gate, hermetically). Both must be clean. `nix fmt` deliberately stays outside the wrapper — it is a nix invocation, not repo tooling running under the devShell, so wrapping it is circular. See [Gates run inside the hermetic devShell](#gates-run-inside-the-hermetic-devshell).
@@ -868,9 +915,10 @@ compromised dependency.
   green runs rather than waiting for a red one, and verify a job's real work actually happened
   (artifact uploaded, check published, cache saved) instead of trusting its conclusion.
 
-- **Some hosts are only observable on a cold Nix cache.** `rubygems.org` and `tarballs.nixos.org` are
-  reached only when the devShell is rebuilt, via the bashcov bundlerEnv. Delete the `nix-Linux-*`
-  caches and force one cold round before trusting a Nix job's list.
+- **Some hosts are only observable on a cold Nix cache.** `tarballs.nixos.org` is reached only when
+  the devShell is rebuilt. Delete the `nix-Linux-*` caches and force one cold round before trusting a
+  Nix job's list. (`rubygems.org` used to sit beside it for the bashcov bundlerEnv; that env is gone,
+  and the host with it.)
 
 - **Prefer exact hosts over wildcards.** A wildcard entry permits every subdomain. Use one only when the
   host name genuinely rotates between runs (for example an Azure storage-account number), and then
