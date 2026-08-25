@@ -632,6 +632,22 @@ if [[ -n "$(trap -p ERR)" ]]; then printf "PARENT_KEPT_TRAP\n"; else printf "PAR
   assert_output --partial 'must be called from inside a subshell'
 }
 
+# The run_strict tests above exercise sdkman::init in a real strict-mode child
+# shell, which is the only place its strict-mode effects are observable. That
+# child is a separate process, so nothing it runs is attributed to sdkman::init
+# by the coverage harness (#310). This one drives the same body in-process:
+# bats already forks each @test, so BASHPID differs from $$ and the
+# subshell guard is satisfied without a child shell.
+@test "init: sources sdkman-init.sh and stubs complete when run in-process" {
+  local sdkman_dir
+  sdkman_dir="$(fake_sdkman_dir)"
+  SDKMAN_DIR="${sdkman_dir}" run sdkman::init
+  assert_success
+  assert_output --partial 'COMPLETE_STUBBED'
+  assert_output --partial 'UNBOUND_READ_OK:'
+  assert_output --partial 'INIT_SOURCED'
+}
+
 @test "init: dies with args" {
   run sdkman::init extra
   assert_failure

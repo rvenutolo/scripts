@@ -376,23 +376,19 @@ function _seed_repo_multi_idents() {
 }
 
 # ---------- git::prompt_select_identities ----------
-# prompt::ny reads from stdin; pipe answers via heredoc-string into a bash -c
-# subshell so each test gets a fresh stdin. Mirrors env_file.bats pattern.
-
+# prompt::ny reads from stdin; the herestring gives each call a fresh one.
+#
+# In-process rather than via `bash -c`: a child shell is a separate process, so
+# nothing it ran was attributed to git::prompt_select_identities by the coverage
+# harness and the whole body scored as unhit (#310). `run` forks but does not
+# touch stdin, so the answers still reach prompt::ny, and the helper reads
+# distinct_file on FD 3 either way.
 function _run_select() {
   local -r distinct="$1"
   local -r selected="$2"
   local -r canonical="$3"
   local -r answers="$4"
-  bash -c "
-    source '${SCRIPTS_DIR}/functions/args.bash'
-    source '${SCRIPTS_DIR}/functions/log.bash'
-    source '${SCRIPTS_DIR}/functions/strings.bash'
-    source '${SCRIPTS_DIR}/functions/misc.bash'
-    source '${SCRIPTS_DIR}/functions/prompt.bash'
-    source '${SCRIPTS_DIR}/functions/git.bash'
-    git::prompt_select_identities '${distinct}' '${selected}' '${canonical}'
-  " <<< "${answers}"
+  run git::prompt_select_identities "${distinct}" "${selected}" "${canonical}" <<< "${answers}"
 }
 
 @test "prompt_select_identities: appends only y-answered rows" {
