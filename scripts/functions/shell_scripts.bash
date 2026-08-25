@@ -50,6 +50,12 @@ function shell_scripts::assert_paths_exist() {
 # must validate that each arg exists before calling.
 # Output: stdout — shell script file paths, one per line
 # @arg $@ files or directories to search (optional; defaults to all scripts under the repo root)
+# An empty result from the no-args form is treated as a misdirected scan rather
+# than a clean one: it exits 1 instead of succeeding silently, so a caller cannot
+# mistake a tree it never examined for a tree with nothing wrong in it.
+# shell_scripts::find_root_only matches.
+# @exitcode 0 at least one shell file was emitted
+# @exitcode 1 the no-args scan matched nothing
 function shell_scripts::find() {
   if args::no_args "$@"; then
     # REPO_DIR override seam: production leaves it unset and the repo root is
@@ -108,11 +114,16 @@ function shell_scripts::filter() {
 # project-root executables such as shellcheck-scripts,
 # check-scripts, run-install-scripts, run-set-up-scripts, run-tests.
 # Filters to files whose first line contains a bash/sh/bats shebang
-# (via shell_scripts::has_shell_shebang). Excludes the root-level
-# .functions.bash loader, which is a sourced library file rather than a
-# top-level executable.
+# (via shell_scripts::has_shell_shebang). Dotfiles are excluded wholesale — the
+# `*` glob does not match them — so .envrc and a root-level .functions.bash
+# loader never become candidates in the first place.
 # @stdout file paths, one per line
 # @noargs
+# An empty result is treated as a misdirected scan, matching shell_scripts::find:
+# it exits 1 rather than succeeding silently. No caller suppresses this — a repo
+# root with no shell scripts is not a shape this project has.
+# @exitcode 0 at least one root-level shell script was emitted
+# @exitcode 1 the repo root holds no shell scripts
 function shell_scripts::find_root_only() {
   args::check_no_args "$@"
   # REPO_DIR override seam: production leaves it unset and the repo root is
@@ -120,17 +131,17 @@ function shell_scripts::find_root_only() {
   local repo_dir
   repo_dir="${REPO_DIR:-$(git rev-parse --show-toplevel)}"
   local file
+  local -i found=0
   for file in "${repo_dir}"/*; do
     if ! files::exists "${file}"; then
       continue
     fi
-    if [[ "$(basename -- "${file}")" == '.functions.bash' ]]; then
-      continue
-    fi
     if shell_scripts::has_shell_shebang "${file}"; then
       printf '%s\n' "${file}"
+      found+=1
     fi
   done
+  ((found > 0))
 }
 
 # @description Return true if a top-level script is required to call
