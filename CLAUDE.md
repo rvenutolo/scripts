@@ -478,6 +478,25 @@ runners. Its `EXEMPT` array holds the two provisioning runners and carries stale
 detection: an entry naming no in-scope file, or naming one with no flagged reference, fails
 the lint rather than silently disarming it.
 
+### Empty scan results are failures, not clean passes
+
+`shell_scripts::find` (no-args form) and `shell_scripts::find_root_only` both **exit 1 when they
+match nothing**. A caller that scans a tree and finds no shell files has almost certainly been
+pointed at the wrong tree, and a silent empty result there is indistinguishable from a clean pass
+over code that was never examined — the same false-green shape as #250 and #290. `find` gets this
+from its trailing `grep --invert-match`; `find_root_only` counts what it emitted.
+
+**No caller suppresses this, and none should.** A repo root with no shell scripts is not a shape
+this project has — the root always holds `check-scripts`, `shellcheck-scripts`,
+`run-install-scripts`, `run-set-up-scripts`, `run-tests` and `run-all-checks` — so the exit is a
+live guard rather than decoration.
+
+`test/ci/check-shdoc-headers.bats` originally built fixture repos with no root-level scripts, which
+made the check die once the exit landed. The fix was to give the fixture a root script, **not** to
+teach the check to tolerate an empty root: a fixture that does not mirror any real tree is worth
+less than the guard it would have cost. Bending production code to accommodate a fixture is how a
+gate ends up reading clean over a tree it never scanned (#250, #290).
+
 ### Gate scripts enable `inherit_errexit`
 
 Bash unsets `errexit` inside a command-substitution subshell unless `inherit_errexit` is
@@ -828,6 +847,12 @@ headline number describes. Facts that are load-bearing, from #307 and #310:
 - **kcov's RSS grows with trace volume** — about 2.6 MB per test, 4.35 GB peak for the full
   `test/functions` run, all in the `kcov` process. Fine on a 16 GB runner; a leak-shaped ceiling
   around 6000 tests. Worth an eye when the suite doubles.
+
+- **Two lines can never register for environment reasons**, not lexer ones. `args.bash` 145
+  (`log::die 'Expected STDIN'`) needs a real TTY on stdin, which neither bats nor CI provides;
+  `sdkman.bash` 24 (the must-be-called-from-a-subshell guard) needs `BASHPID == $$`, and bats forks
+  every `@test`. Both are covered behaviourally by tests that run in a child process, which the
+  harness cannot attribute. Do not try to cover them in-process — it is not possible.
 
 - **Some lines can never be hit, and they set the ceiling.** Roughly 60 of the 72 still-uncovered
   lines are lexer artifacts, not gaps: embedded awk/sed program bodies (`sdkman_jdks.bash` 69–79,

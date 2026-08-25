@@ -67,6 +67,10 @@ function packages::get_universal() {
   elif hosts::is_server; then
     package_list_column=7
   else
+    # Unreachable as the host predicates currently stand: hosts::is_server is
+    # true for every hostname the branches above do not match, so nothing falls
+    # through. Kept against those predicates ever narrowing — leaving
+    # package_list_column unset would be far worse than dying here.
     log::die 'Could not determine which computer this is'
   fi
   readonly package_list_column
@@ -160,6 +164,10 @@ function packages::get_distro() {
   elif hosts::is_server; then
     package_list_column=5
   else
+    # Unreachable as the host predicates currently stand: hosts::is_server is
+    # true for every hostname the branches above do not match, so nothing falls
+    # through. Kept against those predicates ever narrowing — leaving
+    # package_list_column unset would be far worse than dying here.
     log::die 'Could not determine which computer this is'
   fi
   readonly package_list_column
@@ -240,6 +248,10 @@ function packages::get_sdkman() {
   elif hosts::is_server; then
     package_list_column=6
   else
+    # Unreachable as the host predicates currently stand: hosts::is_server is
+    # true for every hostname the branches above do not match, so nothing falls
+    # through. Kept against those predicates ever narrowing — leaving
+    # package_list_column unset would be far worse than dying here.
     log::die 'Could not determine which computer this is'
   fi
   readonly package_list_column

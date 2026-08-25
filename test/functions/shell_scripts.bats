@@ -145,13 +145,11 @@ make_fixture() {
   refute_output --partial 'cached.sh'
 }
 
-# TODO: decide whether the empty-tree exit status below should stay 1.
-# shell_scripts::find ends in `grep --invert-match`, which exits 1 when it
-# selects no lines, so a repo root holding no shell files fails rather than
-# emitting nothing. shell_scripts::find_root_only returns 0 in the same
-# situation. Left as-is deliberately: a loud non-zero beats a gate that reports
-# success over a tree it never managed to scan. Recorded here so the behavior is
-# pinned either way.
+# Both no-args enumerators fail loudly on an empty result rather than emitting
+# nothing: a caller that scans a tree and finds no shell files has almost
+# certainly been pointed at the wrong tree, and a silent empty result there
+# reads as a clean pass over code that was never examined. find gets this from
+# the trailing `grep --invert-match`; find_root_only counts what it emitted.
 @test "find: no args over a repo root with no shell files emits nothing and exits 1" {
   local root="${BATS_TEST_TMPDIR}/empty-repo"
   mkdir --parents "${root}"
@@ -242,7 +240,7 @@ make_fixture() {
   refute_line "${fake_root}/no-shebang"
 }
 
-@test "shell_scripts::find_root_only emits nothing when repo root has no shell scripts at top level" {
+@test "shell_scripts::find_root_only emits nothing and exits 1 when repo root has no top-level shell scripts" {
   local fake_root="${BATS_TEST_TMPDIR}/empty_repo"
   mkdir -p "${fake_root}/main"
   printf 'plain text\n' > "${fake_root}/README"
@@ -250,8 +248,8 @@ make_fixture() {
   chmod +x "${fake_root}/main/m1"
 
   REPO_DIR="${fake_root}" run shell_scripts::find_root_only
-  assert_success
-  assert_output ''
+  assert_failure 1
+  refute_output
 }
 
 @test "shell_scripts::find_root_only excludes .functions.bash loader" {

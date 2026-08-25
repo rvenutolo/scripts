@@ -23,8 +23,8 @@ setup() {
   # functions/ library into the fixture keeps sourcing working AND keeps the
   # library-file audit clean, since the real library is fully compliant.
   # Top-level FAILURE cases are driven through fixture scripts dropped into
-  # scripts/non-interactive/. The fixture has no .ci/ dir and no shebang-bearing
-  # root files, so those two scans contribute nothing.
+  # scripts/non-interactive/. The fixture has no .ci/ dir, so that scan
+  # contributes nothing.
   mkdir -p "${SCRIPTS}/non-interactive" "${SCRIPTS}/functions"
   git_fixture::init "${REPO}"
   ln --symbolic "${REAL_SCRIPTS_DIR}/.functions.bash" "${SCRIPTS}/.functions.bash"
@@ -46,6 +46,25 @@ IFS=$'\n\t'
 echo hi
 EOF
   chmod +x "${SCRIPTS}/non-interactive/good-script"
+
+  # A clean root-level executable. Production repo roots always hold several
+  # (check-scripts, run-tests, ...), and shell_scripts::find_root_only exits 1
+  # on an empty root precisely so a gate cannot read an unscanned root as a
+  # clean one. A fixture with no root scripts would not mirror any real tree,
+  # and would force the check to tolerate an exit that never happens in
+  # production.
+  cat > "${REPO}/good-root-script" << 'EOF'
+#!/usr/bin/env bash
+
+# @description A clean fixture script living at the repo root.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+echo hi
+EOF
+  chmod +x "${REPO}/good-root-script"
 }
 
 # Run the check against the fixture repo. Caller cds into ${REPO} first so the
