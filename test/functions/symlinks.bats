@@ -129,6 +129,22 @@ setup() {
   assert_output --partial 'does not exist'
 }
 
+@test "link_file: fresh link with prompt rejected -> nothing created" {
+  : > "${BATS_TEST_TMPDIR}/target"
+  run symlinks::link_file "${BATS_TEST_TMPDIR}/target" "${BATS_TEST_TMPDIR}/link" <<< 'n'
+  assert_success
+  [[ ! -e "${BATS_TEST_TMPDIR}/link" ]]
+}
+
+@test "link_file: existing-but-different link with prompt rejected -> left alone" {
+  : > "${BATS_TEST_TMPDIR}/target"
+  : > "${BATS_TEST_TMPDIR}/other"
+  ln --symbolic "${BATS_TEST_TMPDIR}/other" "${BATS_TEST_TMPDIR}/link"
+  run symlinks::link_file "${BATS_TEST_TMPDIR}/target" "${BATS_TEST_TMPDIR}/link" <<< 'n'
+  assert_success
+  [[ "$(readlink "${BATS_TEST_TMPDIR}/link")" == "${BATS_TEST_TMPDIR}/other" ]]
+}
+
 @test "link_file: dies with 1 arg" {
   run symlinks::link_file "${BATS_TEST_TMPDIR}/src"
   assert_failure
@@ -167,6 +183,22 @@ setup() {
   SCRIPTS_AUTO_ANSWER=y run symlinks::link_dir "${BATS_TEST_TMPDIR}/nope" "${BATS_TEST_TMPDIR}/linkdir"
   assert_failure
   assert_output --partial 'does not exist'
+}
+
+@test "link_dir: fresh link with prompt rejected -> nothing created" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/target"
+  run symlinks::link_dir "${BATS_TEST_TMPDIR}/target" "${BATS_TEST_TMPDIR}/link" <<< 'n'
+  assert_success
+  [[ ! -e "${BATS_TEST_TMPDIR}/link" ]]
+}
+
+@test "link_dir: existing-but-different link with prompt rejected -> left alone" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/target"
+  mkdir --parents "${BATS_TEST_TMPDIR}/other"
+  ln --symbolic "${BATS_TEST_TMPDIR}/other" "${BATS_TEST_TMPDIR}/link"
+  run symlinks::link_dir "${BATS_TEST_TMPDIR}/target" "${BATS_TEST_TMPDIR}/link" <<< 'n'
+  assert_success
+  [[ "$(readlink "${BATS_TEST_TMPDIR}/link")" == "${BATS_TEST_TMPDIR}/other" ]]
 }
 
 @test "link_dir: dies with 1 arg" {

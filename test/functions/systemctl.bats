@@ -112,6 +112,16 @@ EOF
   assert_output --partial 'User service unit files does not exist: foo.service'
 }
 
+@test "enable_user_service_unit: does not enable when prompt is declined" {
+  install_systemctl_shim
+  export UNIT_EXISTS=1
+  export UNIT_ENABLED=0
+  run systemctl::enable_user_service_unit 'foo.service' <<< 'n'
+  assert_success
+  run cli_shim::calls systemctl
+  refute_output --partial 'enable --now'
+}
+
 # ---------- enable_system_service_unit ----------
 
 @test "enable_system_service_unit: enables via sudo when unit exists, not enabled, confirm=y" {
@@ -123,6 +133,35 @@ EOF
   assert_success
   run cli_shim::calls systemctl
   assert_output --partial 'enable --now --system --quiet foo.service'
+}
+
+@test "enable_system_service_unit: skips when already enabled" {
+  install_systemctl_shim
+  export UNIT_EXISTS=1
+  export UNIT_ENABLED=1
+  export SCRIPTS_AUTO_ANSWER=y
+  run systemctl::enable_system_service_unit 'foo.service'
+  assert_success
+  run cli_shim::calls systemctl
+  refute_output --partial 'enable --now'
+}
+
+@test "enable_system_service_unit: logs when unit absent" {
+  install_systemctl_shim
+  export UNIT_EXISTS=0
+  run systemctl::enable_system_service_unit 'foo.service'
+  assert_success
+  assert_output --partial 'System service unit files does not exist: foo.service'
+}
+
+@test "enable_system_service_unit: does not enable when prompt is declined" {
+  install_systemctl_shim
+  export UNIT_EXISTS=1
+  export UNIT_ENABLED=0
+  run systemctl::enable_system_service_unit 'foo.service' <<< 'n'
+  assert_success
+  run cli_shim::calls systemctl
+  refute_output --partial 'enable --now'
 }
 
 # ---------- disable_user_service_unit ----------
@@ -149,6 +188,24 @@ EOF
   refute_output --partial 'disable --now'
 }
 
+@test "disable_user_service_unit: logs when unit absent" {
+  install_systemctl_shim
+  export UNIT_EXISTS=0
+  run systemctl::disable_user_service_unit 'foo.service'
+  assert_success
+  assert_output --partial 'User service unit files does not exist: foo.service'
+}
+
+@test "disable_user_service_unit: does not disable when prompt is declined" {
+  install_systemctl_shim
+  export UNIT_EXISTS=1
+  export UNIT_ENABLED=1
+  run systemctl::disable_user_service_unit 'foo.service' <<< 'n'
+  assert_success
+  run cli_shim::calls systemctl
+  refute_output --partial 'disable --now'
+}
+
 # ---------- disable_system_service_unit ----------
 
 @test "disable_system_service_unit: disables via sudo when enabled, confirm=y" {
@@ -160,6 +217,35 @@ EOF
   assert_success
   run cli_shim::calls systemctl
   assert_output --partial 'disable --now --system --quiet foo.service'
+}
+
+@test "disable_system_service_unit: skips when already disabled" {
+  install_systemctl_shim
+  export UNIT_EXISTS=1
+  export UNIT_ENABLED=0
+  export SCRIPTS_AUTO_ANSWER=y
+  run systemctl::disable_system_service_unit 'foo.service'
+  assert_success
+  run cli_shim::calls systemctl
+  refute_output --partial 'disable --now'
+}
+
+@test "disable_system_service_unit: logs when unit absent" {
+  install_systemctl_shim
+  export UNIT_EXISTS=0
+  run systemctl::disable_system_service_unit 'foo.service'
+  assert_success
+  assert_output --partial 'System service unit files does not exist: foo.service'
+}
+
+@test "disable_system_service_unit: does not disable when prompt is declined" {
+  install_systemctl_shim
+  export UNIT_EXISTS=1
+  export UNIT_ENABLED=1
+  run systemctl::disable_system_service_unit 'foo.service' <<< 'n'
+  assert_success
+  run cli_shim::calls systemctl
+  refute_output --partial 'disable --now'
 }
 
 # ---------- restart_user_service_if_enabled ----------
@@ -186,6 +272,24 @@ EOF
   refute_output --partial 'restart --user'
 }
 
+@test "restart_user_service_if_enabled: logs when unit absent" {
+  install_systemctl_shim
+  export UNIT_EXISTS=0
+  run systemctl::restart_user_service_if_enabled 'foo.service'
+  assert_success
+  assert_output --partial 'User service unit files does not exist: foo.service'
+}
+
+@test "restart_user_service_if_enabled: does not restart when prompt is declined" {
+  install_systemctl_shim
+  export UNIT_EXISTS=1
+  export UNIT_ENABLED=1
+  run systemctl::restart_user_service_if_enabled 'foo.service' <<< 'n'
+  assert_success
+  run cli_shim::calls systemctl
+  refute_output --partial 'restart --user'
+}
+
 # ---------- restart_system_service_if_enabled ----------
 
 @test "restart_system_service_if_enabled: restarts via sudo when enabled, confirm=y" {
@@ -197,6 +301,35 @@ EOF
   assert_success
   run cli_shim::calls systemctl
   assert_output --partial 'restart --system --quiet foo.service'
+}
+
+@test "restart_system_service_if_enabled: skips when not enabled" {
+  install_systemctl_shim
+  export UNIT_EXISTS=1
+  export UNIT_ENABLED=0
+  export SCRIPTS_AUTO_ANSWER=y
+  run systemctl::restart_system_service_if_enabled 'foo.service'
+  assert_success
+  run cli_shim::calls systemctl
+  refute_output --partial 'restart --system'
+}
+
+@test "restart_system_service_if_enabled: logs when unit absent" {
+  install_systemctl_shim
+  export UNIT_EXISTS=0
+  run systemctl::restart_system_service_if_enabled 'foo.service'
+  assert_success
+  assert_output --partial 'System service unit files does not exist: foo.service'
+}
+
+@test "restart_system_service_if_enabled: does not restart when prompt is declined" {
+  install_systemctl_shim
+  export UNIT_EXISTS=1
+  export UNIT_ENABLED=1
+  run systemctl::restart_system_service_if_enabled 'foo.service' <<< 'n'
+  assert_success
+  run cli_shim::calls systemctl
+  refute_output --partial 'restart --system'
 }
 
 # ---------- is_user_unit_enabled ----------

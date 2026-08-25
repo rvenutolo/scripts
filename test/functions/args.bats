@@ -523,6 +523,22 @@ write_fixture() {
   refute_output --partial 'Should not be parsed.'
 }
 
+@test "print_help: skips everything above the shebang line" {
+  local fixture="${BATS_TEST_TMPDIR}/myscript"
+  write_fixture "${fixture}" \
+    '# leading comment above the shebang' \
+    '# @description Must not be parsed.' \
+    '#!/usr/bin/env bash' \
+    '' \
+    '# @description Real.' \
+    '' \
+    'set -Eeuo pipefail'
+  run args::print_help "${fixture}"
+  assert_success
+  assert_output --partial 'Real.'
+  refute_output --partial 'Must not be parsed.'
+}
+
 # ---------- handle_help_flag ----------
 
 @test "handle_help_flag: no-op when no help arg present" {

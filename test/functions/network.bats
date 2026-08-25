@@ -39,29 +39,89 @@ setup() {
 
 # ---------- local_network ----------
 
+# Helper: stub network::local_ip with a fixed address.
+#
+# A shell function rather than an `ip` CLI shim: local_network's subject is the
+# RFC-1918 range classification, not the parsing local_ip already covers above,
+# and a function override keeps the whole classification in-process where the
+# coverage harness can see it (#310).
+stub_local_ip() {
+  local -r address="$1"
+  eval "function network::local_ip() { printf '%s\\n' '${address}'; }"
+}
+
 @test "local_network: returns 10.0.0.0/8 for 10.x address" {
-  cli_shim::record_with_output ip '8.8.8.8 dev eth0 src 10.5.5.5'
+  stub_local_ip '10.5.5.5'
+  run network::local_network
+  assert_success
+  assert_output '10.0.0.0/8'
+}
+
+@test "local_network: returns 10.0.0.0/8 at the low edge of the range" {
+  stub_local_ip '10.0.0.0'
+  run network::local_network
+  assert_success
+  assert_output '10.0.0.0/8'
+}
+
+@test "local_network: returns 10.0.0.0/8 at the high edge of the range" {
+  stub_local_ip '10.255.255.255'
   run network::local_network
   assert_success
   assert_output '10.0.0.0/8'
 }
 
 @test "local_network: returns 172.16.0.0/12 for 172.20.x address" {
-  cli_shim::record_with_output ip '8.8.8.8 dev eth0 src 172.20.0.1'
+  stub_local_ip '172.20.0.1'
   run network::local_network
   assert_success
   assert_output '172.16.0.0/12'
 }
 
+@test "local_network: returns 172.16.0.0/12 at the low edge of the range" {
+  stub_local_ip '172.16.0.0'
+  run network::local_network
+  assert_success
+  assert_output '172.16.0.0/12'
+}
+
+@test "local_network: returns 172.16.0.0/12 at the high edge of the range" {
+  stub_local_ip '172.31.255.255'
+  run network::local_network
+  assert_success
+  assert_output '172.16.0.0/12'
+}
+
+@test "local_network: 172.32.x is outside the private range and dies" {
+  stub_local_ip '172.32.0.1'
+  run network::local_network
+  assert_failure
+  assert_output --partial 'Could not determine local network IPv4 range'
+}
+
 @test "local_network: returns 192.168.0.0/16 for 192.168.x address" {
-  cli_shim::record_with_output ip '8.8.8.8 dev eth0 src 192.168.7.42'
+  stub_local_ip '192.168.7.42'
+  run network::local_network
+  assert_success
+  assert_output '192.168.0.0/16'
+}
+
+@test "local_network: returns 192.168.0.0/16 at the low edge of the range" {
+  stub_local_ip '192.168.0.0'
+  run network::local_network
+  assert_success
+  assert_output '192.168.0.0/16'
+}
+
+@test "local_network: returns 192.168.0.0/16 at the high edge of the range" {
+  stub_local_ip '192.168.255.255'
   run network::local_network
   assert_success
   assert_output '192.168.0.0/16'
 }
 
 @test "local_network: dies for non-RFC1918 address" {
-  cli_shim::record_with_output ip '8.8.8.8 dev eth0 src 8.8.4.4'
+  stub_local_ip '8.8.4.4'
   run network::local_network
   assert_failure
   assert_output --partial 'Could not determine local network IPv4 range'

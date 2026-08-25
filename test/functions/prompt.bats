@@ -12,16 +12,16 @@ setup() {
   source "${SCRIPTS_DIR}/functions/prompt.bash"
 }
 
-# Helper: invoke a fn via bash -c with stdin fed from a string.
+# Helper: run a prompt helper in-process with stdin fed from a string.
+#
+# In-process rather than via `bash -c`: a child shell is a separate process, so
+# nothing it executes is attributed to the helper under test by the coverage
+# harness, and every branch these tests drive scored as unhit (#310). `run`
+# leaves stdin alone, so the herestring reaches the helper's `read` directly.
 prompt_via_stdin() {
   local -r stdin_str="$1"
-  local -r cmd="$2"
-  shift 2
-  # shellcheck disable=SC2016 # single quotes intentional: $1+ expand in child shell
-  run bash -c "
-    source '${SCRIPTS_DIR}/.functions.bash'
-    ${cmd}
-  " _ "$@" <<< "${stdin_str}"
+  shift
+  run "$@" <<< "${stdin_str}"
 }
 
 # ---------- prompt::yn (default Y) ----------
@@ -34,27 +34,27 @@ prompt_via_stdin() {
 }
 
 @test "yn: typed 'y' -> success" {
-  prompt_via_stdin 'y' "prompt::yn 'Continue?'"
+  prompt_via_stdin 'y' prompt::yn 'Continue?'
   assert_success
 }
 
 @test "yn: typed 'Y' -> success" {
-  prompt_via_stdin 'Y' "prompt::yn 'Continue?'"
+  prompt_via_stdin 'Y' prompt::yn 'Continue?'
   assert_success
 }
 
 @test "yn: typed 'n' -> failure" {
-  prompt_via_stdin 'n' "prompt::yn 'Continue?'"
+  prompt_via_stdin 'n' prompt::yn 'Continue?'
   assert_failure
 }
 
 @test "yn: typed 'N' -> failure" {
-  prompt_via_stdin 'N' "prompt::yn 'Continue?'"
+  prompt_via_stdin 'N' prompt::yn 'Continue?'
   assert_failure
 }
 
 @test "yn: blank input accepts default Y -> success" {
-  prompt_via_stdin '' "prompt::yn 'Continue?'"
+  prompt_via_stdin '' prompt::yn 'Continue?'
   assert_success
 }
 
@@ -80,22 +80,22 @@ prompt_via_stdin() {
 }
 
 @test "ny: typed 'y' -> success" {
-  prompt_via_stdin 'y' "prompt::ny 'Delete?'"
+  prompt_via_stdin 'y' prompt::ny 'Delete?'
   assert_success
 }
 
 @test "ny: typed 'Y' -> success" {
-  prompt_via_stdin 'Y' "prompt::ny 'Delete?'"
+  prompt_via_stdin 'Y' prompt::ny 'Delete?'
   assert_success
 }
 
 @test "ny: typed 'n' -> failure" {
-  prompt_via_stdin 'n' "prompt::ny 'Delete?'"
+  prompt_via_stdin 'n' prompt::ny 'Delete?'
   assert_failure
 }
 
 @test "ny: blank input accepts default N -> failure" {
-  prompt_via_stdin '' "prompt::ny 'Delete?'"
+  prompt_via_stdin '' prompt::ny 'Delete?'
   assert_failure
 }
 
@@ -108,13 +108,13 @@ prompt_via_stdin() {
 # ---------- prompt::for_value ----------
 
 @test "for_value: typed value with default echoes typed" {
-  prompt_via_stdin 'typed' "prompt::for_value 'Name' 'default-val'"
+  prompt_via_stdin 'typed' prompt::for_value 'Name' 'default-val'
   assert_success
   assert_output --partial 'typed'
 }
 
 @test "for_value: blank input with default echoes default" {
-  prompt_via_stdin '' "prompt::for_value 'Name' 'default-val'"
+  prompt_via_stdin '' prompt::for_value 'Name' 'default-val'
   assert_success
   assert_output --partial 'default-val'
 }
@@ -128,9 +128,30 @@ prompt_via_stdin() {
 }
 
 @test "for_value: typed value without default echoes typed" {
-  prompt_via_stdin 'typed' "prompt::for_value 'Name'"
+  prompt_via_stdin 'typed' prompt::for_value 'Name'
   assert_success
   assert_output --partial 'typed'
+}
+
+@test "for_value: without default, loops past blank input until a value is given" {
+  prompt_via_stdin $'\n\nfinally' prompt::for_value 'Name'
+  assert_success
+  assert_output --partial 'finally'
+}
+
+@test "for_value: without default, whitespace-only input is accepted as non-empty" {
+  prompt_via_stdin ' ' prompt::for_value 'Name'
+  assert_success
+  assert_output --partial ' '
+}
+
+@test "for_value: with default, auto_answer wins over stdin" {
+  # shellcheck disable=SC2030,SC2031
+  export SCRIPTS_AUTO_ANSWER=y # intentional: export reaches child process via `run`
+  prompt_via_stdin 'typed' prompt::for_value 'Name' 'default-val'
+  assert_success
+  assert_output --partial 'default-val'
+  refute_output --partial 'typed'
 }
 
 @test "for_value: dies with 0 args" {
