@@ -14,22 +14,10 @@
 # likewise pinned with `?flag=functions`.
 #
 # Both measurements are deterministic: three full runs on an unchanged tree
-# produce byte-identical per-line hits, so a moved number means the code moved
-# (#307).
+# produce byte-identical per-line hits, so a moved number means the code moved.
 #
-# Coverage used to be collected by bashcov, which handed bash a non-blocking
-# pipe and silently dropped about three quarters of the trace, so both statuses
-# were `informational: true` for a while — the number wandered ±4 points on an
-# unchanged tree and a red status nobody could act on is worse than none. The
-# post-fix baseline on main was 81.1% (1634 / 2015), against 54.1% collected
-# through the lossy pipe.
-#
-# kcov then had a silent loss of its own: one `$'...'` trace line latched its
-# quote parser and every later line was discarded, exit 0, no diagnostic (#310).
-# Seven files read far below their real coverage — systemctl.bash 24% with every
-# branch tested. With that patched and the genuine branch gaps filled, the
-# functions baseline on main is 96.5% (1944 / 2015). Roughly 60 of the 71 lines
-# still uncovered are lexer artifacts that can never be hit; see CLAUDE.md.
+# The functions baseline on main is 96.5% (1944 / 2015). Roughly 60 of the 71
+# lines still uncovered are lexer artifacts that can never be hit; see CLAUDE.md.
 flags:
   functions:
     # carryforward keeps a flag's last known coverage when its job did not
@@ -58,20 +46,18 @@ coverage:
       gates:
         flags:
           - gates
-        # A real target, on the same terms as `default` above. It shipped
-        # `informational: true` for exactly one commit, until a baseline
-        # existed; two independent CI runs then measured the same tree at
-        # 2662 / 3377 and 78.82736%, agreeing to five significant figures, which
-        # is the same determinism the functions scope has.
+        # A real target, on the same terms as `default` above. Two independent
+        # CI runs measure the same tree to five significant figures, which is
+        # the same determinism the functions scope has.
         target: auto
         threshold: 1%
     patch:
       default:
         # Deliberately informational, and not because of measurement noise.
-        # kcov's bash parser, like bashcov's, scores the body of an embedded
-        # awk/sed program as bash statements; those lines only ever execute
-        # inside awk, so they can never be hit, and a diff that is mostly
-        # embedded awk fails patch no matter how well tested it is (#307 item 3,
-        # e.g. sdkman_jdks.bash 69-79). The number is still posted for reading.
+        # kcov's bash parser scores the body of an embedded awk/sed program as
+        # bash statements; those lines only ever execute inside awk, so they can
+        # never be hit, and a diff that is mostly embedded awk fails patch no
+        # matter how well tested it is (e.g. sdkman_jdks.bash 69-79). The number
+        # is still posted for reading.
         informational: true
         target: 50%

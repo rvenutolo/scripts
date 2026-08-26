@@ -11,7 +11,7 @@
 
 set -Eeuo pipefail
 # Without this, errexit is off inside every $(...) subshell, so a helper called
-# as `n="$(scan ...)"` runs past a failed command and this gate exits 0 (#290).
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0.
 shopt -s inherit_errexit
 IFS=$'\n\t'
 
@@ -19,7 +19,7 @@ IFS=$'\n\t'
 source "${SCRIPTS_DIR}/.functions.bash"
 # A push from a linked worktree exports an absolute GIT_DIR into this hook; the gate below
 # runs the BATS suite, whose fixture git commands would all be retargeted at this repo by
-# that inherited context (#248). Strip it before resolving paths or running any tooling.
+# that inherited context. Strip it before resolving paths or running any tooling.
 git::clear_local_env
 # check-scripts and .ci/ live at the repo root, not under SCRIPTS_DIR (= repo-root/scripts).
 REPO_DIR="$(git rev-parse --show-toplevel)"
@@ -30,7 +30,7 @@ readonly REPO_DIR
 # into the very BATS suite running them. Deliberately a derived path rather than an override
 # of REPO_DIR itself: that keeps `git rev-parse` unconditional, so its failure still reaches
 # the ERR trap instead of being masked inside a ${VAR:-$(...)} default. Mirrors
-# GOVERNANCE_CI_DIR_OVERRIDE (#318).
+# GOVERNANCE_CI_DIR_OVERRIDE.
 readonly GATE_DIR="${PRE_PUSH_GATE_DIR_OVERRIDE:-${REPO_DIR}}"
 log::enable_err_trap
 # pass-through: git passes ref/sha pairs on stdin we ignore

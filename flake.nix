@@ -49,24 +49,23 @@
       devShells = eachSystem (
         pkgs:
         let
-          # kcov collects coverage for the BATS suite (.github/actions/coverage). It
-          # replaced bashcov, whose Ruby reader hands bash a non-blocking pipe and
-          # silently drops trace records under load (#307). kcov's bash engine sets
-          # PS4='kcov@${BASH_SOURCE}@${LINENO}@' with no default expansion, so a
-          # `bash -c '… set -u …'` string — which has no BASH_SOURCE — dies inside
-          # PS4 expansion with "BASH_SOURCE: unbound variable" and the test around
-          # it fails (4 tests across log/shdoc/user.bats). The `:-` guard is the
-          # whole fix; --replace-fail makes a kcov bump that moves the line fail the
-          # build loudly instead of silently un-patching. The escaped `\$` is for
-          # bash, so substituteInPlace receives the literal `${BASH_SOURCE}`.
+          # kcov collects coverage for the BATS suite (.github/actions/coverage).
+          # kcov's bash engine sets PS4='kcov@${BASH_SOURCE}@${LINENO}@' with no
+          # default expansion, so a `bash -c '… set -u …'` string — which has no
+          # BASH_SOURCE — dies inside PS4 expansion with "BASH_SOURCE: unbound
+          # variable" and the test around it fails (4 tests across
+          # log/shdoc/user.bats). The `:-` guard is the whole fix; --replace-fail
+          # makes a kcov bump that moves the line fail the build loudly instead of
+          # silently un-patching. The escaped `\$` is for bash, so
+          # substituteInPlace receives the literal `${BASH_SOURCE}`.
           kcovPatched = pkgs.kcov.overrideAttrs (prev: {
             # kcov's xtrace parser tracks single-quote state across lines, but only
             # honours backslash escapes outside a quote. Bash renders any value
             # containing a newline with ANSI-C quoting, where \' is an escaped
-            # quote, so one such trace line left the parser latched in
-            # INPUT_SINGLE_QUOTE and every later line was silently discarded — an
+            # quote, so one such trace line leaves the parser latched in
+            # INPUT_SINGLE_QUOTE and every later line is silently discarded — an
             # empty report, no error, exit 0. Any test writing a multi-line shim
-            # body through a variable hit it (#310).
+            # body through a variable hits it.
             patches = (prev.patches or [ ]) ++ [ ./.nix/kcov-ansi-c-quoting.patch ];
             postPatch = (prev.postPatch or "") + ''
               substituteInPlace src/engines/bash-helper.sh src/engines/bash-helper-debug-trap.sh \
@@ -101,16 +100,15 @@
               lychee
               # tests / runtime
               commitlint
-              # withLibraries, not bare bats: bats-support and bats-assert used to be
-              # git submodules under test/test_helper/, loaded by relative path. The
-              # wrapper this produces exports BATS_LIB_PATH at its own share/bats, so
-              # test_helper/common.bash loads them with `bats_load_library` and a bats
-              # that is not this one fails loudly instead of silently missing them.
+              # withLibraries, not bare bats: the wrapper this produces exports
+              # BATS_LIB_PATH at its own share/bats, so test_helper/common.bash loads
+              # bats-support and bats-assert with `bats_load_library`, and a bats that
+              # is not this one fails loudly instead of silently missing them.
               (bats.withLibraries (l: [
                 # Both libraries come from flake INPUTS pinned in flake.lock, not
                 # from the nixpkgs releases. nixpkgs ships bats-assert 2.1.0,
                 # which has no assert_stderr / refute_stderr: those live only on
-                # master, and this repo's whole #274 stderr convention -- plus
+                # master, and this repo's whole stderr convention -- plus
                 # .ci/check-stderr-assertions, which enforces it -- is built on
                 # them. Taking the release would break ~30 tests and silently
                 # un-enforce a documented rule. flake.lock carries the rev and the
@@ -172,9 +170,9 @@
               (python3.withPackages (ps: [ ps.mkdocs-material ]))
             ];
 
-            # Activate the tracked git hooks for this clone. Activation used to be a
-            # manual per-clone step that silently never happened (#212); the devShell is
-            # the one place onboarding cannot skip. Tolerant of failure on purpose — a
+            # Activate the tracked git hooks for this clone. As a manual per-clone
+            # step this silently never happens; the devShell is the one place
+            # onboarding cannot skip. Tolerant of failure on purpose — a
             # devShell that aborts on hook setup is worse than inert hooks. Resolved via
             # git rather than the flake's store path so it configures the working clone,
             # not a read-only copy in the Nix store.

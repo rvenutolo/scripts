@@ -16,7 +16,7 @@
 
 set -Eeuo pipefail
 # Without this, errexit is off inside every $(...) subshell, so a helper called
-# as `n="$(scan ...)"` runs past a failed command and this gate exits 0 (#290).
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0.
 shopt -s inherit_errexit
 IFS=$'\n\t'
 
@@ -67,7 +67,7 @@ function main() {
   "${REPO_DIR}/check-scripts" || rc=1
   log::log 'running nix flake check'
   # Not a bare `nix flake check`: the enforcer adds --no-eval-cache and fails on
-  # evaluation warnings, which the eval cache would otherwise hide locally (#244).
+  # evaluation warnings, which the eval cache would otherwise hide locally.
   "${REPO_DIR}/.ci/check-flake-eval-warnings" || rc=1
   log::log 'running governance checks'
   "${REPO_DIR}/.ci/run-governance-checks" || rc=1
