@@ -30,7 +30,7 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | every actions/upload-artifact step sets if-no-files-found: error (or is allowlisted) | `check-upload-artifact-strict` | `governance` | `governance` |
 | every multi-line bash run: block begins with set -Eeuo pipefail | `check-run-block-strict` | `governance` | `governance` |
 | every workflow run step runs inside the devShell and no workflow spells `nix develop` | `check-workflow-hermetic` | `governance` | `governance` |
-| every .ci/ script has a paired bats test file | `check-script-has-test` | `governance` | `governance` |
+| every .ci/, .githooks/, and repo-root script has a paired bats test file | `check-script-has-test` | `governance` | `governance` |
 | every arity-violating test asserts its guard message | `check-vacuous-arity-tests` | `governance` | `governance` |
 | every BATS test asserts on stderr, stdout, and status through bats-assert | `check-stderr-assertions` | `governance` | `governance` |
 | no .bats test file opens with a shebang | `check-bats-no-shebang` | `governance` | `governance` |

@@ -435,7 +435,9 @@ hermeticity would preserve exactly the local/CI gap the change exists to close.
 - **`.githooks/commit-msg` is deliberately outside.** It shells out to exactly one tool,
   `commitlint`, from the ambient (direnv) PATH. Wrapping it would buy a nix evaluation on
   every single commit in exchange for one binary. This is a decision, not an oversight —
-  do not "fix" it.
+  do not "fix" it. `test/ci/commit-msg.bats` pins it with a poison `nix` shim: if the hook
+  ever grew an `in-devshell` call, the wrapper would evaluate the flake, the poison would
+  fire, and the test names the reason. Nothing else verified this decision before #321.
 
 `.ci/check-workflow-hermetic` enforces the boundary over `.github/workflows/*.yml` and
 `.github/actions/*/action.yml`, in two rules. Rule 1: every step carrying a `run:` key must
@@ -854,10 +856,28 @@ is indistinguishable from a clean run, which is the failure this repo spends the
 disappears. The gates measurement exists because those trees had no number at all — every gap in
 them had to be found by hand, ranking scripts by lines-per-test.
 
-`.githooks/` is out of scope. Its two files carry no paired tests and sit outside
-`.ci/check-script-has-test`'s two scopes, so they would contribute a permanent ~66-line 0% floor
-with no actionable signal. The measured scope matches the paired-test mandate's scope exactly,
-which is what makes every 0% in the report a real gap.
+`.githooks/` is **in** scope. It was excluded when the measurement landed, for a reason that no
+longer holds: its two files carried no paired tests and sat outside `.ci/check-script-has-test`'s
+scopes, so they would have contributed a permanent ~66-line 0% floor with no actionable signal.
+Issue #321 paired both — `test/ci/commit-msg.bats` and `test/ci/pre-push.bats` — and added
+`.githooks/` as a third scope to that lint, so the exclusion ended with its reason. The measured scope still
+matches the paired-test mandate's scope exactly, which is what makes every 0% in the report a real
+gap.
+
+The hooks pair into `test/ci/` rather than a `test/githooks/` of their own: they are gate code, the
+same thing every other file in that directory tests, and a two-file directory would buy nothing but
+another scope to keep in sync.
+
+`.githooks/pre-push` carries a `PRE_PUSH_GATE_DIR_OVERRIDE` seam so its tests can drive it without
+running the real gate — which takes minutes and would recurse into the very BATS suite running
+them. It overrides a **derived** path rather than `REPO_DIR` itself, deliberately: that keeps
+`git rev-parse --show-toplevel` unconditional, so its failure still reaches the `ERR` trap instead
+of being masked inside a `${VAR:-$(...)}` default. Same shape as `GOVERNANCE_CI_DIR_OVERRIDE`.
+
+The `#248` defense in that hook is asserted by **effect, not by call**: the test exports a
+repo-scoped `GIT_DIR`, the stub gate dumps the environment it was handed, and the test asserts the
+variable is gone while an ordinary exported control variable survived. Deleting the
+`git::clear_local_env` line fails that test and only that test.
 
 Facts that are load-bearing, from #307, #310, and #319:
 

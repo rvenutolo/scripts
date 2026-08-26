@@ -24,11 +24,19 @@ git::clear_local_env
 # check-scripts and .ci/ live at the repo root, not under SCRIPTS_DIR (= repo-root/scripts).
 REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
+# Test seam for the gate invocation below. Production leaves it unset; test/ci/pre-push.bats
+# points it at a fixture repo holding stub .ci/in-devshell and run-all-checks, so the tests
+# exercise this hook without running the real gate — which takes minutes and would recurse
+# into the very BATS suite running them. Deliberately a derived path rather than an override
+# of REPO_DIR itself: that keeps `git rev-parse` unconditional, so its failure still reaches
+# the ERR trap instead of being masked inside a ${VAR:-$(...)} default. Mirrors
+# GOVERNANCE_CI_DIR_OVERRIDE (#318).
+readonly GATE_DIR="${PRE_PUSH_GATE_DIR_OVERRIDE:-${REPO_DIR}}"
 log::enable_err_trap
 # pass-through: git passes ref/sha pairs on stdin we ignore
 
 log::log 'pre-push: running the full local gate'
-if ! "${REPO_DIR}/.ci/in-devshell" "${REPO_DIR}/run-all-checks"; then
+if ! "${GATE_DIR}/.ci/in-devshell" "${GATE_DIR}/run-all-checks"; then
   log::die 'run-all-checks failed — push aborted. Fix issues or rerun with --no-verify to bypass.'
 fi
 log::log 'pre-push: gate passed'
