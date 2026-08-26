@@ -40,7 +40,7 @@ args::check_no_args "$@"
 #              Every scan root derives from REPO_DIR — the repo this command was
 #              invoked in — never from the SCRIPTS_DIR environment variable, which
 #              points at the user's main checkout and would make the audit grade the
-#              wrong tree from a worktree or a second clone (#250).
+#              wrong tree from a worktree or a second clone.
 #              Library files under functions/ are listed by collect_library_files
 #              instead, since they follow a different annotation rule.
 # @noargs
@@ -83,10 +83,10 @@ function collect_library_files() {
 #              clean, so the caller decides by whether output appeared.
 #
 #              A producer rather than a predicate returning 0/1. As a predicate
-#              it was called from an `if`, which disables errexit for its whole
-#              call tree — so a failure in the awk that enumerates functions
-#              yielded no output and read as "this file is clean" (#294). Called
-#              as a plain command, that failure aborts the lint.
+#              it would be called from an `if`, which disables errexit for its
+#              whole call tree — so a failure in the awk that enumerates
+#              functions would yield no output and read as "this file is clean".
+#              Called as a plain command, that failure aborts the lint.
 # @arg $1 file path to script
 # @stdout A file-name line followed by one `  - reason` line per violation.
 function audit_one() {
@@ -176,7 +176,7 @@ function main() {
 
   # The two audit helpers are plain commands here, not `if` conditions: an `if`
   # would disable errexit through their whole call tree and turn a failed awk
-  # into a clean report (#294).
+  # into a clean report.
   local report_tmp
   files::create_temp report_tmp
 

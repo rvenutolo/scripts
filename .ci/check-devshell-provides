@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # @description Keep the declared tool list and the flake devShell in agreement,
-#              in both directions (#234).
+#              in both directions.
 #
 #              Forward: every tool listed in .ci/required-tools must be a member
 #              of the flake devShell's own closure — an executable of that name
@@ -10,12 +10,12 @@
 #              through the ambient PATH is deliberately not consulted: a
 #              direnv-activated shell still carries the PREVIOUS devShell's
 #              /nix/store paths, so a tool deleted from flake.nix keeps
-#              resolving and a PATH-based check reports green (#228). Closure
+#              resolving and a PATH-based check reports green. Closure
 #              membership is the guarantee a fresh contributor actually gets;
 #              a tool the maintainer installed globally is absent from the
-#              devShell PATH and so fails, which is how `just` came to resolve
-#              only from ~/.nix-profile while every doc claimed the devShell
-#              provided it (#219).
+#              devShell PATH and so fails, which is what catches a tool that
+#              resolves only from ~/.nix-profile while every doc claims the
+#              devShell provides it.
 #
 #              Reverse: every package the devShell declares must contribute at
 #              least one binary that .ci/required-tools names, or be listed in
@@ -27,7 +27,7 @@
 #              implementation reports two correctly declared tools as unprovided.
 #
 #              Both queries are run against the repo this script was invoked in,
-#              never the ambient flake, so a worktree grades its own tree (#250).
+#              never the ambient flake, so a worktree grades its own tree.
 # @noargs
 # @stderr One line per tool that is not provided by the flake devShell, per
 #         devShell package that contributes no declared tool, and per stale
@@ -212,7 +212,7 @@ function devshell_packages() {
 # @description Return true when an executable of the given name exists in any of
 #              the given directories. The ambient PATH is never consulted —
 #              commands::executable_path would, and that is precisely the thing
-#              under suspicion (#228).
+#              under suspicion.
 # @arg $1 tool executable name to look for
 # @arg $@ dirs directories to search, one argument each
 # @exitcode 0 if true

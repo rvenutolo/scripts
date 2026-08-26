@@ -5,7 +5,7 @@
 #              must derive its paths from the repo it was invoked in, via
 #              `git rev-parse --show-toplevel`, because SCRIPTS_DIR points at the
 #              user's main checkout and makes a gate grade the wrong tree from a
-#              worktree or a second clone (#250). Scope is every shebang-bearing
+#              worktree or a second clone. Scope is every shebang-bearing
 #              executable under .ci/ and .githooks/, plus the repo-root runners.
 #              The canonical library-sourcing line is allowed: it locates the
 #              function library, not a scan root. Comment lines are allowed.

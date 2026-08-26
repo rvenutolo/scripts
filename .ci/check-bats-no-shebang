@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
-# @description Assert that no .bats test file opens with a shebang. Since #215 made
-#              shfmt and shellcheck coverage extension-based, a shebang on a .bats
-#              file buys no tooling behavior — and check-executable-bit forbids
-#              .bats files from being executable, so the shebang can never be
-#              exercised. The corpus standardized on no shebang (#264); this lint
-#              keeps new files consistent. Only the first line of each file is
-#              judged, so a shebang literal inside a fixture string is never
-#              flagged. Scope is every *.bats file under test/functions, test/ci,
-#              and test/root; the vendored bats submodules are out of scope.
+# @description Assert that no .bats test file opens with a shebang. Both shfmt
+#              and shellcheck match .bats files by extension, so a shebang on a
+#              .bats file buys no tooling behavior — and check-executable-bit
+#              forbids .bats files from being executable, so the shebang can
+#              never be exercised. The corpus carries none; this lint keeps new
+#              files consistent. Only the first line of each file is judged, so a
+#              shebang literal inside a fixture string is never flagged. Scope is
+#              every *.bats file under test/functions, test/ci, and test/root;
+#              the vendored bats submodules are out of scope.
 # @noargs
 # @stderr One line per offending file.
 # @exitcode 0 no in-scope .bats file opens with a shebang.
@@ -65,7 +65,7 @@ function main() {
     strings::is_empty "${file}" && continue
     first_line="$(head --lines=1 -- "${file}")"
     if [[ "${first_line}" == '#!'* ]]; then
-      printf '%s: .bats files carry no shebang (#264): %s\n' "${file#"${REPO_DIR}/"}" "${first_line}" >&2
+      printf '%s: .bats files carry no shebang: %s\n' "${file#"${REPO_DIR}/"}" "${first_line}" >&2
       rc=1
     fi
   done < "${files_tmp}"

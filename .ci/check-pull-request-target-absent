@@ -36,10 +36,11 @@ readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}
 #              is ignored.
 #
 #              Deliberately a producer rather than a predicate. As a predicate it
-#              was called from an `if`, which disables errexit for its whole call
-#              tree — so a `yq` failure on an unparsable workflow read as "not
-#              triggered", the file went unscanned, and the lint still exited 0
-#              (#290). Called as a plain command, a `yq` failure aborts the lint.
+#              would be called from an `if`, which disables errexit for its whole
+#              call tree — so a `yq` failure on an unparsable workflow would read
+#              as "not triggered", the file would go unscanned, and the lint
+#              would still exit 0. Called as a plain command, a `yq` failure
+#              aborts the lint.
 # @arg $1 file path to a workflow YAML
 # @stdout One trigger name per line.
 function workflow_triggers() {

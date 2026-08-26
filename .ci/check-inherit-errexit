@@ -4,9 +4,9 @@
 #              errexit inside a command-substitution subshell unless this shopt
 #              is set, so a helper invoked as `n="$(scan "${file}")"` keeps
 #              running past a failed command, echoes a zero count, and the lint
-#              exits 0 while the input it could not parse goes unchecked (#290).
+#              exits 0 while the input it could not parse goes unchecked.
 #              The ERR trap fires and prints, which makes the failure look
-#              reported when it is not — the same false-green shape as #250.
+#              reported when it is not.
 #              Scope is every shebang-bearing executable under .ci/ and
 #              .githooks/, plus the repo-root runners: the three places where a
 #              wrong exit code is indistinguishable from a clean gate. The
@@ -43,9 +43,9 @@ readonly SHOPT_LINE='shopt -s inherit_errexit'
 # The one in-scope file exempt from the rule. activate-githooks runs from the
 # flake devShell's shellHook, including under `nix develop --ignore-environment`
 # where SCRIPTS_DIR does not exist, so it deliberately sources nothing and
-# inlines its own helpers (#231). It runs no scan and calls no helper through a
-# command substitution, so it has no exposure to the shape this lint guards, and
-# editing its strict-mode block is the change that broke it before.
+# inlines its own helpers. It runs no scan and calls no helper through a command
+# substitution, so it has no exposure to the shape this lint guards, and editing
+# its strict-mode block is exactly the change that would break it.
 readonly EXEMPT=(activate-githooks)
 
 # @description Print the 1-based line number of the first line equal to the

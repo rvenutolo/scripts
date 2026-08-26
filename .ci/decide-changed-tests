@@ -4,8 +4,8 @@
 #              The matcher is a denylist: a path runs the suite unless it matches
 #              one of the known test-irrelevant globs. A path nobody anticipated
 #              therefore runs the suite rather than being silently skipped — the
-#              failure mode issue #207 documented, where a .ci/-only PR skipped
-#              the very tests written for .ci/ and still reported green.
+#              failure mode this prevents, where a .ci/-only PR skips the very
+#              tests written for .ci/ and still reports green.
 # @arg $1 changed_paths_file file listing changed paths, one per line; may be empty
 # @stdout A single `run=true` or `run=false` line, in GITHUB_OUTPUT key=value form.
 # @stderr One line explaining the decision, for the job log.

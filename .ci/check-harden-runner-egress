@@ -64,7 +64,7 @@ function harden_runner_with() {
 #              predicate gets called from an `if`, which disables errexit for its
 #              whole call tree, so a `yq` failure would yield an empty count and
 #              read as "this job has no harden-runner step" — a real finding
-#              invented out of a parse error (#294). Called as a command
+#              invented out of a parse error. Called as a command
 #              substitution under inherit_errexit, a `yq` failure aborts the lint
 #              instead.
 # @arg $1 file path to a workflow YAML

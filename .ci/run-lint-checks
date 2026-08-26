@@ -39,8 +39,8 @@ function main() {
   # `yamllint .` walks the whole working tree, and unlike typos and
   # editorconfig-checker it does not skip gitignored paths. Any gitignored YAML
   # — an agent worktree under .claude/worktrees/, .direnv, scratch output —
-  # therefore failed the local gate while CI, which checks out clean, stayed
-  # green. That is the local/CI divergence this runner exists to prevent (#253).
+  # would therefore fail the local gate while CI, which checks out clean, stays
+  # green. That is the local/CI divergence this runner exists to prevent.
   # .yamllint.yml's `ignore:` list still applies: yamllint honors it for
   # explicitly-passed paths too, so it keeps guarding tracked files under lib/
   # and scripts/other/.
@@ -51,8 +51,8 @@ function main() {
   log::log 'running json lint'
   # Inlined rather than a lint_json helper called as `lint_json || rc=1`: that
   # shape disables errexit through the helper's whole call tree, so a failing
-  # `find` left an empty list, `--no-run-if-empty` ran nothing, and every JSON
-  # file went unlinted while the step reported success (#294). Inline, only the
+  # `find` leaves an empty list, `--no-run-if-empty` runs nothing, and every
+  # JSON file goes unlinted while the step reports success. Inline, only the
   # xargs status — the one that means "a JSON file is malformed" — reaches the
   # accumulator, matching the yamllint and markdownlint steps around it.
   local json_tmp

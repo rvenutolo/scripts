@@ -22,8 +22,8 @@
 #              Standalone on purpose, in the .ci/activate-githooks mold: it runs
 #              *before* the environment it creates, so it cannot source
 #              "${SCRIPTS_DIR}/.functions.bash" (SCRIPTS_DIR is this script's own
-#              output, and sourcing the library under --ignore-environment died
-#              under set -u in #231). It therefore inlines the ERR trap the way
+#              output, and sourcing the library under --ignore-environment dies
+#              under set -u). It therefore inlines the ERR trap the way
 #              scripts/misc/ standalone scripts do, and omits
 #              args::handle_help_flag: every argument belongs to the wrapped
 #              command, so a --help here would have to be forwarded anyway. It
@@ -107,7 +107,7 @@ function main() {
 
   # The flake reference is the repo this script was invoked in, never a relative
   # path and never an environment variable: a gate must evaluate the tree it is
-  # grading, or a worktree silently gets the main checkout's devShell (#250).
+  # grading, or a worktree silently gets the main checkout's devShell.
   export SCRIPTS_DIR="${repo_dir}/scripts"
   export IN_DEVSHELL=1
 

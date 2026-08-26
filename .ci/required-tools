@@ -3,7 +3,7 @@
 # not a script: one tool per line, `#` comments and blank lines ignored, and it
 # deliberately carries no shebang and no executable bit.
 #
-# Two lints consume it, closing the drift in both directions (#234):
+# Two lints consume it, closing the drift in both directions:
 # - .ci/check-devshell-provides: every entry here must be provided by the flake
 #   devShell, and every package the devShell declares must contribute at least
 #   one entry here (or be excluded by name, with a reason).

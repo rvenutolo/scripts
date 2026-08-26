@@ -7,16 +7,16 @@
 #              to yq or jq therefore swallows a parse failure and answers with
 #              whatever its final command returns — which reads as a real
 #              answer about the file rather than as the failure it is. That is
-#              how a lint came to report an unreadable workflow as clean (#294).
+#              how a lint comes to report an unreadable workflow as clean.
 #              `shopt -s inherit_errexit` does not help: it governs command
-#              substitution, a different suppression (#290).
+#              substitution, a different suppression.
 #
 #              Deliberately narrow. It matches only a function DEFINED in the
 #              scanned file whose OWN body runs one of the parsers, called from
-#              a condition in that same file — no transitive analysis. Four of
-#              the five call sites #294 first suspected turned out to be pure
-#              bash with nothing to suppress, so the condition shape alone is a
-#              poor signal; the parser in the body is what makes it dangerous.
+#              a condition in that same file — no transitive analysis. The
+#              condition shape alone is a poor signal: most such call sites are
+#              pure bash with nothing to suppress, and the parser in the body is
+#              what makes the shape dangerous.
 #              The fix is always the same: make the helper a producer called as
 #              a plain command, and keep only the test whose non-zero result is
 #              meaningful inside the condition.
@@ -60,9 +60,9 @@ readonly CONDITION_SHAPES=(
   '^[[:space:]]*NAME([[:space:]].*)?[[:space:]]*(\|\||&&)'
 )
 
-# Deliberately empty: the #294 sweep left no in-scope violation behind. An entry
-# naming no in-scope file, or naming one with no flagged call site, fails the
-# lint rather than silently disarming it.
+# Deliberately empty: no in-scope call site violates the rule. An entry naming
+# no in-scope file, or naming one with no flagged call site, fails the lint
+# rather than silently disarming it.
 readonly EXEMPT=()
 
 # @description Print the name of every function defined in a file whose own body

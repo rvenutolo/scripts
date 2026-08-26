@@ -4,8 +4,8 @@
 #              declared in .ci/required-tools. The declared list is what
 #              check-devshell-provides holds the flake devShell to, so an
 #              undeclared call site is a tool nobody ever checks: it resolves on
-#              the maintainer's machine and is simply missing for everyone else
-#              (#234). Scope is every shebang-bearing executable under .ci/ and
+#              the maintainer's machine and is simply missing for everyone else.
+#              Scope is every shebang-bearing executable under .ci/ and
 #              .githooks/, plus the repo-root runners — not scripts/, which is
 #              the repo's payload and expects its tools from the machine.
 #
