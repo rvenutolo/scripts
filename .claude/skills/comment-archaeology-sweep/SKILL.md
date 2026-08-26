@@ -82,7 +82,11 @@ form — that must track the tree, or it instructs new code to reintroduce what 
    shape to look for; they fail loudly, but only if the suite is run.
 1. **Reflow** — a stripped parenthetical or a deleted clause leaves ragged wrapping. shfmt does
    not reflow comments and neither does any other gate here, so rewrap the block yourself to
-   120 characters at its existing comment column.
+   120 characters at its existing comment column. After rewrapping, verify no comment line
+   begins with `shellcheck` or `shfmt` — ShellCheck reads `# shellcheck ...` at the line start
+   as a directive, failing with SC1072/SC1073. The trap is reflow-specific; the words are
+   harmless mid-sentence. Reword to fix, never add a suppression. Verify with `grep -nE
+   '^\s*#\s+(shellcheck|shfmt)\b' <changed-files>` and confirm each match is intentional.
 1. **Verify** — `nix fmt`, then `./.ci/in-devshell ./run-all-checks`. Both clean. Then
    `git diff --summary` — it must print nothing. A `mode change` line means step 2 lost an
    executable bit.
