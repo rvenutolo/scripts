@@ -255,8 +255,14 @@ function main() {
 
   mapfile -t sources < "${sources_tmp}"
   mapfile -t bats_files < "${bats_tmp}"
-  if [[ "${#sources[@]}" -eq 0 || "${#bats_files[@]}" -eq 0 ]]; then
-    exit 0
+  # An empty scan is a misdirected scan, not a clean one — the same rule the comment
+  # above the .bats find records being violated once already, when a loose glob
+  # dropped every file and this lint exited 0 over a suite it never read (#323).
+  if [[ "${#sources[@]}" -eq 0 ]]; then
+    log::die "no guard sources found under ${FUNCTIONS_DIR} or ${TEST_DIR}/test_helper"
+  fi
+  if [[ "${#bats_files[@]}" -eq 0 ]]; then
+    log::die "no .bats files found under ${TEST_DIR}"
   fi
 
   guard_map "${sources[@]}" > "${guards_tmp}"
