@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
-# @description Assert every script in scope has a paired BATS test file. Two
+# @description Assert every script in scope has a paired BATS test file. Three
 #              scopes are checked: every shebang-bearing executable under .ci/
-#              needs test/ci/<name>.bats, and every executable shell file at the
+#              needs test/ci/<name>.bats, every executable shell file at the
 #              repo root — the runners every contributor and every CI job
-#              invokes — needs test/root/<name>.bats. Mirrors the BATS-coverage
+#              invokes — needs test/root/<name>.bats, and every tracked git hook
+#              under .githooks/ needs test/ci/<name>.bats. Mirrors the BATS-coverage
 #              mandate that already applies to functions/*.bash. Explicitly
 #              side-effecting scripts that cannot be deterministically tested are
 #              exempted via a hardcoded list per scope, and each exemption must
@@ -34,6 +35,7 @@ readonly CI_DIR="${CI_DIR_OVERRIDE:-${REPO_DIR}/.ci}"
 readonly TEST_CI_DIR="${TEST_CI_DIR_OVERRIDE:-${REPO_DIR}/test/ci}"
 readonly ROOT_DIR="${ROOT_DIR_OVERRIDE:-${REPO_DIR}}"
 readonly TEST_ROOT_DIR="${TEST_ROOT_DIR_OVERRIDE:-${REPO_DIR}/test/root}"
+readonly HOOKS_DIR="${HOOKS_DIR_OVERRIDE:-${REPO_DIR}/.githooks}"
 
 # Scripts under .ci/ exempt from the paired-test mandate. Deliberately empty:
 # all .ci scripts have paired tests under test/ci/. apply-repo-settings was the
@@ -50,12 +52,22 @@ readonly EXEMPT=()
 # silently disarming it.
 readonly ROOT_EXEMPT=()
 
-# @description Print the basenames of repo-root entries that are executable
-#              shell files. Non-recursive, so it yields the runner executables
-#              and not the scripts nested under scripts/ or .ci/.
-# @arg $1 root_dir directory to scan
+# Tracked git hooks exempt from the mandate. Deliberately empty: both hooks have
+# paired tests under test/ci/. They were outside every scope until #321, which is
+# how two load-bearing files — the Conventional Commits gate and the hook that
+# installs the #248 fixture-escape defense before running the suite — came to be
+# the only untested code in the gate tree. Same staleness detection as above.
+readonly HOOKS_EXEMPT=()
+
+# @description Print the basenames of entries directly inside dir that are
+#              executable shell files. Non-recursive, so against the repo root it
+#              yields the runner executables and not the scripts nested under
+#              scripts/ or .ci/. Used for the repo-root and .githooks/ scopes;
+#              the .ci/ scope goes through shell_scripts::find instead, which
+#              recurses.
+# @arg $1 dir directory to scan
 # @stdout One basename per line; nothing when the directory holds no such files.
-function root_runner_names() {
+function executable_shell_names() {
   args::check_exactly_1_arg "$@"
   local -r root_dir="$1"
   local entry
@@ -116,27 +128,35 @@ function check_scope() {
 
 function main() {
   args::check_no_args "$@"
-  local -a ci_exempt=() root_exempt=()
+  local -a ci_exempt=() root_exempt=() hooks_exempt=()
   arrays::from_env_override ci_exempt EXEMPT_OVERRIDE "${EXEMPT[@]}"
   arrays::from_env_override root_exempt ROOT_EXEMPT_OVERRIDE ${ROOT_EXEMPT[@]+"${ROOT_EXEMPT[@]}"}
+  arrays::from_env_override hooks_exempt HOOKS_EXEMPT_OVERRIDE ${HOOKS_EXEMPT[@]+"${HOOKS_EXEMPT[@]}"}
 
-  local ci_scripts_tmp ci_names_tmp root_names_tmp
+  local ci_scripts_tmp ci_names_tmp root_names_tmp hooks_names_tmp
   files::create_temp ci_scripts_tmp
   files::create_temp ci_names_tmp
   files::create_temp root_names_tmp
+  files::create_temp hooks_names_tmp
   shell_scripts::find "${CI_DIR}" > "${ci_scripts_tmp}"
   local script
   while IFS= read -r script; do
     strings::is_empty "${script}" && continue
     basename "${script}" >> "${ci_names_tmp}"
   done < "${ci_scripts_tmp}"
-  root_runner_names "${ROOT_DIR}" > "${root_names_tmp}"
+  executable_shell_names "${ROOT_DIR}" > "${root_names_tmp}"
+  executable_shell_names "${HOOKS_DIR}" > "${hooks_names_tmp}"
 
   local overall=0
   check_scope "${ci_names_tmp}" "${TEST_CI_DIR}" 'test/ci' \
     ${ci_exempt[@]+"${ci_exempt[@]}"} || overall=1
   check_scope "${root_names_tmp}" "${TEST_ROOT_DIR}" 'test/root' \
     ${root_exempt[@]+"${root_exempt[@]}"} || overall=1
+  # The hooks land in test/ci/ rather than a test/githooks/ of their own: they are
+  # gate code, the same thing every other file in that directory tests, and a
+  # two-file directory would buy nothing but another scope to keep in sync.
+  check_scope "${hooks_names_tmp}" "${TEST_CI_DIR}" 'test/ci' \
+    ${hooks_exempt[@]+"${hooks_exempt[@]}"} || overall=1
   exit "${overall}"
 }
 

@@ -9,10 +9,11 @@ inputs:
     # The two measurements are kept separate all the way to Codecov, where they
     # are uploaded under the `functions` and `gates` flags. Merging them would
     # change what the headline number means: scripts/functions is the helper
-    # library the repo ships, and .ci/ plus the root runners are the gates that
-    # grade it. A regression in one must not be masked by the other's size.
+    # library the repo ships, and .ci/ plus .githooks/ plus the root runners
+    # are the gates that grade it. A regression in one must not be masked by the
+    # other's size.
     description: >-
-      Which tree to measure. `functions` covers scripts/functions, exercised by test/functions. `gates` covers .ci/ plus the repo-root runners, exercised by test/ci and test/root.
+      Which tree to measure. `functions` covers scripts/functions, exercised by test/functions. `gates` covers .ci/, .githooks/, and the repo-root runners, exercised by test/ci and test/root.
     required: true
 runs:
   using: composite
@@ -66,8 +67,8 @@ runs:
             ;;
           gates)
             kcov_args=(
-              --include-path="${repo}/.ci,${repo}/check-scripts,${repo}/run-all-checks,${repo}/run-install-scripts,${repo}/run-set-up-scripts,${repo}/run-tests,${repo}/shellcheck-scripts"
-              --bash-parse-files-in-dir="${repo}/.ci,${repo}"
+              --include-path="${repo}/.ci,${repo}/.githooks,${repo}/check-scripts,${repo}/run-all-checks,${repo}/run-install-scripts,${repo}/run-set-up-scripts,${repo}/run-tests,${repo}/shellcheck-scripts"
+              --bash-parse-files-in-dir="${repo}/.ci,${repo}/.githooks,${repo}"
               # .ci/required-tools is data, not code: a comment-and-tool-name
               # list with no shebang and no executable bit, consumed by
               # check-devshell-provides and check-tool-declarations. Walking

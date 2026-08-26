@@ -5,7 +5,8 @@ setup() {
   TEST_CI="${BATS_TEST_TMPDIR}/test_ci"
   ROOT="${BATS_TEST_TMPDIR}/root"
   TEST_ROOT="${BATS_TEST_TMPDIR}/test_root"
-  mkdir -p "${CI}" "${TEST_CI}" "${ROOT}" "${TEST_ROOT}"
+  HOOKS="${BATS_TEST_TMPDIR}/githooks"
+  mkdir -p "${CI}" "${TEST_CI}" "${ROOT}" "${TEST_ROOT}" "${HOOKS}"
   # Both shipped lists are empty today, but an entry added later would name a
   # script in the real repo that does not exist in the synthetic fixture dirs
   # below, and would read as stale. Set-but-empty clears them regardless; tests
@@ -13,6 +14,7 @@ setup() {
   # that pin the shipped defaults unset it.
   export EXEMPT_OVERRIDE=''
   export ROOT_EXEMPT_OVERRIDE=''
+  export HOOKS_EXEMPT_OVERRIDE=''
 }
 
 # Drop an executable, shebang-bearing fixture script into the fake .ci dir so
@@ -35,14 +37,22 @@ make_root_script() {
   chmod +x "${ROOT}/${name}"
 }
 
+# Drop an executable, shebang-bearing fixture into the fake .githooks dir. The
+# hooks scope pairs into test/ci/, so its paired fixture is make_test.
+make_hook() {
+  local -r name="$1"
+  printf '#!/usr/bin/env bash\ntrue\n' > "${HOOKS}/${name}"
+  chmod +x "${HOOKS}/${name}"
+}
+
 make_root_test() {
   local -r name="$1"
   printf '@test "x" { true; }\n' > "${TEST_ROOT}/${name}.bats"
 }
 
-# Both scopes are always pinned at fixture dirs. Without the root seams the
-# repo-root scope would fall back to the live checkout, and every test here would
-# silently depend on real repo state.
+# All three scopes are always pinned at fixture dirs. Without the seams a scope
+# would fall back to the live checkout, and every test here would silently depend
+# on real repo state.
 # .ci/check-script-has-test derives its own repo root via
 # `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
 # BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
@@ -51,6 +61,7 @@ run_check() {
   cd "${REPO_DIR}" || return 1
   CI_DIR_OVERRIDE="${CI}" TEST_CI_DIR_OVERRIDE="${TEST_CI}" \
     ROOT_DIR_OVERRIDE="${ROOT}" TEST_ROOT_DIR_OVERRIDE="${TEST_ROOT}" \
+    HOOKS_DIR_OVERRIDE="${HOOKS}" \
     run "${CHECK}" "$@"
 }
 
@@ -189,13 +200,65 @@ run_check() {
   assert_output --partial 'test/root/run-orphan.bats'
 }
 
-@test "both scopes are reported in a single run" {
+@test "every scope is reported in a single run" {
   make_ci_script 'check-orphan'
   make_root_script 'run-orphan'
+  make_hook 'hook-orphan'
   run_check
   assert_failure
   assert_output --partial 'test/ci/check-orphan.bats'
   assert_output --partial 'test/root/run-orphan.bats'
+  assert_output --partial 'test/ci/hook-orphan.bats'
+}
+
+@test "passes when every tracked git hook has a paired test" {
+  make_hook 'commit-msg'
+  make_test 'commit-msg'
+  make_hook 'pre-push'
+  make_test 'pre-push'
+  run_check
+  assert_success
+}
+
+@test "fails when a tracked git hook has no paired test" {
+  make_hook 'pre-commit'
+  run_check
+  assert_failure
+  assert_output --partial 'pre-commit: no paired test/ci/pre-commit.bats'
+}
+
+@test "a non-executable file in the hooks dir is not held to the mandate" {
+  printf '#!/usr/bin/env bash\ntrue\n' > "${HOOKS}/not-a-hook"
+  run_check
+  assert_success
+}
+
+@test "an exempt hook is accepted without a paired test" {
+  make_hook 'pre-commit'
+  HOOKS_EXEMPT_OVERRIDE='pre-commit' run_check
+  assert_success
+}
+
+@test "a hooks exemption naming no hook is reported stale" {
+  HOOKS_EXEMPT_OVERRIDE='hook-ghost' run_check
+  assert_failure
+  assert_output --partial 'stale EXEMPT entry: hook-ghost matches no script'
+}
+
+@test "a hooks exemption whose hook does have a test is reported stale" {
+  make_hook 'pre-commit'
+  make_test 'pre-commit'
+  HOOKS_EXEMPT_OVERRIDE='pre-commit' run_check
+  assert_failure
+  assert_output --partial 'stale EXEMPT entry: pre-commit already has a paired'
+}
+
+@test "the shipped HOOKS_EXEMPT list is empty" {
+  unset HOOKS_EXEMPT_OVERRIDE
+  make_hook 'commit-msg'
+  make_test 'commit-msg'
+  run_check
+  assert_success
 }
 
 @test "dies when given an argument" {
