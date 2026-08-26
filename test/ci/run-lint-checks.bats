@@ -4,11 +4,11 @@ setup() {
   AGG="${REPO_DIR}/.ci/run-lint-checks"
 }
 
-# .ci/run-lint-checks (an aggregator) derives its own repo root via
-# `git rev-parse --show-toplevel`, as do the sub-checks it shells out to.
-# common.bash's #248 hardening leaves CWD at BATS_TEST_TMPDIR (outside any git
-# repo) by design, so cd into REPO_DIR before every invocation — this test
-# targets the real repo.
+# .ci/run-lint-checks (an aggregator) derives its own repo root via `git
+# rev-parse --show-toplevel`, as do the sub-checks it shells out to.
+# common.bash's fixture-escape hardening leaves CWD at BATS_TEST_TMPDIR
+# (outside any git repo) by design, so cd into REPO_DIR before every
+# invocation — this test targets the real repo.
 run_check() {
   cd "${REPO_DIR}" || return 1
   run "$@"
@@ -26,14 +26,13 @@ run_check() {
 }
 
 @test "a gitignored directory holding invalid YAML does not fail the run" {
-  # The #253 regression test. `yamllint .` walked the working tree and did not
-  # skip gitignored paths, so an agent worktree or any scratch YAML failed the
-  # local gate while CI — which checks out clean — stayed green.
-  # The probe path has to satisfy two constraints at once, and earlier revisions
-  # of this test violated each in turn:
+  # `yamllint .` walks the working tree and does not skip gitignored paths, so an
+  # agent worktree or any scratch YAML fails the local gate while CI — which
+  # checks out clean — stays green.
+  # The probe path has to satisfy two constraints at once:
   #   1. Ignored by the repo's own .gitignore, not the developer's global git
   #      config — a globally-ignored path is not ignored on CI's clean checkout,
-  #      which is what the guard below caught there.
+  #      which is what the guard below catches.
   #   2. Absent from .yamllint.yml's `ignore:` list — otherwise `yamllint .`
   #      skips it too and the test passes against the very bug it exists to
   #      catch. site/ fails this one.
@@ -55,10 +54,9 @@ run_check() {
 }
 
 @test "yamllint is handed the tracked file set, not the working tree" {
-  # The other half of #253: scoping yamllint must not declaw it. Record what
-  # the aggregator actually passes. Pre-fix this was the single argument `.`;
-  # post-fix it is the tracked YAML paths, so a real violation in a tracked
-  # file is still linted.
+  # The other half of the rule: scoping yamllint must not declaw it. Record what
+  # the aggregator actually passes — the tracked YAML paths, not the single
+  # argument `.`, so a real violation in a tracked file is still linted.
   path_shim::add yamllint "#!/usr/bin/env bash
 printf '%s\n' \"\$@\" > '${BATS_TEST_TMPDIR}/yamllint-args'
 exit 0"

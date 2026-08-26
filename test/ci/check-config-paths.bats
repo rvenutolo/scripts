@@ -62,8 +62,8 @@ write_treefmt() {
 
 # Re-stage after a test rewrites a source, so tracked-ness reflects the new tree.
 # Staging is enough and committing is not: `git ls-files` reads the index, and the
-# fixture harness pins GIT_CONFIG_GLOBAL to /dev/null (#248), so there is no
-# identity available to commit with.
+# fixture harness pins GIT_CONFIG_GLOBAL to /dev/null, so there is no identity
+# available to commit with.
 restage() {
   git_fixture::run "${CONFIG_ROOT}" add -A
 }
@@ -176,7 +176,7 @@ restage() {
 }
 
 @test "fails loudly when a source cannot be parsed, rather than reading it as empty" {
-  # A parser failure must not look like "this source configures no paths" (#294).
+  # A parser failure must not look like "this source configures no paths".
   printf 'this: is: not: valid: yaml:\n  - [\n' > "${CONFIG_ROOT}/.github/labeler.yml"
   restage
   run "${CHECK}"

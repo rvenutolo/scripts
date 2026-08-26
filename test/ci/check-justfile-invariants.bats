@@ -50,8 +50,8 @@ EOF
 
 # Every path input is pinned at fixtures. Without all four seams the lint would
 # fall back to the live checkout and these tests would depend on real repo state.
-# .ci/check-justfile-invariants derives its own repo root via
-# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# .ci/check-justfile-invariants derives its own repo root via `git rev-parse
+# --show-toplevel`. common.bash's fixture-escape hardening leaves CWD at
 # BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
 # every invocation.
 run_check() {
@@ -245,7 +245,7 @@ EOF
   assert_success
 }
 
-# --- #229: recipe names just accepts but the old hand-rolled regex did not ---
+# --- recipe names just accepts that a hand-rolled regex would reject ---
 
 @test "an uppercase-initial recipe with no README row fails" {
   make_readme
@@ -373,7 +373,7 @@ EOF
   assert_success
 }
 
-# --- #230: README scanning must be scoped to the command table's section ---
+# --- README scanning must be scoped to the command table's section ---
 
 @test "an unrelated markdown table mentioning just is ignored" {
   make_justfile
@@ -408,7 +408,7 @@ EOF
   assert_output --partial 'Common commands'
 }
 
-# --- #242: every public recipe describes itself ---
+# --- every public recipe describes itself ---
 
 @test "fails when a public recipe has no doc comment" {
   make_readme

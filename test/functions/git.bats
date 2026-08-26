@@ -379,9 +379,9 @@ function _seed_repo_multi_idents() {
 # prompt::ny reads from stdin; the herestring gives each call a fresh one.
 #
 # In-process rather than via `bash -c`: a child shell is a separate process, so
-# nothing it ran was attributed to git::prompt_select_identities by the coverage
-# harness and the whole body scored as unhit (#310). `run` forks but does not
-# touch stdin, so the answers still reach prompt::ny, and the helper reads
+# nothing it runs is attributed to git::prompt_select_identities by the coverage
+# harness and the whole body scores as unhit. `run` forks but does not touch
+# stdin, so the answers still reach prompt::ny, and the helper reads
 # distinct_file on FD 3 either way.
 function _run_select() {
   local -r distinct="$1"

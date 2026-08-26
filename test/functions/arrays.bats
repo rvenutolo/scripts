@@ -235,8 +235,8 @@ setup() {
 }
 
 @test "from_env_override: set-but-empty override -> empty array, not defaults" {
-  # The case the helper exists for. ${VAR:-} cannot distinguish this from unset,
-  # which is the divergence issue #205 is about.
+  # The case the helper exists for. ${VAR:-} cannot distinguish a set-but-empty
+  # override from an unset one, so it falls back to the defaults here.
   OVERRIDE_VAR=''
   local -a out=()
   arrays::from_env_override out OVERRIDE_VAR 'alpha' 'beta'

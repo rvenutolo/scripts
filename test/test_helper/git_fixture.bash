@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Confined git operations for BATS fixture repos (#248). Every function dies unless its
-# target path lives under BATS_TEST_TMPDIR. init/init_bare pin GIT_DIR/GIT_WORK_TREE and
+# Confined git operations for BATS fixture repos. Every function dies unless its target
+# path lives under BATS_TEST_TMPDIR. init/init_bare pin GIT_DIR/GIT_WORK_TREE and
 # run/run_bare pin --git-dir/--work-tree, so an inherited GIT_DIR/GIT_WORK_TREE cannot
 # retarget the call. Every function also clears the repo-scoped GIT_INDEX_FILE,
 # GIT_OBJECT_DIRECTORY, GIT_COMMON_DIR, and GIT_ALTERNATE_OBJECT_DIRECTORIES for the call,
@@ -27,7 +27,7 @@ function git_fixture::assert_confined() {
   args::check_exactly_1_arg "$@"
   local -r dir="$1"
   if [[ "${dir}" != /* ]]; then
-    log::die "git_fixture: path is not absolute: '${dir}' (#248)"
+    log::die "git_fixture: path is not absolute: '${dir}'"
   fi
   local tmp_real dir_real
   tmp_real="$(cd "${BATS_TEST_TMPDIR}" && pwd -P)" \
@@ -35,7 +35,7 @@ function git_fixture::assert_confined() {
   dir_real="$(realpath --canonicalize-missing -- "${dir}")" \
     || log::die "git_fixture: failed to resolve path: '${dir}'"
   if [[ "${dir_real}" != "${tmp_real}" && "${dir_real}" != "${tmp_real}"/* ]]; then
-    log::die "git_fixture: path escapes BATS_TEST_TMPDIR: '${dir}' -> '${dir_real}' (#248)"
+    log::die "git_fixture: path escapes BATS_TEST_TMPDIR: '${dir}' -> '${dir_real}'"
   fi
 }
 
@@ -49,8 +49,8 @@ function git_fixture::init() {
   shift
   git_fixture::assert_confined "${dir}"
   mkdir --parents -- "${dir}"
-  # Per-command env pin: a hostile inherited GIT_DIR wins over the positional dir in
-  # `git init`, silently retargeting the init (#248) — override it for this call only.
+  # Per-command env pin: a hostile inherited GIT_DIR wins over the positional dir in `git
+  # init`, silently retargeting the init — override it for this call only.
   # GIT_INDEX_FILE/GIT_OBJECT_DIRECTORY/etc. are cleared by _git_fixture::env_git.
   _git_fixture::env_git GIT_DIR="${dir}/.git" GIT_WORK_TREE="${dir}" git init --quiet "$@" "${dir}"
 }
@@ -61,7 +61,7 @@ function git_fixture::init_bare() {
   args::check_exactly_1_arg "$@"
   local -r dir="$1"
   git_fixture::assert_confined "${dir}"
-  # Per-command env pin — same #248 rationale as git_fixture::init.
+  # Per-command env pin — same rationale as git_fixture::init.
   _git_fixture::env_git GIT_DIR="${dir}" git init --bare --quiet "${dir}"
 }
 

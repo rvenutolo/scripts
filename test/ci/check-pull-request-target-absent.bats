@@ -5,10 +5,10 @@ setup() {
   mkdir -p "${WF}"
 }
 
-# .ci/check-pull-request-target-absent derives its own repo root via
-# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
-# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
-# every invocation — this test targets the real repo.
+# .ci/check-pull-request-target-absent derives its own repo root via `git
+# rev-parse --show-toplevel`. common.bash's fixture-escape hardening leaves CWD
+# at BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR
+# before every invocation — this test targets the real repo.
 run_check() {
   cd "${REPO_DIR}" || return 1
   run "$@"
@@ -118,9 +118,9 @@ EOF
 }
 
 @test "fails loudly on a workflow yq cannot parse" {
-  # Regression for #290. The trigger enumeration used to be a predicate called
-  # from an `if`, which disables errexit for its whole call tree: a failing yq
-  # read as "not triggered", the file went unscanned, and the check exited 0.
+  # The trigger enumeration must stay a plain command. As a predicate called from
+  # an `if` it disables errexit for its whole call tree: a failing yq then reads
+  # as "not triggered", the file goes unscanned, and the check exits 0.
   printf -- '- a\n- b\n' > "${WF}/seq.yml"
   WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure 1

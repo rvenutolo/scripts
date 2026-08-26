@@ -19,7 +19,7 @@ setup() {
 
   run "${CHECK}" "${doc}"
 
-  # The regression itself: shfmt must never see this file. See issue #206.
+  # The regression itself: shfmt must never see this file.
   refute_output --partial 'a command can only contain words and redirects'
   # ...and it must be visibly skipped rather than silently vanishing.
   assert_output --partial 'Skipping (not a shell file)'

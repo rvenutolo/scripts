@@ -4,8 +4,8 @@ setup() {
   RS="${BATS_TEST_TMPDIR}/rs.json"
 }
 
-# .ci/check-protect-main derives its own repo root via
-# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# .ci/check-protect-main derives its own repo root via `git rev-parse
+# --show-toplevel`. common.bash's fixture-escape hardening leaves CWD at
 # BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
 # every invocation — this test targets the real repo.
 run_check() {

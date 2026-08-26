@@ -53,8 +53,8 @@ make_root_test() {
 # All three scopes are always pinned at fixture dirs. Without the seams a scope
 # would fall back to the live checkout, and every test here would silently depend
 # on real repo state.
-# .ci/check-script-has-test derives its own repo root via
-# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# .ci/check-script-has-test derives its own repo root via `git rev-parse
+# --show-toplevel`. common.bash's fixture-escape hardening leaves CWD at
 # BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
 # every invocation.
 run_check() {

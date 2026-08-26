@@ -10,10 +10,10 @@ setup() {
   export EXEMPT_OVERRIDE=''
 }
 
-# .ci/check-harden-runner-disable-sudo derives its own repo root via
-# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
-# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
-# every invocation — this test targets the real repo.
+# .ci/check-harden-runner-disable-sudo derives its own repo root via `git
+# rev-parse --show-toplevel`. common.bash's fixture-escape hardening leaves CWD
+# at BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR
+# before every invocation — this test targets the real repo.
 run_check() {
   cd "${REPO_DIR}" || return 1
   run "$@"
@@ -126,10 +126,10 @@ EOF
 }
 
 @test "a workflow yq cannot parse aborts instead of inventing a finding" {
-  # Regression for #294. has_harden_runner was a predicate called from an `if`,
-  # which disables errexit for its whole call tree: a yq failure left an empty
-  # count, the arithmetic read it as zero, and the job was reported as having no
-  # harden-runner step — a real-looking finding manufactured from a parse error.
+  # The harden-runner presence check must stay a plain command. As a predicate
+  # called from an `if` it disables errexit for its whole call tree: a yq failure
+  # leaves an empty count, the arithmetic reads it as zero, and the job is reported
+  # as having no harden-runner step — a finding manufactured from a parse error.
   printf -- '- a\n- b\n' > "${WF}/seq.yml"
   WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure

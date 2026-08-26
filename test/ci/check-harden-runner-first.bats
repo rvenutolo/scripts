@@ -6,8 +6,8 @@ setup() {
   HR='step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5'
 }
 
-# .ci/check-harden-runner-first derives its own repo root via
-# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# .ci/check-harden-runner-first derives its own repo root via `git rev-parse
+# --show-toplevel`. common.bash's fixture-escape hardening leaves CWD at
 # BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
 # every invocation — this test targets the real repo.
 run_check() {
@@ -84,9 +84,9 @@ EOF
 }
 
 @test "fails loudly on a workflow yq cannot parse" {
-  # Regression for #290. The per-file helper runs inside a command substitution,
-  # where bash unsets errexit unless inherit_errexit is set. A failing yq used to
-  # leave the helper running past it, echoing a zero count, so the check exited 0
+  # The per-file helper runs inside a command substitution, where bash unsets
+  # errexit unless inherit_errexit is set. Without it a failing yq leaves the
+  # helper running past the failure, echoing a zero count, and the check exits 0
   # with the unparsable file never scanned.
   printf -- '- a\n- b\n' > "${WF}/seq.yml"
   WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
@@ -96,9 +96,9 @@ EOF
 # A missing scan target must not read as a clean pass. An absent directory is
 # indistinguishable from a directory whose contents are all fine, and this gate is
 # what stands between the repo and the thing it checks — the silent-false-green
-# shape of #250, #290 and #307, and the rule CLAUDE.md states as "Empty scan
-# results are failures, not clean passes". Surfaced the `exit 0` guard this check
-# used to carry when WORKFLOWS_DIR was absent (#323).
+# shape this repo spends the most effort on, and the rule CLAUDE.md states as
+# "Empty scan results are failures, not clean passes". An `exit 0` here when
+# WORKFLOWS_DIR is absent would disarm the check while every run stayed green.
 @test "dies when the workflows directory is absent" {
   WORKFLOWS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/absent" run_check "${CHECK}"
   assert_failure 1

@@ -10,9 +10,10 @@ setup() {
   CHECK="${REPO_DIR}/.ci/check-flake-eval-warnings"
   # The check resolves REPO_DIR via `git rev-parse --show-toplevel` and runs nix
   # from there, so it needs a git repo as cwd. common.bash leaves cwd at
-  # BATS_TEST_TMPDIR, which is deliberately not a repo (#248 hardening), so give
-  # it a throwaway fixture repo. `nix` is stubbed in every case — no test in this
-  # suite may shell out to the real thing (see the note in common.bash).
+  # BATS_TEST_TMPDIR, which is deliberately not a repo (fixture-escape
+  # hardening), so give it a throwaway fixture repo. `nix` is stubbed in every
+  # case — no test in this suite may shell out to the real thing (see the note in
+  # common.bash).
   FIXTURE_REPO="${BATS_TEST_TMPDIR}/repo"
   git_fixture::init "${FIXTURE_REPO}"
   cd "${FIXTURE_REPO}" || return 1
@@ -109,7 +110,7 @@ error: flake check failed' 1
 }
 
 @test "invokes nix with --no-eval-cache" {
-  # The whole point of #244: the evaluation cache suppresses warning lines after
+  # Without --no-eval-cache the evaluation cache suppresses warning lines after
   # the first run, so a warm local gate is quieter than cold CI.
   stub_nix ''
   run "${CHECK}"

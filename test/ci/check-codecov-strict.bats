@@ -10,8 +10,8 @@ setup() {
   export ACTIONS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/actions"
 }
 
-# .ci/check-codecov-strict derives its own repo root via
-# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# .ci/check-codecov-strict derives its own repo root via `git rev-parse
+# --show-toplevel`. common.bash's fixture-escape hardening leaves CWD at
 # BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
 # every invocation.
 run_check() {
@@ -176,9 +176,9 @@ EOF
 }
 
 @test "fails loudly on a workflow yq cannot parse" {
-  # Regression for #290. The per-file helper runs inside a command substitution,
-  # where bash unsets errexit unless inherit_errexit is set. A failing yq used to
-  # leave the helper running past it, echoing a zero count, so the check exited 0
+  # The per-file helper runs inside a command substitution, where bash unsets
+  # errexit unless inherit_errexit is set. Without it a failing yq leaves the
+  # helper running past the failure, echoing a zero count, and the check exits 0
   # with the unparsable file never scanned.
   printf -- '- a\n- b\n' > "${WF}/seq.yml"
   WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
@@ -186,7 +186,7 @@ EOF
 }
 
 @test "fails: composite action step with fail_ci_if_error false" {
-  # #291: a codecov step moved into a composite must stay in scope. A composite
+  # A codecov step moved into a composite action must stay in scope. A composite
   # has no job, so the violation names the file alone.
   cat > "${ACT}/action.yml" << 'EOF'
 name: coverage

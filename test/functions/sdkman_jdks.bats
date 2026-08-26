@@ -966,8 +966,8 @@ EOF
 }
 
 @test "install_latest_tem_jdk: ignores a local-only artifact sorting above the newest remote" {
-  # The failure #304 describes: 21.0.9 is local only and sorts first for major 21, so an
-  # unfiltered catalog would hand `sdk install java` an artifact the API no longer serves.
+  # 21.0.9 is local only and sorts first for major 21, so an unfiltered catalog would hand
+  # `sdk install java` an artifact the API does not serve.
   stub_sdk_catalog_local_only_first
   run sdkman_jdks::install_latest_tem_jdk 21
   assert_success

@@ -7,12 +7,13 @@ setup() {
   printf '%s\n' 'feat: add a thing' > "${MSG_FILE}"
 }
 
-# The hook derives no repo root of its own, so common.bash's #248 hardening leaving CWD
-# at BATS_TEST_TMPDIR is fine here — unlike the .ci/ checks, which must cd into REPO_DIR.
+# The hook derives no repo root of its own, so common.bash's fixture-escape hardening
+# leaving CWD at BATS_TEST_TMPDIR is fine here — unlike the .ci/ checks, which must cd
+# into REPO_DIR.
 #
 # BASH_ENV is neutralized on every invocation: the hook's own `#!/usr/bin/env bash` startup
 # would re-source ~/.bashrc, re-prepending the real nix PATH ahead of the commitlint shim.
-# SAFE_BASH_ENV rather than a literal '' keeps kcov's trace helper attached (#322).
+# SAFE_BASH_ENV rather than a literal '' keeps kcov's trace helper attached.
 run_hook() {
   BASH_ENV="${SAFE_BASH_ENV}" run "$@"
 }

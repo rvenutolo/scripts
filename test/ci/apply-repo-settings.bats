@@ -7,16 +7,17 @@ setup() {
 
 # .ci/apply-repo-settings derives its own repo root via `git rev-parse
 # --show-toplevel` (it feeds .github/rulesets/protect-main.json to gh).
-# common.bash's #248 hardening leaves CWD at BATS_TEST_TMPDIR (outside any git
-# repo) by design, so cd into REPO_DIR before every invocation.
+# common.bash's fixture-escape hardening leaves CWD at BATS_TEST_TMPDIR
+# (outside any git repo) by design, so cd into REPO_DIR before every
+# invocation.
 #
 # BASH_ENV is neutralized on every invocation: the script's own `#!/usr/bin/env bash`
 # startup would re-source ~/.bashrc, which re-prepends the real nix PATH and would
 # shadow the gh shim with the REAL gh. This script mutates a live GitHub repo,
 # so an unshimmed invocation is not a failed test — it is an unintended write.
 #
-# SAFE_BASH_ENV rather than a literal '': the clearing form also stripped kcov's trace
-# helper, so this script read 0/29 with twelve tests behind it (#322). The substituted
+# SAFE_BASH_ENV rather than a literal '': the clearing form also strips kcov's trace
+# helper, so this script reads 0% with its whole test suite behind it. The substituted
 # value is kcov's helper only, which sources nothing and leaves PATH alone — the shim
 # still wins, and the poison-gh test below is what proves it on every run.
 run_check() {
@@ -136,9 +137,10 @@ exit 1'
   assert_output --partial 'done'
 }
 
-# run_check swapped `BASH_ENV=''` for `BASH_ENV="${SAFE_BASH_ENV}"` in #322, and clearing
-# was what kept the real gh out of reach here. This script writes to a live GitHub repo, so
-# that substitution needs a standing proof rather than a one-off check at review time.
+# run_check sets `BASH_ENV="${SAFE_BASH_ENV}"` rather than clearing BASH_ENV outright, and
+# clearing is what keeps the real gh out of reach here. This script writes to a live GitHub
+# repo, so that substitution needs a standing proof rather than a one-off check at review
+# time.
 #
 # The hazard is reconstructed rather than borrowed from the user's real dotfiles: a startup
 # file that re-prepends a directory ahead of the shim dir, which is exactly what ~/.bashrc

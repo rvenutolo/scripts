@@ -6,8 +6,8 @@ setup() {
 }
 
 # .ci/check-required-checks-no-paths derives its own repo root via `git
-# rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
-# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR
+# rev-parse --show-toplevel`. common.bash's fixture-escape hardening leaves CWD
+# at BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR
 # before every invocation — this test targets the real repo.
 run_check() {
   cd "${REPO_DIR}" || return 1
@@ -82,18 +82,18 @@ EOF
 }
 
 @test "fails loudly on a workflow yq cannot parse" {
-  # Regression for #294. The yq call used to carry
-  # `2> /dev/null || printf 'false'`, so an unreadable document reported
-  # "declares no path filter" and the check exited 0 having never inspected it.
+  # A `2> /dev/null || printf 'false'` fallback on the yq call would report an
+  # unreadable document as "declares no path filter", and the check would exit 0
+  # having never inspected it.
   printf -- '- a\n- b\n' > "${WF}/seq.yml"
   WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure 1
 }
 
 @test "passes on a flow-list on: trigger" {
-  # The shape the deleted fallback was really covering: `.on.pull_request`
-  # errors while indexing a sequence, before any select on the result can
-  # filter it. Guarding `.on` itself is what makes the fallback unnecessary.
+  # The shape that tempts a fallback: `.on.pull_request` errors while indexing a
+  # sequence, before any select on the result can filter it. Guarding `.on` itself
+  # is what makes the fallback unnecessary.
   cat > "${WF}/a.yml" << 'EOF2'
 on: [push, pull_request]
 jobs:
@@ -130,9 +130,9 @@ EOF2
 # A missing scan target must not read as a clean pass. An absent directory is
 # indistinguishable from a directory whose contents are all fine, and this gate is
 # what stands between the repo and the thing it checks — the silent-false-green
-# shape of #250, #290 and #307, and the rule CLAUDE.md states as "Empty scan
-# results are failures, not clean passes". Surfaced the `exit 0` guard this check
-# used to carry when WORKFLOWS_DIR was absent (#323).
+# shape this repo spends the most effort on, and the rule CLAUDE.md states as
+# "Empty scan results are failures, not clean passes". An `exit 0` here when
+# WORKFLOWS_DIR is absent would disarm the check while every run stayed green.
 @test "dies when the workflows directory is absent" {
   WORKFLOWS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/absent" run_check "${CHECK}"
   assert_failure 1

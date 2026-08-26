@@ -7,8 +7,8 @@ setup() {
 }
 
 # Run with both override seams pointed at the test tmpdirs.
-# .ci/check-upload-artifact-strict derives its own repo root via
-# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# .ci/check-upload-artifact-strict derives its own repo root via `git rev-parse
+# --show-toplevel`. common.bash's fixture-escape hardening leaves CWD at
 # BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
 # every invocation — this test targets the real repo.
 # shellcheck disable=SC2120 # run_check forwards "$@" as a deliberate affordance matching the sibling test helpers; no call site needs args today

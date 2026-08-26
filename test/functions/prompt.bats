@@ -16,8 +16,8 @@ setup() {
 #
 # In-process rather than via `bash -c`: a child shell is a separate process, so
 # nothing it executes is attributed to the helper under test by the coverage
-# harness, and every branch these tests drive scored as unhit (#310). `run`
-# leaves stdin alone, so the herestring reaches the helper's `read` directly.
+# harness, and every branch these tests drive scores as unhit. `run` leaves
+# stdin alone, so the herestring reaches the helper's `read` directly.
 prompt_via_stdin() {
   local -r stdin_str="$1"
   shift
