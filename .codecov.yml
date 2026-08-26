@@ -58,11 +58,11 @@ coverage:
       gates:
         flags:
           - gates
-        # Informational until the measurement has a couple of real baselines on
-        # main. The first upload can only happen after this lands, so gating on
-        # a number nobody has seen would mean a red build on day one for no
-        # signal. Flip to a real target once the baseline is established.
-        informational: true
+        # A real target, on the same terms as `default` above. It shipped
+        # `informational: true` for exactly one commit, until a baseline
+        # existed; two independent CI runs then measured the same tree at
+        # 2662 / 3377 and 78.82736%, agreeing to five significant figures, which
+        # is the same determinism the functions scope has.
         target: auto
         threshold: 1%
     patch:

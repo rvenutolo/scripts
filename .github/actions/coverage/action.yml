@@ -58,13 +58,24 @@ runs:
         repo="$(git rev-parse --show-toplevel)"
         case "${SCOPE}" in
           functions)
-            include="${repo}/scripts/functions"
-            parse="${repo}/scripts/functions"
+            kcov_args=(
+              --include-path="${repo}/scripts/functions"
+              --bash-parse-files-in-dir="${repo}/scripts/functions"
+            )
             suites=('test/functions')
             ;;
           gates)
-            include="${repo}/.ci,${repo}/check-scripts,${repo}/run-all-checks,${repo}/run-install-scripts,${repo}/run-set-up-scripts,${repo}/run-tests,${repo}/shellcheck-scripts"
-            parse="${repo}/.ci,${repo}"
+            kcov_args=(
+              --include-path="${repo}/.ci,${repo}/check-scripts,${repo}/run-all-checks,${repo}/run-install-scripts,${repo}/run-set-up-scripts,${repo}/run-tests,${repo}/shellcheck-scripts"
+              --bash-parse-files-in-dir="${repo}/.ci,${repo}"
+              # .ci/required-tools is data, not code: a comment-and-tool-name
+              # list with no shebang and no executable bit, consumed by
+              # check-devshell-provides and check-tool-declarations. Walking
+              # .ci/ hands it to kcov's bash lexer, which scores its 20 bare
+              # tool names as unhittable statements. Those lines are not code
+              # and do not belong in a code-coverage denominator.
+              --exclude-path="${repo}/.ci/required-tools"
+            )
             suites=('test/ci' 'test/root')
             ;;
           *)
@@ -76,12 +87,21 @@ runs:
         # per-scope subdirectory makes it two: without this it dies with
         # "Can't write helper" before running a single test.
         mkdir --parents "${RUNNER_TEMP}/coverage/${SCOPE}"
+        # The scope's kcov flags and its suite list are both variable-length, so
+        # they are passed as one argument vector split on a literal `--`.
         ./.ci/in-devshell bash -c '
+          kcov_args=()
+          while [[ "$1" != "--" ]]; do
+            kcov_args+=("$1")
+            shift
+          done
+          shift
+          scope="$1"
+          shift
           kcov \
             --bash-parser="$(type -P bash)" \
             --bash-dont-parse-binary-dir \
-            --include-path="$1" \
-            --bash-parse-files-in-dir="$2" \
-            "${RUNNER_TEMP}/coverage/$3" \
-            bats --recursive "${@:4}"
-        ' _ "${include}" "${parse}" "${SCOPE}" "${suites[@]}"
+            "${kcov_args[@]}" \
+            "${RUNNER_TEMP}/coverage/${scope}" \
+            bats --recursive "$@"
+        ' _ "${kcov_args[@]}" -- "${SCOPE}" "${suites[@]}"
