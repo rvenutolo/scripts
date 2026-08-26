@@ -100,11 +100,10 @@
               lychee
               # tests / runtime
               commitlint
-              # withLibraries, not bare bats: bats-support and bats-assert used to be
-              # git submodules under test/test_helper/, loaded by relative path. The
-              # wrapper this produces exports BATS_LIB_PATH at its own share/bats, so
-              # test_helper/common.bash loads them with `bats_load_library` and a bats
-              # that is not this one fails loudly instead of silently missing them.
+              # withLibraries, not bare bats: the wrapper this produces exports
+              # BATS_LIB_PATH at its own share/bats, so test_helper/common.bash loads
+              # bats-support and bats-assert with `bats_load_library`, and a bats that
+              # is not this one fails loudly instead of silently missing them.
               (bats.withLibraries (l: [
                 # Both libraries come from flake INPUTS pinned in flake.lock, not
                 # from the nixpkgs releases. nixpkgs ships bats-assert 2.1.0,

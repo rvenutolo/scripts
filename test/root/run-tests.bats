@@ -156,7 +156,7 @@ make_guard_bin() {
 
 @test "tripwire: fails when the suite mutates the repo config" {
   # Stub bats writes into the surrounding fixture repo's config, simulating a
-  # fixture escape (#248), and exits 0 as if all tests passed.
+  # fixture escape, and exits 0 as if all tests passed.
   # shellcheck disable=SC2016 # single quotes are deliberate: the snippet is evaluated by the stub, not here
   make_recording_bats_stub_with_body 'git config --file "$(git rev-parse --path-format=absolute --git-path config)" bats.escaped true'
   run_in_fake_repo
