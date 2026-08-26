@@ -469,3 +469,25 @@ b"
   assert_success
   assert_output --partial 'check-vacuous-arity-tests'
 }
+
+# Both arms below pin the same rule as the workflow-dir checks: an empty scan is a
+# misdirected scan, not a clean one. This file's own comment above the .bats find
+# already records that shape biting once — a loose glob dropped every file, the lint
+# found nothing and exited 0, "indistinguishable from a clean suite" — while the
+# empty-list guard eleven lines further down still exited 0 (#323).
+@test "dies when the test directory holds no .bats files" {
+  make_function 'fixture::one' 'exactly_1_arg'
+  run "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'no .bats files'
+}
+
+@test "dies when no guard sources are found" {
+  make_test '%% "t" {
+  run fixture::one a b
+  assert_failure
+}'
+  run "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'no guard sources'
+}
