@@ -957,15 +957,30 @@ Facts that are load-bearing, from #307, #310, and #319:
   nothing. `.ci/check-script-has-test` never covered it either: that lint scopes shebang-bearing
   executables, so its `EXEMPT` array is empty and correctly does not name this file.
 
-  **A local gates run reads about a point higher, and CI is the authority.** The same tree
-  measured 2686 / 3345 locally against 2662 / 3377 on CI, before the `required-tools` exclusion
-  below removed 20 lines from both. The denominator differs because a local `--bash-parse-files-in-dir`
-  run started before `run-tests` was added to it; the numerator differs almost entirely in
-  `.ci/check-jsonschema`, which reads 33/36 locally and 7/36 on CI. That is the `BASH_ENV` blind
-  spot below behaving differently depending on whether the invoking environment already set
-  `BASH_ENV` — the maintainer's shell does, a runner's does not. Do not read a local-to-CI delta as
-  a regression; compare CI to CI. The `functions` scope is unaffected and reproduces to within one
-  line (1943 on CI against the documented 1944).
+  **The gates number is reproducible for a given invocation, but not invariant to the shape of
+  that invocation. CI is the authority; never compare a local number to a CI one.** Two CI runs on
+  two commits produced 2662 / 3377 byte-identically, so the measurement is deterministic in the
+  sense that matters for a delta. A local `--jobs 8` run of the same tree read 2686 / 3345 — a
+  denominator that predates the `run-tests` fix, and a numerator 26 lines higher.
+
+  Every one of those 26 lines is `.ci/check-jsonschema`, and the cause is **not** the `BASH_ENV`
+  blind spot below. Bisected:
+
+  - Its own test file contributes 7/36 in both environments — the arg-guard death path, the one
+    test of four that does not clear `BASH_ENV`.
+  - The other 26 come from `test/ci/run-governance-checks.bats`'s real-repo test, which runs the
+    live governance suite and so invokes `.ci/check-jsonschema` as a **grandchild**
+    (bats → `run-governance-checks` → the check).
+  - That grandchild's trace is recorded **only when enough other test files run concurrently**.
+    `run-governance-checks.bats` alone contributes 0/36 whether run serially or with `--jobs 8`;
+    run alongside ten other files it contributes 26. Drop it from that eleven-file set and the
+    number falls straight back to 0.
+
+  CI runs `bats --recursive` with no `--jobs`, so it never records this path (#325). **The consequence is
+  that a script reachable only as a grandchild can be under-reported, and the amount depends on
+  scheduling rather than on the tests.** Do not chase such a file's coverage without first checking
+  whether it is invoked at that depth. The `functions` scope is unaffected — its helpers are sourced,
+  not spawned — and reproduces to within one line (1943 on CI against the documented 1944).
 
 - **The report is written to `$RUNNER_TEMP`, not into the tree.** kcov drops shebang-bearing
   `bash-helper*.sh` files into its output directory, and `check-scripts` walks the filesystem, so a
