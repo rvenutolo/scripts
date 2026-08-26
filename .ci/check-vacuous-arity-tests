@@ -3,8 +3,8 @@
 # @description Assert that no BATS test asserts only `assert_failure` after invoking
 #              a helper with an argument count its `args::check_*` guard rejects.
 #              Such a test passes whenever the helper fails for any reason, so it
-#              does not pin the arity guard it claims to test (#265). The check
-#              resolves each `run` target to the guard the helper declares, counts
+#              does not pin the arity guard it claims to test. The check resolves
+#              each `run` target to the guard the helper declares, counts
 #              the arguments on the `run` line, and flags the test only when that
 #              count violates the guard — so predicate helpers returning false are
 #              never flagged, and an unrecognised invocation shape is passed over
@@ -41,8 +41,8 @@ readonly FUNCTIONS_DIR="${FUNCTIONS_DIR_OVERRIDE:-${REPO_DIR}/scripts/functions}
 # The key carries no spaces on purpose: arrays::from_env_override splits the
 # override variable on spaces, so a title-based key would be torn apart. It is also
 # stable when a test moves within its file, which a line number is not. Ships empty:
-# the sweep in #265 cleared every hit, so a new entry means a genuine exception that
-# could not be strengthened, and it must carry a reason.
+# no test currently needs one, so a new entry means a genuine exception that could
+# not be strengthened, and it must carry a reason.
 readonly EXEMPT=()
 
 # @description Print `function<TAB>guard-kind` for every function that declares an
@@ -244,20 +244,20 @@ function main() {
     find "${guard_roots[@]}" -maxdepth 1 -name '*.bash' -type f | sort > "${sources_tmp}"
   fi
   if dirs::exists "${TEST_DIR}"; then
-    # Scanned unfiltered: the vendored bats submodules that used to need excluding
-    # are gone, and bats now comes from the devShell. Should a path filter ever be
-    # needed again, spell it exactly — a loose '*/bats-*/*' glob also matches BATS's
-    # own run directory (bats-run-XXXXXX), which silently dropped every file when the
-    # scan root was a fixture tree under BATS_TEST_TMPDIR: the lint found nothing and
-    # exited 0, indistinguishable from a clean suite.
+    # Scanned unfiltered: bats comes from the devShell, so there is no vendored
+    # submodule to exclude. Should a path filter ever be needed, spell it exactly —
+    # a loose '*/bats-*/*' glob also matches BATS's own run directory
+    # (bats-run-XXXXXX), which silently drops every file when the scan root is a
+    # fixture tree under BATS_TEST_TMPDIR: the lint finds nothing and exits 0,
+    # indistinguishable from a clean suite.
     find "${TEST_DIR}" -name '*.bats' -type f | sort > "${bats_tmp}"
   fi
 
   mapfile -t sources < "${sources_tmp}"
   mapfile -t bats_files < "${bats_tmp}"
-  # An empty scan is a misdirected scan, not a clean one — the same rule the comment
-  # above the .bats find records being violated once already, when a loose glob
-  # dropped every file and this lint exited 0 over a suite it never read (#323).
+  # An empty scan is a misdirected scan, not a clean one — the trap the comment
+  # above the .bats find describes, where a loose glob drops every file and this
+  # lint exits 0 over a suite it never read.
   if [[ "${#sources[@]}" -eq 0 ]]; then
     log::die "no guard sources found under ${FUNCTIONS_DIR} or ${TEST_DIR}/test_helper"
   fi

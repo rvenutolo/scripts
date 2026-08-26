@@ -3,15 +3,15 @@
 # @description Assert the repo has exactly one justfile, that it is the hidden
 #              .justfile, that its recipe set and README's command table agree
 #              bidirectionally, and that the full-gate entry points still name
-#              ./run-all-checks. Two tracked justfiles made `just` refuse to run
-#              at all, taking out every documented invocation (#218); README's
-#              table had meanwhile drifted into a union matching neither file.
+#              ./run-all-checks. Two tracked justfiles make `just` refuse to run
+#              at all, taking out every documented invocation, and README's table
+#              drifts into a union matching neither file.
 #              The gate assertions cover the machine-readable copies of the gate
-#              description (#222) — CLAUDE.md's prose list is deliberately out of
-#              scope, since string-matching prose fails on rewording.
+#              description — CLAUDE.md's prose list is deliberately out of scope,
+#              since string-matching prose fails on rewording.
 #              Recipe parsing is delegated to `just --dump`, so the repo does not
-#              re-encode just's grammar (#229); README scanning is scoped to the
-#              `## Common commands` section (#230).
+#              re-encode just's grammar; README scanning is scoped to the
+#              `## Common commands` section.
 #              Every public recipe must also carry a doc comment.
 # @noargs
 # @stderr One line per violation.
@@ -75,13 +75,13 @@ function justfile_candidates() {
 
 # @description Write `just`'s JSON dump of a justfile to a destination file.
 #              Parsing is delegated to `just` itself rather than re-encoded here:
-#              this lint used to carry the recipe-name pattern twice, and both
-#              copies rejected an uppercase-initial name, so such a recipe was
-#              invisible to the justfile parser and the README parser at once and
-#              the parity check passed on exactly the case it exists to flag
-#              (#229). A justfile `just` cannot parse now fails the lint with
-#              just's own file/line/column diagnostic on stderr, which is the
-#              fail-closed behavior that issue asked for.
+#              a hand-written recipe-name pattern has to be kept in two places,
+#              and a pattern that rejects an uppercase-initial name makes such a
+#              recipe invisible to the justfile parser and the README parser at
+#              once, so the parity check passes on exactly the case it exists to
+#              flag. A justfile `just` cannot parse fails the lint with just's
+#              own file/line/column diagnostic on stderr, which is the
+#              fail-closed behavior wanted here.
 # @arg $1 justfile_path path to the justfile
 # @arg $2 dest_path file to write the JSON dump to
 # @stderr just's parse diagnostic, when it cannot parse the justfile.
@@ -104,8 +104,8 @@ function justfile_dump() {
 #              `just` reports private=true for both a `_` name prefix and a
 #              `[private]` attribute, which are the two ways it hides a recipe
 #              from `just --list`. Note that `just` rejects digit-initial recipe
-#              names outright — contrary to #229's claim, verified on just 1.51.0
-#              — so no pattern here needs to accommodate them.
+#              names outright — verified on just 1.51.0 — so no pattern here
+#              needs to accommodate them.
 # @arg $1 dump_path path to a JSON dump written by justfile_dump
 # @stdout One `private<TAB>name` or `public<TAB>name` line per recipe.
 function classified_recipes() {
@@ -140,11 +140,10 @@ function undocumented_recipes() {
 
 # @description Print the recipe names README's `## Common commands` section
 #              refers to, one per line. Only rows inside that section are
-#              scanned. The previous implementation grepped every line in the
-#              file beginning with `|`, so any unrelated markdown table that
-#              mentioned a recipe in passing would have registered as a
-#              documented command and produced a false failure claiming the
-#              justfile does not define it (#230).
+#              scanned. Grepping every line in the file beginning with `|`
+#              instead would let any unrelated markdown table that mentions a
+#              recipe in passing register as a documented command, producing a
+#              false failure claiming the justfile does not define it.
 # @arg $1 readme_path path to README.md
 # @stdout One recipe name per line, sorted and deduplicated.
 # @exitcode 0 the section was found.

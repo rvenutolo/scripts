@@ -2,9 +2,9 @@
 
 # @description Point this clone's core.hooksPath at the tracked .githooks
 #              directory so the repo's commit-msg and pre-push hooks actually
-#              fire. Activation used to be a manual, per-clone `git config`
+#              fire. Activation is otherwise a manual, per-clone `git config`
 #              step, and repo-local config cannot be committed — so it silently
-#              never happened and both tracked hooks sat inert (issue #212).
+#              never happens and both tracked hooks sit inert.
 #              This script exists so the flake devShell can do it instead:
 #              `direnv allow` / `nix develop` is the one onboarding step a
 #              contributor cannot skip. Idempotent and completely silent once
@@ -16,8 +16,8 @@
 #              Standalone on purpose, unlike every other script under .ci/: it
 #              runs from the devShell shellHook, including under
 #              `nix develop --ignore-environment`, where SCRIPTS_DIR does not
-#              exist and sourcing the function library killed it under set -u
-#              (#231). Bootstrapping a clone cannot depend on the environment
+#              exist and sourcing the function library would kill it under
+#              set -u. Bootstrapping a clone cannot depend on the environment
 #              that clone has not set up yet, so this inlines the ERR trap and
 #              its handful of helpers the way scripts/misc/ standalone scripts
 #              do — and omits args::handle_help_flag along with them, since a

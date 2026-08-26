@@ -6,8 +6,6 @@
 #              index of what CI does, and nothing else keeps it honest: a
 #              workflow added without a row is invisible, and a row left behind
 #              by a deleted workflow documents something that no longer runs.
-#              Both drifted undetected until #289 (`protect-main-drift-check`
-#              and `pr-title-lint` were missing).
 #
 #              The table is delimited by `<!-- workflow-table:begin -->` and
 #              `<!-- workflow-table:end -->` markers rather than being located

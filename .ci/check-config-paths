@@ -4,11 +4,7 @@
 #              something git knows about. Exclusion lists and label globs name
 #              directories by hand, and when a directory moves the stale entry
 #              simply matches nothing — no error, no warning, the config just
-#              stops doing its job. The scripts/ reorganisation left four such
-#              entries behind: typos was scanning scripts/other/, third-party code
-#              the repo forbids editing; the PR auto-labeler had silently stopped
-#              labelling script changes; and reviewdog was shellchecking the same
-#              third-party tree (#314, #315).
+#              stops doing its job.
 #
 #              A path passes when it is tracked or deliberately gitignored. Both
 #              are intentional states, and neither consults the working tree, so
@@ -200,7 +196,7 @@ function main() {
       continue
     fi
     # Called plainly, never as a condition: a parser failure must reach the ERR
-    # trap rather than be read as "this source configures no paths" (#294).
+    # trap rather than be read as "this source configures no paths".
     "${extractor}" "${file}" > "${entries_tmp}"
     while IFS= read -r entry; do
       strings::is_blank "${entry}" && continue

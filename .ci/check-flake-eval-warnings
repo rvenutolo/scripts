@@ -5,15 +5,15 @@
 #              results, and a cache hit suppresses the warning lines that the
 #              cold run printed — so a warm local gate is quieter than CI, which
 #              always starts cold, and a newly introduced flake warning is
-#              invisible to ./run-all-checks (#244). `--no-eval-cache` forces a
-#              real evaluation every time; the measured cost is ~2s against a
+#              invisible to ./run-all-checks. `--no-eval-cache` forces a real
+#              evaluation every time; the measured cost is ~2s against a
 #              ~90s gate. This check is a strict superset of the bare
 #              `nix flake check` step it replaces: flake check's own exit status
 #              still fails the gate. Both surfaces — ./run-all-checks and the
 #              `nix-flake-check` CI job — call this one script so the local and
 #              CI definitions of "flake check" cannot drift. The flake is
 #              evaluated in the repo this script was invoked in, never the
-#              ambient one, so a worktree grades its own tree (#250).
+#              ambient one, so a worktree grades its own tree.
 # @noargs
 # @stderr Flake check's combined output when it fails, plus one line per evaluation warning.
 # @exitcode 0 nix flake check passed and emitted no evaluation warnings.

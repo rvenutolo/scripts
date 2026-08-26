@@ -30,7 +30,7 @@ function main() {
   args::check_no_args "$@"
   # Not `if ! dirs::exists ...; then exit 0; fi`: an absent scan target is a
   # misdirected scan, and reporting it as a clean pass is indistinguishable from
-  # having checked every workflow and found them all fine (#250, #290, #307, #323).
+  # having checked every workflow and found them all fine.
   dirs::assert_exists "${WORKFLOWS_DIR}"
   local files_tmp
   files::create_temp files_tmp
@@ -39,16 +39,15 @@ function main() {
   local file has_filter
   while IFS= read -r file; do
     strings::is_empty "${file}" && continue
-    # Both select(type == "!!map") guards are load bearing, and the outer one
-    # is the reason this no longer swallows errors. `.on.pull_request` on a
-    # flow-list trigger (`on: [pull_request]`) errors while indexing, BEFORE any
-    # select on the result can filter it — so guarding only the inner value left
-    # a `yq` failure on a legitimate workflow, which the old
-    # `2> /dev/null || printf 'false'` fallback then hid. That fallback also hid
-    # a genuinely unreadable document, reporting it as "declares no path filter"
-    # and exiting 0 (#294). Guarding `.on` itself handles every legal shape
-    # without erroring, so the fallback is gone and a real parse failure now
-    # aborts the lint.
+    # Both select(type == "!!map") guards are load bearing, and the outer one is
+    # why no fallback is needed here. `.on.pull_request` on a flow-list trigger
+    # (`on: [pull_request]`) errors while indexing, BEFORE any select on the
+    # result can filter it — so guarding only the inner value lets a `yq` failure
+    # on a legitimate workflow reach whatever fallback follows. A
+    # `2> /dev/null || printf 'false'` fallback hides that, and hides a genuinely
+    # unreadable document with it, reporting the file as "declares no path
+    # filter" and exiting 0. Guarding `.on` itself handles every legal shape
+    # without erroring, so a real parse failure aborts the lint instead.
     has_filter="$(yq eval '
       (.on
         | select(type == "!!map")

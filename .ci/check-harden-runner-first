@@ -61,7 +61,7 @@ function main() {
   args::check_no_args "$@"
   # Not `if ! dirs::exists ...; then exit 0; fi`: an absent scan target is a
   # misdirected scan, and reporting it as a clean pass is indistinguishable from
-  # having checked every workflow and found them all fine (#250, #290, #307, #323).
+  # having checked every workflow and found them all fine.
   dirs::assert_exists "${WORKFLOWS_DIR}"
   local files_tmp
   files::create_temp files_tmp

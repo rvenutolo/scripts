@@ -4,16 +4,16 @@
 #              CLI's integrity checking armed. With `fail_ci_if_error` false or
 #              absent, codecov.sh's `exit_if_error` only prints and returns, so
 #              a failed GPG signature check falls through to `chmod +x` and the
-#              CLI runs with no verified provenance (#199), and a rejected
-#              upload still reports green (#200). Three further inputs bypass
-#              validation outright — `skip_validation`, `binary`, `use_pypi` —
+#              CLI runs with no verified provenance, and a rejected upload still
+#              reports green. Three further inputs bypass validation outright —
+#              `skip_validation`, `binary`, `use_pypi` —
 #              so guarding `fail_ci_if_error` alone would leave three ways to
 #              reintroduce the same hole.
 #
 #              Scans .github/actions/ as well as .github/workflows/. Moving a
 #              codecov step into a composite action is the established way to
 #              share it in this repo, and a workflow-only scan would let that
-#              move carry the step out of the lint's reach (#291).
+#              move carry the step out of the lint's reach.
 # @noargs
 # @stderr One line per violation, plus a final count.
 # @exitcode 0 every codecov-action step is strict.
@@ -52,7 +52,7 @@ readonly ACTIONS_DIR="${ACTIONS_DIR_OVERRIDE:-${REPO_DIR}/.github/actions}"
 #              contribute nothing to the other kind of file rather than
 #              erroring. A document that is neither — a root-level sequence, say
 #              — still errors, and must: that is a file this lint cannot read,
-#              and reporting it clean would be a false green (#290).
+#              and reporting it clean would be a false green.
 # @arg $1 file path to a workflow or composite-action YAML
 # @stdout Zero or more `kind|job|v|v|v|v` records.
 function codecov_steps() {

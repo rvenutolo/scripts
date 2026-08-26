@@ -53,10 +53,7 @@ readonly EXEMPT=()
 readonly ROOT_EXEMPT=()
 
 # Tracked git hooks exempt from the mandate. Deliberately empty: both hooks have
-# paired tests under test/ci/. They were outside every scope until #321, which is
-# how two load-bearing files — the Conventional Commits gate and the hook that
-# installs the #248 fixture-escape defense before running the suite — came to be
-# the only untested code in the gate tree. Same staleness detection as above.
+# paired tests under test/ci/. Same staleness detection as above.
 readonly HOOKS_EXEMPT=()
 
 # @description Print the basenames of entries directly inside dir that are

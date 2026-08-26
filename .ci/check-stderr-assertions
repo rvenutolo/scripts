@@ -8,8 +8,8 @@
 #              Four rules. Rule 1: no raw stderr expansion inside a bracket test —
 #              use assert_stderr / refute_stderr. Rule 2: inside a @test block whose
 #              `run` carried --separate-stderr, an assert_output / refute_output /
-#              assert_line / refute_line carrying an expectation is the trap issue
-#              #274 documents: it reads correctly and can never match, because
+#              assert_line / refute_line carrying an expectation is the trap this
+#              rule exists for: it reads correctly and can never match, because
 #              --separate-stderr leaves $output holding stdout alone. A bare
 #              assert_output, a bare refute_output, and `assert_output ''` are
 #              allowed, because asserting that stdout is empty while stderr carries

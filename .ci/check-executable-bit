@@ -131,7 +131,7 @@ function main() {
   # branch and never applies that exclusion regex, so the helper needs no change.
   # REPO_DIR-relative, not SCRIPTS_DIR-relative: the whole classifier works in
   # REPO_DIR terms, and the BATS fixture deliberately leaves SCRIPTS_DIR pointing
-  # at the real repo. See issue #175.
+  # at the real repo.
   if dirs::exists "${REPO_DIR}/scripts/other"; then
     shell_scripts::find "${REPO_DIR}/scripts/other" >> "${candidates_file}"
   fi
@@ -142,14 +142,14 @@ function main() {
       continue
     fi
     relative="${file#"${REPO_DIR}/"}"
-    # First match wins; see issue #171 and the "Preserving the executable bit"
-    # section of CLAUDE.md for why each arm is ordered where it is.
+    # First match wins; see the "Preserving the executable bit" section of
+    # CLAUDE.md for why each arm is ordered where it is.
     case "${relative}" in
       scripts/other/*)
         # Always on PATH, so a stripped bit breaks it exactly as under
         # non-interactive/. Deliberately ahead of the library rule: third-party
         # files get this one rule from us and no naming conventions imposed on
-        # content we never modify. See issue #175.
+        # content we never modify.
         assert_executable "${file}" 'script under scripts/other/ (always on PATH)' || rc=1
         ;;
       *.bash | *.bats)
@@ -158,8 +158,7 @@ function main() {
       scripts/install/* | scripts/set_up/*)
         # Must be executable unless explicitly gated. Deliberately AFTER the
         # library rule: a *.bash under install/ is a library file and must stay
-        # non-executable, so this arm must not claim it. See issue #173 for the
-        # measurement behind enforcing here at all.
+        # non-executable, so this arm must not claim it.
         if arrays::contains "${relative}" "${GATED[@]}"; then
           continue
         fi
