@@ -103,3 +103,21 @@ run_runner() {
   run_runner --help
   assert_success
 }
+
+# The absent-.profile case above is only half the contract. The runners source
+# ~/.profile precisely so the provisioning scripts they invoke inherit the user's
+# environment — SCRIPTS_DIR, the XDG vars, PERSONAL_PROJECTS_DIR — which CLAUDE.md
+# treats as guaranteed to be set by the time any script runs. Asserting that an
+# export from .profile reaches the fixture script pins that end to end, rather than
+# just proving the source line did not error.
+@test "sources ~/.profile and its exports reach the scripts it runs" {
+  printf '%s\n' 'export PROFILE_SENTINEL=sourced' > "${FAKE_HOME}/.profile"
+  cat > "${SETUP_DIR}/10_probe" << 'EOF'
+#!/usr/bin/env bash
+printf 'SENTINEL:%s\n' "${PROFILE_SENTINEL:-unset}"
+EOF
+  chmod +x "${SETUP_DIR}/10_probe"
+  run_runner
+  assert_success
+  assert_output --partial 'SENTINEL:sourced'
+}

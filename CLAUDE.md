@@ -955,8 +955,8 @@ Facts that are load-bearing, from #307, #310, and #319:
   flag takes a **comma-separated list and does not recurse**, which is why the root runners need
   the repo root named separately — they are files at the top level, not a directory.
 
-- **The gates baseline is 82.8% (2804 / 3385 lines) on CI, and the suite runs in ~2.5 min** —
-  faster than the functions suite's ~9, despite 769 tests, because the gate tests spend their time
+- **The gates baseline is 82.9% (2806 / 3385 lines) on CI, and the suite runs in ~2.5 min** —
+  faster than the functions suite's ~9, despite 771 tests, because the gate tests spend their time
   in subprocesses rather than in traced bash. It was 79.3% (2662 / 3357) when the measurement
   landed; #322 recovered 88 lines the harness had been hiding, #321 added `.githooks/` with tests
   behind it, and #323 closed the genuine gaps. Treat any figure here as ±1 line against CI. The two are separate CI jobs so neither serializes
@@ -968,21 +968,20 @@ Facts that are load-bearing, from #307, #310, and #319:
   existed: the first upload could only happen after the measurement landed, and gating on a number
   nobody had seen would have meant a red build on day one for no signal.
 
-- **Do not read the gates percentage as "the rest is untested". 562 of the ~579 uncovered lines are
+- **Do not read the gates percentage as "the rest is untested". 562 of the ~577 uncovered lines are
   lexer artifacts and cannot be hit by any test.** Every uncovered line in the scope was read and
   classified (#323). The counts below come from a local run that agrees with CI to within one line
   — CI remains the authority for any delta:
 
-  | Bucket                                                            | Lines |
-  | ----------------------------------------------------------------- | ----- |
-  | Artifact — embedded `gawk`/`jq` program bodies                    | 383   |
-  | Artifact — `done <redirect>` / `} >redirect` closers              | 85    |
-  | Artifact — array literal members                                  | 77    |
-  | Artifact — multi-line string constants (e.g. `NORMALIZE_JQ`)      | 15    |
-  | Artifact — opening line of a wrapped command                      | 3     |
-  | Harness — the real `nix` query arms, which no test may run        | 13    |
-  | Harness — `source "${HOME}/.profile"` in the provisioning runners | 2     |
-  | **Genuine untested branch**                                       | **2** |
+  | Bucket                                                       | Lines |
+  | ------------------------------------------------------------ | ----- |
+  | Artifact — embedded `gawk`/`jq` program bodies               | 383   |
+  | Artifact — `done <redirect>` / `} >redirect` closers         | 85    |
+  | Artifact — array literal members                             | 77    |
+  | Artifact — multi-line string constants (e.g. `NORMALIZE_JQ`) | 15    |
+  | Artifact — opening line of a wrapped command                 | 3     |
+  | Harness — the real `nix` query arms, which no test may run   | 13    |
+  | **Genuine untested branch**                                  | **2** |
 
   The `.ci/` lints are far more awk-heavy than `scripts/functions`, which is why the artifact share
   is so much larger here than the ~60 lines documented for that scope. `.ci/check-vacuous-arity-tests`
@@ -991,7 +990,13 @@ Facts that are load-bearing, from #307, #310, and #319:
   this scope** — that ranking is essentially a ranking by embedded-program size.
 
   **The ceiling is ~82.9% and it has been reached.** The classification originally found 28 genuine
-  gaps across 18 files; #323's step 3 closed 26 of them. Six were the same branch and the most
+  gaps across 18 files; #323's step 3 closed 26 of them, and a follow-up pass closed the last two
+  real ones after they turned out to be misfiled. The `source "${HOME}/.profile"` lines in the two
+  provisioning runners had been bucketed as harness-blind on the reasoning that the tests point
+  `HOME` at an empty tmpdir — true, but the fixture simply had no `.profile` in it. Writing one that
+  exports a sentinel, and asserting a fixture provisioning script sees it, covers both lines and
+  pins the contract those runners exist to provide: the environment reaches the scripts they invoke.
+  Both runners now read 100%. Six were the same branch and the most
   valuable: `exit 0` when the scan target is absent, in `check-pr-workflows-no-secrets`,
   `check-job-timeout-minutes`, `check-required-checks-no-paths`, `check-harden-runner-first`,
   `check-min-permissions` and `check-vacuous-arity-tests` — the silent-false-green shape this repo
