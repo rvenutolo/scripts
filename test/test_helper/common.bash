@@ -64,6 +64,28 @@ export DEVSHELL_PATH_OVERRIDE="${PATH}"
 # enumeration per case to drive that arm.
 export DEVSHELL_PACKAGES_OVERRIDE=''
 
+# Several tests must stop a child bash from re-sourcing the user's interactive ~/.bashrc,
+# which re-prepends the real nix PATH ahead of a per-test shim dir. They did that by
+# clearing BASH_ENV — which is also the channel kcov injects its trace helper through, so
+# the subject ran untraced and contributed nothing to the gates measurement: ~96 lines read
+# as 0% with full test suites behind them (#322).
+#
+# The two values are distinguishable. kcov's helper is five lines that set PS4 to a
+# `kcov@...` prefix and turn on `set -x`; it sources no startup file and does not touch
+# PATH, so it is safe to keep. Preserve BASH_ENV when it is that helper and clear it for
+# anything else, the ambient ~/.bashrc included. Tests spell "${SAFE_BASH_ENV}" where they
+# used to spell '' or `env --unset=BASH_ENV`.
+#
+# grep's non-zero exit is the meaningful signal here — unset, missing file, or a value that
+# is not kcov's helper — and every one of those cases falls through to the safe empty
+# default, which is exactly the behaviour these tests had before.
+if [[ -n "${BASH_ENV:-}" ]] && grep --quiet 'kcov@' "${BASH_ENV}" 2> '/dev/null'; then
+  SAFE_BASH_ENV="${BASH_ENV}"
+else
+  SAFE_BASH_ENV=''
+fi
+export SAFE_BASH_ENV
+
 # Fail the test loudly if the per-test tmpdir is unusable or inside the repo — a wrong
 # fixture root is exactly how git commands end up aimed at the real checkout (#248).
 # Inline [[ ]] checks: strings.bash/dirs.bash are code under test, not harness deps.

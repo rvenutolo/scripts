@@ -456,9 +456,10 @@ EOF
   path_shim::add 'gawk' '#!/usr/bin/env bash
 exit 1'
   cd "${REPO}"
-  # Clear BASH_ENV so the check's bash startup does not re-source ~/.bashrc,
-  # which would re-prepend the real gawk ahead of the shim.
-  BASH_ENV='' run_check
+  # Neutralize BASH_ENV so the check's bash startup does not re-source ~/.bashrc,
+  # which would re-prepend the real gawk ahead of the shim. SAFE_BASH_ENV rather
+  # than '' keeps kcov's trace helper attached (#322).
+  BASH_ENV="${SAFE_BASH_ENV}" run_check
   assert_failure 1
   assert_output --partial 'ERROR:'
   assert_output --partial 'gawk'
