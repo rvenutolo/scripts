@@ -1075,6 +1075,15 @@ Facts that are load-bearing, from #307, #310, and #319:
   `--bash-parse-files-in-dir` is what keeps never-executed files in the denominator at 0% instead of
   dropping them; `--bash-parser` pins the parser to the devShell's bash rather than `/bin/bash`.
 
+  **Read the report only after the run has exited. kcov writes `cobertura.xml` progressively, so the
+  file exists long before the numbers in it mean anything.** A mid-run read during #323 showed
+  2684 / 3385 — five root runners at exactly 0 — against 2805 / 3385 from the finished run, i.e. a
+  98-line collapse that never happened. That is indistinguishable from the real harness failures
+  documented above, and it is more convincing than a wrong number has any right to be: a whole file
+  group reading 0% is precisely the signature this section teaches you to look for. Wait on the
+  process, then check the test count in the log (`grep -c '^ok '`) against the suite size before
+  trusting a total, and never revise an earlier conclusion on a number that has not passed both.
+
 - **Denominators are lexer opinions on both sides.** bashcov counted `fi`, `esac`, `function … {`
   and blank lines; kcov counts subshell parens and `local arr=()`. Neither is ground truth, so a
   per-file line count is not comparable across the switch.
