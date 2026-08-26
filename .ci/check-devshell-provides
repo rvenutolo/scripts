@@ -38,7 +38,7 @@
 
 set -Eeuo pipefail
 # Without this, errexit is off inside every $(...) subshell, so a helper called
-# as `n="$(scan ...)"` runs past a failed command and this gate exits 0 (#290).
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0.
 shopt -s inherit_errexit
 IFS=$'\n\t'
 
