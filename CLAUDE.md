@@ -955,9 +955,11 @@ Facts that are load-bearing, from #307, #310, and #319:
   flag takes a **comma-separated list and does not recurse**, which is why the root runners need
   the repo root named separately — they are files at the top level, not a directory.
 
-- **The gates baseline is 79.3% (2662 / 3357 lines) on CI, and the suite runs in ~2.5 min** —
-  faster than the functions suite's ~9, despite 726 tests, because the gate tests spend their time
-  in subprocesses rather than in traced bash. The two are separate CI jobs so neither serializes
+- **The gates baseline is 82.1% (2781 / 3388 lines) on CI, and the suite runs in ~2.5 min** —
+  faster than the functions suite's ~9, despite 746 tests, because the gate tests spend their time
+  in subprocesses rather than in traced bash. It was 79.3% (2662 / 3357) when the measurement
+  landed; #322 recovered 88 lines the harness had been hiding and #321 added `.githooks/` with
+  tests behind it. The two are separate CI jobs so neither serializes
   behind the other's timeout; `ci.yml`'s PR half runs both as steps of one job because it uploads
   nothing and so has no per-upload egress to isolate.
 
@@ -965,6 +967,39 @@ Facts that are load-bearing, from #307, #310, and #319:
   the functions status. It was `informational: true` for exactly one commit, until a baseline
   existed: the first upload could only happen after the measurement landed, and gating on a number
   nobody had seen would have meant a red build on day one for no signal.
+
+- **Do not read the gates percentage as "the rest is untested". 563 of the ~606 uncovered lines are
+  lexer artifacts and cannot be hit by any test.** Every uncovered line in the scope was read and
+  classified (#323). The counts below come from a local run that agrees with CI to within one line
+  — CI remains the authority for any delta:
+
+  | Bucket                                                            | Lines  |
+  | ----------------------------------------------------------------- | ------ |
+  | Artifact — embedded `gawk`/`jq` program bodies                    | 383    |
+  | Artifact — `done <redirect>` / `} >redirect` closers              | 85     |
+  | Artifact — array literal members                                  | 77     |
+  | Artifact — multi-line string constants (e.g. `NORMALIZE_JQ`)      | 15     |
+  | Artifact — opening line of a wrapped command                      | 3      |
+  | Harness — the real `nix` query arms, which no test may run        | 13     |
+  | Harness — `source "${HOME}/.profile"` in the provisioning runners | 2      |
+  | **Genuine untested branch**                                       | **28** |
+
+  The `.ci/` lints are far more awk-heavy than `scripts/functions`, which is why the artifact share
+  is so much larger here than the ~60 lines documented for that scope. `.ci/check-vacuous-arity-tests`
+  reads 29% with **32 tests** behind it: 104 of its uncovered lines are one `gawk` program body.
+  `.ci/build-docs` is the same story. **Ranking files by uncovered lines is actively misleading in
+  this scope** — that ranking is essentially a ranking by embedded-program size.
+
+  **The ceiling this establishes is ~82.9%**, and the whole remaining gap is 28 lines across 18
+  files. Six of them are the highest-value ones: `exit 0` when the scan target is absent, in
+  `check-pr-workflows-no-secrets`, `check-job-timeout-minutes`, `check-required-checks-no-paths`,
+  `check-harden-runner-first`, `check-min-permissions`, and `check-vacuous-arity-tests`. That is the
+  silent-false-green shape this repo spends the most effort on (#250, #290, #307), sitting untested
+  in the gates themselves. All six already have `WORKFLOWS_DIR_OVERRIDE` / `TEST_DIR_OVERRIDE`
+  seams. The rest are malformed-input arms and empty-token `continue`s.
+
+  Regenerate the classification rather than trusting this table after a refactor; the artifact
+  buckets are structural and stable, but the counts move with the code.
 
 - **`.ci/required-tools` is excluded from the gates scope, and it is not a coverage gap.** It is
   data, not code — a comment-and-tool-name list with no shebang and no executable bit, consumed by
@@ -979,28 +1014,37 @@ Facts that are load-bearing, from #307, #310, and #319:
 
   **The gates number is reproducible for a given invocation, but not invariant to the shape of
   that invocation. CI is the authority; never compare a local number to a CI one.** Two CI runs on
-  two commits produced 2662 / 3377 byte-identically, so the measurement is deterministic in the
-  sense that matters for a delta. A local `--jobs 8` run of the same tree read 2686 / 3345 — a
-  denominator that predates the `run-tests` fix, and a numerator 26 lines higher.
+  two commits produced byte-identical results, so the measurement is deterministic in the sense
+  that matters for a delta. A local `--jobs 8` run of the same tree did not agree with a serial one.
 
-  Every one of those 26 lines is `.ci/check-jsonschema`, and the cause is **not** the `BASH_ENV`
-  blind spot below. Bisected:
+  **The cause is a latch in kcov's trace parser, not process depth** (#325). An earlier revision of
+  this section blamed grandchild depth — bats → `run-governance-checks` → the check — and that was
+  an inference, now disproved: a synthetic three-level chain traces 100% serially, and
+  `BASH_XTRACEFD` propagates intact to every level.
 
-  - Its own test file contributes 7/36 in both environments — the arg-guard death path, the one
-    test of four that does not clear `BASH_ENV`.
-  - The other 26 come from `test/ci/run-governance-checks.bats`'s real-repo test, which runs the
-    live governance suite and so invokes `.ci/check-jsonschema` as a **grandchild**
-    (bats → `run-governance-checks` → the check).
-  - That grandchild's trace is recorded **only when enough other test files run concurrently**.
-    `run-governance-checks.bats` alone contributes 0/36 whether run serially or with `--jobs 8`;
-    run alongside ten other files it contributes 26. Drop it from that eleven-file set and the
-    number falls straight back to 0.
+  What actually happens is that `BashEngine::getInputType` carries single-quote state **across
+  trace lines**, and once it latches, every later line returns early without ever being checked for
+  the `kcov@` marker. A single apostrophe in ordinary traced **data** is enough. The live instance:
+  `README.md`'s own workflow table contains *"Sync the repository's label set…"*, which reaches the
+  parser through `strings::is_empty` as a bare `'`, and silenced **nine consecutive** governance
+  checks. Same class as the `$'...'` bug the `.nix/kcov-ansi-c-quoting.patch` fixes, different
+  trigger.
 
-  CI runs `bats --recursive` with no `--jobs`, so it never records this path (#325). **The consequence is
-  that a script reachable only as a grandchild can be under-reported, and the amount depends on
-  scheduling rather than on the tests.** Do not chase such a file's coverage without first checking
-  whether it is invoked at that depth. The `functions` scope is unaffected — its helpers are sourced,
-  not spawned — and reproduces to within one line (1943 on CI against the documented 1944).
+  Two consequences worth keeping:
+
+  - Under `--jobs`, trace lines from concurrent processes interleave, and their apostrophes unlatch
+    the parser at arbitrary points. So **`--jobs` would not merely change the number — it would
+    make it a function of scheduler interleaving.** Do not add it to the CI invocation.
+  - A script's coverage can move because an **unrelated** file's text changed. If a number
+    collapses with no test change, suspect the harness.
+
+  **The bug costs this repo essentially nothing, and the local patch was deliberately not taken.**
+  Measured like-for-like, a patched kcov reads 2750 / 3357 against the shipped 2751 / 3357 — one
+  line, in the wrong direction. Every `.ci/` script is covered by its own test file, where it runs
+  as a direct child of bats on a fresh trace stream with nothing ahead of it to latch the parser;
+  the truncation only bites inside `run-governance-checks.bats`'s real-repo test, whose coverage is
+  redundant. A third local kcov patch would add rebase surface on every bump for −1 line. The
+  `functions` scope is unaffected — its helpers are sourced, not spawned.
 
 - **The report is written to `$RUNNER_TEMP`, not into the tree.** kcov drops shebang-bearing
   `bash-helper*.sh` files into its output directory, and `check-scripts` walks the filesystem, so a
