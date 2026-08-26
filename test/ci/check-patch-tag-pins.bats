@@ -130,3 +130,11 @@ EOF
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
+
+# Same shape as the sibling check: an empty `uses:` value carries no ref and no
+# comment, so there is no pin to grade and nothing to report.
+@test "a uses key with an empty value is skipped rather than reported" {
+  printf 'jobs:\n  build:\n    steps:\n      - uses:\n' > "${WF}/a.yml"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_success
+}

@@ -135,3 +135,13 @@ EOF
   assert_failure
   refute_output --partial 'has no harden-runner step'
 }
+
+# Distinct from the exempt arm further down, which covers a job that HAS a
+# harden-runner step: this is the no-step arm, where the exemption is what stops the
+# gate reporting a job the maintainer deliberately allowed. The entry is recorded as
+# seen so the staleness detection does not then call the exemption unused.
+@test "an exempt job with no harden-runner step is accepted" {
+  printf 'jobs:\n  build:\n    steps:\n      - uses: actions/checkout@v4\n' > "${WF}/a.yml"
+  EXEMPT_OVERRIDE='a.yml:build' WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_success
+}

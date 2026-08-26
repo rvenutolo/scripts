@@ -90,3 +90,34 @@ EOF
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
+
+# A missing scan target must not read as a clean pass. An absent directory is
+# indistinguishable from a directory whose contents are all fine, and this gate is
+# what stands between the repo and the thing it checks — the silent-false-green
+# shape of #250, #290 and #307, and the rule CLAUDE.md states as "Empty scan
+# results are failures, not clean passes". Surfaced the `exit 0` guard this check
+# used to carry when WORKFLOWS_DIR was absent (#323).
+@test "dies when the workflows directory is absent" {
+  WORKFLOWS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/absent" run_check "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'does not exist'
+}
+
+# The two arms of the tag case are not interchangeable: a missing block and a
+# malformed one are different mistakes, and only the malformed arm can report the tag
+# that explains what was actually written. `permissions: read-all` is the realistic
+# way to hit it — valid GitHub Actions syntax, and exactly the over-broad grant this
+# gate exists to stop.
+@test "fails when a job's permissions block is a scalar rather than a map" {
+  cat > "${WF}/a.yml" << 'YAML'
+permissions: {}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions: read-all
+YAML
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'permissions wrong shape'
+  assert_output --partial '!!str'
+}

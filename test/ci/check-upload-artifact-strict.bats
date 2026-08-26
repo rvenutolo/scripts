@@ -192,3 +192,23 @@ EOF
   run "${CHECK}" --help
   assert_success
 }
+
+# if-no-files-found written as a bare `true` parses as !!bool, not !!str, so neither
+# the missing-key arm nor the value arm applies. Reporting the tag is what tells the
+# author their value was read as the wrong type rather than as an invalid string.
+@test "fails when if-no-files-found is not a string" {
+  cat > "${WF}/a.yml" << 'YAML'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thing
+          if-no-files-found: true
+YAML
+  run_check
+  assert_failure
+  assert_output --partial 'unexpected shape'
+  assert_output --partial '!!bool'
+}
