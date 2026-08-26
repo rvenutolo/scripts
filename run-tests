@@ -3,7 +3,7 @@
 # @description Run the BATS test suite under test/functions/, test/ci/, and test/root/ in parallel, or forward arguments directly to bats.
 # @arg $@ args Optional bats arguments or test file paths; omit to run all tests under test/functions/, test/ci/, and test/root/.
 # @exitcode 0 all tests passed and the repo was left untouched.
-# @exitcode 1 bats, flock, or GNU parallel not found, one or more tests failed, or the suite mutated the repo (#248).
+# @exitcode 1 bats, flock, or GNU parallel not found, one or more tests failed, or the suite mutated the repo.
 
 set -Eeuo pipefail
 # Without this, errexit is off inside every $(...) subshell, so a helper called
@@ -22,7 +22,7 @@ readonly REPO_DIR
 readonly DEFAULT_TARGETS=("${REPO_DIR}/test/functions" "${REPO_DIR}/test/ci" "${REPO_DIR}/test/root")
 
 # @description Print one line per watched repo artifact: HEAD sha, config hash, index hash.
-#              Used before/after the suite to detect fixture escapes onto the real repo (#248).
+#              Used before/after the suite to detect fixture escapes onto the real repo.
 # @noargs
 # shellcheck disable=SC2120 # called with no args by main, but shellcheck can't see the call site
 function repo_state() {
@@ -37,8 +37,7 @@ function repo_state() {
 
 # @description Run bats with default parallel settings or forward all args to bats verbatim.
 #              Snapshots repo state (HEAD, config, index) before and after the run and dies
-#              loudly, citing #248, if the suite mutated the real repo — even when bats itself
-#              exited 0.
+#              loudly if the suite mutated the real repo — even when bats itself exited 0.
 # @arg $@ args Optional bats arguments forwarded verbatim, or empty to run all tests in parallel.
 function main() {
   # Unset BASH_ENV so bats' per-test subshells don't re-source the user's
@@ -69,7 +68,7 @@ function main() {
   # shellcheck disable=SC2119 # intentional no-arg call; repo_state takes no args
   after="$(repo_state)"
   if [[ "${before}" != "${after}" ]]; then
-    log::die "test suite mutated the real repo (#248) — before: [${before//$'\n'/ }] after: [${after//$'\n'/ }]"
+    log::die "test suite mutated the real repo — before: [${before//$'\n'/ }] after: [${after//$'\n'/ }]"
   fi
   exit "${status}"
 }
