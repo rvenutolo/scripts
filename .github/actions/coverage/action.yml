@@ -2,12 +2,25 @@ name: coverage
 # Caller must run actions/checkout and ./.github/actions/setup before this
 # composite: a local action cannot perform its own initial checkout, and the
 # kcov invocation below needs the Nix devShell that setup installs.
-description: Run the BATS suite under kcov, producing $RUNNER_TEMP/coverage/bats/cobertura.xml.
+description: >-
+  Run one BATS suite under kcov, producing $RUNNER_TEMP/coverage/<scope>/bats/cobertura.xml.
+inputs:
+  scope:
+    # The two measurements are kept separate all the way to Codecov, where they
+    # are uploaded under the `functions` and `gates` flags. Merging them would
+    # change what the headline number means: scripts/functions is the helper
+    # library the repo ships, and .ci/ plus the root runners are the gates that
+    # grade it. A regression in one must not be masked by the other's size.
+    description: >-
+      Which tree to measure. `functions` covers scripts/functions, exercised by test/functions. `gates` covers .ci/ plus the repo-root runners, exercised by test/ci and test/root.
+    required: true
 runs:
   using: composite
   steps:
     - name: Run BATS under kcov
       shell: bash
+      env:
+        SCOPE: ${{ inputs.scope }}
       # kcov comes from the flake devShell (flake.nix carries a one-line PS4 patch
       # on it — see the comment there). It replaced bashcov, whose Ruby reader
       # handed bash a non-blocking pipe and silently dropped ~75% of the trace
@@ -20,12 +33,14 @@ runs:
       # parser and the executor must be the same binary.
       # --bash-dont-parse-binary-dir: otherwise kcov also parses every script in
       # bats' own bin/ and reports on it.
-      # --include-path: only scripts/functions is coverage-relevant — test/ is
+      # --include-path: only the scope's own tree is coverage-relevant — test/ is
       # the suite, and the other scripts/ dirs are unmeasured payload.
       # --bash-parse-files-in-dir: kcov only reports files it saw execute. This
-      # walks the directory so a never-executed helper file scores 0% instead of
+      # walks the directory so a never-executed script scores 0% instead of
       # vanishing from the denominator, which is the same inflation bashcov's
-      # relative --root caused (#307 item 2).
+      # relative --root caused (#307 item 2). It takes a comma-separated list and
+      # does not recurse, which is why the gates scope names the repo root
+      # separately from .ci/ — the root runners are files, not a directory.
       #
       # Every path is absolute via git rev-parse rather than $PWD, so the root is
       # the repo, not wherever the step happened to be invoked from — the rule
@@ -37,16 +52,36 @@ runs:
       # directory, and check-scripts walks the filesystem — a coverage/ dir inside
       # the repo would hand those to shfmt and shellcheck. $RUNNER_TEMP is on
       # .ci/in-devshell's keep list. The cobertura.xml lands under a subdirectory
-      # named after the traced binary, hence coverage/bats/.
+      # named after the traced binary, hence <scope>/bats/.
       run: |
         set -Eeuo pipefail
         repo="$(git rev-parse --show-toplevel)"
+        case "${SCOPE}" in
+          functions)
+            include="${repo}/scripts/functions"
+            parse="${repo}/scripts/functions"
+            suites=('test/functions')
+            ;;
+          gates)
+            include="${repo}/.ci,${repo}/check-scripts,${repo}/run-all-checks,${repo}/run-install-scripts,${repo}/run-set-up-scripts,${repo}/run-tests,${repo}/shellcheck-scripts"
+            parse="${repo}/.ci,${repo}"
+            suites=('test/ci' 'test/root')
+            ;;
+          *)
+            printf 'coverage: unknown scope %s (expected functions or gates)\n' "${SCOPE}" >&2
+            exit 1
+            ;;
+        esac
+        # kcov creates its output directory, but only one level deep, and the
+        # per-scope subdirectory makes it two: without this it dies with
+        # "Can't write helper" before running a single test.
+        mkdir --parents "${RUNNER_TEMP}/coverage/${SCOPE}"
         ./.ci/in-devshell bash -c '
           kcov \
             --bash-parser="$(type -P bash)" \
             --bash-dont-parse-binary-dir \
-            --include-path="$1/scripts/functions" \
-            --bash-parse-files-in-dir="$1/scripts/functions" \
-            "${RUNNER_TEMP}/coverage" \
-            bats --recursive test/functions
-        ' _ "${repo}"
+            --include-path="$1" \
+            --bash-parse-files-in-dir="$2" \
+            "${RUNNER_TEMP}/coverage/$3" \
+            bats --recursive "${@:4}"
+        ' _ "${include}" "${parse}" "${SCOPE}" "${suites[@]}"

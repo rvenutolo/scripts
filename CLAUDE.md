@@ -836,10 +836,30 @@ Note: `read -rp` writes the prompt text to `/dev/tty`, which BATS `run` does not
 
 ### Coverage measurement
 
-`.github/actions/coverage` runs `test/functions` under **kcov** and uploads the Cobertura report
-to Codecov from `coverage.yml` (push to `main` only). `test/ci/` and `test/root/` are deliberately
-unmeasured: they drive `.ci/` and the root runners, not `scripts/functions`, which is the tree the
-headline number describes. Facts that are load-bearing, from #307 and #310:
+`.github/actions/coverage` runs one BATS suite under **kcov** and writes a Cobertura report;
+`coverage.yml` (push to `main` only) invokes it twice and uploads both to Codecov. The composite
+takes a `scope` input, and the two scopes are kept apart end to end:
+
+- **`functions`** — `scripts/functions`, exercised by `test/functions`. The helper library the repo
+  ships. This is the headline number, and `codecov/project` is pinned to `flags: [functions]` so it
+  keeps meaning exactly what it meant before the second measurement existed. The README badge is
+  pinned the same way, with `?flag=functions`.
+- **`gates`** — `.ci/` plus the six repo-root runners, exercised by `test/ci` and `test/root`. The
+  tooling that grades the library. Uploaded under the `gates` flag with its own
+  `codecov/project/gates` status.
+
+**Merging the two would be a regression, not a simplification.** A gate reporting a wrong exit code
+is indistinguishable from a clean run, which is the failure this repo spends the most effort on
+(#250, #290, #307); folding it into a 2000-line library denominator is how a regression there
+disappears. The gates measurement exists because those trees had no number at all — every gap in
+them had to be found by hand, ranking scripts by lines-per-test.
+
+`.githooks/` is out of scope. Its two files carry no paired tests and sit outside
+`.ci/check-script-has-test`'s two scopes, so they would contribute a permanent ~66-line 0% floor
+with no actionable signal. The measured scope matches the paired-test mandate's scope exactly,
+which is what makes every 0% in the report a real gap.
+
+Facts that are load-bearing, from #307, #310, and #319:
 
 - **kcov replaced bashcov because bashcov's number was noise.** Ruby's `IO.pipe` hands bash a
   non-blocking `BASH_XTRACEFD`; when the Ruby reader lagged, bash's `write()` got `EAGAIN` and
@@ -897,14 +917,54 @@ headline number describes. Facts that are load-bearing, from #307 and #310:
   Do not chase them. That is also why `codecov/patch` is `informational` in `.codecov.yml`;
   `codecov/project` carries a real `auto` target with a 1% threshold.
 
+- **A test that clears `BASH_ENV` is invisible to kcov** (#319). kcov injects its bash trace helper
+  through `BASH_ENV`, so a subject invoked as `BASH_ENV='' run "${CHECK}"` or
+  `env --unset=BASH_ENV "${SCRIPT}"` executes untraced and contributes nothing. Four test files do
+  this, all for a good reason — `BASH_ENV` makes a child bash re-source the user's `~/.bashrc`,
+  which re-prepends the real nix `PATH` ahead of a shim dir, and in
+  `test/ci/apply-repo-settings.bats` an unshimmed invocation would not be a failed test but an
+  unintended write to a live GitHub repo. So `.ci/apply-repo-settings` and `.ci/check-jsonschema`
+  read 0% with full test suites behind them, `run-tests` records nothing, and one
+  `check-shdoc-headers` test is uncounted. **Do not "fix" these tests to satisfy the harness** —
+  the `BASH_ENV` clearing is what makes them correct.
+
+  The mitigation is the denominator, not the tests: `--bash-parse-files-in-dir` names both `.ci/`
+  and the repo root, so an untraced script reads an honest 0% instead of vanishing. `run-tests`
+  vanished outright before that, which inflates the percentage the same way bashcov's relative
+  `--root` did (#307 item 2) and is exactly the false green the measurement exists to remove. The
+  flag takes a **comma-separated list and does not recurse**, which is why the root runners need
+  the repo root named separately — they are files at the top level, not a directory.
+
+- **The gates baseline is 78.8% (2662 / 3377 lines) on CI, and the suite runs in ~2.5 min** —
+  faster than the functions suite's ~9, despite 726 tests, because the gate tests spend their time
+  in subprocesses rather than in traced bash. The two are separate CI jobs so neither serializes
+  behind the other's timeout; `ci.yml`'s PR half runs both as steps of one job because it uploads
+  nothing and so has no per-upload egress to isolate.
+
+  **A local gates run reads about 1.5 points higher, and CI is the authority.** The same tree
+  measures 2686 / 3345 locally. The denominator differs because a local `--bash-parse-files-in-dir`
+  run started before `run-tests` was added to it; the numerator differs almost entirely in
+  `.ci/check-jsonschema`, which reads 33/36 locally and 7/36 on CI. That is the `BASH_ENV` blind
+  spot below behaving differently depending on whether the invoking environment already set
+  `BASH_ENV` — the maintainer's shell does, a runner's does not. Do not read a local-to-CI delta as
+  a regression; compare CI to CI. The `functions` scope is unaffected and reproduces to within one
+  line (1943 on CI against the documented 1944).
+
 - **The report is written to `$RUNNER_TEMP`, not into the tree.** kcov drops shebang-bearing
   `bash-helper*.sh` files into its output directory, and `check-scripts` walks the filesystem, so a
   `coverage/` inside the repo hands those to shfmt and shellcheck. Reproduce locally the same way:
 
   ```bash
+  # functions scope
   ./.ci/in-devshell bash -c 'kcov --bash-parser="$(type -P bash)" --bash-dont-parse-binary-dir \
     --include-path="$PWD/scripts/functions" --bash-parse-files-in-dir="$PWD/scripts/functions" \
     /tmp/kcov-out bats --recursive test/functions'
+
+  # gates scope
+  ./.ci/in-devshell bash -c 'kcov --bash-parser="$(type -P bash)" --bash-dont-parse-binary-dir \
+    --include-path="$PWD/.ci,$PWD/check-scripts,$PWD/run-all-checks,$PWD/run-install-scripts,$PWD/run-set-up-scripts,$PWD/run-tests,$PWD/shellcheck-scripts" \
+    --bash-parse-files-in-dir="$PWD/.ci,$PWD" \
+    /tmp/kcov-gates bats --jobs "$(nproc)" --recursive test/ci test/root'
   ```
 
   `--bash-parse-files-in-dir` is what keeps never-executed files in the denominator at 0% instead of

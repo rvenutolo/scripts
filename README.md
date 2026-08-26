@@ -7,7 +7,7 @@ Personal Linux setup, install, and utility shell scripts.
 [![Open issues](https://img.shields.io/github/issues/rvenutolo/scripts)](https://github.com/rvenutolo/scripts/issues)
 [![Open PRs](https://img.shields.io/github/issues-pr/rvenutolo/scripts)](https://github.com/rvenutolo/scripts/pulls)
 [![Tests](https://img.shields.io/endpoint?url=https://rvenutolo.github.io/scripts/badge.json)](https://github.com/rvenutolo/scripts/tree/main/test/functions)
-[![Coverage](https://codecov.io/gh/rvenutolo/scripts/branch/main/graph/badge.svg)](https://codecov.io/gh/rvenutolo/scripts)
+[![Coverage](https://codecov.io/gh/rvenutolo/scripts/branch/main/graph/badge.svg?flag=functions)](https://codecov.io/gh/rvenutolo/scripts)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://www.conventionalcommits.org/en/v1.0.0/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL_3.0-blue.svg)](LICENSE)
 
@@ -93,7 +93,7 @@ Workflows under `.github/workflows/`.
 | Workflow                       | Trigger                                                                      | Purpose                                                                                                                                                                                              |
 | ------------------------------ | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ci.yml`                       | push, PR, manual                                                             | Aggregate gate: `check-scripts`, BATS, coverage (kcov, PR-only) , `reviewdog` (shellcheck/shfmt on PRs), `actionlint`, `yamllint`, JSON lint, `markdownlint`, `typos`, `editorconfig`, `commitlint`. |
-| `coverage.yml`                 | push to `main`, manual                                                       | Run the BATS suite under kcov and upload the Cobertura report to Codecov. Push-only so it can carry `CODECOV_TOKEN`.                                                                                 |
+| `coverage.yml`                 | push to `main`, manual                                                       | Run the BATS suites under kcov and upload two Cobertura reports to Codecov — `functions` (`scripts/functions`) and `gates` (`.ci/` + root runners). Push-only so it can carry `CODECOV_TOKEN`.       |
 | `dependency-review.yml`        | PR                                                                           | Block PRs that introduce vulnerable or disallowed dependencies.                                                                                                                                      |
 | `gitleaks.yml`                 | push, PR, weekly cron (Mon 13:00 UTC), manual                                | Scan history for leaked secrets.                                                                                                                                                                     |
 | `labeler.yml`                  | PR                                                                           | Auto-apply labels via `.github/labeler.yml` rules.                                                                                                                                                   |

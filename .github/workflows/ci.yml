@@ -203,8 +203,18 @@ jobs:
         uses: ./.github/actions/changed-tests
       - uses: ./.github/actions/setup
         if: steps.changes.outputs.run == 'true'
+      # Both scopes run as steps of this one job rather than as two jobs, unlike
+      # coverage.yml. Nothing is uploaded here, so there is no per-upload egress
+      # to isolate, and the gates suite adds only ~2.5 min against the functions
+      # suite's ~9 — not worth duplicating a job preamble for.
       - uses: ./.github/actions/coverage
         if: steps.changes.outputs.run == 'true'
+        with:
+          scope: functions
+      - uses: ./.github/actions/coverage
+        if: steps.changes.outputs.run == 'true'
+        with:
+          scope: gates
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always() && steps.changes.outputs.run == 'true'
         with:
