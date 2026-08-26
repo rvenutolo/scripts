@@ -131,9 +131,11 @@ EOF
   assert_output --partial 'Expected no arguments'
 }
 
-# Same shape as the sibling check: an empty `uses:` value carries no ref and no
-# comment, so there is no pin to grade and nothing to report.
-@test "a uses key with an empty value is skipped rather than reported" {
+# Pins the extracting grep rather than the skip branch behind it: the pattern requires
+# a non-space value, so a bare `uses:` never enters the loop at all. This check does
+# not comment-strip before its emptiness test the way check-uses-sha-pinned does, so
+# that test's `continue` is unreachable here and is recorded as such in CLAUDE.md.
+@test "a uses key with an empty value is not extracted at all" {
   printf 'jobs:\n  build:\n    steps:\n      - uses:\n' > "${WF}/a.yml"
   WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_success

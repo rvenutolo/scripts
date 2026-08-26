@@ -955,11 +955,11 @@ Facts that are load-bearing, from #307, #310, and #319:
   flag takes a **comma-separated list and does not recurse**, which is why the root runners need
   the repo root named separately — they are files at the top level, not a directory.
 
-- **The gates baseline is 82.1% (2781 / 3388 lines) on CI, and the suite runs in ~2.5 min** —
-  faster than the functions suite's ~9, despite 746 tests, because the gate tests spend their time
+- **The gates baseline is 82.8% (2804 / 3385 lines) on CI, and the suite runs in ~2.5 min** —
+  faster than the functions suite's ~9, despite 769 tests, because the gate tests spend their time
   in subprocesses rather than in traced bash. It was 79.3% (2662 / 3357) when the measurement
-  landed; #322 recovered 88 lines the harness had been hiding and #321 added `.githooks/` with
-  tests behind it. The two are separate CI jobs so neither serializes
+  landed; #322 recovered 88 lines the harness had been hiding, #321 added `.githooks/` with tests
+  behind it, and #323 closed the genuine gaps. Treat any figure here as ±1 line against CI. The two are separate CI jobs so neither serializes
   behind the other's timeout; `ci.yml`'s PR half runs both as steps of one job because it uploads
   nothing and so has no per-upload egress to isolate.
 
@@ -968,21 +968,21 @@ Facts that are load-bearing, from #307, #310, and #319:
   existed: the first upload could only happen after the measurement landed, and gating on a number
   nobody had seen would have meant a red build on day one for no signal.
 
-- **Do not read the gates percentage as "the rest is untested". 563 of the ~606 uncovered lines are
+- **Do not read the gates percentage as "the rest is untested". 562 of the ~579 uncovered lines are
   lexer artifacts and cannot be hit by any test.** Every uncovered line in the scope was read and
   classified (#323). The counts below come from a local run that agrees with CI to within one line
   — CI remains the authority for any delta:
 
-  | Bucket                                                            | Lines  |
-  | ----------------------------------------------------------------- | ------ |
-  | Artifact — embedded `gawk`/`jq` program bodies                    | 383    |
-  | Artifact — `done <redirect>` / `} >redirect` closers              | 85     |
-  | Artifact — array literal members                                  | 77     |
-  | Artifact — multi-line string constants (e.g. `NORMALIZE_JQ`)      | 15     |
-  | Artifact — opening line of a wrapped command                      | 3      |
-  | Harness — the real `nix` query arms, which no test may run        | 13     |
-  | Harness — `source "${HOME}/.profile"` in the provisioning runners | 2      |
-  | **Genuine untested branch**                                       | **28** |
+  | Bucket                                                            | Lines |
+  | ----------------------------------------------------------------- | ----- |
+  | Artifact — embedded `gawk`/`jq` program bodies                    | 383   |
+  | Artifact — `done <redirect>` / `} >redirect` closers              | 85    |
+  | Artifact — array literal members                                  | 77    |
+  | Artifact — multi-line string constants (e.g. `NORMALIZE_JQ`)      | 15    |
+  | Artifact — opening line of a wrapped command                      | 3     |
+  | Harness — the real `nix` query arms, which no test may run        | 13    |
+  | Harness — `source "${HOME}/.profile"` in the provisioning runners | 2     |
+  | **Genuine untested branch**                                       | **2** |
 
   The `.ci/` lints are far more awk-heavy than `scripts/functions`, which is why the artifact share
   is so much larger here than the ~60 lines documented for that scope. `.ci/check-vacuous-arity-tests`
@@ -990,13 +990,22 @@ Facts that are load-bearing, from #307, #310, and #319:
   `.ci/build-docs` is the same story. **Ranking files by uncovered lines is actively misleading in
   this scope** — that ranking is essentially a ranking by embedded-program size.
 
-  **The ceiling this establishes is ~82.9%**, and the whole remaining gap is 28 lines across 18
-  files. Six of them are the highest-value ones: `exit 0` when the scan target is absent, in
-  `check-pr-workflows-no-secrets`, `check-job-timeout-minutes`, `check-required-checks-no-paths`,
-  `check-harden-runner-first`, `check-min-permissions`, and `check-vacuous-arity-tests`. That is the
-  silent-false-green shape this repo spends the most effort on (#250, #290, #307), sitting untested
-  in the gates themselves. All six already have `WORKFLOWS_DIR_OVERRIDE` / `TEST_DIR_OVERRIDE`
-  seams. The rest are malformed-input arms and empty-token `continue`s.
+  **The ceiling is ~82.9% and it has been reached.** The classification originally found 28 genuine
+  gaps across 18 files; #323's step 3 closed 26 of them. Six were the same branch and the most
+  valuable: `exit 0` when the scan target is absent, in `check-pr-workflows-no-secrets`,
+  `check-job-timeout-minutes`, `check-required-checks-no-paths`, `check-harden-runner-first`,
+  `check-min-permissions` and `check-vacuous-arity-tests` — the silent-false-green shape this repo
+  spends the most effort on (#250, #290, #307), sitting untested inside the gates themselves. Those
+  are now `dirs::assert_exists` / `log::die` and pinned by spec tests.
+
+  **Two lines are deliberately uncovered, and both are unreachable rather than untested.**
+  `check-executable-bit` 142 and `check-patch-tag-pins` 51 are empty-token `continue`s guarding
+  against input their own producers cannot emit — `shell_scripts::find` emits no blank line, and the
+  extracting grep in the pin check requires a non-space value. Reaching either would mean corrupting
+  the producer, which tests nothing. Note the near-miss next door: the same-looking `continue` in
+  `check-uses-sha-pinned` **is** reachable, because that check comment-strips the ref before testing
+  it, so a `uses: # TBD` trims to empty. A test written against the bare-`uses:` form passed
+  vacuously until the classification caught it.
 
   Regenerate the classification rather than trusting this table after a refactor; the artifact
   buckets are structural and stable, but the counts move with the code.
