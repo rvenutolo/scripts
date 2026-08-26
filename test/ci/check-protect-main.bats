@@ -84,3 +84,31 @@ EOF
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
+
+@test "fails when the ruleset name is not protect-main" {
+  good_ruleset
+  jq '.name = "protect-master"' "${RS}" > "${RS}.x" && mv "${RS}.x" "${RS}"
+  RULESET_JSON_OVERRIDE="${RS}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'ruleset name is not'
+}
+
+@test "fails when enforcement is not active" {
+  good_ruleset
+  jq '.enforcement = "evaluate"' "${RS}" > "${RS}.x" && mv "${RS}.x" "${RS}"
+  RULESET_JSON_OVERRIDE="${RS}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'enforcement is not'
+}
+
+# A ruleset in evaluate mode reports violations without blocking a merge, and one
+# named something else is simply not the ruleset the repo believes it is applying —
+# both read as "protected" to anyone skimming the file, which is why they are checked
+# and why they are worth testing.
+@test "fails when required_status_checks does not set the strict policy" {
+  good_ruleset
+  jq '(.rules[] | select(.type=="required_status_checks") | .parameters.strict_required_status_checks_policy) = false' "${RS}" > "${RS}.x" && mv "${RS}.x" "${RS}"
+  RULESET_JSON_OVERRIDE="${RS}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'strict policy'
+}

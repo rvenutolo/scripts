@@ -292,3 +292,18 @@ EOF
   run_check --help
   assert_success
 }
+
+# A step with no `name:` still has to be nameable in a violation report, or the
+# message says which job but not which step. The label falls back to the index.
+@test "an unnamed offending step is reported by job and index" {
+  cat > "${WF}/a.yml" << 'YAML'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: printf 'hi\n'
+YAML
+  run_check
+  assert_failure
+  assert_output --partial "job 'build' step #"
+}

@@ -106,3 +106,12 @@ EOF
     run_check "${CHECK}"
   assert_success
 }
+
+# A bare `uses:` with no value is malformed YAML for Actions but is a real editing
+# intermediate, and the trimmed ref comes back empty. Skipping it is right — there is
+# no ref to judge — but the gate must not then report it as unpinned.
+@test "a uses key with an empty value is skipped rather than reported" {
+  printf 'jobs:\n  build:\n    steps:\n      - uses:\n' > "${WF}/a.yml"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_success
+}

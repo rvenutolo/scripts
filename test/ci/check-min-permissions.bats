@@ -102,3 +102,22 @@ EOF
   assert_failure 1
   assert_output --partial 'does not exist'
 }
+
+# The two arms of the tag case are not interchangeable: a missing block and a
+# malformed one are different mistakes, and only the malformed arm can report the tag
+# that explains what was actually written. `permissions: read-all` is the realistic
+# way to hit it — valid GitHub Actions syntax, and exactly the over-broad grant this
+# gate exists to stop.
+@test "fails when a job's permissions block is a scalar rather than a map" {
+  cat > "${WF}/a.yml" << 'YAML'
+permissions: {}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions: read-all
+YAML
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'permissions wrong shape'
+  assert_output --partial '!!str'
+}

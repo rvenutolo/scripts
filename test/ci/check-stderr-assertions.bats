@@ -354,3 +354,19 @@ plain_status_use() {
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
+
+# The scope walk skips a subdirectory that does not exist rather than dying, so a
+# repo mid-reorganisation — test/root/ not yet created, say — still gets the other
+# two scanned instead of the whole lint failing or, worse, reading clean.
+@test "a missing scope subdirectory is skipped and the rest still scanned" {
+  rmdir "${FIXTURE_TEST}/root"
+  write_test_file "${FIXTURE_TEST}/functions/bad.bats" \
+    '@test "x" {' \
+    '  run --separate-stderr some::fn x' \
+    '  assert_failure' \
+    "$(raw_stderr_glob)" \
+    '}'
+  run "${CHECK}"
+  assert_failure
+  assert_output --partial 'bad.bats'
+}

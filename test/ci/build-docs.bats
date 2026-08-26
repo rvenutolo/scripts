@@ -1,5 +1,9 @@
 setup() {
   load '../test_helper/common'
+  # shellcheck disable=SC1091 # path resolved at runtime via SCRIPTS_DIR
+  source "${SCRIPTS_DIR}/functions/args.bash"
+  load '../test_helper/git_fixture'
+  load '../test_helper/path_shim'
   CHECK="${REPO_DIR}/.ci/build-docs"
   # Redirect generated docs to a per-test tmpdir so the suite never mutates the
   # real .docs/ and parallel runs of this file don't race on shared output.
@@ -176,4 +180,35 @@ index_link_count() {
   run find "${DOCS_DIR_OVERRIDE}" -type f -name '*.md' -empty
   assert_success
   refute_output
+}
+
+# SHDOC is derived from the repo root, so a clone that skipped
+# `git submodule update --init` has no .shdoc/ and the generator would otherwise fail
+# somewhere deep in an awk pipeline. The guard names the recovery command, and a
+# fixture repo is the only way to reach it without breaking the real checkout.
+@test "dies with the submodule hint when shdoc is absent" {
+  local -r fixture="${BATS_TEST_TMPDIR}/norepo"
+  git_fixture::init "${fixture}"
+  cd "${fixture}" || return 1
+  run "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'shdoc not found'
+  assert_output --partial 'git submodule update'
+}
+
+# gawk, not awk: the shdoc pipeline uses gawk-only constructs, so a machine carrying
+# only mawk or busybox awk must be told which one is missing rather than failing on a
+# syntax error inside a program body. Only bash and git are linked into the fixture
+# PATH — all the script touches before this guard.
+@test "dies when gawk is not on PATH" {
+  local -r bin_dir="${BATS_TEST_TMPDIR}/nogawk"
+  mkdir --parents "${bin_dir}"
+  # bash for the `#!/usr/bin/env bash` shebang, git for the repo-root resolution at
+  # the top of the script. Nothing else runs before the guard under test.
+  ln --symbolic "$(command -v bash)" "${bin_dir}/bash"
+  ln --symbolic "$(command -v git)" "${bin_dir}/git"
+  cd "${REPO_DIR}" || return 1
+  PATH="${bin_dir}" BASH_ENV="${SAFE_BASH_ENV}" run "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'gawk not found'
 }

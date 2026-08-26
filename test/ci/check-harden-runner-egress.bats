@@ -149,3 +149,13 @@ EOF
   assert_failure
   refute_output --partial 'has no harden-runner step'
 }
+
+# The EXEMPT array ships empty on purpose, so its arm is only reachable through the
+# override seam — and an exemption that silently stopped working would leave the gate
+# looking correct while failing a job the maintainer had deliberately allowed. The
+# entry is also recorded as seen, which is what the staleness detection reads.
+@test "an exempt job with no harden-runner step is accepted" {
+  printf 'jobs:\n  build:\n    steps:\n      - uses: actions/checkout@v4\n' > "${WF}/a.yml"
+  EXEMPT_OVERRIDE='a.yml:build' WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_success
+}

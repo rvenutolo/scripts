@@ -313,3 +313,22 @@ EOF
   assert_failure 1
   assert_output --partial 'Expected no arguments'
 }
+
+# The `*)` arm of the token scan swallows anything that is neither `pipefail` nor a
+# `-flag`. A trailing bare word is the shape that reaches it, and the prelude must
+# still be judged strict on the flags that are present rather than rejected for the
+# stray token.
+@test "a set line with a trailing bare word is still recognised as strict" {
+  cat > "${WF}/a.yml" << 'YAML'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - id: s
+        run: |
+          set -Eeuo pipefail extra
+          printf 'hi\n'
+YAML
+  run_check
+  assert_success
+}
