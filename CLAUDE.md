@@ -935,14 +935,31 @@ Facts that are load-bearing, from #307, #310, and #319:
   flag takes a **comma-separated list and does not recurse**, which is why the root runners need
   the repo root named separately — they are files at the top level, not a directory.
 
-- **The gates baseline is 78.8% (2662 / 3377 lines) on CI, and the suite runs in ~2.5 min** —
+- **The gates baseline is 79.3% (2662 / 3357 lines) on CI, and the suite runs in ~2.5 min** —
   faster than the functions suite's ~9, despite 726 tests, because the gate tests spend their time
   in subprocesses rather than in traced bash. The two are separate CI jobs so neither serializes
   behind the other's timeout; `ci.yml`'s PR half runs both as steps of one job because it uploads
   nothing and so has no per-upload egress to isolate.
 
-  **A local gates run reads about 1.5 points higher, and CI is the authority.** The same tree
-  measures 2686 / 3345 locally. The denominator differs because a local `--bash-parse-files-in-dir`
+  `codecov/project/gates` carries a real `auto` target with a 1% threshold, on the same terms as
+  the functions status. It was `informational: true` for exactly one commit, until a baseline
+  existed: the first upload could only happen after the measurement landed, and gating on a number
+  nobody had seen would have meant a red build on day one for no signal.
+
+- **`.ci/required-tools` is excluded from the gates scope, and it is not a coverage gap.** It is
+  data, not code — a comment-and-tool-name list with no shebang and no executable bit, consumed by
+  `check-devshell-provides` and `check-tool-declarations`, both of which have their own tests.
+  Walking `.ci/` hands it to kcov's bash lexer, which scores its 20 bare tool names as unhittable
+  statements; the file read 0/20 and dragged the denominator by 20 lines (78.8% against the real
+  79.3%). It is the only non-script file in `.ci/`, so the exclusion names it directly via
+  `--exclude-path`. **The fix was the denominator, not a test** — there is nothing in that file to
+  execute, and writing a `test/ci/required-tools.bats` to chase the number would have tested
+  nothing. `.ci/check-script-has-test` never covered it either: that lint scopes shebang-bearing
+  executables, so its `EXEMPT` array is empty and correctly does not name this file.
+
+  **A local gates run reads about a point higher, and CI is the authority.** The same tree
+  measured 2686 / 3345 locally against 2662 / 3377 on CI, before the `required-tools` exclusion
+  below removed 20 lines from both. The denominator differs because a local `--bash-parse-files-in-dir`
   run started before `run-tests` was added to it; the numerator differs almost entirely in
   `.ci/check-jsonschema`, which reads 33/36 locally and 7/36 on CI. That is the `BASH_ENV` blind
   spot below behaving differently depending on whether the invoking environment already set
