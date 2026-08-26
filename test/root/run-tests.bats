@@ -62,9 +62,10 @@ make_recording_bats_stub_with_body() {
 
 run_in_fake_repo() {
   cd "${FAKE_REPO}" || return 1
-  # --unset=BASH_ENV: a child bash would otherwise re-source the user's
-  # interactive ~/.bashrc, restoring the real PATH ahead of the stub dir.
-  run env --unset=BASH_ENV PATH="${STUB_BIN}:${PATH}" "${SCRIPT}" "$@"
+  # BASH_ENV=SAFE_BASH_ENV: a child bash would otherwise re-source the user's
+  # interactive ~/.bashrc, restoring the real PATH ahead of the stub dir. Unsetting
+  # it outright also detached kcov's trace helper, so run-tests read 0/31 (#322).
+  run env "BASH_ENV=${SAFE_BASH_ENV}" PATH="${STUB_BIN}:${PATH}" "${SCRIPT}" "$@"
 }
 
 # Run the script against an exact PATH ($1), with no ambient entries at all —
@@ -73,7 +74,7 @@ run_in_fake_repo_with_path() {
   local -r bin_dir="$1"
   shift
   cd "${FAKE_REPO}" || return 1
-  run env --unset=BASH_ENV PATH="${bin_dir}" "${SCRIPT}" "$@"
+  run env "BASH_ENV=${SAFE_BASH_ENV}" PATH="${bin_dir}" "${SCRIPT}" "$@"
 }
 
 # Build a PATH dir holding only the binaries the runner needs up to and during

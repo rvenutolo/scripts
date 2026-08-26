@@ -10,13 +10,18 @@ setup() {
 # common.bash's #248 hardening leaves CWD at BATS_TEST_TMPDIR (outside any git
 # repo) by design, so cd into REPO_DIR before every invocation.
 #
-# BASH_ENV is cleared on every invocation: the script's own `#!/usr/bin/env bash`
-# startup re-sources ~/.bashrc, which re-prepends the real nix PATH and would
+# BASH_ENV is neutralized on every invocation: the script's own `#!/usr/bin/env bash`
+# startup would re-source ~/.bashrc, which re-prepends the real nix PATH and would
 # shadow the gh shim with the REAL gh. This script mutates a live GitHub repo,
 # so an unshimmed invocation is not a failed test — it is an unintended write.
+#
+# SAFE_BASH_ENV rather than a literal '': the clearing form also stripped kcov's trace
+# helper, so this script read 0/29 with twelve tests behind it (#322). The substituted
+# value is kcov's helper only, which sources nothing and leaves PATH alone — the shim
+# still wins, and the poison-gh test below is what proves it on every run.
 run_check() {
   cd "${REPO_DIR}" || return 1
-  BASH_ENV='' run "$@"
+  BASH_ENV="${SAFE_BASH_ENV}" run "$@"
 }
 
 # shim_gh <rulesets_query_output> — stub gh across the five calls the script
@@ -129,4 +134,47 @@ exit 1'
   assert_success
   assert_output --partial 'applying repo settings to rvenutolo/scripts'
   assert_output --partial 'done'
+}
+
+# run_check swapped `BASH_ENV=''` for `BASH_ENV="${SAFE_BASH_ENV}"` in #322, and clearing
+# was what kept the real gh out of reach here. This script writes to a live GitHub repo, so
+# that substitution needs a standing proof rather than a one-off check at review time.
+#
+# The hazard is reconstructed rather than borrowed from the user's real dotfiles: a startup
+# file that re-prepends a directory ahead of the shim dir, which is exactly what ~/.bashrc
+# does with the nix PATH. The poison gh exits 42 and leaves a marker, so the control arm
+# proves the failure mode is real and the assertion arm proves SAFE_BASH_ENV neutralizes it.
+# A regression is then a red test naming the cause, not a silent API write.
+@test "run_check's BASH_ENV cannot let a startup file shadow the gh shim" {
+  shim_gh ''
+  local -r poison_dir="${BATS_TEST_TMPDIR}/poison"
+  local -r marker="${BATS_TEST_TMPDIR}/poison.marker"
+  mkdir --parents "${poison_dir}"
+  cat > "${poison_dir}/gh" << EOF
+#!/usr/bin/env bash
+printf 'poisoned\n' > '${marker}'
+exit 42
+EOF
+  chmod +x "${poison_dir}/gh"
+  cat > "${BATS_TEST_TMPDIR}/fake-bashrc" << EOF
+PATH='${poison_dir}':"\${PATH}"
+export PATH
+EOF
+
+  # Control: with a bashrc-shaped startup file attached, the poison wins.
+  cd "${REPO_DIR}"
+  BASH_ENV="${BATS_TEST_TMPDIR}/fake-bashrc" run "${CHECK}"
+  run cat "${marker}"
+  assert_success
+  assert_output 'poisoned'
+
+  # The real assertion: under the value run_check actually uses, no startup file is
+  # sourced, the poison dir never reaches PATH, and the recording shim takes the calls.
+  rm --force -- "${marker}"
+  run_check "${CHECK}"
+  assert_success
+  run cat "${marker}"
+  assert_failure 1
+  run cli_shim::call_count 'gh'
+  assert_output '5'
 }

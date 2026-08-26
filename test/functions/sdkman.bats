@@ -574,7 +574,8 @@ INIT_EOF
 
 # Run a snippet in a real strict-mode shell, the way production scripts invoke sdkman::init.
 # A child shell is required because the behaviour under test *is* strict-mode state, which bats
-# does not set. BASH_ENV is unset so a re-sourced ~/.bashrc cannot clobber SCRIPTS_DIR.
+# does not set. BASH_ENV is neutralized so a re-sourced ~/.bashrc cannot clobber SCRIPTS_DIR;
+# SAFE_BASH_ENV rather than an unset keeps kcov's trace helper attached (#322).
 run_strict() {
   local -r snippet="$1"
   local -r script="${BATS_TEST_TMPDIR}/strict.bash"
@@ -586,7 +587,7 @@ run_strict() {
     printf '%s\n' 'log::enable_err_trap'
     printf '%s\n' "${snippet}"
   } > "${script}"
-  run env --unset=BASH_ENV "SCRIPTS_DIR=${SCRIPTS_DIR}" "SDKMAN_DIR=$(fake_sdkman_dir)" bash "${script}"
+  run env "BASH_ENV=${SAFE_BASH_ENV}" "SCRIPTS_DIR=${SCRIPTS_DIR}" "SDKMAN_DIR=$(fake_sdkman_dir)" bash "${script}"
 }
 
 @test "init: sources sdkman-init.sh and defines sdk" {
