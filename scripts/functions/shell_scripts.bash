@@ -80,8 +80,7 @@ function shell_scripts::find() {
 # - Files that are not shell files are warned and skipped. A shell file is one
 #   carrying a .sh/.bash/.bats extension or a shell shebang (shell_scripts::is_shell_file),
 #   the same predicate the shfmt step in check-scripts uses. Gating on the shebang
-#   alone made shellcheck coverage of the .bats corpus an accident of authoring
-#   style: 31 of 83 test files were silently exempt (#215).
+#   alone would leave 31 of 83 test files silently unlinted.
 # - Files under /other/ require interactive confirmation (prompt::ny).
 # Output goes into a caller-provided array via nameref so prompts can run
 # in the caller's shell (avoids capturing prompt output in process subs).

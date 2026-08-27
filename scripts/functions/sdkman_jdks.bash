@@ -54,7 +54,7 @@ function sdkman_jdks::set_default_jdk_by_id() {
 #   API no longer serves them, so they are not available to install, and every consumer of this
 #   catalog means exactly that. Left in, one that sorted above the newest remote row for its major
 #   would make install_latest_tem_jdk hand `sdk install java` an undownloadable artifact and make
-#   prune_tem_jdks_for_major_version keep it while uninstalling the current one (#304).
+#   prune_tem_jdks_for_major_version keep it while uninstalling the current one.
 #   The marker is matched by shape rather than by column, for the same reason `$NF` is: it is a
 #   `+` among the Use column's `> * +` glyphs today and was the literal text `local only` in the
 #   six-column layout's Status column. No other cell can collide — a Version always carries

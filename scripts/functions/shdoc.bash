@@ -39,8 +39,8 @@ function shdoc::file_has_description() {
 # the form `function NAME() {` and print the names of any whose immediately
 # preceding non-blank, non-shellcheck-directive line is NOT a shdoc tag line
 # (does not match `^# @`). Names may be namespaced with `::`, which every
-# function in functions/*.bash is; omitting the colon from the name class made
-# the library arm of check-shdoc-headers match nothing at all (#258). The literal
+# function in functions/*.bash is; omitting the colon from the name class would
+# make the library arm of check-shdoc-headers match nothing at all. The literal
 # `main` function is always excluded — it is covered by the file-level header per
 # project rule.
 # @arg $1 file path to script
@@ -118,7 +118,7 @@ function shdoc::_placeholder_gawk_pattern() {
 # immediately above the definition; a blank or non-comment line ends it, so a
 # detached note further up the file is not attributed to the function. Applies to
 # both library files and top-level scripts: a helper inside a top-level script has
-# an annotation block too, and only its file-level header was previously checked.
+# an annotation block too, and scanning only the file-level header would miss it.
 # The literal `main` function is excluded, mirroring
 # shdoc::find_unannotated_functions so both helpers select functions identically.
 # @arg $1 file path to script or library file

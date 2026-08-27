@@ -34,6 +34,7 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | every arity-violating test asserts its guard message | `check-vacuous-arity-tests` | `governance` | `governance` |
 | every BATS test asserts on stderr, stdout, and status through bats-assert | `check-stderr-assertions` | `governance` | `governance` |
 | no .bats test file opens with a shebang | `check-bats-no-shebang` | `governance` | `governance` |
+| code comments and runtime strings carry no bare issue number | `check-comment-archaeology` | `governance` | `governance` |
 | no tree-inspecting repo tool resolves a scan root from SCRIPTS_DIR | `check-tree-scan-root` | `governance` | `governance` |
 | every literal path a repo config file configures still names something git knows about | `check-config-paths` | `governance` | `governance` |
 | every gate script enables `inherit_errexit` so a failed command substitution cannot exit 0 | `check-inherit-errexit` | `governance` | `governance` |

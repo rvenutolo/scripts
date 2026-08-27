@@ -595,6 +595,63 @@ unnecessary; no lint catches this form, so it is a review matter.
 Scripts under `scripts/` are outside this rule: it targets the gates, where a wrong exit code
 is indistinguishable from a clean run.
 
+### Comments carry no bare issue numbers
+
+A comment or a runtime string must say what a reader can act on today, not which ticket
+produced it. The single test:
+
+> Would a reader who has never seen the issue tracker act differently because of this text?
+> **Yes** → keep it, present tense, no number. **No** → cut it.
+
+| #   | Shape                                              | Action                                                                                                                                                                                                                                                         |
+| --- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Complete sentence + trailing `(#NNN)` / `(#N, #N)` | Strip the parenthetical, keep the terminal period. Mechanical.                                                                                                                                                                                                 |
+| 2   | Number mid-sentence in load-bearing prose          | Rewrite present-tense without the number. If the sentence exists only to attribute, delete the sentence.                                                                                                                                                       |
+| 3   | Pure archaeology block                             | Delete. If the current shape still needs explaining, keep one present-tense sentence stating the constraint.                                                                                                                                                   |
+| 4   | Superseded-state narration                         | If the shape is a real trap, state the trap in the present tense; drop the account of who fell into it.                                                                                                                                                        |
+| 5   | Runtime string carrying `(#NNN)`                   | Strip. Where a test asserts on the number, re-anchor the assertion on stable prose.                                                                                                                                                                            |
+| 6   | Regression `@test` title                           | May keep the number — the defect is the test's subject. Prefer a one-line defect description over a bare `#NNN`.                                                                                                                                               |
+| 7   | Never touch                                        | Lint self-reference devices (`y[q]`, `j[q]`, `@@STDERR@@` sentinels), `scripts/other/`, CLAUDE.md apart from the one verbatim `inherit_errexit` block. Prose inside an shdoc block may be edited; a `@description` / `@arg` / `@exitcode` tag is never gutted. |
+
+Dispositions 3 and 4 differ in what survives. 3 deletes and may leave nothing. 4 always leaves a
+present-tense statement of the trap, because the trap is why the code looks odd and a reader who
+does not know it will "fix" the code.
+
+**The one exception is a regression `@test` title**, where the defect itself is the test's
+subject. Even there a one-line description of the defect beats a bare number, and the current
+corpus carries none — every regression title in the suite names what it pins.
+
+`.ci/check-comment-archaeology` enforces the machine-detectable half: a `#` followed by three or
+four digits in any tracked in-scope file. Scope is `*.bash`, `*.bats`, `*.nix`, `*.sh`, `*.yml`,
+`*.yaml`, `*.toml` and the extensionless top-level executables, minus `scripts/other/`, `.shdoc/`
+and `site/`. Dotfiles such as `.envrc`, `.editorconfig` and `.justfile` are deliberately out of
+scope too — they carry a dot but match none of the listed extensions. Detection is whole-line
+rather than comment-aware — deciding whether a `#` opens a comment needs a shell parser, and
+runtime strings are in scope anyway — so `${#output}`, `$#` and `#L12` line anchors are excluded by
+the pattern rather than by context. A six-hex colour is not automatically excluded: prefixed with
+the hash sign, a value such as `0000ff` is exactly four long (a three-long run, e.g. `123abc`,
+matches the same way), while `123456` does not because that run continues past four; no colour in
+the tree today falls on the matching side. **Markdown is deliberately out of scope**: this file carries issue numbers as
+provenance for decisions a reader is told not to relitigate, and it must keep them.
+
+**Three or four digits, not one to four.** `.ci/check-workflow-hermetic` documents a step index
+of the form `#` plus a single digit in an shdoc `@stdout` example, and two of its tests pin that
+rendering; a `{1,4}` pattern flags it as an issue reference. Every issue this repo has
+referenced in a comment is three digits and no two-digit reference survives anywhere in the
+corpus, so narrowing excludes step indices structurally and lets `EXEMPT` ship **empty** — the
+stronger outcome. The accepted trade: a future two-digit reference would go uncaught.
+
+`EXEMPT` keys are `<repo-relative-file>::<issue-number>`, space-free because
+`arrays::from_env_override` splits its override on spaces. They carry the usual bidirectional
+staleness detection — an entry naming no in-scope file, or naming one with no such hit, fails
+the lint rather than silently disarming it. The array ships empty and should stay that way.
+
+**Numberless prose is deliberately not enforced.** "used to" and "previously" have legitimate
+non-historical uses, so a regex over them is a false-positive machine rather than a gate. That
+half — superseded-state narration, pure archaeology blocks, plan-document references — stays a
+review matter, and the `comment-archaeology-sweep` skill applies the rubric above to it. The
+gap is a decision, not an oversight; do not close it with a pattern.
+
 ### Standalone `misc/` ERR trap
 
 Standalone scripts that do NOT source this repo's `.functions.bash` (everything in `misc/`) cannot call `log::enable_err_trap`. Inline the trap directly after the `IFS=` line. (Note: scripts that source `${DOCKER_COMPOSE_DIR}/functions.bash` DO have access to this repo's helpers — that file transitively sources `${SCRIPTS_DIR}/.functions.bash` — so use `log::enable_err_trap` there, not the inline form.)

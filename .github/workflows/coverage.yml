@@ -53,8 +53,8 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           # MUST stay true. With it false, codecov.sh's exit_if_error only
           # prints and returns, so a failed GPG verification falls through to
-          # `chmod +x` and the CLI runs unverified (#199), and a rejected
-          # upload reports green (#200). Enforced by .ci/check-codecov-strict.
+          # `chmod +x` and the CLI runs unverified, and a rejected upload
+          # reports green. Enforced by .ci/check-codecov-strict.
           fail_ci_if_error: true
   coverage-gates:
     name: coverage-gates
