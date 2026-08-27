@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+
+# @description Assert that no tracked in-scope file carries a bare issue or PR
+#              number. The rule: a comment or runtime string must say what a
+#              reader can act on today, not which ticket produced it. A hash sign
+#              followed by three or four digits is the machine-detectable half of
+#              that rule; the prose half — accounts of a prior implementation —
+#              stays a review matter, handled by the comment-archaeology-sweep
+#              skill.
+#
+#              Numberless prose is deliberately NOT enforced. "used to" and
+#              "previously" have legitimate non-historical uses, so a regex over
+#              them is a false-positive machine rather than a gate. The gap is a
+#              decision, not an oversight.
+#
+#              Three or four digits, not one to four. check-workflow-hermetic
+#              documents a step index of the form hash-sign-two in an shdoc
+#              @stdout example, and two of its tests pin that rendering; a
+#              one-to-four-digit pattern would flag it as an issue reference.
+#              Every issue this repo has referenced in a comment is three digits,
+#              the tree is well past its three-hundredth issue, and no two-digit
+#              reference survives anywhere in the corpus — so narrowing excludes
+#              step indices structurally and lets EXEMPT ship empty, which is the
+#              stronger outcome. The accepted trade: a future two-digit reference
+#              would go uncaught.
+#
+#              Detection is whole-line, not comment-aware: deciding whether a hash
+#              sign opens a comment needs a shell parser, and runtime strings are
+#              in scope anyway. Hex colours, ${#output}, $# and #L12 line anchors
+#              do not match.
+#
+#              Scope is every tracked file under the scan root with a .bash,
+#              .bats, .nix, .yml, .yaml or .toml extension, plus extensionless
+#              files (the repo's top-level executables), minus scripts/other/,
+#              .shdoc/ and site/. Markdown is deliberately out of scope: CLAUDE.md
+#              carries issue numbers as provenance for decisions a reader is told
+#              not to relitigate.
+#
+#              EXEMPT keys are <repo-relative-file>::<number>, space-free because
+#              arrays::from_env_override splits its override on spaces. The array
+#              ships empty — regression test titles name their defect rather than
+#              carrying a number. Each exemption must stay warranted: an entry
+#              naming no in-scope file, or naming one with no such hit, fails the
+#              lint rather than silently disarming it.
+#
+#              This lint has no self-reference problem and needs no
+#              bracket-obfuscation device of the kind check-errexit-predicate
+#              uses. Its pattern spells the hash sign followed by a bracket, and
+#              its EXEMPT keys put the number after a colon, so neither form
+#              matches the pattern. Do not add a device; do keep every illustrative
+#              example in this file free of a literal hash-sign-plus-three-digits,
+#              which would flag this file.
+# @noargs
+# @stderr One `path:line: text` line per hit, and one line per stale EXEMPT entry.
+# @exitcode 0 no in-scope file carries a bare issue number.
+# @exitcode 1 at least one hit, or a stale EXEMPT entry.
+
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0.
+shopt -s inherit_errexit
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly SCAN_ROOT="${SCAN_ROOT_OVERRIDE:-${REPO_DIR}}"
+
+# The digits are captured so the same expression serves both grep's line filter
+# and the bash extraction below; the group is the only difference from the plain
+# form. The trailing alternation is the boundary that keeps a six-digit hex colour
+# from matching: after four digits it demands a non-digit or end of line.
+readonly PATTERN='#([0-9]{3,4})([^0-9]|$)'
+
+# Nothing is exempt. Regression test titles name the defect they pin rather than
+# its issue number, so no file needs suppressing. Keys, when one is ever added,
+# are <repo-relative-file>::<number>.
+readonly EXEMPT=()
+
+# @description Print every in-scope file path, repo-relative, one per line. The
+#              target set is the tracked files under the scan root: an untracked
+#              scratch file is not part of the corpus and is never judged.
+# @noargs
+# @stdout Repo-relative file paths, one per line; nothing when the tree holds none.
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+function collect_in_scope_files() {
+  args::check_no_args "$@"
+  local tracked_tmp
+  files::create_temp tracked_tmp
+  git -C "${SCAN_ROOT}" ls-files --cached > "${tracked_tmp}" # -C: no long-form equivalent
+  local path base
+  while IFS= read -r path; do
+    strings::is_empty "${path}" && continue
+    case "${path}" in
+      scripts/other/* | .shdoc/* | site/*) continue ;;
+    esac
+    base="${path##*/}"
+    case "${base}" in
+      # In scope by extension, then every extensionless file (the top-level
+      # executables). Anything else carrying a dot — markdown above all — is out.
+      *.bash | *.bats | *.nix | *.yml | *.yaml | *.toml) ;;
+      *.*) continue ;;
+      *) ;;
+    esac
+    printf '%s\n' "${path}"
+  done < "${tracked_tmp}"
+}
+
+# @description Print one tab-separated record per hit:
+#              <path><TAB><line number><TAB><number><TAB><line text>. A line
+#              carrying two numbers yields two records, so an exemption suppresses
+#              one of them without hiding the other.
+# @arg $1 files_list path to a file holding repo-relative paths, one per line
+# @stdout One record per hit; nothing when every file is clean.
+function scan_for_hits() {
+  args::check_exactly_1_arg "$@"
+  local -r files_list="$1"
+  local matches_tmp
+  files::create_temp matches_tmp
+  local path hit lineno text rest number
+  while IFS= read -r path; do
+    strings::is_empty "${path}" && continue
+    if ! grep --extended-regexp --line-number --binary-files=without-match \
+      -- "${PATTERN}" "${SCAN_ROOT}/${path}" > "${matches_tmp}"; then
+      # grep exits 1 on a clean file, which is the common case, not an error.
+      continue
+    fi
+    while IFS= read -r hit; do
+      lineno="${hit%%:*}"
+      text="${hit#*:}"
+      # Walk the line, consuming through each match, so every number on it is
+      # reported. Progress is guaranteed: the consumed prefix always contains the
+      # non-empty token just matched.
+      rest="${text}"
+      while [[ "${rest}" =~ ${PATTERN} ]]; do
+        number="${BASH_REMATCH[1]}"
+        printf '%s\t%s\t%s\t%s\n' "${path}" "${lineno}" "${number}" "${text}"
+        rest="${rest#*"#${number}"}"
+      done
+    done < "${matches_tmp}"
+  done < "${files_list}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  local -a exempt=()
+  arrays::from_env_override exempt EXEMPT_OVERRIDE "${EXEMPT[@]}"
+
+  local files_tmp hits_tmp seen_tmp
+  files::create_temp files_tmp
+  files::create_temp hits_tmp
+  files::create_temp seen_tmp
+  dirs::assert_exists "${SCAN_ROOT}"
+  # shellcheck disable=SC2119 # no args intended; SC2120 disable on function def suppresses the pair
+  collect_in_scope_files > "${files_tmp}"
+  if [[ ! -s "${files_tmp}" ]]; then
+    log::die "no in-scope files under ${SCAN_ROOT} — a scan that matches nothing is a failure, not a clean pass"
+  fi
+  scan_for_hits "${files_tmp}" > "${hits_tmp}"
+
+  local rc=0
+  local path lineno number text key
+  while IFS=$'\t' read -r path lineno number text; do
+    strings::is_empty "${path}" && continue
+    key="${path}::${number}"
+    if arrays::contains "${key}" ${exempt[@]+"${exempt[@]}"}; then
+      printf '%s\n' "${key}" >> "${seen_tmp}"
+      continue
+    fi
+    printf '%s:%s: %s\n' "${path}" "${lineno}" "${text}" >&2
+    rc=1
+  done < "${hits_tmp}"
+
+  # One check covers both staleness directions: an entry naming a file the scan
+  # never saw never lands in seen_tmp, and neither does one naming a file whose
+  # hits do not include that number.
+  local entry
+  for entry in ${exempt[@]+"${exempt[@]}"}; do
+    if ! grep --quiet --line-regexp --fixed-strings "${entry}" "${seen_tmp}"; then
+      printf 'stale EXEMPT entry: %s suppresses no hit\n' "${entry}" >&2
+      rc=1
+    fi
+  done
+
+  if ((rc != 0)); then
+    log::warn 'comment-archaeology audit failed — say what a reader can act on, not which ticket produced it.'
+  fi
+  exit "${rc}"
+}
+
+main "$@"
