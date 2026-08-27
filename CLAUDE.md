@@ -50,7 +50,7 @@ The user's `~/.profile` exports a fixed set of env vars (`SCRIPTS_DIR`, `XDG_*`,
 
 Every non-`misc/` script sources `"${SCRIPTS_DIR}/.functions.bash"`. Exception: a small number of Docker-related scripts (e.g. `scripts/non-interactive/docker-grype-scan`, `scripts/non-interactive/docker-trivy-scan`) source `${DOCKER_COMPOSE_DIR}/functions.bash` from a separate Docker repo instead. That file transitively sources `${SCRIPTS_DIR}/.functions.bash`, so all helpers from this repo (`log::enable_err_trap`, `log::log`, `log::die`, etc.) ARE available — no need to inline equivalents in those scripts.
 
-`.ci/activate-githooks` is the one script under `.ci/` that sources nothing and omits `args::handle_help_flag`. It runs from the flake devShell's `shellHook`, including under `nix develop --ignore-environment`, where `SCRIPTS_DIR` does not exist — sourcing the library there killed it under `set -u`, so the tracked git hooks silently failed to activate in the one environment that most resembles a fresh clone (#231). A bootstrap script cannot depend on the environment it is bootstrapping, so it inlines the `ERR` trap and its few helpers the way `misc/` standalone scripts do.
+`.ci/activate-githooks` is the one script under `.ci/` that sources nothing and omits `args::handle_help_flag`. It runs from the flake devShell's `shellHook`, including under `nix develop --ignore-environment`, where `SCRIPTS_DIR` does not exist — sourcing the library there killed it under `set -u`, so the tracked git hooks silently failed to activate in the one environment that most resembles a fresh clone. A bootstrap script cannot depend on the environment it is bootstrapping, so it inlines the `ERR` trap and its few helpers the way `misc/` standalone scripts do.
 
 ## Common Commands
 
@@ -64,7 +64,7 @@ Tooling is provided by a **Nix flake devShell** (see [Required Environment](#req
 
 - `./check-scripts [<file-or-dir>...]` — combined check: runs `shfmt` (verify only, never rewrites), `shellcheck`, the shdoc-header audit (`.ci/check-shdoc-headers`), and the executable-bit audit (`.ci/check-executable-bit`), aggregating exit codes so a failure in any of them fails the run. Use this for CI/pre-commit-style verification.
 
-  The shfmt step is not redundant with `nix fmt`: treefmt matches by file extension, so it never sees the extensionless top-level executables or `*.bats` files. This step covers them, running over the pre-filter candidate list. That list is gated on `shell_scripts::is_shell_file` — extension-or-shebang, mirroring `shfmt --find` — because `shell_scripts::find` echoes an explicitly-passed file verbatim, so without the gate a `./check-scripts CLAUDE.md` would hand markdown to shfmt and fail on a bogus parse error (#206). `shell_scripts::filter` gates the shellcheck list on the same predicate, so `*.bats` files reach both steps by extension whether or not they carry a shebang; gating shellcheck on the shebang alone left 31 of 83 test files silently unlinted (#215). It passes no style flags — see [Shell style lives in `.editorconfig`](#shell-style-lives-in-editorconfig).
+  The shfmt step is not redundant with `nix fmt`: treefmt matches by file extension, so it never sees the extensionless top-level executables or `*.bats` files. This step covers them, running over the pre-filter candidate list. That list is gated on `shell_scripts::is_shell_file` — extension-or-shebang, mirroring `shfmt --find` — because `shell_scripts::find` echoes an explicitly-passed file verbatim, so without the gate a `./check-scripts CLAUDE.md` would hand markdown to shfmt and fail on a bogus parse error. `shell_scripts::filter` gates the shellcheck list on the same predicate, so `*.bats` files reach both steps by extension whether or not they carry a shebang; gating shellcheck on the shebang alone would leave 31 of 83 test files silently unlinted. It passes no style flags — see [Shell style lives in `.editorconfig`](#shell-style-lives-in-editorconfig).
 
 ### Shell style lives in `.editorconfig`
 
@@ -182,7 +182,7 @@ inside `src/assert_output.bash` and `src/refute_output.bash` rather than in file
 their own, along with `assert_stderr_line` and `refute_stderr_line` in the `*_line.bash`
 pair. All four delegate to a shared `__assert_stream` that picks the stream from the
 caller's name. There is no `src/assert_stderr.bash`, which is why an `ls src/` once
-concluded they were missing (#274).
+concluded they were missing.
 
 **`flake.nix` takes bats-assert and bats-support from flake inputs, not from the nixpkgs
 releases, and that is load-bearing — never "simplify" it back to a bare `l.bats-assert` /
@@ -213,7 +213,7 @@ upstream gets in on a green build.
 `.ci/check-vacuous-arity-tests` enforces this. It resolves each `run` target to the
 `args::check_*` guard the helper declares and flags the test only when the argument
 count on the `run` line violates that guard — it reads no test titles, so the prefix
-collisions, loop-based tests, and competing title conventions that broke the #251
+collisions, loop-based tests, and competing title conventions that defeat a title-matching
 sweep cannot affect it. It abstains rather than guesses on any shape it cannot parse:
 external commands, variable targets, dynamic argument lists, unbalanced or
 continued lines, command substitution, and multi-line `bash -c` strings. Two
@@ -263,7 +263,7 @@ is kept for continuity; its scope is every variable `run` sets, not stderr alone
 - **Rule 1** rejects a raw `${stderr}` expansion inside a bracket test.
 - **Rule 2** rejects an `assert_output` / `refute_output` / `assert_line` /
   `refute_line` carrying an expectation inside a `@test` whose `run` used
-  `--separate-stderr` — the #274 trap, where the assertion reads correctly and can
+  `--separate-stderr` — the trap where the assertion reads correctly and can
   never match. A bare call or an explicit `''` is allowed, because asserting that
   stdout is empty while stderr carries the message is a legitimate shape.
 - **Rule 3** rejects a raw `${output}` expansion inside a bracket test, except under a
@@ -384,7 +384,7 @@ through `.ci/in-devshell`. Nothing else in the repo may spell `nix develop`.
 devShell PATH and leaves the ambient PATH reachable behind it, so every gate resolved its
 tools by precedence rather than by guarantee: a tool missing from `flake.nix` still
 resolved from the maintainer's machine and from the runner's `/usr/bin`, and the build was
-green. That is the same class of false green as #219, #228, and #250, and the existing
+green. That is the silent false green this repo spends the most effort on, and the existing
 `check-tool-declarations` + `check-devshell-provides` pair cannot catch it — those verify
 that declared tools *are provided*, never that undeclared tools are *unavailable*.
 
@@ -415,13 +415,13 @@ hermeticity would preserve exactly the local/CI gap the change exists to close.
   `git rev-parse --show-toplevel` and exports `SCRIPTS_DIR="${REPO_DIR}/scripts"`, which
   is why the `env: SCRIPTS_DIR:` block is gone from every converted job. It also passes
   `"${REPO_DIR}"` as the flake reference, so a worktree or second clone builds its own
-  devShell instead of silently grading itself with the main checkout's (#250).
+  devShell instead of silently grading itself with the main checkout's.
 
 - **Nesting is free.** `IN_DEVSHELL=1` is exported and kept, and the wrapper `exec`s the
   command directly when it is already set, so a wrapped `./run-all-checks` pays one nix
   evaluation for all five sub-gates instead of six. Call it from anywhere without checking.
 
-- **It is a bootstrap script**, in the `.ci/activate-githooks` mold (#231): it runs before
+- **It is a bootstrap script**, in the `.ci/activate-githooks` mold: it runs before
   the environment it creates, so it sources nothing, omits `args::handle_help_flag` (every
   argument belongs to the wrapped command, so a `--help` would have to be forwarded
   anyway), and inlines the standalone `ERR` trap. It needs only bash, git, and nix from
@@ -437,7 +437,7 @@ hermeticity would preserve exactly the local/CI gap the change exists to close.
   every single commit in exchange for one binary. This is a decision, not an oversight —
   do not "fix" it. `test/ci/commit-msg.bats` pins it with a poison `nix` shim: if the hook
   ever grew an `in-devshell` call, the wrapper would evaluate the flake, the poison would
-  fire, and the test names the reason. Nothing else verified this decision before #321.
+  fire, and the test names the reason. Nothing else verifies this decision.
 
 `.ci/check-workflow-hermetic` enforces the boundary over `.github/workflows/*.yml` and
 `.github/actions/*/action.yml`, in two rules. Rule 1: every step carrying a `run:` key must
@@ -466,7 +466,7 @@ invoked in — `REPO_DIR="$(git rev-parse --show-toplevel)"` — never from the 
 environment variable. `SCRIPTS_DIR` points at the user's main checkout, so a gate rooted
 there audits that tree from inside a worktree or a second clone and reports success for the
 tree actually being worked on. That is a false green, silent and indistinguishable from a
-real pass; it hid a broken shdoc header through two consecutive full-gate runs (#250).
+real pass; it hid a broken shdoc header through two consecutive full-gate runs.
 
 Runners that **act on the machine** are the deliberate exception: `run-install-scripts` and
 `run-set-up-scripts` provision the host from the user's canonical scripts, so `SCRIPTS_DIR`
@@ -485,8 +485,8 @@ the lint rather than silently disarming it.
 `shell_scripts::find` (no-args form) and `shell_scripts::find_root_only` both **exit 1 when they
 match nothing**. A caller that scans a tree and finds no shell files has almost certainly been
 pointed at the wrong tree, and a silent empty result there is indistinguishable from a clean pass
-over code that was never examined — the same false-green shape as #250 and #290. `find` gets this
-from its trailing `grep --invert-match`; `find_root_only` counts what it emitted.
+over code that was never examined. `find` gets this from its trailing `grep --invert-match`;
+`find_root_only` counts what it emitted.
 
 **No caller suppresses this, and none should.** A repo root with no shell scripts is not a shape
 this project has — the root always holds `check-scripts`, `shellcheck-scripts`,
@@ -497,7 +497,7 @@ live guard rather than decoration.
 made the check die once the exit landed. The fix was to give the fixture a root script, **not** to
 teach the check to tolerate an empty root: a fixture that does not mirror any real tree is worth
 less than the guard it would have cost. Bending production code to accommodate a fixture is how a
-gate ends up reading clean over a tree it never scanned (#250, #290).
+gate ends up reading clean over a tree it never scanned.
 
 ### Configured paths must resolve
 
@@ -506,7 +506,7 @@ entry simply matches nothing — no error, no warning, the config quietly stops 
 `scripts/` reorganisation left four behind: typos was scanning `scripts/other/` (third-party code
 the repo forbids editing, so a typo there would fail the gate with no legal fix), the PR
 auto-labeler had stopped labelling script changes entirely, and reviewdog was shellchecking the
-same third-party tree (#314, #315).
+same third-party tree.
 
 `.ci/check-config-paths` enforces that every literal path configured in `.typos.toml`,
 `.github/labeler.yml`, `.yamllint.yml`, `.treefmt.nix`, and reviewdog's `exclude:` in
@@ -539,8 +539,8 @@ Bash unsets `errexit` inside a command-substitution subshell unless `inherit_err
 set. A helper invoked as `n="$(scan "${file}")"` therefore keeps running after a command
 inside it fails, echoes a zero count, and the caller exits 0 on input it never managed to
 check. The `ERR` trap still fires and prints a red line, which makes the failure look
-reported when nothing acted on it — the same silent false-green as #250, and how a lint came
-to grade a workflow it could not parse (#290).
+reported when nothing acted on it — a silent false green, and how a lint ends up grading a
+workflow it could not parse.
 
 Every shebang-bearing executable under `.ci/` and `.githooks/`, plus the repo-root runners,
 carries the shopt directly below the strict-mode pragma:
@@ -554,7 +554,7 @@ IFS=$'\n\t'
 ```
 
 `.ci/check-inherit-errexit` enforces it. Its `EXEMPT` array holds only
-`.ci/activate-githooks` — the bootstrap script that sources nothing (#231) and calls no
+`.ci/activate-githooks` — the bootstrap script that sources nothing and calls no
 helper through a command substitution — and carries the usual bidirectional staleness
 detection.
 
@@ -568,16 +568,16 @@ result is *meaningful* (a `grep`, a `jq empty`) inside the condition.
 `.ci/check-errexit-predicate` enforces this over the same scope, and its `EXEMPT` array ships
 empty. It is deliberately narrow: it flags a function **defined in the scanned file** whose
 **own body** runs `yq` or `jq`, called from a condition **in that same file**. No transitive
-analysis, because the condition shape alone is a poor signal — of the five call sites #294
-first suspected, four turned out to be pure bash with nothing to suppress, and a pure
+analysis, because the condition shape alone is a poor signal — of the five call sites first
+suspected, four turned out to be pure bash with nothing to suppress, and a pure
 predicate called from an `if` is correct bash. The parser in the body is what makes the shape
 dangerous.
 
 Because the lint searches for the parser names, its own source spells them `y[q]` and `j[q]`
 so it does not flag itself, the same self-reference device `check-tree-scan-root` uses.
 
-Known-good conversions, all from #290/#294: `workflow_triggers` prints trigger names as a
-plain command; `harden_runner_count` replaced a `has_harden_runner` predicate whose `yq`
+Known-good conversions: `workflow_triggers` prints trigger names as a plain command;
+`harden_runner_count` replaced a `has_harden_runner` predicate whose `yq`
 failure manufactured a "job has no harden-runner step" finding out of a parse error;
 `check-shdoc-headers`'s `audit_one`/`audit_library_one` print their report to stdout and the
 caller judges by whether output appeared, so a failure in the `awk` that enumerates functions
@@ -705,9 +705,8 @@ For absolute-path resolution (when you need the path, not just a yes/no): helper
 
 The `files::create_temp` → edit → `files::move_no_prompt_quiet` idiom **replaces** the destination
 file rather than editing it in place, so the destination inherits `mktemp`'s restrictive `0600` mode
-and silently loses its executable bit. This has already broken 23 `PATH` scripts once (surfaced
-in #168, tracked as #171): every gate — `check-scripts`, `nix flake check`, `./run-tests`, all of
-CI — passed on the broken tree.
+and silently loses its executable bit. This has already broken 23 `PATH` scripts once: every gate —
+`check-scripts`, `nix flake check`, `./run-tests`, all of CI — passed on the broken tree.
 
 Any bulk rewrite of top-level scripts must therefore either edit in place (`sed --in-place`) or
 re-`chmod +x` afterwards, and must confirm with `git diff --summary` before committing — a stripped
@@ -719,10 +718,10 @@ bit shows up there as `mode change 100755 => 100644` and nowhere else in a norma
 not be. Scripts under `scripts/install/` and `scripts/set_up/` must also be executable unless they
 appear in the lint's `GATED` allowlist. Removing the exec bit is still how a script is gated off from
 those runners, but the exceptions are now enumerated instead of the directories being skipped — the
-blanket skip left 78 of 81 in-scope files unenforced to protect 3 (#173). Each `GATED` entry must
+blanket skip left 78 of 81 in-scope files unenforced to protect 3. Each `GATED` entry must
 itself exist and be non-executable, so a stale line cannot silently disarm the lint. `scripts/other/`
 is included because it is always on `PATH`; the standing "never modify `other/`" rule governs
-content, not file mode (#175). A `*.bash` file under `scripts/other/` is held to the
+content, not file mode. A `*.bash` file under `scripts/other/` is held to the
 must-be-executable rule rather than the library-file rule — the `scripts/other/` arm is matched
 first on purpose, because we impose no naming conventions on third-party content.
 
@@ -834,11 +833,11 @@ by name, and the missing-bats message points at `./.ci/in-devshell ./run-tests` 
 `just test`. `flock` gets its own guard because `bats --jobs` dies inside GNU parallel
 without it, with a message that says nothing about how this repo is meant to be run.
 
-### Fixture-escape hardening (#248)
+### Fixture-escape hardening
 
 A worktree `git push` exports an absolute `GIT_DIR` into hooks; the pre-push gate runs the
 BATS suite, so without defenses every fixture `git` command would be retargeted at the real
-repo — this happened once (#248: branch rewritten, `commit.gpgsign=false` written into the
+repo — this happened once (branch rewritten, `commit.gpgsign=false` written into the
 shared config). Defenses, all of which must stay:
 
 - `.githooks/pre-push` calls `git::clear_local_env` before running the gate.
@@ -861,7 +860,7 @@ Tests are **specification-driven**: each test encodes what the function *should*
 1. Create `test/functions/<name>.bats`. **No shebang** — `.bats` files start directly
    with `setup()` (or `bats_require_minimum_version`). All tooling matches them by
    extension, and `check-executable-bit` forbids the exec bit, so a shebang is dead
-   metadata; `.ci/check-bats-no-shebang` enforces this (#264).
+   metadata; `.ci/check-bats-no-shebang` enforces this.
 1. In `setup()`, `load '../test_helper/common'` and `source` the file under test plus any of its dependencies (e.g. `args.bash` for any helper that uses `args::check_*`).
 1. Per function: one assertion per intended behavior, plus the standard edge-case sweep — empty input, whitespace-only, single char, multi-line, leading/trailing separators, arg-count boundaries.
 1. Run `./run-tests test/functions/<name>.bats` and triage failures: genuine bug → fix the function; ambiguity → escalate; test bug → fix the test.
@@ -909,18 +908,15 @@ takes a `scope` input, and the two scopes are kept apart end to end:
   `codecov/project/gates` status.
 
 **Merging the two would be a regression, not a simplification.** A gate reporting a wrong exit code
-is indistinguishable from a clean run, which is the failure this repo spends the most effort on
-(#250, #290, #307); folding it into a 2000-line library denominator is how a regression there
-disappears. The gates measurement exists because those trees had no number at all — every gap in
-them had to be found by hand, ranking scripts by lines-per-test.
+is indistinguishable from a clean run, which is the failure this repo spends the most effort on;
+folding it into a 2000-line library denominator is how a regression there disappears. The gates
+measurement exists because those trees had no number at all — every gap in them had to be found by
+hand, ranking scripts by lines-per-test.
 
-`.githooks/` is **in** scope. It was excluded when the measurement landed, for a reason that no
-longer holds: its two files carried no paired tests and sat outside `.ci/check-script-has-test`'s
-scopes, so they would have contributed a permanent ~66-line 0% floor with no actionable signal.
-Issue #321 paired both — `test/ci/commit-msg.bats` and `test/ci/pre-push.bats` — and added
-`.githooks/` as a third scope to that lint, so the exclusion ended with its reason. The measured scope still
-matches the paired-test mandate's scope exactly, which is what makes every 0% in the report a real
-gap.
+`.githooks/` is **in** scope. Both its files carry paired tests — `test/ci/commit-msg.bats` and
+`test/ci/pre-push.bats` — and `.ci/check-script-has-test` scopes `.githooks/` as a third scope
+beside `.ci/` and the repo root. The measured scope therefore matches the paired-test mandate's
+scope exactly, which is what makes every 0% in the report a real gap.
 
 The hooks pair into `test/ci/` rather than a `test/githooks/` of their own: they are gate code, the
 same thing every other file in that directory tests, and a two-file directory would buy nothing but
@@ -932,35 +928,31 @@ them. It overrides a **derived** path rather than `REPO_DIR` itself, deliberatel
 `git rev-parse --show-toplevel` unconditional, so its failure still reaches the `ERR` trap instead
 of being masked inside a `${VAR:-$(...)}` default. Same shape as `GOVERNANCE_CI_DIR_OVERRIDE`.
 
-The `#248` defense in that hook is asserted by **effect, not by call**: the test exports a
+The fixture-escape defense in that hook is asserted by **effect, not by call**: the test exports a
 repo-scoped `GIT_DIR`, the stub gate dumps the environment it was handed, and the test asserts the
 variable is gone while an ordinary exported control variable survived. Deleting the
 `git::clear_local_env` line fails that test and only that test.
 
-Facts that are load-bearing, from #307, #310, and #319:
+Facts that are load-bearing:
 
-- **kcov replaced bashcov because bashcov's number was noise.** Ruby's `IO.pipe` hands bash a
-  non-blocking `BASH_XTRACEFD`; when the Ruby reader lagged, bash's `write()` got `EAGAIN` and
-  silently discarded the trace record. About three quarters of the hits were lost, timing-dependent,
-  with no error. Three runs on an unchanged tree spread 3.92 points; the same three runs under kcov
-  produce byte-identical per-line hits, in ~9 minutes against bashcov's projected ~29 once its pipe
-  is fixed. The post-switch baseline was 81.1% (1634 / 2015) against 54.1% through the lossy pipe;
-  the current baseline is **96.5% (1944 / 2015)** after #310, #312 and #313 filled the real branch
-  gaps and #311 fixed the quote-parsing loss below. **Never diagnose a Codecov delta from before those
-  changes by reading the diff.**
+- **kcov replaced bashcov because bashcov's number was noise.** bashcov silently dropped about
+  three quarters of its trace records, timing-dependent and with no error, so any coverage figure
+  collected before the switch to kcov is noise rather than a measurement. kcov produces
+  byte-identical per-line hits across three runs on an unchanged tree, in ~9 minutes. The current
+  functions baseline is **96.5% (1944 / 2015)**. **Never diagnose a Codecov delta from before the
+  switch to kcov by reading the diff.**
 
-- **kcov silently discarded every trace line after a `$'...'` one, and did it with exit 0** (#310).
+- **kcov silently discards every trace line after a `$'...'` one, and does it with exit 0.**
   `BashEngine::getInputType()` carries single-quote state across trace lines but honours backslash
   escapes only outside a quote. Bash renders any value containing a newline with ANSI-C quoting,
-  where `\'` is an escaped quote, so one such line — `printf '%s\n' $'#!/usr/bin/env bash\necho \'x\''` — left the parser latched in `INPUT_SINGLE_QUOTE`, and `checkEvent()` dropped everything
+  where `\'` is an escaped quote, so one such line — `printf '%s\n' $'#!/usr/bin/env bash\necho \'x\''` — leaves the parser latched in `INPUT_SINGLE_QUOTE`, and `checkEvent()` drops everything
   after it. No diagnostic, no non-zero exit, a well-formed report reading 0%.
 
-  Any test writing a multi-line script through a shell variable tripped it, which is every
-  `path_shim::add` call site. It costs 184 lines across seven files — `systemctl.bash` reads 24.1%
-  with every branch tested, `downloads.bash` 13%, `docker.bash` 63% — and read even lower before
-  #310 and #312 added tests to those files (`packages.bash` was 4.8%). `cli_shim` was unaffected
-  only because it writes shim bodies with `cat > file << EOF`, and bash never traces heredoc
-  contents — that difference is why some shim-using files looked fine and others did not.
+  Any test writing a multi-line script through a shell variable trips it, which is every
+  `path_shim::add` call site. Unpatched it costs 184 lines across seven files — `systemctl.bash`
+  reads 24.1% with every branch tested, `downloads.bash` 13%, `docker.bash` 63%. `cli_shim` is
+  unaffected only because it writes shim bodies with `cat > file << EOF`, and bash never traces
+  heredoc contents — that difference is why some shim-using files look fine and others do not.
 
   `.nix/kcov-ansi-c-quoting.patch` fixes it, applied via `patches` on `kcovPatched`. A `*.patch`
   rule in the maintainer's global gitignore hides such files, so the repo `.gitignore` carries an
@@ -995,7 +987,7 @@ Facts that are load-bearing, from #307, #310, and #319:
   Do not chase them. That is also why `codecov/patch` is `informational` in `.codecov.yml`;
   `codecov/project` carries a real `auto` target with a 1% threshold.
 
-- **A test that clears `BASH_ENV` is invisible to kcov** (#319). kcov injects its bash trace helper
+- **A test that clears `BASH_ENV` is invisible to kcov.** kcov injects its bash trace helper
   through `BASH_ENV`, so a subject invoked as `BASH_ENV='' run "${CHECK}"` or
   `env --unset=BASH_ENV "${SCRIPT}"` executes untraced and contributes nothing. Four test files do
   this, all for a good reason — `BASH_ENV` makes a child bash re-source the user's `~/.bashrc`,
@@ -1007,28 +999,26 @@ Facts that are load-bearing, from #307, #310, and #319:
   the `BASH_ENV` clearing is what makes them correct.
 
   The mitigation is the denominator, not the tests: `--bash-parse-files-in-dir` names both `.ci/`
-  and the repo root, so an untraced script reads an honest 0% instead of vanishing. `run-tests`
-  vanished outright before that, which inflates the percentage the same way bashcov's relative
-  `--root` did (#307 item 2) and is exactly the false green the measurement exists to remove. The
-  flag takes a **comma-separated list and does not recurse**, which is why the root runners need
-  the repo root named separately — they are files at the top level, not a directory.
+  and the repo root, so an untraced script reads an honest 0% instead of vanishing. Without it
+  `run-tests` vanishes outright, which inflates the percentage and is exactly the false green the
+  measurement exists to remove. The flag takes a **comma-separated list and does not recurse**,
+  which is why the root runners need the repo root named separately — they are files at the top
+  level, not a directory.
 
 - **The gates baseline is 82.9% (2806 / 3385 lines) on CI, and the suite runs in ~2.5 min** —
   faster than the functions suite's ~9, despite 771 tests, because the gate tests spend their time
-  in subprocesses rather than in traced bash. It was 79.3% (2662 / 3357) when the measurement
-  landed; #322 recovered 88 lines the harness had been hiding, #321 added `.githooks/` with tests
-  behind it, and #323 closed the genuine gaps. Treat any figure here as ±1 line against CI. The two are separate CI jobs so neither serializes
-  behind the other's timeout; `ci.yml`'s PR half runs both as steps of one job because it uploads
-  nothing and so has no per-upload egress to isolate.
+  in subprocesses rather than in traced bash. Treat any figure here as ±1 line against CI. The two
+  are separate CI jobs so neither serializes behind the other's timeout; `ci.yml`'s PR half runs
+  both as steps of one job because it uploads nothing and so has no per-upload egress to isolate.
 
   `codecov/project/gates` carries a real `auto` target with a 1% threshold, on the same terms as
-  the functions status. It was `informational: true` for exactly one commit, until a baseline
-  existed: the first upload could only happen after the measurement landed, and gating on a number
-  nobody had seen would have meant a red build on day one for no signal.
+  the functions status. A new coverage status stays `informational: true` only until its first
+  upload establishes a baseline — gating on a number nobody has seen means a red build on day one
+  for no signal.
 
 - **Do not read the gates percentage as "the rest is untested". 562 of the ~577 uncovered lines are
   lexer artifacts and cannot be hit by any test.** Every uncovered line in the scope was read and
-  classified (#323). The counts below come from a local run that agrees with CI to within one line
+  classified. The counts below come from a local run that agrees with CI to within one line
   — CI remains the authority for any delta:
 
   | Bucket                                                       | Lines |
@@ -1047,19 +1037,16 @@ Facts that are load-bearing, from #307, #310, and #319:
   `.ci/build-docs` is the same story. **Ranking files by uncovered lines is actively misleading in
   this scope** — that ranking is essentially a ranking by embedded-program size.
 
-  **The ceiling is ~82.9% and it has been reached.** The classification originally found 28 genuine
-  gaps across 18 files; #323's step 3 closed 26 of them, and a follow-up pass closed the last two
-  real ones after they turned out to be misfiled. The `source "${HOME}/.profile"` lines in the two
-  provisioning runners had been bucketed as harness-blind on the reasoning that the tests point
-  `HOME` at an empty tmpdir — true, but the fixture simply had no `.profile` in it. Writing one that
-  exports a sentinel, and asserting a fixture provisioning script sees it, covers both lines and
-  pins the contract those runners exist to provide: the environment reaches the scripts they invoke.
-  Both runners now read 100%. Six were the same branch and the most
-  valuable: `exit 0` when the scan target is absent, in `check-pr-workflows-no-secrets`,
+  **The ceiling is ~82.9% and it has been reached.** Two of the gaps the classification closed are
+  worth knowing about. The `source "${HOME}/.profile"` lines in the two provisioning runners are
+  covered by a fixture `.profile` that exports a sentinel, asserted through a fixture provisioning
+  script — which pins the contract those runners exist to provide: the environment reaches the
+  scripts they invoke. Both runners read 100%. And the most valuable gap was one branch repeated
+  six times: `exit 0` when the scan target is absent, in `check-pr-workflows-no-secrets`,
   `check-job-timeout-minutes`, `check-required-checks-no-paths`, `check-harden-runner-first`,
   `check-min-permissions` and `check-vacuous-arity-tests` — the silent-false-green shape this repo
-  spends the most effort on (#250, #290, #307), sitting untested inside the gates themselves. Those
-  are now `dirs::assert_exists` / `log::die` and pinned by spec tests.
+  spends the most effort on, sitting untested inside the gates themselves. All six are now
+  `dirs::assert_exists` / `log::die` and pinned by spec tests.
 
   **Two lines are deliberately uncovered, and both are unreachable rather than untested.**
   `check-executable-bit` 142 and `check-patch-tag-pins` 51 are empty-token `continue`s guarding
@@ -1077,19 +1064,19 @@ Facts that are load-bearing, from #307, #310, and #319:
   data, not code — a comment-and-tool-name list with no shebang and no executable bit, consumed by
   `check-devshell-provides` and `check-tool-declarations`, both of which have their own tests.
   Walking `.ci/` hands it to kcov's bash lexer, which scores its 20 bare tool names as unhittable
-  statements; the file read 0/20 and dragged the denominator by 20 lines (78.8% against the real
-  79.3%). It is the only non-script file in `.ci/`, so the exclusion names it directly via
-  `--exclude-path`. **The fix was the denominator, not a test** — there is nothing in that file to
-  execute, and writing a `test/ci/required-tools.bats` to chase the number would have tested
-  nothing. `.ci/check-script-has-test` never covered it either: that lint scopes shebang-bearing
-  executables, so its `EXEMPT` array is empty and correctly does not name this file.
+  statements, so it would drag the denominator by 20 lines. It is the only non-script file in
+  `.ci/`, so the exclusion names it directly via `--exclude-path`. **The fix is the denominator,
+  not a test** — there is nothing in that file to execute, and a `test/ci/required-tools.bats`
+  written to chase the number would test nothing. `.ci/check-script-has-test` never covered it
+  either: that lint scopes shebang-bearing executables, so its `EXEMPT` array is empty and
+  correctly does not name this file.
 
   **The gates number is reproducible for a given invocation, but not invariant to the shape of
   that invocation. CI is the authority; never compare a local number to a CI one.** Two CI runs on
   two commits produced byte-identical results, so the measurement is deterministic in the sense
   that matters for a delta. A local `--jobs 8` run of the same tree did not agree with a serial one.
 
-  **The cause is a latch in kcov's trace parser, not process depth** (#325). An earlier revision of
+  **The cause is a latch in kcov's trace parser, not process depth.** An earlier revision of
   this section blamed grandchild depth — bats → `run-governance-checks` → the check — and that was
   an inference, now disproved: a synthetic three-level chain traces 100% serially, and
   `BASH_XTRACEFD` propagates intact to every level.
@@ -1139,7 +1126,7 @@ Facts that are load-bearing, from #307, #310, and #319:
   dropping them; `--bash-parser` pins the parser to the devShell's bash rather than `/bin/bash`.
 
   **Read the report only after the run has exited. kcov writes `cobertura.xml` progressively, so the
-  file exists long before the numbers in it mean anything.** A mid-run read during #323 showed
+  file exists long before the numbers in it mean anything.** A mid-run read showed
   2684 / 3385 — five root runners at exactly 0 — against 2805 / 3385 from the finished run, i.e. a
   98-line collapse that never happened. That is indistinguishable from the real harness failures
   documented above, and it is more convincing than a wrong number has any right to be: a whole file
@@ -1167,7 +1154,7 @@ It **aggregates exit codes rather than failing fast**, so one run surfaces every
 
 It is **verify-only** — it never rewrites the tree. That is why `nix fmt` stays a separate step run before it: a gate that reformats the thing it is about to approve is not a gate, and the pre-push hook must never mutate the tree it is pushing.
 
-`nix flake check` evaluates the **tracked git tree**, so it cannot see untracked files — a badly formatted new file passes vacuously until it is staged (#217). `./run-all-checks` therefore **warns** (never fails) when the working tree holds untracked, non-ignored files. Staging is what exposes a new file to the formatting gate, so `git add` before trusting a green run. Warning rather than failing is deliberate: hard-failing would block the gate on scratch files and work in progress.
+`nix flake check` evaluates the **tracked git tree**, so it cannot see untracked files — a badly formatted new file passes vacuously until it is staged. `./run-all-checks` therefore **warns** (never fails) when the working tree holds untracked, non-ignored files. Staging is what exposes a new file to the formatting gate, so `git add` before trusting a green run. Warning rather than failing is deliberate: hard-failing would block the gate on scratch files and work in progress.
 
 `./check-scripts` and `./shellcheck-scripts` accept optional file/dir arguments — pass only the changed files for a faster inner loop, then run the whole gate argument-free before committing.
 
@@ -1185,7 +1172,7 @@ function of a changed-path list — so it is unit-tested in
 **The matcher is a denylist, and inverting it back to an allowlist is a
 regression.** A path runs the suite unless it matches one of the `IRRELEVANT`
 globs. An allowlist skips every path nobody thought to enumerate, which is exactly
-how a `.ci/`-only PR came to skip `test/ci/` while still reporting green (#207).
+how a `.ci/`-only PR came to skip `test/ci/` while still reporting green.
 Wasted CI minutes are recoverable; an undetected regression on `main` is not.
 
 `.editorconfig` is deliberately **not** in the irrelevant set: shfmt reads its
@@ -1240,24 +1227,21 @@ compromised dependency.
 
 - **Some hosts are only observable on a cold Nix cache.** `tarballs.nixos.org` is reached only when
   the devShell is rebuilt. Delete the `nix-Linux-*` caches and force one cold round before trusting a
-  Nix job's list. (`rubygems.org` used to sit beside it for the bashcov bundlerEnv; that env is gone,
-  and the host with it.)
+  Nix job's list.
 
 - **Prefer exact hosts over wildcards.** A wildcard entry permits every subdomain. Use one only when the
   host name genuinely rotates between runs (for example an Azure storage-account number), and then
   narrow it as far as the observed family allows and comment why.
   `hosted-compute-*.githubapp.com:443` is the sanctioned instance of this: GitHub's own runner
   watchdog and request-orchestrator hosts carry a per-run region/index suffix (`eus-01`,
-  `iad-02`, …), so no exact host exists to prefer (#201).
+  `iad-02`, …), so no exact host exists to prefer.
   **Every job that installs Nix carries this wildcard**, which is the rule to apply when adding a
   workflow — not a fixed list to copy. Today that is nine: `check-scripts`, `bats`, `lint`,
   `governance`, `nix-flake-check`, `coverage`, plus `pages`' build job, `pr-title-lint`, and
-  `protect-main-drift-check`. The last three were missed when the wildcard first landed and were
-  added in #301; `pr-title-lint` had been logging `domain not allowed` for both hosts on every
-  green run, which is precisely how silent this failure mode is. `reviewdog` and `commitlint` are
-  deliberately out — they carry different allowlists and neither installs Nix, so neither reaches
-  the runner watchdog/orchestrator hosts this wildcard exists for. `pages`' `deploy` job is out for
-  the same reason.
+  `protect-main-drift-check`. Before its entry was added, `pr-title-lint` logged `domain not allowed` for both hosts on every green run, which is precisely how silent this failure mode is.
+  `reviewdog` and `commitlint` are deliberately out — they carry different allowlists and neither
+  installs Nix, so neither reaches the runner watchdog/orchestrator hosts this wildcard exists for.
+  `pages`' `deploy` job is out for the same reason.
   The intra-label form is **proven**, not assumed: before the change the Post Run step logged
   `domain not allowed: hosted-compute-watchdog-prod-eus-02.githubapp.com.`, and after it the same
   host logs as `domain resolved`. harden-runner honors a `*` in the middle of a label, so the
@@ -1267,7 +1251,7 @@ compromised dependency.
   Codecov signing key from keybase.io to verify the CLI it just downloaded. The fetch uses a bare
   `curl -s` inside a command substitution, so a blocked request yields an empty key rather than an
   error; `gpg --verify` then fails, and with `fail_ci_if_error: false` the script's `exit_if_error`
-  merely prints and returns, falling through to run the unverified binary (#199). The entry looks
+  merely prints and returns, falling through to run the unverified binary. The entry looks
   unused because nothing in the workflow names it — it is the least obviously necessary and
   highest-value host in that allowlist.
 
