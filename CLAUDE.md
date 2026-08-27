@@ -629,9 +629,9 @@ scope too — they carry a dot but match none of the listed extensions. Detectio
 rather than comment-aware — deciding whether a `#` opens a comment needs a shell parser, and
 runtime strings are in scope anyway — so `${#output}`, `$#` and `#L12` line anchors are excluded by
 the pattern rather than by context. A six-hex colour is not automatically excluded: prefixed with
-the hash sign, a value such as `0000ff` matches because its leading digit run is exactly four long,
-while `123456` does not because that run continues past four; no colour in the tree today falls on
-the matching side. **Markdown is deliberately out of scope**: this file carries issue numbers as
+the hash sign, a value such as `0000ff` is exactly four long (a three-long run, e.g. `123abc`,
+matches the same way), while `123456` does not because that run continues past four; no colour in
+the tree today falls on the matching side. **Markdown is deliberately out of scope**: this file carries issue numbers as
 provenance for decisions a reader is told not to relitigate, and it must keep them.
 
 **Three or four digits, not one to four.** `.ci/check-workflow-hermetic` documents a step index

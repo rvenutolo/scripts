@@ -76,8 +76,8 @@ readonly SCAN_ROOT="${SCAN_ROOT_OVERRIDE:-${REPO_DIR}}"
 
 # The digits are captured so the same expression serves both grep's line filter and the bash extraction below; the group
 # is the only difference from the plain form. The trailing alternation makes the boundary a run-length check, not a
-# fixed-digit-count one: prefixed with the hash sign, a value such as 0000ff matches because its leading digit run is
-# exactly four long, while 123456 does not because that run continues past four.
+# fixed-digit-count one: prefixed with the hash sign, a value such as 0000ff is exactly four long (a three-long run,
+# e.g. 123abc, matches the same way), while 123456 does not because that run continues past four.
 readonly PATTERN='#([0-9]{3,4})([^0-9]|$)'
 
 # Nothing is exempt. Regression test titles name the defect they pin rather than
