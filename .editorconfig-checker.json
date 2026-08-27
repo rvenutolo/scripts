@@ -2,5 +2,5 @@
   "Disable": {
     "IndentSize": true
   },
-  "Exclude": ["other/", "lib/", ".shdoc/", "site/", "^LICENSE$"]
+  "Exclude": ["^scripts/other/", "^lib/", "^\\.shdoc/", "^site/", "^LICENSE$"]
 }
