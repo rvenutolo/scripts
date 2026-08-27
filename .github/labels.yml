@@ -23,7 +23,7 @@
 - name: scripts
   from_name: main
   color: 1d76db
-  description: Touches scripts/non-interactive/ or scripts/interactive/
+  description: Touches scripts/non-interactive/, scripts/interactive/, or scripts/shims/
 - name: misc
   color: c5def5
   description: Touches scripts/misc/

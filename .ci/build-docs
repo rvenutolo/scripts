@@ -2,9 +2,10 @@
 
 # @description Generate markdown reference docs for the scripts repo by running
 #              shdoc against every functions/*.bash file and every shell script
-#              under non-interactive/ and interactive/. Output lands in
-#              .docs/functions/ and .docs/scripts/ (gitignored, regenerated on
-#              every build). Companion config: .mkdocs.yml. Companion deploy:
+#              under non-interactive/, interactive/, install/, set_up/, misc/,
+#              shims/, and the repo root. Output lands in .docs/functions/ and
+#              .docs/scripts/ (gitignored, regenerated on every build).
+#              Companion config: .mkdocs.yml. Companion deploy:
 #              .github/workflows/pages.yml.
 # @noargs
 
@@ -207,7 +208,10 @@ function write_index() {
 
 # @description Generate per-script markdown for every script returned by the
 #              given enumerator command, into ${DOCS_SCRIPTS_DIR}/${out_subdir}/,
-#              and write a per-subdir index.md with the given title.
+#              and write a per-subdir index.md with the given title. A *.bash
+#              entry (a library file, e.g. scripts/shims/claude/lib.bash) is
+#              documented function-by-function via shdoc_one; every other entry
+#              goes through shdoc_script_one's file-level header renderer.
 # @arg $1 enumerator name of the function to invoke for script paths on stdout
 #         (e.g. shell_scripts::find or shell_scripts::find_root_only)
 # @arg $2 enumerator_arg argument passed to the enumerator function (use '' when

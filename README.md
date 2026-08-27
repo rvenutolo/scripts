@@ -17,16 +17,17 @@ Personal Linux setup, install, and utility shell scripts.
 
 All script directories live under a top-level `scripts/` dir; `SCRIPTS_DIR` points at `repo-root/scripts`. Repo-tooling and config (the root runners, `.ci/`, `test/`, `lib/`, `flake.nix`, etc.) stay at the repo root.
 
-| Path                       | Purpose                                                                                                                                 | On `PATH`          |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| `scripts/non-interactive/` | Automation-safe utility scripts: no prompts, no GUI, no picker, no TTY assumptions. Callable by cron/`topgrade`/other programs.         | yes                |
-| `scripts/interactive/`     | Utility scripts that prompt, launch a GUI, or drive a picker, plus every wrapper (`mvn`, `gradle`, `kate`, `claude`, flatpak wrappers). | interactive shells |
-| `scripts/other/`           | Third-party scripts copied verbatim; never modified locally.                                                                            | yes                |
-| `scripts/install/`         | Numbered scripts run in order by `run-install-scripts` to provision a new machine.                                                      | no                 |
-| `scripts/set_up/`          | Idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script self-checks whether it should run.          | no                 |
-| `scripts/misc/`            | One-off setup scripts. Standalone — runnable on a fresh machine without this repo.                                                      | no                 |
-| `scripts/functions/`       | Bash function library, auto-sourced via `scripts/.functions.bash`.                                                                      | n/a                |
-| `test/`                    | BATS suite (at the repo root): `functions/`, `.ci/` scripts, and the repo-root runners.                                                 | n/a                |
+| Path                       | Purpose                                                                                                                                                                  | On `PATH`           |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| `scripts/non-interactive/` | Automation-safe utility scripts: no prompts, no GUI, no picker, no TTY assumptions. Callable by cron/`topgrade`/other programs.                                          | yes                 |
+| `scripts/interactive/`     | Utility scripts that prompt, launch a GUI, or drive a picker, plus every wrapper (`mvn`, `gradle`, `kate`, `claude`, flatpak wrappers).                                  | interactive shells  |
+| `scripts/other/`           | Third-party scripts copied verbatim; never modified locally.                                                                                                             | yes                 |
+| `scripts/install/`         | Numbered scripts run in order by `run-install-scripts` to provision a new machine.                                                                                       | no                  |
+| `scripts/set_up/`          | Idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script self-checks whether it should run.                                           | no                  |
+| `scripts/misc/`            | One-off setup scripts. Standalone — runnable on a fresh machine without this repo.                                                                                       | no                  |
+| `scripts/shims/`           | Claude-only `pkill`/`killall` guards. Never on `PATH` by the normal wiring; only the `claude` wrapper prepends `scripts/shims/claude/`. Standalone — bash builtins only. | claude wrapper only |
+| `scripts/functions/`       | Bash function library, auto-sourced via `scripts/.functions.bash`.                                                                                                       | n/a                 |
+| `test/`                    | BATS suite (at the repo root): `functions/`, `.ci/` scripts, `shims/`, and the repo-root runners.                                                                        | n/a                 |
 
 ## Common commands
 
@@ -42,7 +43,7 @@ Most repo-level operations have both a shell script and a `just` recipe (see [`.
 | `nix fmt`                                                                                                 | `just format`            | Format every file via treefmt (shfmt for shell).                                              |
 | `nix flake check`                                                                                         | `just format-check`      | Verify formatting (treefmt) and run flake checks.                                             |
 | `./.ci/in-devshell ./run-all-checks`                                                                      | `just all`               | Full local gate: `check-scripts`, `nix flake check`, governance, lint, and BATS suites.       |
-| `./.ci/in-devshell ./run-tests [<bats-args>...]`                                                          | `just test`              | Run BATS tests under `test/functions/`, `test/ci/`, and `test/root/`.                         |
+| `./.ci/in-devshell ./run-tests [<bats-args>...]`                                                          | `just test`              | Run BATS tests under `test/functions/`, `test/ci/`, `test/root/`, and `test/shims/`.          |
 | `./.ci/in-devshell ./shellcheck-scripts [<paths>...]`                                                     | `just shellcheck`        | Run `shellcheck` over shell scripts.                                                          |
 | `scripts/non-interactive/new-script <path>`                                                               | `just new-script <path>` | Scaffold a new top-level script with the standard header and exec bit.                        |
 
@@ -71,7 +72,7 @@ Bypass any hook with `--no-verify` on the corresponding git command.
 
 ```bash
 git submodule update --init --recursive   # one-time, on fresh clones (for .shdoc)
-./.ci/in-devshell ./run-tests                              # test/functions/, test/ci/, and test/root/
+./.ci/in-devshell ./run-tests                              # test/functions/, test/ci/, test/root/, and test/shims/
 ./.ci/in-devshell ./run-tests test/functions/strings.bats  # single file
 ./.ci/in-devshell ./run-tests --filter 'is_blank' test/functions/strings.bats   # subset by name
 ```

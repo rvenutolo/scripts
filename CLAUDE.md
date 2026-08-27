@@ -22,6 +22,8 @@ All script directories live under a top-level `scripts/` dir, and `SCRIPTS_DIR` 
 
 - `scripts/misc/` — one-off setup scripts (not on `PATH`, not auto-run). Scripts here are expected to be **standalone** — runnable on a fresh machine by someone without access to this repo's function library. Do NOT source `.functions.bash` from `scripts/misc/` scripts; inline anything they need (including the `ERR` trap — see Script Conventions).
 
+- `scripts/shims/` — Claude-only `PATH` shims. `scripts/shims/claude/` holds `pkill` and `killall` guards plus the `lib.bash` they source. **Never on `PATH` by the normal wiring** — only the `claude` wrapper prepends `scripts/shims/claude/`, so only the Claude process tree (Bash tool, subagents, `bash script.sh`) sees them; a normal terminal's `command -v pkill` must still be `/usr/bin/pkill`. **Standalone like `misc/`: bash builtins only, no `.functions.bash`, no external commands** — the host userland may hold anything, and the tests run each case with `PATH` restricted to the shim dir plus a stub dir. They are otherwise held to every gate (shdoc headers, shfmt, shellcheck, executable-bit audit, paired test under `test/shims/`). Refusal exits 125 without running the real binary; a missing real binary exits 127. `-h`/`--help`/`-V`/`--version` pass straight through.
+
 - `scripts/functions/` — bash function library, all sourced via `scripts/.functions.bash` (loops `scripts/functions/*.bash`).
 
 Stays at the **repo root** (NOT under `scripts/`): `lib/` (vendored Groovy jars, used by some scripts), `.ci/` (repo-tooling scripts invoked by CI and `just`, e.g. `build-docs`, `check-shdoc-headers`; not on `PATH`), `test/` (BATS suite), `.github/`, `.shdoc/`, `.docs/`, the root runner executables (`check-scripts`, `shellcheck-scripts`, `run-install-scripts`, `run-set-up-scripts`, `run-tests`), and all config/dotfiles (`flake.nix`, `.treefmt.nix`, `CLAUDE.md`, `README.md`, etc.). Repo-tooling scripts that need the repo root (`.ci/*`, the root runners, `test/test_helper`) derive it via `git rev-parse --show-toplevel` (a local `REPO_DIR`), not a dedicated env var.
@@ -42,7 +44,7 @@ The user's `~/.profile` exports a fixed set of env vars (`SCRIPTS_DIR`, `XDG_*`,
 
 - **Ignore conditional exports.** `EDITOR`, `VISUAL`, `PAGER`, `MANPAGER`, `FILE_MANAGER`, `TAILNET_IP`, `TAILNET_CIDR`, `TERM`, etc. are gated on `__executable_exists` / `case` / runtime probes in `~/.profile`; they're not meant for cross-file reuse and are not guaranteed to be set.
 
-- **`PATH` membership.** `SCRIPTS_DIR` now points at `repo-root/scripts`. `scripts/non-interactive/` and `scripts/other/` are always on `PATH`. `scripts/interactive/` is on `PATH` only in interactive shells — the user wires it into `~/.bashrc` behind a `case $- in *i*)` guard so the wrapper scripts in there can shadow same-named binaries (`mvn`, `kate`, …) only when a human is at the keyboard, never in cron/`topgrade`/scripted contexts. `scripts/install/`, `scripts/set_up/`, `scripts/misc/`, and `.ci/` are not on `PATH`. Repo-tooling scripts (`.ci/*`, the root runners, `test/test_helper`) derive the repo root via `git rev-parse --show-toplevel`, not a dedicated env var. The `claude` wrapper is the deliberate exception — it lives in `scripts/non-interactive/` so profile selection works in every context.
+- **`PATH` membership.** `SCRIPTS_DIR` now points at `repo-root/scripts`. `scripts/non-interactive/` and `scripts/other/` are always on `PATH`. `scripts/interactive/` is on `PATH` only in interactive shells — the user wires it into `~/.bashrc` behind a `case $- in *i*)` guard so the wrapper scripts in there can shadow same-named binaries (`mvn`, `kate`, …) only when a human is at the keyboard, never in cron/`topgrade`/scripted contexts. `scripts/install/`, `scripts/set_up/`, `scripts/misc/`, `scripts/shims/`, and `.ci/` are not on `PATH` — `scripts/shims/claude/` is prepended by the `claude` wrapper alone. Repo-tooling scripts (`.ci/*`, the root runners, `test/test_helper`) derive the repo root via `git rev-parse --show-toplevel`, not a dedicated env var. The `claude` wrapper is the deliberate exception — it lives in `scripts/non-interactive/` so profile selection works in every context.
 
 - **`misc/` exemption.** Scripts under `misc/` are explicitly standalone — they must NOT depend on this repo's env or functions. Hardcoded paths are acceptable there.
 
@@ -82,7 +84,7 @@ Note that `switch_case_indent`, `binary_next_line`, and `space_redirects` are sh
 
 - `scripts/non-interactive/new-script <path>` — scaffolds a new script with the standard header + exec bit.
 
-- `./run-tests [<bats-args>...]` — runs BATS tests under `test/functions/`, `test/ci/`, and `test/root/` recursively when called with no args, or forwards args to the devShell's `bats` from `PATH`. Default invocation uses `bats --jobs $(nproc)` for parallel execution.
+- `./run-tests [<bats-args>...]` — runs BATS tests under `test/functions/`, `test/ci/`, `test/root/`, and `test/shims/` recursively when called with no args, or forwards args to the devShell's `bats` from `PATH`. Default invocation uses `bats --jobs $(nproc)` for parallel execution.
 
 To gate a script from the `install`/`set_up runners`, remove its executable bit (`chmod -x`).
 
@@ -770,7 +772,7 @@ The generic rule requires a comment on any `PATH` modification. The repo's PATH-
 
 When adding a helper to an existing topic file that already has a `.bats` file, extend that file. When adding a new topic file, create the matching `.bats` file in the same PR. The PR is not complete until `./run-tests` is green and coverage matches the bullets above. If a helper genuinely cannot be tested without mocking a side effect that has no existing test-helper for it (sudo, network, package manager), add the helper and the new test-helper together — do not ship the helper untested.
 
-`.ci/check-script-has-test` enforces the same paired-test mandate over **two scopes**: every shebang-bearing executable under `.ci/` needs `test/ci/<name>.bats`, and every executable shell file at the repo root needs `test/root/<name>.bats`. Both scopes carry an `EXEMPT` array with bidirectional stale-entry detection — an entry naming no script, or naming one that *does* have a paired test, fails the lint rather than silently disarming it. The repo-root array ships empty. Both arrays go through `arrays::from_env_override`, so `EXEMPT_OVERRIDE` / `ROOT_EXEMPT_OVERRIDE` let the tests drive them; `test/ci/check-script-has-test.bats` sets both to the empty string in `setup()`, because the shipped defaults name real repo scripts that do not exist in a fixture dir and would otherwise read as stale.
+`.ci/check-script-has-test` enforces the same paired-test mandate over **four scopes**: every shebang-bearing executable under `.ci/` needs `test/ci/<name>.bats`, every executable shell file at the repo root needs `test/root/<name>.bats`, every tracked hook under `.githooks/` needs `test/ci/<name>.bats`, and every executable shim under `scripts/shims/` needs `test/shims/<name>.bats`. Each scope carries an `EXEMPT` array with bidirectional stale-entry detection — an entry naming no script, or naming one that *does* have a paired test, fails the lint rather than silently disarming it. All four arrays ship empty. All four go through `arrays::from_env_override`, so `EXEMPT_OVERRIDE` / `ROOT_EXEMPT_OVERRIDE` / `HOOKS_EXEMPT_OVERRIDE` / `SHIMS_EXEMPT_OVERRIDE` let the tests drive them; `test/ci/check-script-has-test.bats` sets all four to the empty string in `setup()`, because the shipped defaults name real repo scripts that do not exist in a fixture dir and would otherwise read as stale.
 
 ### Process substitution and background commands
 
@@ -804,6 +806,10 @@ test/
     run-set-up-scripts.bats     # driven via SET_UP_DIR_OVERRIDE
     run-tests.bats              # driven in a throwaway git repo + recording bats stub
     shellcheck-scripts.bats
+  shims/
+    pkill.bats                # tests for scripts/shims/claude/pkill (stub PATH; never the real pkill)
+    killall.bats
+    claude-wrapper.bats       # driven via CLAUDE_SHIMS_DIR_OVERRIDE
 ```
 
 ### Running
@@ -811,7 +817,7 @@ test/
 Prefix any of these with `./.ci/in-devshell` (or run them from an already-entered direnv
 shell); outside the devShell there is no `bats` on `PATH` and `run-tests` says so.
 
-- `./run-tests` — runs everything under `test/functions/`, `test/ci/`, and `test/root/`.
+- `./run-tests` — runs everything under `test/functions/`, `test/ci/`, `test/root/`, and `test/shims/`.
 
 - `./run-tests test/functions/strings.bats` — single file.
 

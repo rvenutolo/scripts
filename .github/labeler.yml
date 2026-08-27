@@ -20,6 +20,7 @@ scripts:
       - any-glob-to-any-file:
           - scripts/non-interactive/**
           - scripts/interactive/**
+          - scripts/shims/**
 misc:
   - changed-files:
       - any-glob-to-any-file:

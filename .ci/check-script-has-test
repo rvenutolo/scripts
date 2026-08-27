@@ -16,7 +16,7 @@
 #              silently disarming it.
 # @noargs
 # @stderr One line per script missing its paired test, and one per stale exemption.
-# @exitcode 0 every non-exempt script in both scopes has a paired test.
+# @exitcode 0 every non-exempt script in every scope has a paired test.
 # @exitcode 1 one or more scripts are missing a paired test, or an EXEMPT entry is stale.
 
 set -Eeuo pipefail
