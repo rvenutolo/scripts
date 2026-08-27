@@ -136,9 +136,10 @@ function shim::check_pattern() {
 }
 
 # @description Print the first executable named $1 on PATH, skipping empty PATH
-#              entries (an empty entry means cwd, and a ./pkill must never win),
-#              entries that do not resolve, and any entry whose physical path is
-#              SHIM_DIR — so the shim never finds itself.
+#              entries and a literal `.` entry (both mean cwd, and a ./pkill
+#              must never win), entries that do not resolve, and any entry
+#              whose physical path is SHIM_DIR — so the shim never finds
+#              itself.
 # @arg $1 name executable name
 # @stdout Absolute path of the real binary.
 # @stderr A not-found message when no real binary exists.
@@ -148,6 +149,7 @@ function shim::find_real() {
   local -r name="$1"
   local entry resolved candidate
   local -a entries
+  local -r cwd="$(pwd -P)"
   # IFS scoped to the read: the script-wide IFS has no ':' in it.
   IFS=':' read -r -a entries <<< "${PATH}"
   for entry in "${entries[@]}"; do
@@ -155,7 +157,7 @@ function shim::find_real() {
       continue
     fi
     resolved="$(cd -P -- "${entry}" 2> /dev/null && pwd -P)" || continue
-    if [[ "${resolved}" == "${SHIM_DIR}" ]]; then
+    if [[ "${resolved}" == "${SHIM_DIR}" || "${resolved}" == "${cwd}" ]]; then
       continue
     fi
     candidate="${resolved}/${name}"

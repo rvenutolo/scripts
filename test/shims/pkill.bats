@@ -265,6 +265,16 @@ assert_refused() {
   refute_output --partial 'CWD_RAN'
 }
 
+@test "a literal . PATH entry never selects a pkill in the cwd" {
+  cd "${BATS_TEST_TMPDIR}" || return 1
+  printf '#!/usr/bin/env bash\nprintf CWD_RAN\n' > "${BATS_TEST_TMPDIR}/pkill"
+  chmod +x "${BATS_TEST_TMPDIR}/pkill"
+  run_shim_with "${SHIM_DIR}:.:${STUB_DIR}" "${SHIM_DIR}/pkill" --full my-specific-daemon
+  assert_success
+  assert_output 'PAYLOAD_RAN --full my-specific-daemon'
+  refute_output --partial 'CWD_RAN'
+}
+
 @test "exits 127 when no real pkill exists on PATH" {
   local bash_only="${BATS_TEST_TMPDIR}/bash-only"
   mkdir --parents "${bash_only}"
