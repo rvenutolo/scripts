@@ -41,7 +41,8 @@ jobs:
           count="$(./.ci/in-devshell bats --count --recursive test/functions)"
           # shellcheck disable=SC2016 # $count is a jq variable bound by --arg, not
           # a shell one — single quotes intended. shellcheck only special-cases the
-          # jq program when jq is the command word, which it no longer is here.
+          # jq program when jq is the command word, and here the command word is
+          # ./.ci/in-devshell, not jq.
           ./.ci/in-devshell jq --null-input --arg count "${count}" \
             '{schemaVersion: 1, label: "tests", message: $count, color: "blue"}' \
             > site/badge.json

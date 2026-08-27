@@ -198,7 +198,7 @@ jobs:
           fetch-depth: 0 # full history so changed-tests can diff the PR range
       # coverage is not a required check, but gate it the same way as bats so a
       # PR that changes no test-relevant files does not spend ~9 min re-running
-      # the whole suite under bashcov.
+      # the whole suite under kcov.
       - id: changes
         uses: ./.github/actions/changed-tests
       - uses: ./.github/actions/setup

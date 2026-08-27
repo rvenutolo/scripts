@@ -32,12 +32,12 @@
 #              in the tree today falls on the matching side, which is why EXEMPT still ships empty.
 #
 #              Scope is every tracked file under the scan root with a .bash, .bats, .nix, .sh, .yml,
-#              .yaml or .toml extension, plus extensionless files (the repo's top-level executables), minus
-#              scripts/other/, .shdoc/ and site/. Dotfiles such as .envrc, .editorconfig and .justfile
-#              are deliberately out of scope: they carry a dot but match none of the listed extensions,
-#              and staying out is a decision, not an accident of the glob. Markdown is also
-#              deliberately out of scope: CLAUDE.md carries issue numbers as provenance for decisions a
-#              reader is told not to relitigate.
+#              .yaml or .toml extension, plus extensionless files (the repo's top-level executables)
+#              and every dotfile regardless of a further extension (.envrc, .editorconfig, .justfile
+#              and the like), minus scripts/other/, .shdoc/ and site/. The .shdoc submodule gitlink
+#              itself is also skipped where it appears as a tracked path: a gitlink is not a readable
+#              regular file. Markdown is deliberately out of scope: CLAUDE.md carries issue numbers as
+#              provenance for decisions a reader is told not to relitigate.
 #
 #              EXEMPT keys are <repo-relative-file>::<number>, space-free because
 #              arrays::from_env_override splits its override on spaces. The array
@@ -102,8 +102,15 @@ function collect_in_scope_files() {
     case "${path}" in
       scripts/other/* | .shdoc/* | site/*) continue ;;
     esac
+    # A tracked gitlink (the .shdoc submodule) is not a readable regular file;
+    # skip it rather than let grep fail trying to read a directory.
+    files::exists "${SCAN_ROOT}/${path}" || continue
     base="${path##*/}"
     case "${base}" in
+      # Dotfiles are in scope regardless of a further extension: a leading dot
+      # marks a hidden or config file, not the markdown or other type this
+      # scope otherwise excludes.
+      .*) ;;
       # In scope by extension, then every extensionless file (the top-level
       # executables). Anything else carrying a dot — markdown above all — is out.
       *.bash | *.bats | *.nix | *.sh | *.yml | *.yaml | *.toml) ;;
