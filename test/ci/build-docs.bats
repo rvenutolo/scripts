@@ -220,3 +220,12 @@ index_link_count() {
   assert_success
   assert_output --partial 'pkill.md'
 }
+
+@test "documents a .bash library under scripts/shims/ function-by-function, not through the script header renderer" {
+  run_check "${CHECK}"
+  assert_success
+  run cat "${DOCS_DIR_OVERRIDE}/scripts/shims/lib.md"
+  assert_success
+  assert_output --partial 'shim::find_real'
+  refute_output --partial '## Overview'
+}

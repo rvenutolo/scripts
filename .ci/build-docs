@@ -236,7 +236,17 @@ function generate_scripts_for_dir() {
     # than the double-extensioned lib.bash.md. A no-suffix script (pkill) is
     # unaffected — basename only strips a suffix that actually matches.
     base="$(basename -- "${script}" .bash)"
-    shdoc_script_one "${script}" "${out_dir}/${base}.md"
+    if [[ "${script}" == *.bash ]]; then
+      # A .bash entry (e.g. scripts/shims/claude/lib.bash) is a library file, not a
+      # top-level script — it carries no set -Eeuo pipefail line for
+      # render_script_header to stop at, so that renderer would scan the whole file
+      # and mash every function's tags into one bogus header. Document it
+      # function-by-function instead, the same way scripts/functions/*.bash is
+      # documented in main.
+      shdoc_one "${script}" "${out_dir}/${base}.md"
+    else
+      shdoc_script_one "${script}" "${out_dir}/${base}.md"
+    fi
   done < "${list_file}"
   write_index "${out_dir}" "${title}"
 }
