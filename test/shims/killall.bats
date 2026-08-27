@@ -139,6 +139,12 @@ assert_refused() {
   assert_output 'PAYLOAD_RAN --help'
 }
 
+@test "killall -s -h kwin: -h as an option value does not pass through" {
+  run_shim -s -h kwin
+  assert_refused
+  assert_output --partial "session-critical process 'kwin'"
+}
+
 @test "exits 127 when no real killall exists on PATH" {
   local bash_only="${BATS_TEST_TMPDIR}/bash-only"
   mkdir --parents "${bash_only}"

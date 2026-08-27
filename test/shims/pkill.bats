@@ -231,6 +231,12 @@ assert_refused() {
   assert_output 'PAYLOAD_RAN -V'
 }
 
+@test "pkill --signal -h kwin: -h as an option value does not pass through" {
+  run_shim --signal -h kwin
+  assert_refused
+  assert_output --partial "session-critical process 'kwin'"
+}
+
 # ---------- real-binary resolution ----------
 
 @test "shim dir reached through a symlink still excludes itself" {

@@ -16,20 +16,20 @@ readonly SHIM_CRITICAL_NAMES=(
 )
 readonly SHIM_MIN_PATTERN_LENGTH=4
 
-# @description Return true when the argument list asks for help or version
+# @description Return true when the FIRST argument asks for help or version
 #              output. Those calls never kill anything, and the shim is a
-#              pass-through, so the real binary must answer them.
+#              pass-through, so the real binary must answer them. Only the
+#              first argument is checked — checking every argument lets an
+#              option value spell -h (e.g. `--signal -h kwin`, where -h is
+#              --signal's value) bypass the pattern check entirely.
 # @arg $@ args the full argument list
-# @exitcode 0 a help/version flag is present
+# @exitcode 0 the first argument is a help/version flag
 # @exitcode 1 otherwise
 function shim::is_help_request() {
-  local arg
-  for arg in "$@"; do
-    case "${arg}" in
-      -h | --help | -V | --version) return 0 ;;
-    esac
-  done
-  return 1
+  case "${1:-}" in
+    -h | --help | -V | --version) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 # @description Fill the named array with the non-option arguments of a
