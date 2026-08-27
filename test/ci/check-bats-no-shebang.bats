@@ -83,7 +83,7 @@ write_test_file() {
   assert_output --partial 'shims/bad.bats'
 }
 
-@test "reports every offender across all three subdirs" {
+@test "reports every offender across all four subdirs" {
   write_test_file "${FIXTURE_TEST}/functions/a.bats" \
     '#!/usr/bin/env bats' \
     '@test "x" { run true; }'
@@ -93,11 +93,15 @@ write_test_file() {
   write_test_file "${FIXTURE_TEST}/root/c.bats" \
     '#!/usr/bin/env bats' \
     '@test "x" { run true; }'
+  write_test_file "${FIXTURE_TEST}/shims/d.bats" \
+    '#!/usr/bin/env bats' \
+    '@test "x" { run true; }'
   run "${CHECK}"
   assert_failure 1
   assert_output --partial 'functions/a.bats'
   assert_output --partial 'ci/b.bats'
   assert_output --partial 'root/c.bats'
+  assert_output --partial 'shims/d.bats'
 }
 
 @test "ignores a shebang literal past the first line" {

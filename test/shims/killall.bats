@@ -8,7 +8,6 @@ setup() {
   # is the stub's PAYLOAD_RAN line, not a live kill.
   STUB_DIR="${BATS_TEST_TMPDIR}/stub"
   mkdir --parents "${STUB_DIR}"
-  make_stub pkill
   make_stub killall
   # The shims' `#!/usr/bin/env bash` resolves bash through the restricted PATH,
   # so the stub dir must carry the devShell's bash too.
@@ -33,15 +32,6 @@ EOF
 run_shim() {
   run timeout 10 env PATH="${SHIM_DIR}:${STUB_DIR}" \
     BASH_ENV="${SAFE_BASH_ENV}" "${SHIM_DIR}/killall" "$@"
-}
-
-# Like run_shim, but with an explicit PATH ($1) and shim path ($2).
-run_shim_with() {
-  local -r path="$1"
-  local -r shim="$2"
-  shift 2
-  run timeout 10 env PATH="${path}" \
-    BASH_ENV="${SAFE_BASH_ENV}" "${shim}" "$@"
 }
 
 assert_refused() {
@@ -153,4 +143,5 @@ assert_refused() {
     BASH_ENV="${SAFE_BASH_ENV}" "${SHIM_DIR}/killall" firefox-bin
   assert_failure 127
   assert_output --partial 'killall: real binary not found on PATH'
+  refute_output --partial 'PAYLOAD_RAN'
 }

@@ -67,7 +67,7 @@ make_shim_test() {
   printf '@test "x" { true; }\n' > "${TEST_SHIMS}/${name}.bats"
 }
 
-# All three scopes are always pinned at fixture dirs. Without the seams a scope
+# All four scopes are always pinned at fixture dirs. Without the seams a scope
 # would fall back to the live checkout, and every test here would silently depend
 # on real repo state.
 # .ci/check-script-has-test derives its own repo root via `git rev-parse
