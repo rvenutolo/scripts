@@ -24,17 +24,20 @@
 #              stronger outcome. The accepted trade: a future two-digit reference
 #              would go uncaught.
 #
-#              Detection is whole-line, not comment-aware: deciding whether a hash
-#              sign opens a comment needs a shell parser, and runtime strings are
-#              in scope anyway. Hex colours, ${#output}, $# and #L12 line anchors
-#              do not match.
+#              Detection is whole-line, not comment-aware: deciding whether a hash sign opens a comment needs a shell
+#              parser, and runtime strings are in scope anyway. ${#output}, $# and #L12 line anchors do not match. A
+#              six-hex colour is not exempt by construction: prefixed with the hash sign, a value such as 0000ff or
+#              123abc matches, because its leading run of digit characters is exactly three or four characters long; a
+#              value such as 123456 or 00000f does not, because that leading run continues past four digits. No colour
+#              in the tree today falls on the matching side, which is why EXEMPT still ships empty.
 #
-#              Scope is every tracked file under the scan root with a .bash,
-#              .bats, .nix, .yml, .yaml or .toml extension, plus extensionless
-#              files (the repo's top-level executables), minus scripts/other/,
-#              .shdoc/ and site/. Markdown is deliberately out of scope: CLAUDE.md
-#              carries issue numbers as provenance for decisions a reader is told
-#              not to relitigate.
+#              Scope is every tracked file under the scan root with a .bash, .bats, .nix, .sh, .yml,
+#              .yaml or .toml extension, plus extensionless files (the repo's top-level executables), minus
+#              scripts/other/, .shdoc/ and site/. Dotfiles such as .envrc, .editorconfig and .justfile
+#              are deliberately out of scope: they carry a dot but match none of the listed extensions,
+#              and staying out is a decision, not an accident of the glob. Markdown is also
+#              deliberately out of scope: CLAUDE.md carries issue numbers as provenance for decisions a
+#              reader is told not to relitigate.
 #
 #              EXEMPT keys are <repo-relative-file>::<number>, space-free because
 #              arrays::from_env_override splits its override on spaces. The array
@@ -71,10 +74,10 @@ REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
 readonly SCAN_ROOT="${SCAN_ROOT_OVERRIDE:-${REPO_DIR}}"
 
-# The digits are captured so the same expression serves both grep's line filter
-# and the bash extraction below; the group is the only difference from the plain
-# form. The trailing alternation is the boundary that keeps a six-digit hex colour
-# from matching: after four digits it demands a non-digit or end of line.
+# The digits are captured so the same expression serves both grep's line filter and the bash extraction below; the group
+# is the only difference from the plain form. The trailing alternation makes the boundary a run-length check, not a
+# fixed-digit-count one: prefixed with the hash sign, a value such as 0000ff matches because its leading digit run is
+# exactly four long, while 123456 does not because that run continues past four.
 readonly PATTERN='#([0-9]{3,4})([^0-9]|$)'
 
 # Nothing is exempt. Regression test titles name the defect they pin rather than
@@ -103,7 +106,7 @@ function collect_in_scope_files() {
     case "${base}" in
       # In scope by extension, then every extensionless file (the top-level
       # executables). Anything else carrying a dot — markdown above all — is out.
-      *.bash | *.bats | *.nix | *.yml | *.yaml | *.toml) ;;
+      *.bash | *.bats | *.nix | *.sh | *.yml | *.yaml | *.toml) ;;
       *.*) continue ;;
       *) ;;
     esac

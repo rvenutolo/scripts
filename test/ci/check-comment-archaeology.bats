@@ -66,11 +66,19 @@ setup() {
   assert_success
 }
 
-@test "does not flag a six-digit hex colour" {
+@test "does not flag a hex colour whose leading digit run is longer than four" {
   printf '%s\n' '# accent: #123456' > "${FIXTURE}/hex.bash"
   git_fixture::run "${FIXTURE}" add hex.bash
   run --separate-stderr "${CHECK}"
   assert_success
+}
+
+@test "flags a hex colour whose leading digit run is exactly four" {
+  printf '%s\n' "# accent: ${HASH}0000ff" > "${FIXTURE}/hex-hit.bash"
+  git_fixture::run "${FIXTURE}" add hex-hit.bash
+  run --separate-stderr "${CHECK}"
+  assert_failure 1
+  assert_stderr --partial 'hex-hit.bash'
 }
 
 @test "does not flag \${#output} or \$#" {
