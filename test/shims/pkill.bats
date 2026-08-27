@@ -117,6 +117,12 @@ assert_refused() {
   assert_refused
 }
 
+@test "pkill x some-daemon is refused (every positional is checked, not only the last)" {
+  run_shim x some-daemon
+  assert_refused
+  assert_output --partial 'shorter than 4 characters'
+}
+
 @test "refusal names the pattern and both fixes" {
   run_shim --full x
   assert_refused

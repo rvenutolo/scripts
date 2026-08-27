@@ -66,8 +66,13 @@ function main() {
   if ((${#patterns[@]} == 0)); then
     shim::refuse pkill 'no pattern given (this would match every process of the user)'
   fi
-  # pkill takes exactly one pattern: the last non-option argument.
-  shim::check_pattern pkill "${patterns[-1]}"
+  # pkill takes exactly one pattern, but a caller passing two (which real
+  # pkill would itself reject) must not slip a short/critical first pattern
+  # through unchecked — fail closed and check every positional.
+  local pattern
+  for pattern in "${patterns[@]}"; do
+    shim::check_pattern pkill "${pattern}"
+  done
   real="$(shim::find_real pkill)"
   exec "${real}" "$@"
 }
