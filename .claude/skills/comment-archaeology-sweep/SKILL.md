@@ -30,19 +30,44 @@ The single test:
 > Would a reader who has never seen the issue tracker act differently because of this text?
 > **Yes** → keep it, present tense, no number. **No** → cut it.
 
-| #   | Shape                                              | Action                                                                                                                                                                                                                                                         |
-| --- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Complete sentence + trailing `(#NNN)` / `(#N, #N)` | Strip the parenthetical, keep the terminal period. Mechanical.                                                                                                                                                                                                 |
-| 2   | Number mid-sentence in load-bearing prose          | Rewrite present-tense without the number. If the sentence exists only to attribute, delete the sentence.                                                                                                                                                       |
-| 3   | Pure archaeology block                             | Delete. If the current shape still needs explaining, keep one present-tense sentence stating the constraint.                                                                                                                                                   |
-| 4   | Superseded-state narration                         | If the shape is a real trap, state the trap in the present tense; drop the account of who fell into it.                                                                                                                                                        |
-| 5   | Runtime string carrying `(#NNN)`                   | Strip. Where a test asserts on the number, re-anchor the assertion on stable prose.                                                                                                                                                                            |
-| 6   | Regression `@test` title                           | May keep the number — the defect is the test's subject. Prefer a one-line defect description over a bare `#NNN`.                                                                                                                                               |
-| 7   | Never touch                                        | Lint self-reference devices (`y[q]`, `j[q]`, `@@STDERR@@` sentinels), `scripts/other/`, CLAUDE.md apart from the one verbatim `inherit_errexit` block. Prose inside an shdoc block may be edited; a `@description` / `@arg` / `@exitcode` tag is never gutted. |
+| #   | Shape                                              | Action                                                                                                                                                                                                                                                               |
+| --- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Complete sentence + trailing `(#NNN)` / `(#N, #N)` | Strip the parenthetical, keep the terminal period. Mechanical.                                                                                                                                                                                                       |
+| 2   | Number mid-sentence in load-bearing prose          | Rewrite present-tense without the number. If the sentence exists only to attribute, delete the sentence.                                                                                                                                                             |
+| 3   | Pure archaeology block                             | Delete. If the current shape still needs explaining, keep one present-tense sentence stating the constraint — and enough of it that any surviving reference to the deleted history still resolves.                                                                   |
+| 4   | Superseded-state narration                         | If the shape is a real trap, state the trap in the present tense; drop the account of who fell into it.                                                                                                                                                              |
+| 5   | Runtime string carrying `(#NNN)`                   | Strip. Where a test asserts on the number, re-anchor the assertion on stable prose.                                                                                                                                                                                  |
+| 6   | Regression `@test` title                           | May keep the number — the defect is the test's subject. Prefer a one-line defect description over a bare `#NNN`.                                                                                                                                                     |
+| 7   | Never touch                                        | Lint self-reference devices (`y[q]`, `j[q]`, `@@STDERR@@` sentinels), `scripts/other/`, this skill's own `references/casebook.md` and its trigger-word list. Prose inside an shdoc block may be edited; a `@description` / `@arg` / `@exitcode` tag is never gutted. |
 
 Dispositions 3 and 4 differ in what survives. 3 deletes and may leave nothing. 4 always
 leaves a present-tense statement of the trap, because the trap is why the code looks odd
 and a reader who does not know it will "fix" the code.
+
+Disposition 3 has one further constraint. When a surviving instruction points back at the
+history you just deleted for its referent — "never diagnose a delta from before **those
+changes**" — the kept sentence must carry enough that the referent still resolves. A dangling
+"those changes" is worse than the paragraph it replaced: the reader is now under an
+instruction whose subject is gone.
+
+### The decision record
+
+A protected class that looks exactly like disposition 3 and is not. Some prose reads as
+history, but its job is to stop a reader undoing a fix. From CLAUDE.md:
+
+> `direnv allow` / `nix develop` is all that is required — there is no manual
+> `git config --local core.hooksPath` step, **and this section used to document one.**
+> Because repo-local config cannot be committed, that manual step silently never happened
+> and both tracked hooks sat inert.
+
+Cut "used to document one" and the reader loses why the section changed, and may reinstate
+the manual step. The past tense is load bearing here in a way no present-tense rewrite can
+replace: the sentence guards an *absence*, and an absence has nothing present-tense to
+describe.
+
+Keep this class in every case. Where it is ambiguous whether a passage is a decision record
+or mere narration, **keep it**. A wrongly-kept sentence costs a line; a wrongly-cut rule
+costs every session that reads the file afterwards, and no gate detects it.
 
 `references/casebook.md` holds one worked before/after pair per disposition, lifted from the
 PR that established this rubric, plus a section on two calls that went the other way. Read it
@@ -60,10 +85,20 @@ Build the target set from `git ls-files`, never a filesystem walk — a gitignor
 sitting in the tree is not part of the corpus.
 
 Excluded unconditionally: `scripts/other/` (third-party, never modified for any reason),
-`.shdoc/`, `site/`, and markdown. CLAUDE.md's issue references are deliberate provenance for
-decisions a reader is being told not to relitigate; they are out of scope. The single
-exception is a code block in CLAUDE.md that reproduces a tree comment verbatim as a mandated
-form — that must track the tree, or it instructs new code to reintroduce what was just cut.
+`.shdoc/`, and `site/`.
+
+Markdown is in scope, CLAUDE.md included. It is the file that instructs every future session
+in this repo, so archaeology sitting in it is read as current guidance, and a code block in it
+that reproduces a tree comment verbatim as a mandated form must track the tree or it instructs
+new code to reintroduce what was just cut. Sweep it with [the decision
+record](#the-decision-record) in hand — much of what reads as provenance in that file is
+protected by it.
+
+Two things stay out regardless. This skill's own `references/casebook.md` carries issue
+numbers as *quoted before-states*: they are the evidence it teaches from, and cutting them
+destroys the lesson. So does the trigger-word list under [Workflow](#workflow) below, which
+must spell the very phrases the sweep hunts for. Both are self-reference devices in the same
+family as `y[q]` and `@@STDERR@@`.
 
 ## Workflow
 
@@ -97,6 +132,11 @@ form — that must track the tree, or it instructs new code to reintroduce what 
 - Lint self-reference devices: bracket-obfuscated tool names (`y[q]`, `j[q]`), the
   `@@STDERR@@` sentinel, and any fixture line composed at runtime so a lint scanning the real
   tree does not flag itself. These look like typos and are load-bearing.
+- This skill's own `references/casebook.md`, and the trigger-word list in the Workflow section.
+  Same family: the casebook's numbers are quoted before-states, and the trigger list must spell
+  the phrases it hunts for.
+- The decision record — prose whose past tense is what stops a reader reinstating something
+  deliberately removed. When in doubt whether a passage is one, it is one.
 - shdoc tag names. Prose inside a `@description` may be edited; the tag is never removed or
   emptied, and `check-shdoc-headers` fails a bare word-bounded `TODO` in any annotation block.
 - A regression `@test` title's number, unless you are replacing it with a one-line description
