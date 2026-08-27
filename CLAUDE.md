@@ -920,9 +920,15 @@ measurement exists because those trees had no number at all — every gap in the
 hand, ranking scripts by lines-per-test.
 
 `.githooks/` is **in** scope. Both its files carry paired tests — `test/ci/commit-msg.bats` and
-`test/ci/pre-push.bats` — and `.ci/check-script-has-test` scopes `.githooks/` as a third scope
-beside `.ci/` and the repo root. The measured scope therefore matches the paired-test mandate's
-scope exactly, which is what makes every 0% in the report a real gap.
+`test/ci/pre-push.bats` — and `.ci/check-script-has-test` scopes `.githooks/` as the third of its
+four scopes, beside `.ci/`, the repo root, and `scripts/shims/`. The measured `gates` scope matches
+the first three of those exactly, which is what makes every 0% in the report a real gap.
+
+`scripts/shims/` is the deliberate exception: it has its own paired-test scope, `test/shims/`, and
+is held by `check-script-has-test` like the other three, but it carries no coverage number. Under
+`scripts/`, the shims are payload the same as `install/`, `set_up/`, and `misc/` — none of which are
+coverage-measured either — and the paired-test scope is the control on that payload, not a second
+coverage measurement.
 
 The hooks pair into `test/ci/` rather than a `test/githooks/` of their own: they are gate code, the
 same thing every other file in that directory tests, and a two-file directory would buy nothing but
