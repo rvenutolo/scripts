@@ -2,12 +2,15 @@
 
 # @description Claude-only PATH shim for pkill. Refuses a call whose pattern is
 #              missing, shorter than 4 characters, or matches a session-critical
-#              process name; otherwise execs the real pkill found on PATH (this
-#              directory excluded) with the arguments untouched. Only the claude
-#              wrapper puts this directory on PATH, so only the Claude process
-#              tree sees it. Standalone: bash builtins only, no .functions.bash —
-#              the host userland and the test PATH may hold nothing but bash.
-#              Pass-through: -h/--help/-V/--version reach the real binary.
+#              process name; also refuses `--inverse`/`-v` (procps inversion:
+#              kill every process EXCEPT the pattern, which defeats the pattern
+#              check entirely). Otherwise execs the real pkill found on PATH
+#              (this directory excluded) with the arguments untouched. Only the
+#              claude wrapper puts this directory on PATH, so only the Claude
+#              process tree sees it. Standalone: bash builtins only, no
+#              .functions.bash — the host userland and the test PATH may hold
+#              nothing but bash. Pass-through: -h/--help/-V/--version reach the
+#              real binary.
 # @arg $@ args pkill arguments, forwarded verbatim
 # @stderr The refusal message, or the not-found message.
 # @exitcode 125 refused; the real pkill was not run
@@ -42,6 +45,22 @@ function main() {
     real="$(shim::find_real pkill)"
     exec "${real}" "$@"
   fi
+  # --inverse/-v flips the match: pkill kills every process EXCEPT the
+  # pattern, so a pattern that passes shim::check_pattern is meaningless once
+  # inverted. Scan only up to a literal --; a -v-shaped pattern after -- is a
+  # pattern, not a flag.
+  local arg
+  for arg in "$@"; do
+    if [[ "${arg}" == '--' ]]; then
+      break
+    fi
+    if [[ "${arg}" == '--inverse' ]]; then
+      shim::refuse pkill '--inverse/-v would kill every process EXCEPT the pattern'
+    fi
+    if [[ "${arg}" =~ ^-[a-z]+$ && "${arg}" == *v* ]]; then
+      shim::refuse pkill '--inverse/-v would kill every process EXCEPT the pattern'
+    fi
+  done
   local -a patterns=()
   shim::positional_args patterns "${VALUE_SHORT}" "${VALUE_LONG}" "$@"
   if ((${#patterns[@]} == 0)); then

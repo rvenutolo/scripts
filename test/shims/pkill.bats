@@ -191,6 +191,32 @@ assert_refused() {
   assert_refused
 }
 
+# ---------- --inverse/-v refusal ----------
+
+@test "pkill --inverse -f zzzz-nonexistent is refused" {
+  run_shim --inverse -f zzzz-nonexistent
+  assert_refused
+  assert_output --partial 'EXCEPT'
+}
+
+@test "pkill -v -f zzzz-nonexistent is refused" {
+  run_shim -v -f zzzz-nonexistent
+  assert_refused
+  assert_output --partial 'EXCEPT'
+}
+
+@test "pkill -fv zzzz-nonexistent is refused (v in a short cluster)" {
+  run_shim -fv zzzz-nonexistent
+  assert_refused
+  assert_output --partial 'EXCEPT'
+}
+
+@test "pkill -- -v-name: a pattern spelled -v-name after -- is allowed" {
+  run_shim -- -v-name
+  assert_success
+  assert_output 'PAYLOAD_RAN -- -v-name'
+}
+
 # ---------- pass-through ----------
 
 @test "pkill --help is not intercepted" {
