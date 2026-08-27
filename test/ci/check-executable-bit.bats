@@ -16,7 +16,7 @@ setup() {
   # tmpdir is all the isolation needed. SCRIPTS_DIR keeps pointing at the real
   # library: the check sources it, but classifies purely on paths relative to
   # the repo root, so nothing has to be staged into the fixture.
-  mkdir --parents "${REPO}"/scripts/{non-interactive,interactive,misc,functions,install,set_up,other}
+  mkdir --parents "${REPO}"/scripts/{non-interactive,interactive,misc,functions,install,set_up,other,shims/claude}
   mkdir --parents "${REPO}"/scripts/set_up/{docker,sysctl,tailscale}
   mkdir --parents "${REPO}/.ci" "${REPO}/.githooks" "${REPO}/test/ci" "${REPO}/lib"
   git_fixture::init "${REPO}"
@@ -26,6 +26,8 @@ setup() {
   make_script 'scripts/non-interactive/good' exec
   make_script 'scripts/interactive/good' exec
   make_script 'scripts/misc/good' exec
+  make_script 'scripts/shims/claude/good' exec
+  make_script 'scripts/shims/claude/lib.bash'
   make_script '.ci/check-good' exec
   make_script '.githooks/good-hook' exec
   make_script 'run-tests' exec
@@ -127,6 +129,22 @@ run_check() {
   assert_failure
   assert_output --partial 'run-set-up-scripts'
   assert_output --partial 'must be executable'
+}
+
+@test "fails when a shim under scripts/shims/ is not executable" {
+  make_script 'scripts/shims/claude/bad'
+  run_check
+  assert_failure
+  assert_output --partial 'scripts/shims/claude/bad'
+  assert_output --partial 'must be executable'
+}
+
+@test "fails when a *.bash library under scripts/shims/ is executable" {
+  make_script 'scripts/shims/claude/oops.bash' exec
+  run_check
+  assert_failure
+  assert_output --partial 'scripts/shims/claude/oops.bash'
+  assert_output --partial 'must not be executable'
 }
 
 @test "fails when a functions library file is executable" {

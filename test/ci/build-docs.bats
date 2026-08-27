@@ -105,7 +105,7 @@ index_link_count() {
   assert_success
   local -r top="${DOCS_DIR_OVERRIDE}/scripts/index.md"
   local subdir
-  for subdir in non-interactive interactive install set_up misc root; do
+  for subdir in non-interactive interactive install set_up misc shims root; do
     run grep --fixed-strings "(${subdir}/index.md)" "${top}"
     assert_success
   done
@@ -211,4 +211,21 @@ index_link_count() {
   PATH="${bin_dir}" BASH_ENV="${SAFE_BASH_ENV}" run "${CHECK}"
   assert_failure 1
   assert_output --partial 'gawk not found'
+}
+
+@test "renders a page for each shim under scripts/shims/" {
+  run_check "${CHECK}"
+  assert_success
+  run find "${DOCS_DIR_OVERRIDE}/scripts/shims" -maxdepth 1 -type f -name 'pkill.md'
+  assert_success
+  assert_output --partial 'pkill.md'
+}
+
+@test "documents a .bash library under scripts/shims/ function-by-function, not through the script header renderer" {
+  run_check "${CHECK}"
+  assert_success
+  run cat "${DOCS_DIR_OVERRIDE}/scripts/shims/lib.md"
+  assert_success
+  assert_output --partial 'shim::find_real'
+  refute_output --partial '## Overview'
 }

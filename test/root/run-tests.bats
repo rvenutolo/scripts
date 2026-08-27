@@ -121,7 +121,7 @@ make_guard_bin() {
   assert_output --partial 'flock not found on PATH'
 }
 
-@test "no-arg invocation runs the three default suites in parallel" {
+@test "no-arg invocation runs the four default suites in parallel" {
   install_bats_stub
   run_in_fake_repo
   assert_success
@@ -133,6 +133,7 @@ make_guard_bin() {
   [[ "${recorded}" == *"${FAKE_REPO}/test/functions"* ]]
   [[ "${recorded}" == *"${FAKE_REPO}/test/ci"* ]]
   [[ "${recorded}" == *"${FAKE_REPO}/test/root"* ]]
+  [[ "${recorded}" == *"${FAKE_REPO}/test/shims"* ]]
 }
 
 @test "arguments are forwarded verbatim without the default targets" {

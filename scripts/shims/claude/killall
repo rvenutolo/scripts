@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+# @description Claude-only PATH shim for killall. Refuses a call with no process
+#              name, or with ANY name shorter than 4 characters or matching a
+#              session-critical process name — killall kills every name it is
+#              given, so all of them are checked, not just the last. Otherwise
+#              execs the real killall found on PATH (this directory excluded)
+#              with the arguments untouched. Only the claude wrapper puts this
+#              directory on PATH. Standalone: bash builtins only, no
+#              .functions.bash. Pass-through: -h/--help/-V/--version reach the
+#              real binary.
+# @arg $@ args killall arguments, forwarded verbatim
+# @stderr The refusal message, or the not-found message.
+# @exitcode 125 refused; the real killall was not run
+# @exitcode 127 no real killall found on PATH
+
+set -Eeuo pipefail
+shopt -s inherit_errexit
+IFS=$'\n\t'
+# Inline trap, %(%T)T rather than $(date): date is external and may be absent.
+trap 'printf "\033[0;31m[%(%T)T %s] ERROR: line %s (exit %s): %s\033[0m\n" -1 "${0##*/}" "${LINENO}" "$?" "${BASH_COMMAND}" >&2' ERR
+
+# Physical directory of this shim, so lib.bash can be found and so the PATH walk
+# can exclude it. `.` when $0 carries no slash.
+SHIM_DIR="${0%/*}"
+if [[ "${SHIM_DIR}" == "$0" ]]; then
+  SHIM_DIR='.'
+fi
+SHIM_DIR="$(cd -P -- "${SHIM_DIR}" && pwd -P)"
+readonly SHIM_DIR
+# shellcheck disable=SC1091 # lib.bash is sourced from SHIM_DIR, not a relative path
+source "${SHIM_DIR}/lib.bash"
+
+# killall's value-taking options (psmisc).
+readonly VALUE_SHORT='sunyoZ'
+readonly VALUE_LONG='--signal --user --ns --younger-than --older-than --context'
+
+function main() {
+  # pass-through: any arg count valid (forwarded to the real killall)
+  local real
+  if shim::is_help_request "$@"; then
+    real="$(shim::find_real killall)"
+    exec "${real}" "$@"
+  fi
+  local -a names=()
+  shim::positional_args names "${VALUE_SHORT}" "${VALUE_LONG}" "$@"
+  if ((${#names[@]} == 0)); then
+    shim::refuse killall 'no process name given'
+  fi
+  local name
+  for name in "${names[@]}"; do
+    shim::check_pattern killall "${name}"
+  done
+  real="$(shim::find_real killall)"
+  exec "${real}" "$@"
+}
+
+main "$@"

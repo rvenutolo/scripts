@@ -2,9 +2,10 @@
 
 # @description Generate markdown reference docs for the scripts repo by running
 #              shdoc against every functions/*.bash file and every shell script
-#              under non-interactive/ and interactive/. Output lands in
-#              .docs/functions/ and .docs/scripts/ (gitignored, regenerated on
-#              every build). Companion config: .mkdocs.yml. Companion deploy:
+#              under non-interactive/, interactive/, install/, set_up/, misc/,
+#              shims/, and the repo root. Output lands in .docs/functions/ and
+#              .docs/scripts/ (gitignored, regenerated on every build).
+#              Companion config: .mkdocs.yml. Companion deploy:
 #              .github/workflows/pages.yml.
 # @noargs
 
@@ -207,7 +208,10 @@ function write_index() {
 
 # @description Generate per-script markdown for every script returned by the
 #              given enumerator command, into ${DOCS_SCRIPTS_DIR}/${out_subdir}/,
-#              and write a per-subdir index.md with the given title.
+#              and write a per-subdir index.md with the given title. A *.bash
+#              entry (a library file, e.g. scripts/shims/claude/lib.bash) is
+#              documented function-by-function via shdoc_one; every other entry
+#              goes through shdoc_script_one's file-level header renderer.
 # @arg $1 enumerator name of the function to invoke for script paths on stdout
 #         (e.g. shell_scripts::find or shell_scripts::find_root_only)
 # @arg $2 enumerator_arg argument passed to the enumerator function (use '' when
@@ -231,8 +235,22 @@ function generate_scripts_for_dir() {
   fi
   local script base
   while IFS= read -r script; do
-    base="$(basename -- "${script}")"
-    shdoc_script_one "${script}" "${out_dir}/${base}.md"
+    # Strip a .bash suffix (e.g. a library file like scripts/shims/claude/lib.bash)
+    # the same way the functions/ loop does, so the page is named lib.md rather
+    # than the double-extensioned lib.bash.md. A no-suffix script (pkill) is
+    # unaffected — basename only strips a suffix that actually matches.
+    base="$(basename -- "${script}" .bash)"
+    if [[ "${script}" == *.bash ]]; then
+      # A .bash entry (e.g. scripts/shims/claude/lib.bash) is a library file, not a
+      # top-level script — it carries no set -Eeuo pipefail line for
+      # render_script_header to stop at, so that renderer would scan the whole file
+      # and mash every function's tags into one bogus header. Document it
+      # function-by-function instead, the same way scripts/functions/*.bash is
+      # documented in main.
+      shdoc_one "${script}" "${out_dir}/${base}.md"
+    else
+      shdoc_script_one "${script}" "${out_dir}/${base}.md"
+    fi
   done < "${list_file}"
   write_index "${out_dir}" "${title}"
 }
@@ -247,7 +265,7 @@ function write_scripts_top_index() {
   {
     printf '# Scripts\n\n'
     local subdir
-    for subdir in non-interactive interactive install set_up misc root; do
+    for subdir in non-interactive interactive install set_up misc shims root; do
       if files::exists "${DOCS_SCRIPTS_DIR}/${subdir}/index.md"; then
         printf -- '- [%s](%s/index.md)\n' "${subdir}" "${subdir}"
       fi
@@ -288,6 +306,7 @@ function main() {
   generate_scripts_for_dir shell_scripts::find "${REPO_DIR}/scripts/install" install 'install'
   generate_scripts_for_dir shell_scripts::find "${REPO_DIR}/scripts/set_up" set_up 'set_up'
   generate_scripts_for_dir shell_scripts::find "${REPO_DIR}/scripts/misc" misc 'misc'
+  generate_scripts_for_dir shell_scripts::find "${REPO_DIR}/scripts/shims" shims 'shims'
   generate_scripts_for_dir shell_scripts::find_root_only '' root 'root'
   # shellcheck disable=SC2119 # no args passed; args::check_no_args "$@" is the repo's no-args guard
   write_scripts_top_index

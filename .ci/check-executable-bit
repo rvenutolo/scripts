@@ -2,7 +2,7 @@
 
 # @description Audit file modes against the repo's executable-bit convention.
 #              Shebang-bearing scripts under scripts/non-interactive/,
-#              scripts/interactive/, scripts/misc/, scripts/other/, .ci/,
+#              scripts/interactive/, scripts/misc/, scripts/shims/, scripts/other/, .ci/,
 #              .githooks/, and the repo root must be executable. So must scripts
 #              under scripts/install/ and scripts/set_up/, unless listed in the
 #              GATED allowlist — removing the exec bit is how a script is gated
@@ -164,7 +164,7 @@ function main() {
         fi
         assert_executable "${file}" 'install/set_up runner script' || rc=1
         ;;
-      scripts/non-interactive/* | scripts/interactive/* | scripts/misc/* | .ci/* | .githooks/*)
+      scripts/non-interactive/* | scripts/interactive/* | scripts/misc/* | scripts/shims/* | .ci/* | .githooks/*)
         assert_executable "${file}" "script under ${relative%/*}/" || rc=1
         ;;
       */*)
