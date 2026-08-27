@@ -76,7 +76,7 @@ git submodule update --init --recursive   # one-time, on fresh clones (for .shdo
 ./.ci/in-devshell ./run-tests --filter 'is_blank' test/functions/strings.bats   # subset by name
 ```
 
-BATS, `bats-support`, and `bats-assert` come from the flake devShell — `bats.withLibraries` in `flake.nix` — and are no longer vendored as git submodules. The wrapper it produces exports `BATS_LIB_PATH`, so `test/test_helper/common.bash` loads the two libraries with `bats_load_library` and a bats that is not the flake's fails loudly instead of silently missing them. `.shdoc` is still a submodule, which is why the bootstrap line above stays.
+BATS, `bats-support`, and `bats-assert` come from the flake devShell — `bats.withLibraries` in `flake.nix`. The wrapper it produces exports `BATS_LIB_PATH`, so `test/test_helper/common.bash` loads the two libraries with `bats_load_library` and a bats that is not the flake's fails loudly instead of silently missing them. `.shdoc` is still a submodule, which is why the bootstrap line above stays.
 
 Every helper in `functions/*.bash` has a matching `test/functions/<topic>.bats` (or topic-prefixed group) — coverage is mandatory for new helpers. Shared fixtures live under `test/test_helper/` (CLI shims, env-file fixtures, `os-release` overrides, prompt mocks, etc.).
 
