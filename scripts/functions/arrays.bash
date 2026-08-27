@@ -54,7 +54,7 @@ function arrays::diff() {
 # variable is SET — even to the empty string — and from the given default elements when it is unset.
 # The distinction is the point: a set-but-empty override means "no elements", which a test needs in
 # order to clear a non-empty default, whereas an unset one means "use the defaults". `${VAR:-}`
-# collapses the two cases and cannot express it. See issue #205.
+# collapses the two cases and cannot express it.
 # @arg $1 name of the output array (variable name passed as a name-ref; cleared and repopulated)
 # @arg $2 name of the override environment variable
 # @arg $@ default elements to use when the override is unset

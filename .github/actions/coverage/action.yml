@@ -23,11 +23,9 @@ runs:
       env:
         SCOPE: ${{ inputs.scope }}
       # kcov comes from the flake devShell (flake.nix carries a one-line PS4 patch
-      # on it — see the comment there). It replaced bashcov, whose Ruby reader
-      # handed bash a non-blocking pipe and silently dropped ~75% of the trace
-      # under this suite's volume, making every number it produced noise (#307).
-      # kcov's C++ reader keeps up, and three full runs on an unchanged tree
-      # produce byte-identical per-line hits.
+      # on it — see the comment there). Its C++ reader keeps up with this suite's
+      # trace volume, and three full runs on an unchanged tree produce
+      # byte-identical per-line hits.
       #
       # --bash-parser: kcov defaults to /bin/bash, the runner's bash, to parse the
       # scripts it reports on. The suite runs under the devShell's bash, so the
@@ -38,10 +36,9 @@ runs:
       # the suite, and the other scripts/ dirs are unmeasured payload.
       # --bash-parse-files-in-dir: kcov only reports files it saw execute. This
       # walks the directory so a never-executed script scores 0% instead of
-      # vanishing from the denominator, which is the same inflation bashcov's
-      # relative --root caused (#307 item 2). It takes a comma-separated list and
-      # does not recurse, which is why the gates scope names the repo root
-      # separately from .ci/ — the root runners are files, not a directory.
+      # vanishing from the denominator. It takes a comma-separated list and does
+      # not recurse, which is why the gates scope names the repo root separately
+      # from .ci/ — the root runners are files, not a directory.
       #
       # Every path is absolute via git rev-parse rather than $PWD, so the root is
       # the repo, not wherever the step happened to be invoked from — the rule

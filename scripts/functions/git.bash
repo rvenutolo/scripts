@@ -214,8 +214,8 @@ function git::default_branch() {
 # @description Unset every repo-scoped environment variable that git injects into hook and
 #              child-process environments (GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, ...). A
 #              worktree `git push` exports an absolute GIT_DIR into hooks; any tooling that
-#              then runs git against OTHER repos gets silently retargeted at the pushing repo
-#              (#248). The list comes from `git rev-parse --local-env-vars` at runtime so new
+#              then runs git against OTHER repos gets silently retargeted at the pushing
+#              repo. The list comes from `git rev-parse --local-env-vars` at runtime so new
 #              git versions stay covered.
 # @noargs
 function git::clear_local_env() {
