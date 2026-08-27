@@ -9,6 +9,8 @@
 #              claude ...`, and other non-interactive launches. Also pins
 #              ANTHROPIC_MODEL to opus[1m] unless already set, so a persisted
 #              /model choice does not leak across sessions.
+#              Prepends scripts/shims/claude/ to PATH so the Claude process tree
+#              — and nothing else — resolves pkill/killall to the guarding shims.
 # @arg $@ args Optional arguments forwarded verbatim to claude.
 # @exitcode 1 real claude executable not found
 
@@ -28,7 +30,23 @@ export CLAUDE_CONFIG_DIR
 # by design: an already-set ANTHROPIC_MODEL or a --model flag still wins.
 export ANTHROPIC_MODEL="${ANTHROPIC_MODEL:-opus[1m]}"
 
-# resolve the real binary instead of path::remove so the exec'd session
-# inherits an unmodified PATH
+# Resolve the real binary instead of path::remove, so the exec'd session inherits
+# the caller's PATH unmodified except for the shim prepend below. Resolution
+# happens BEFORE the prepend so a `claude` inside the shim dir can never win.
 claude_bin="$(commands::executable_path claude)" || log::die 'claude executable not found'
+
+# Claude-only PATH shims (pkill/killall guards) — see scripts/shims/claude/.
+# Prepended here, not in a profile, so only the Claude process tree (Bash tool,
+# subagents, `bash script.sh`) sees them. Warn-and-continue when missing: a
+# missing guard must be loud, never a broken claude. CLAUDE_SHIMS_DIR_OVERRIDE is
+# a test seam on the derived path; production leaves it unset.
+claude_shims="${CLAUDE_SHIMS_DIR_OVERRIDE:-${SCRIPTS_DIR}/shims/claude}"
+if dirs::exists "${claude_shims}"; then
+  claude_shims="$(cd -P -- "${claude_shims}" && pwd -P)"
+  path::prepend "${claude_shims}"
+  export PATH
+else
+  log::warn "claude shims dir missing: ${claude_shims} (pkill/killall guard inactive)"
+fi
+
 exec "${claude_bin}" "$@"
