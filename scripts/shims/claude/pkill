@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+# @description Claude-only PATH shim for pkill. Refuses a call whose pattern is
+#              missing, shorter than 4 characters, or matches a session-critical
+#              process name; otherwise execs the real pkill found on PATH (this
+#              directory excluded) with the arguments untouched. Only the claude
+#              wrapper puts this directory on PATH, so only the Claude process
+#              tree sees it. Standalone: bash builtins only, no .functions.bash —
+#              the host userland and the test PATH may hold nothing but bash.
+#              Pass-through: -h/--help/-V/--version reach the real binary.
+# @arg $@ args pkill arguments, forwarded verbatim
+# @stderr The refusal message, or the not-found message.
+# @exitcode 125 refused; the real pkill was not run
+# @exitcode 127 no real pkill found on PATH
+
+set -Eeuo pipefail
+shopt -s inherit_errexit
+IFS=$'\n\t'
+# Inline trap, %(%T)T rather than $(date): date is external and may be absent.
+trap 'printf "\033[0;31m[%(%T)T %s] ERROR: line %s (exit %s): %s\033[0m\n" -1 "${0##*/}" "${LINENO}" "$?" "${BASH_COMMAND}" >&2' ERR
+
+# Physical directory of this shim, so lib.bash can be found and so the PATH walk
+# can exclude it. `.` when $0 carries no slash.
+SHIM_DIR="${0%/*}"
+if [[ "${SHIM_DIR}" == "$0" ]]; then
+  SHIM_DIR='.'
+fi
+SHIM_DIR="$(cd -P -- "${SHIM_DIR}" && pwd -P)"
+readonly SHIM_DIR
+# shellcheck disable=SC1091 # lib.bash is sourced from SHIM_DIR, not a relative path
+source "${SHIM_DIR}/lib.bash"
+
+# pkill's value-taking options (procps-ng). -s is --session here; --signal is
+# long-only — both take a value, which is all the extraction needs to know.
+readonly VALUE_SHORT='dgGOPstuUFr'
+readonly VALUE_LONG='--delimiter --pgroup --group --older --parent --session --signal --terminal --euid --uid --pidfile --runstates --cgroup --ns --nslist'
+
+function main() {
+  # pass-through: any arg count valid (forwarded to the real pkill)
+  local real
+  if shim::is_help_request "$@"; then
+    real="$(shim::find_real pkill)"
+    exec "${real}" "$@"
+  fi
+  local -a patterns=()
+  shim::positional_args patterns "${VALUE_SHORT}" "${VALUE_LONG}" "$@"
+  if ((${#patterns[@]} == 0)); then
+    shim::refuse pkill 'no pattern given (this would match every process of the user)'
+  fi
+  # pkill takes exactly one pattern: the last non-option argument.
+  shim::check_pattern pkill "${patterns[-1]}"
+  real="$(shim::find_real pkill)"
+  exec "${real}" "$@"
+}
+
+main "$@"
