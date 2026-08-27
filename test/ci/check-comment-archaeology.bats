@@ -103,6 +103,14 @@ setup() {
   assert_success
 }
 
+@test "flags a hit inside a tracked dotfile" {
+  printf '%s\n' "# scratch (${HASH}1234)." > "${FIXTURE}/.envrc"
+  git_fixture::run "${FIXTURE}" add .envrc
+  run --separate-stderr "${CHECK}"
+  assert_failure 1
+  assert_stderr --partial '.envrc'
+}
+
 @test "an EXEMPT entry suppresses its hit" {
   printf '%s\n' "@test \"pins the fixture escape (${HASH}248)\" {" > "${FIXTURE}/regress.bats"
   git_fixture::run "${FIXTURE}" add regress.bats
