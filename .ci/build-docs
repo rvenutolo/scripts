@@ -231,7 +231,11 @@ function generate_scripts_for_dir() {
   fi
   local script base
   while IFS= read -r script; do
-    base="$(basename -- "${script}")"
+    # Strip a .bash suffix (e.g. a library file like scripts/shims/claude/lib.bash)
+    # the same way the functions/ loop does, so the page is named lib.md rather
+    # than the double-extensioned lib.bash.md. A no-suffix script (pkill) is
+    # unaffected — basename only strips a suffix that actually matches.
+    base="$(basename -- "${script}" .bash)"
     shdoc_script_one "${script}" "${out_dir}/${base}.md"
   done < "${list_file}"
   write_index "${out_dir}" "${title}"
@@ -247,7 +251,7 @@ function write_scripts_top_index() {
   {
     printf '# Scripts\n\n'
     local subdir
-    for subdir in non-interactive interactive install set_up misc root; do
+    for subdir in non-interactive interactive install set_up misc shims root; do
       if files::exists "${DOCS_SCRIPTS_DIR}/${subdir}/index.md"; then
         printf -- '- [%s](%s/index.md)\n' "${subdir}" "${subdir}"
       fi
@@ -288,6 +292,7 @@ function main() {
   generate_scripts_for_dir shell_scripts::find "${REPO_DIR}/scripts/install" install 'install'
   generate_scripts_for_dir shell_scripts::find "${REPO_DIR}/scripts/set_up" set_up 'set_up'
   generate_scripts_for_dir shell_scripts::find "${REPO_DIR}/scripts/misc" misc 'misc'
+  generate_scripts_for_dir shell_scripts::find "${REPO_DIR}/scripts/shims" shims 'shims'
   generate_scripts_for_dir shell_scripts::find_root_only '' root 'root'
   # shellcheck disable=SC2119 # no args passed; args::check_no_args "$@" is the repo's no-args guard
   write_scripts_top_index
