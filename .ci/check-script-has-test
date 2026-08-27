@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 
-# @description Assert every script in scope has a paired BATS test file. Three
+# @description Assert every script in scope has a paired BATS test file. Four
 #              scopes are checked: every shebang-bearing executable under .ci/
 #              needs test/ci/<name>.bats, every executable shell file at the
 #              repo root — the runners every contributor and every CI job
-#              invokes — needs test/root/<name>.bats, and every tracked git hook
-#              under .githooks/ needs test/ci/<name>.bats. Mirrors the BATS-coverage
-#              mandate that already applies to functions/*.bash. Explicitly
-#              side-effecting scripts that cannot be deterministically tested are
-#              exempted via a hardcoded list per scope, and each exemption must
-#              stay warranted: an entry naming no script in its scope, or naming
-#              one that does have a paired test, fails the lint rather than
+#              invokes — needs test/root/<name>.bats, every tracked git hook
+#              under .githooks/ needs test/ci/<name>.bats, and every executable
+#              shebang-bearing shim under scripts/shims/ needs
+#              test/shims/<name>.bats. Mirrors the BATS-coverage mandate that
+#              already applies to functions/*.bash. Explicitly side-effecting
+#              scripts that cannot be deterministically tested are exempted via
+#              a hardcoded list per scope, and each exemption must stay
+#              warranted: an entry naming no script in its scope, or naming one
+#              that does have a paired test, fails the lint rather than
 #              silently disarming it.
 # @noargs
 # @stderr One line per script missing its paired test, and one per stale exemption.
@@ -36,6 +38,8 @@ readonly TEST_CI_DIR="${TEST_CI_DIR_OVERRIDE:-${REPO_DIR}/test/ci}"
 readonly ROOT_DIR="${ROOT_DIR_OVERRIDE:-${REPO_DIR}}"
 readonly TEST_ROOT_DIR="${TEST_ROOT_DIR_OVERRIDE:-${REPO_DIR}/test/root}"
 readonly HOOKS_DIR="${HOOKS_DIR_OVERRIDE:-${REPO_DIR}/.githooks}"
+readonly SHIMS_DIR="${SHIMS_DIR_OVERRIDE:-${REPO_DIR}/scripts/shims}"
+readonly TEST_SHIMS_DIR="${TEST_SHIMS_DIR_OVERRIDE:-${REPO_DIR}/test/shims}"
 
 # Scripts under .ci/ exempt from the paired-test mandate. Deliberately empty:
 # all .ci scripts have paired tests under test/ci/. apply-repo-settings was the
@@ -55,6 +59,11 @@ readonly ROOT_EXEMPT=()
 # Tracked git hooks exempt from the mandate. Deliberately empty: both hooks have
 # paired tests under test/ci/. Same staleness detection as above.
 readonly HOOKS_EXEMPT=()
+
+# Shims under scripts/shims/ exempt from the mandate. Deliberately empty: a shim
+# is the one place a bug re-runs the payload it exists to stop, so every one has
+# a paired test under test/shims/. Same staleness detection as above.
+readonly SHIMS_EXEMPT=()
 
 # @description Print the basenames of entries directly inside dir that are
 #              executable shell files. Non-recursive, so against the repo root it
@@ -125,10 +134,11 @@ function check_scope() {
 
 function main() {
   args::check_no_args "$@"
-  local -a ci_exempt=() root_exempt=() hooks_exempt=()
+  local -a ci_exempt=() root_exempt=() hooks_exempt=() shims_exempt=()
   arrays::from_env_override ci_exempt EXEMPT_OVERRIDE "${EXEMPT[@]}"
   arrays::from_env_override root_exempt ROOT_EXEMPT_OVERRIDE ${ROOT_EXEMPT[@]+"${ROOT_EXEMPT[@]}"}
   arrays::from_env_override hooks_exempt HOOKS_EXEMPT_OVERRIDE ${HOOKS_EXEMPT[@]+"${HOOKS_EXEMPT[@]}"}
+  arrays::from_env_override shims_exempt SHIMS_EXEMPT_OVERRIDE ${SHIMS_EXEMPT[@]+"${SHIMS_EXEMPT[@]}"}
 
   local ci_scripts_tmp ci_names_tmp root_names_tmp hooks_names_tmp
   files::create_temp ci_scripts_tmp
@@ -144,6 +154,19 @@ function main() {
   executable_shell_names "${ROOT_DIR}" > "${root_names_tmp}"
   executable_shell_names "${HOOKS_DIR}" > "${hooks_names_tmp}"
 
+  local shims_scripts_tmp shims_names_tmp
+  files::create_temp shims_scripts_tmp
+  files::create_temp shims_names_tmp
+  if dirs::exists "${SHIMS_DIR}"; then
+    shell_scripts::find "${SHIMS_DIR}" > "${shims_scripts_tmp}"
+  fi
+  while IFS= read -r script; do
+    strings::is_empty "${script}" && continue
+    if files::is_executable "${script}"; then
+      basename "${script}" >> "${shims_names_tmp}"
+    fi
+  done < "${shims_scripts_tmp}"
+
   local overall=0
   check_scope "${ci_names_tmp}" "${TEST_CI_DIR}" 'test/ci' \
     ${ci_exempt[@]+"${ci_exempt[@]}"} || overall=1
@@ -154,6 +177,8 @@ function main() {
   # two-file directory would buy nothing but another scope to keep in sync.
   check_scope "${hooks_names_tmp}" "${TEST_CI_DIR}" 'test/ci' \
     ${hooks_exempt[@]+"${hooks_exempt[@]}"} || overall=1
+  check_scope "${shims_names_tmp}" "${TEST_SHIMS_DIR}" 'test/shims' \
+    ${shims_exempt[@]+"${shims_exempt[@]}"} || overall=1
   exit "${overall}"
 }
 

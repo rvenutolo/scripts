@@ -6,7 +6,9 @@ setup() {
   ROOT="${BATS_TEST_TMPDIR}/root"
   TEST_ROOT="${BATS_TEST_TMPDIR}/test_root"
   HOOKS="${BATS_TEST_TMPDIR}/githooks"
-  mkdir -p "${CI}" "${TEST_CI}" "${ROOT}" "${TEST_ROOT}" "${HOOKS}"
+  SHIMS="${BATS_TEST_TMPDIR}/shims"
+  TEST_SHIMS="${BATS_TEST_TMPDIR}/test_shims"
+  mkdir -p "${CI}" "${TEST_CI}" "${ROOT}" "${TEST_ROOT}" "${HOOKS}" "${SHIMS}" "${TEST_SHIMS}"
   # Both shipped lists are empty today, but an entry added later would name a
   # script in the real repo that does not exist in the synthetic fixture dirs
   # below, and would read as stale. Set-but-empty clears them regardless; tests
@@ -15,6 +17,7 @@ setup() {
   export EXEMPT_OVERRIDE=''
   export ROOT_EXEMPT_OVERRIDE=''
   export HOOKS_EXEMPT_OVERRIDE=''
+  export SHIMS_EXEMPT_OVERRIDE=''
 }
 
 # Drop an executable, shebang-bearing fixture script into the fake .ci dir so
@@ -50,6 +53,20 @@ make_root_test() {
   printf '@test "x" { true; }\n' > "${TEST_ROOT}/${name}.bats"
 }
 
+# Drop an executable, shebang-bearing fixture into a subdir of the fake
+# scripts/shims dir; the scope is recursive, like .ci/.
+make_shim() {
+  local -r name="$1"
+  mkdir --parents "${SHIMS}/claude"
+  printf '#!/usr/bin/env bash\ntrue\n' > "${SHIMS}/claude/${name}"
+  chmod +x "${SHIMS}/claude/${name}"
+}
+
+make_shim_test() {
+  local -r name="$1"
+  printf '@test "x" { true; }\n' > "${TEST_SHIMS}/${name}.bats"
+}
+
 # All three scopes are always pinned at fixture dirs. Without the seams a scope
 # would fall back to the live checkout, and every test here would silently depend
 # on real repo state.
@@ -62,6 +79,7 @@ run_check() {
   CI_DIR_OVERRIDE="${CI}" TEST_CI_DIR_OVERRIDE="${TEST_CI}" \
     ROOT_DIR_OVERRIDE="${ROOT}" TEST_ROOT_DIR_OVERRIDE="${TEST_ROOT}" \
     HOOKS_DIR_OVERRIDE="${HOOKS}" \
+    SHIMS_DIR_OVERRIDE="${SHIMS}" TEST_SHIMS_DIR_OVERRIDE="${TEST_SHIMS}" \
     run "${CHECK}" "$@"
 }
 
@@ -269,5 +287,46 @@ run_check() {
 
 @test "--help exits 0" {
   run_check --help
+  assert_success
+}
+
+@test "passes when every shim has a paired test" {
+  make_shim 'pkill'
+  make_shim_test 'pkill'
+  run_check
+  assert_success
+}
+
+@test "fails when a shim has no paired test" {
+  make_shim 'killall'
+  run_check
+  assert_failure
+  assert_output --partial 'killall: no paired test/shims/killall.bats'
+}
+
+@test "a non-executable library under the shims dir is not held to the mandate" {
+  mkdir --parents "${SHIMS}/claude"
+  printf '#!/usr/bin/env bash\ntrue\n' > "${SHIMS}/claude/lib.bash"
+  run_check
+  assert_success
+}
+
+@test "an exempt shim is accepted without a paired test" {
+  make_shim 'killall'
+  SHIMS_EXEMPT_OVERRIDE='killall' run_check
+  assert_success
+}
+
+@test "a shims exemption naming no shim is reported stale" {
+  SHIMS_EXEMPT_OVERRIDE='shim-ghost' run_check
+  assert_failure
+  assert_output --partial 'stale EXEMPT entry: shim-ghost matches no script'
+}
+
+@test "the shipped SHIMS_EXEMPT list is empty" {
+  unset SHIMS_EXEMPT_OVERRIDE
+  make_shim 'pkill'
+  make_shim_test 'pkill'
+  run_check
   assert_success
 }
