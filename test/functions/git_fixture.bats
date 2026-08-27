@@ -122,7 +122,7 @@ setup() {
   assert_stderr --partial 'Expected at least 2 arguments'
 }
 
-# ---------- #248 regression: hostile inherited GIT_DIR cannot retarget fixtures ----------
+# ---------- regression: hostile inherited GIT_DIR cannot retarget fixtures ----------
 
 @test "regression: hostile GIT_DIR does not leak fixture writes into a victim repo" {
   git_fixture::init "${BATS_TEST_TMPDIR}/victim"
@@ -133,7 +133,7 @@ setup() {
   local victim_head
   victim_head="$(git_fixture::run "${BATS_TEST_TMPDIR}/victim" rev-parse HEAD)"
 
-  # Simulate the #248 hook environment: absolute GIT_DIR/GIT_INDEX_FILE/GIT_OBJECT_DIRECTORY
+  # Simulate the hostile hook environment: absolute GIT_DIR/GIT_INDEX_FILE/GIT_OBJECT_DIRECTORY
   # all aimed at the victim. GIT_DIR alone is neutralized by the --git-dir pin, but
   # GIT_INDEX_FILE and GIT_OBJECT_DIRECTORY are repo-scoped vars the pin does not touch.
   export GIT_DIR="${BATS_TEST_TMPDIR}/victim/.git"

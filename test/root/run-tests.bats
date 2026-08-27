@@ -54,7 +54,7 @@ install_bats_stub() {
 }
 
 # Like install_bats_stub, but runs the given body line(s) before exiting 0 —
-# used to simulate the suite mutating the surrounding fixture repo (#248).
+# used to simulate the suite mutating the surrounding fixture repo.
 make_recording_bats_stub_with_body() {
   local -r body="$1"
   write_bats_stub "${STUB_BIN}" "${body}"
@@ -64,7 +64,7 @@ run_in_fake_repo() {
   cd "${FAKE_REPO}" || return 1
   # BASH_ENV=SAFE_BASH_ENV: a child bash would otherwise re-source the user's
   # interactive ~/.bashrc, restoring the real PATH ahead of the stub dir. Unsetting
-  # it outright also detached kcov's trace helper, so run-tests read 0/31 (#322).
+  # it outright also detaches kcov's trace helper, so run-tests reads 0%.
   run env "BASH_ENV=${SAFE_BASH_ENV}" PATH="${STUB_BIN}:${PATH}" "${SCRIPT}" "$@"
 }
 

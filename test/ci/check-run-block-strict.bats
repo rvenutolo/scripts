@@ -7,8 +7,8 @@ setup() {
 }
 
 # Run with both override seams pointed at the test tmpdirs.
-# .ci/check-run-block-strict derives its own repo root via
-# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# .ci/check-run-block-strict derives its own repo root via `git rev-parse
+# --show-toplevel`. common.bash's fixture-escape hardening leaves CWD at
 # BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
 # every invocation — this test targets the real repo.
 run_check() {
@@ -257,7 +257,7 @@ EOF
   assert_failure
 }
 
-@test "fails: bare nix develop is no longer an exemption" {
+@test "fails: a bare nix develop block still needs the strict-mode prelude" {
   cat > "${WF}/a.yml" << 'EOF'
 on: push
 jobs:

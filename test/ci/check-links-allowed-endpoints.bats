@@ -42,10 +42,10 @@ write_allowlist() {
   } > "${LINKS_WF}"
 }
 
-# .ci/check-links-allowed-endpoints derives its own repo root via
-# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
-# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
-# every invocation — this test targets the real repo.
+# .ci/check-links-allowed-endpoints derives its own repo root via `git
+# rev-parse --show-toplevel`. common.bash's fixture-escape hardening leaves CWD
+# at BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR
+# before every invocation — this test targets the real repo.
 run_check() {
   cd "${REPO_DIR}" || return 1
   LINKS_WORKFLOW_OVERRIDE="${LINKS_WF}" \

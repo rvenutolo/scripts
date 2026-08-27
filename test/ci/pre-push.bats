@@ -19,10 +19,10 @@ setup() {
 # write_gate_stub <exit_code> — stand in for .ci/in-devshell inside the fixture repo.
 # Records its argv and the environment it was handed, then exits with the given code.
 #
-# Dumping the environment is what lets a test assert the #248 defense directly: the hook
-# must call git::clear_local_env before running anything, so the repo-scoped GIT_* vars a
-# worktree push exports cannot reach the BATS suite the gate goes on to run. Asserting the
-# effect beats asserting the call — it is the retargeting that #248 is about.
+# Dumping the environment is what lets a test assert the fixture-escape defense directly:
+# the hook must call git::clear_local_env before running anything, so the repo-scoped GIT_*
+# vars a worktree push exports cannot reach the BATS suite the gate goes on to run.
+# Asserting the effect beats asserting the call — the retargeting is what matters.
 write_gate_stub() {
   local -r code="$1"
   cat > "${FAKE_REPO}/.ci/in-devshell" << EOF
@@ -40,7 +40,7 @@ EOF
 # via `git rev-parse --show-toplevel`, which is why CWD is the fixture repo.
 #
 # BASH_ENV is neutralized for the same reason as everywhere else in the suite, using
-# SAFE_BASH_ENV so kcov's trace helper survives (#322).
+# SAFE_BASH_ENV so kcov's trace helper survives.
 run_hook() {
   cd "${FAKE_REPO}" || return 1
   PRE_PUSH_GATE_DIR_OVERRIDE="${FAKE_REPO}" BASH_ENV="${SAFE_BASH_ENV}" run "$@"
@@ -69,11 +69,11 @@ run_hook() {
   assert_output "${FAKE_REPO}/run-all-checks"
 }
 
-# The #248 incident: a worktree `git push` exports an absolute GIT_DIR into this hook, and
-# the gate below runs the BATS suite, so every fixture git command in that suite gets
-# retargeted at the real repo — a branch was rewritten and commit.gpgsign=false was written
-# into the shared config. git::clear_local_env is the defense; this asserts it took effect.
-@test "strips repo-scoped git env before running the gate (#248)" {
+# A worktree `git push` exports an absolute GIT_DIR into this hook, and the gate below runs
+# the BATS suite, so without a defense every fixture git command in that suite is retargeted
+# at the real repo — rewriting a branch, writing commit.gpgsign=false into the shared
+# config. git::clear_local_env is the defense; this asserts it takes effect.
+@test "strips the inherited GIT_DIR that would retarget the suite at the real repo" {
   write_gate_stub 0
   cd "${FAKE_REPO}"
   PRE_PUSH_GATE_DIR_OVERRIDE="${FAKE_REPO}" BASH_ENV="${SAFE_BASH_ENV}" \

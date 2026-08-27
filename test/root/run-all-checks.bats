@@ -35,8 +35,8 @@ EOF
 # Install all five steps, each passing. Individual tests re-install one of them
 # with a failing exit code to exercise that step's failure path. The flake step
 # is a stub script inside the fake repo like every other one: the runner calls
-# .ci/check-flake-eval-warnings rather than `nix flake check` directly (#244), so
-# no test here goes anywhere near the real `nix`.
+# .ci/check-flake-eval-warnings rather than `nix flake check` directly, so no test
+# here goes anywhere near the real `nix`.
 install_passing_steps() {
   make_step 'check-scripts' 'check-scripts'
   make_step '.ci/check-flake-eval-warnings' 'check-flake-eval-warnings'
@@ -46,9 +46,9 @@ install_passing_steps() {
 }
 
 # Stage everything so the tree reads as clean to `git ls-files --others`.
-# Staging alone is enough for the untracked check; no commit is needed. (Host git
-# config no longer reaches fixtures — common.bash pins GIT_CONFIG_GLOBAL/SYSTEM
-# to /dev/null — so the old global-gpgsign concern is retired. #248)
+# Staging alone is enough for the untracked check; no commit is needed — and none
+# is possible, since common.bash pins GIT_CONFIG_GLOBAL/SYSTEM to /dev/null and
+# leaves no identity to commit with.
 stage_tree() {
   git_fixture::run "${FAKE_REPO}" add --all
 }

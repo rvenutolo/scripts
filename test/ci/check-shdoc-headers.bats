@@ -348,8 +348,9 @@ EOF
 
 # The two tests below deliberately do NOT use run_check: they point SCRIPTS_DIR at
 # the REAL repo while cwd is the fixture. A scan rooted at SCRIPTS_DIR audits the
-# real tree, which is compliant, and reports success — the false green of #250. The
-# audit must follow the repo it was invoked in and catch the fixture's violation.
+# real tree, which is compliant, and reports success — a green verdict over a tree
+# it never examined. The audit must follow the repo it was invoked in and catch the
+# fixture's violation.
 
 @test "audits top-level scripts from the repo it runs in, not SCRIPTS_DIR" {
   cat > "${SCRIPTS}/non-interactive/no-desc" << 'EOF'
@@ -448,17 +449,17 @@ EOF
 }
 
 @test "aborts loudly when a tool inside the audit fails instead of reading clean" {
-  # Pins the #296 producer conversion: before it, audit_one ran as an `if`
-  # condition, so a failed scan left its temp file empty and the emptiness test
-  # read as "clean" — this exact setup exited 0 (#294, #297). The shim targets
-  # gawk, not awk: only shdoc.bash uses gawk, so the failure is confined to the
-  # audit, while a global awk shim destabilizes the whole run (#297).
+  # audit_one must stay a producer called plainly. As an `if` condition it disables
+  # errexit for its whole call tree, so a failed scan leaves its temp file empty and
+  # the emptiness test reads as "clean" — this exact setup then exits 0. The shim
+  # targets gawk, not awk: only shdoc.bash uses gawk, so the failure is confined to
+  # the audit, while a global awk shim destabilizes the whole run.
   path_shim::add 'gawk' '#!/usr/bin/env bash
 exit 1'
   cd "${REPO}"
   # Neutralize BASH_ENV so the check's bash startup does not re-source ~/.bashrc,
   # which would re-prepend the real gawk ahead of the shim. SAFE_BASH_ENV rather
-  # than '' keeps kcov's trace helper attached (#322).
+  # than '' keeps kcov's trace helper attached.
   BASH_ENV="${SAFE_BASH_ENV}" run_check
   assert_failure 1
   assert_output --partial 'ERROR:'

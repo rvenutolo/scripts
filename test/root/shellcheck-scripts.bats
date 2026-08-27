@@ -58,9 +58,9 @@ printf "%s\n" $var
   assert_success
 }
 
-# Unlike the .ci/ gates, whose absent-scan-target guards were removed in #323 as
-# silent false greens, an explicitly-passed directory that holds no shell files is a
-# request the caller actually made, not a misdirected scan. The no-args form is still
+# Unlike the .ci/ gates, which die on an absent scan target rather than reading it as
+# a clean pass, an explicitly-passed directory that holds no shell files is a request
+# the caller actually made, not a misdirected scan. The no-args form is still
 # protected — shell_scripts::find exits 1 on an empty match there.
 @test "an explicitly passed directory with no shell files is a clean no-op" {
   local -r empty_dir="${BATS_TEST_TMPDIR}/no-shell"

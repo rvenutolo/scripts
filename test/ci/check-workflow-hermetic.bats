@@ -25,8 +25,8 @@ write_fixture() {
 }
 
 # Run with both override seams pointed at the test tmpdirs.
-# .ci/check-workflow-hermetic derives its own repo root via
-# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# .ci/check-workflow-hermetic derives its own repo root via `git rev-parse
+# --show-toplevel`. common.bash's fixture-escape hardening leaves CWD at
 # BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
 # every invocation.
 run_check() {

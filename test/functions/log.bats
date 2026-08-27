@@ -110,7 +110,7 @@ setup() {
 
 @test "enable_err_trap: installs an ERR trap naming the handler" {
   # In-process rather than via `bash -c`: a child shell is a separate process,
-  # so the installation itself was never attributed to the helper (#310).
+  # so the installation itself is not attributed to the helper.
   local before after
   before="$(trap -p ERR)"
   log::enable_err_trap

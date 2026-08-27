@@ -583,8 +583,8 @@ read_back() {
 
 @test "prompt_var_value: 2-arg with no default writes the typed value" {
   # In-process rather than through prompt_via_stdin's `bash -c`: a child shell is
-  # a separate process, so the no-default branch it drives was never attributed
-  # to env_file::prompt_var_value by the coverage harness (#310).
+  # a separate process, so the no-default branch it drives is not attributed to
+  # env_file::prompt_var_value by the coverage harness.
   local env_file
   env_file="$(env_file_fixture::create $'KEY=old\n')"
   run env_file::prompt_var_value "${env_file}" 'KEY' <<< 'typed-val'

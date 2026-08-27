@@ -152,9 +152,9 @@ run_check() {
 }
 
 @test "fails when a non-executable, non-gated script sits under scripts/install/" {
-  # Renamed from the old 00_MARKER fixture: make_script writes a shebang, so
-  # unlike the real all-caps marker files this one DOES reach the classifier,
-  # and the old name asserted the opposite of what the fixture is.
+  # make_script writes a shebang, so unlike the real all-caps marker files this
+  # fixture DOES reach the classifier. Name it accordingly — a marker-shaped name
+  # here would assert the opposite of what the fixture is.
   make_script 'scripts/install/50_thing'
   run_check
   assert_failure

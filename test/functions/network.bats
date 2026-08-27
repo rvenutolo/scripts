@@ -44,7 +44,7 @@ setup() {
 # A shell function rather than an `ip` CLI shim: local_network's subject is the
 # RFC-1918 range classification, not the parsing local_ip already covers above,
 # and a function override keeps the whole classification in-process where the
-# coverage harness can see it (#310).
+# coverage harness can see it.
 stub_local_ip() {
   local -r address="$1"
   eval "function network::local_ip() { printf '%s\\n' '${address}'; }"

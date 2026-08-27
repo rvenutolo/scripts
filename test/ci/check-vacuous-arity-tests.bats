@@ -20,7 +20,8 @@ setup() {
   mkdir --parents "${FIXTURE_TEST}/test_helper" "${FIXTURE_FUNCTIONS}"
   # The check resolves REPO_DIR via `git rev-parse --show-toplevel`, so it needs a
   # git repo as cwd. common.bash leaves cwd at BATS_TEST_TMPDIR, which is
-  # deliberately not a repo (#248 hardening), so give it a throwaway fixture repo.
+  # deliberately not a repo (fixture-escape hardening), so give it a throwaway
+  # fixture repo.
   FIXTURE_REPO="${BATS_TEST_TMPDIR}/repo"
   git_fixture::init "${FIXTURE_REPO}"
   cd "${FIXTURE_REPO}" || return 1
@@ -472,9 +473,9 @@ b"
 
 # Both arms below pin the same rule as the workflow-dir checks: an empty scan is a
 # misdirected scan, not a clean one. This file's own comment above the .bats find
-# already records that shape biting once — a loose glob dropped every file, the lint
-# found nothing and exited 0, "indistinguishable from a clean suite" — while the
-# empty-list guard eleven lines further down still exited 0 (#323).
+# records the shape — a loose glob drops every file, the lint finds nothing and exits
+# 0, "indistinguishable from a clean suite" — and an empty-list guard that merely
+# returns exits 0 the same way.
 @test "dies when the test directory holds no .bats files" {
   make_function 'fixture::one' 'exactly_1_arg'
   run "${CHECK}"

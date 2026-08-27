@@ -5,13 +5,13 @@ setup() {
 }
 
 # .ci/check-jsonschema derives its own repo root via `git rev-parse
-# --show-toplevel`. common.bash's #248 hardening leaves CWD at BATS_TEST_TMPDIR
-# (outside any git repo) by design, so cd into REPO_DIR before every
-# invocation — this test targets the real repo.
+# --show-toplevel`. common.bash's fixture-escape hardening leaves CWD at
+# BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
+# every invocation — this test targets the real repo.
 run_check() {
   cd "${REPO_DIR}" || return 1
   # SAFE_BASH_ENV, not '': clearing BASH_ENV outright would also strip kcov's trace
-  # helper, and this script then reads 0% with its whole suite behind it (#322). See
+  # helper, and this script then reads 0% with its whole suite behind it. See
   # test_helper/common.bash for why the kcov value is safe to keep.
   BASH_ENV="${SAFE_BASH_ENV}" run "$@"
 }

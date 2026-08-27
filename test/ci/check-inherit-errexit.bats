@@ -13,9 +13,10 @@ setup() {
   mkdir -p "${FIXTURE_CI}" "${FIXTURE_HOOKS}" "${FIXTURE_ROOT}"
   # The check resolves REPO_DIR via `git rev-parse --show-toplevel`, so it must run
   # with cwd inside a git repo or it exits 128 before any scan. common.bash leaves
-  # cwd at BATS_TEST_TMPDIR, which is deliberately not a repo (#248 hardening), so
-  # give the check a throwaway fixture repo to resolve. Only REPO_DIR resolution
-  # depends on it — the three scan roots come from the overrides below.
+  # cwd at BATS_TEST_TMPDIR, which is deliberately not a repo (fixture-escape
+  # hardening), so give the check a throwaway fixture repo to resolve. Only
+  # REPO_DIR resolution depends on it — the three scan roots come from the
+  # overrides below.
   FIXTURE_REPO="${BATS_TEST_TMPDIR}/repo"
   git_fixture::init "${FIXTURE_REPO}"
   cd "${FIXTURE_REPO}" || return 1

@@ -9,8 +9,8 @@ setup() {
   mkdir -p "${WF}"
 }
 
-# .ci/check-readme-workflow-table derives its own repo root via
-# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# .ci/check-readme-workflow-table derives its own repo root via `git rev-parse
+# --show-toplevel`. common.bash's fixture-escape hardening leaves CWD at
 # BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
 # every invocation.
 run_check() {

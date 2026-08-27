@@ -77,7 +77,7 @@ exit 42'
 
 # The wrapper resolves its flake reference from `git rev-parse --show-toplevel`,
 # so it needs a git repo as cwd. common.bash leaves cwd at BATS_TEST_TMPDIR,
-# which is deliberately not a repo (#248 hardening).
+# which is deliberately not a repo (fixture-escape hardening).
 run_wrapper() {
   cd "${REPO}" || return 1
   run "${WRAPPER}" "$@"

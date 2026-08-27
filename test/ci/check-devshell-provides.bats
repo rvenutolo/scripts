@@ -11,10 +11,10 @@ setup() {
   CHECK="${REPO_DIR}/.ci/check-devshell-provides"
   # The check resolves REPO_DIR via `git rev-parse --show-toplevel`, so it must
   # run with cwd inside a git repo or it exits 128 before any scan. common.bash
-  # leaves cwd at BATS_TEST_TMPDIR, which is deliberately not a repo (#248
-  # hardening), so give the check a throwaway fixture repo to resolve. Only
-  # REPO_DIR resolution depends on it — the devShell PATH comes from the
-  # override below, which short-circuits the `nix print-dev-env` query.
+  # leaves cwd at BATS_TEST_TMPDIR, which is deliberately not a repo
+  # (fixture-escape hardening), so give the check a throwaway fixture repo to
+  # resolve. Only REPO_DIR resolution depends on it — the devShell PATH comes from
+  # the override below, which short-circuits the `nix print-dev-env` query.
   FIXTURE_REPO="${BATS_TEST_TMPDIR}/repo"
   git_fixture::init "${FIXTURE_REPO}"
   cd "${FIXTURE_REPO}" || return 1
@@ -86,10 +86,10 @@ add_devshell_tool() {
 }
 
 @test "fails when the tool is on the ambient PATH but not in the devShell PATH" {
-  # #228 verbatim: a direnv-activated shell's ambient PATH still carries the
-  # PREVIOUS devShell's store paths, so a tool deleted from flake.nix keeps
-  # resolving. Membership in the devShell's OWN PATH is the only question that
-  # matters, and this case passed under the PATH-based lint that shipped.
+  # A direnv-activated shell's ambient PATH still carries the PREVIOUS devShell's
+  # store paths, so a tool deleted from flake.nix keeps resolving. Membership in
+  # the devShell's OWN PATH is the only question that matters — a lint that reads
+  # the ambient PATH passes this case.
   add_tool_shim 'faketool'
   run "${CHECK}"
   assert_failure
@@ -100,9 +100,10 @@ add_devshell_tool() {
 
 @test "fails when the tool is provided from under HOME" {
   # path_shim writes into ${BATS_TEST_TMPDIR}/bin; pointing HOME at that tmpdir
-  # makes the shim look exactly like a ~/.nix-profile binary, which is the
-  # failure #219 describes. The dedicated $HOME branch is gone — such a tool is
-  # absent from the devShell PATH, so the closure check subsumes it (#228).
+  # makes the shim look exactly like a ~/.nix-profile binary — a tool resolving
+  # from the user's profile rather than the devShell. There is no dedicated $HOME
+  # branch: such a tool is absent from the devShell PATH, so the closure check
+  # subsumes it.
   add_tool_shim 'faketool'
   HOME="${BATS_TEST_TMPDIR}" run "${CHECK}"
   assert_failure
@@ -238,9 +239,9 @@ add_devshell_tool() {
 }
 
 @test "finds a declared tool in a package's second output" {
-  # #234/D10: shellcheck and jq keep their binaries in a separate `-bin` output,
-  # so a walk over p.outPath alone reports two correctly declared tools as
-  # unprovided. Every output must contribute a bin directory.
+  # Both shellcheck and jq keep their binaries in a separate `-bin` output, so a
+  # walk over p.outPath alone reports two correctly declared tools as unprovided.
+  # Every output must contribute a bin directory.
   local -r empty_out="$(make_bin_dir "${BATS_TEST_TMPDIR}/pkg-out")"
   local -r bin_out="$(make_bin_dir "${BATS_TEST_TMPDIR}/pkg-bin" 'faketool')"
   add_devshell_tool 'faketool'

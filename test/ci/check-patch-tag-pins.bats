@@ -7,8 +7,8 @@ setup() {
   export ACTIONS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/empty-actions"
 }
 
-# .ci/check-patch-tag-pins derives its own repo root via
-# `git rev-parse --show-toplevel`. common.bash's #248 hardening leaves CWD at
+# .ci/check-patch-tag-pins derives its own repo root via `git rev-parse
+# --show-toplevel`. common.bash's fixture-escape hardening leaves CWD at
 # BATS_TEST_TMPDIR (outside any git repo) by design, so cd into REPO_DIR before
 # every invocation — this test targets the real repo.
 run_check() {

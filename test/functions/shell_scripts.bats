@@ -300,7 +300,7 @@ make_fixture() {
 
 @test "is_shell_file: .bats extension with no shebang -> true" {
   # The binding case for the whole design: .bats files open with @test, not a
-  # shebang, and must still reach shfmt. See issue #206.
+  # shebang, and must still reach shfmt.
   run shell_scripts::is_shell_file "$(make_fixture 'suite.bats' '@test "x" { true; }')"
   assert_success
 }

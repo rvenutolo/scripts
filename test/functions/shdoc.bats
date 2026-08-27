@@ -704,7 +704,7 @@ EOF
 @test "shdoc::find_unannotated_functions propagates a failure of its awk" {
   # The caller in check-shdoc-headers routes this helper's stdout to a temp
   # file and reads emptiness as "clean", so a swallowed awk failure would
-  # manufacture a clean verdict (#294, #297). The status must pass through.
+  # manufacture a clean verdict. The status must pass through.
   local f="${BATS_TEST_TMPDIR}/s-awk-fail"
   cat > "${f}" << 'EOF'
 #!/usr/bin/env bash

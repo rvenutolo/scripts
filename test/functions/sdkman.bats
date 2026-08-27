@@ -575,7 +575,7 @@ INIT_EOF
 # Run a snippet in a real strict-mode shell, the way production scripts invoke sdkman::init.
 # A child shell is required because the behaviour under test *is* strict-mode state, which bats
 # does not set. BASH_ENV is neutralized so a re-sourced ~/.bashrc cannot clobber SCRIPTS_DIR;
-# SAFE_BASH_ENV rather than an unset keeps kcov's trace helper attached (#322).
+# SAFE_BASH_ENV rather than an unset keeps kcov's trace helper attached.
 run_strict() {
   local -r snippet="$1"
   local -r script="${BATS_TEST_TMPDIR}/strict.bash"
@@ -636,7 +636,7 @@ if [[ -n "$(trap -p ERR)" ]]; then printf "PARENT_KEPT_TRAP\n"; else printf "PAR
 # The run_strict tests above exercise sdkman::init in a real strict-mode child
 # shell, which is the only place its strict-mode effects are observable. That
 # child is a separate process, so nothing it runs is attributed to sdkman::init
-# by the coverage harness (#310). This one drives the same body in-process:
+# by the coverage harness. This one drives the same body in-process:
 # bats already forks each @test, so BASHPID differs from $$ and the
 # subshell guard is satisfied without a child shell.
 @test "init: sources sdkman-init.sh and stubs complete when run in-process" {
