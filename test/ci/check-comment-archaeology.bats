@@ -116,9 +116,38 @@ setup() {
   assert_stderr --partial 'stale EXEMPT entry'
 }
 
+@test "flags both numbers on a line that carries two" {
+  printf '%s\n' "# the guard is required (${HASH}290) and the trap fires (${HASH}248)." \
+    > "${FIXTURE}/multi.bash"
+  git_fixture::run "${FIXTURE}" add multi.bash
+  run --separate-stderr "${CHECK}"
+  assert_failure 1
+  assert_stderr --partial '290'
+  assert_stderr --partial '248'
+  # One record per number, not one per line. The second report line is the whole
+  # point of the walk-forward in scan_for_hits; index 2 is the closing warning.
+  assert_stderr_line --index 0 --partial 'multi.bash:1:'
+  assert_stderr_line --index 1 --partial 'multi.bash:1:'
+}
+
+@test "exempting one of two numbers on a line leaves the other flagged" {
+  printf '%s\n' "# the guard is required (${HASH}290) and the trap fires (${HASH}248)." \
+    > "${FIXTURE}/multi.bash"
+  git_fixture::run "${FIXTURE}" add multi.bash
+  EXEMPT_OVERRIDE='multi.bash::290' run --separate-stderr "${CHECK}"
+  assert_failure 1
+  assert_stderr --partial '248'
+  # Absence is asserted structurally rather than by substring: a report line
+  # echoes the whole source line, which still carries the exempted number, so
+  # what proves the suppression is that exactly one record survives. Index 1 is
+  # the closing warning, not a second hit.
+  assert_stderr_line --index 0 --partial 'multi.bash:1:'
+  refute_stderr_line --index 1 --partial 'multi.bash'
+}
+
 @test "dies when the scan root does not exist" {
   SCAN_ROOT_OVERRIDE="${BATS_TEST_TMPDIR}/absent" run --separate-stderr "${CHECK}"
-  assert_failure
+  assert_failure 1
   assert_stderr --partial 'does not exist'
 }
 
@@ -126,12 +155,12 @@ setup() {
   local empty="${BATS_TEST_TMPDIR}/empty"
   git_fixture::init "${empty}"
   SCAN_ROOT_OVERRIDE="${empty}" run --separate-stderr "${CHECK}"
-  assert_failure
+  assert_failure 1
   assert_stderr --partial 'no in-scope files'
 }
 
 @test "rejects arguments" {
   run --separate-stderr "${CHECK}" 'extra'
-  assert_failure
+  assert_failure 1
   assert_stderr --partial 'Expected no arguments'
 }
