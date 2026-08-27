@@ -7,8 +7,8 @@
 #              never be exercised. The corpus carries none; this lint keeps new
 #              files consistent. Only the first line of each file is judged, so a
 #              shebang literal inside a fixture string is never flagged. Scope is
-#              every *.bats file under test/functions, test/ci, and test/root;
-#              the vendored bats submodules are out of scope.
+#              every *.bats file under test/functions, test/ci, test/root, and
+#              test/shims; the vendored bats submodules are out of scope.
 # @noargs
 # @stderr One line per offending file.
 # @exitcode 0 no in-scope .bats file opens with a shebang.
@@ -30,7 +30,7 @@ REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
 readonly TEST_DIR="${TEST_DIR_OVERRIDE:-${REPO_DIR}/test}"
 
-# @description Print every in-scope .bats file path, one per line. Only the three
+# @description Print every in-scope .bats file path, one per line. Only the four
 #              suite directories are scanned; anything else under test/, such as
 #              the shared helpers in test_helper/, is never in scope.
 # @noargs
@@ -39,7 +39,7 @@ readonly TEST_DIR="${TEST_DIR_OVERRIDE:-${REPO_DIR}/test}"
 function collect_in_scope_files() {
   args::check_no_args "$@"
   local subdir entry
-  for subdir in functions ci root; do
+  for subdir in functions ci root shims; do
     if ! dirs::exists "${TEST_DIR}/${subdir}"; then
       continue
     fi

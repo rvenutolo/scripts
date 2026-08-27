@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
-# @description Run the BATS test suite under test/functions/, test/ci/, and test/root/ in parallel, or forward arguments directly to bats.
-# @arg $@ args Optional bats arguments or test file paths; omit to run all tests under test/functions/, test/ci/, and test/root/.
+# @description Run the BATS test suite under test/functions/, test/ci/,
+#              test/root/, and test/shims/ in parallel, or forward
+#              arguments directly to bats.
+# @arg $@ args Optional bats arguments or test file paths; omit to run all
+#         tests under test/functions/, test/ci/, test/root/, and
+#         test/shims/.
 # @exitcode 0 all tests passed and the repo was left untouched.
 # @exitcode 1 bats, flock, or GNU parallel not found, one or more tests failed, or the suite mutated the repo.
 
@@ -19,7 +23,12 @@ log::enable_err_trap
 # test/ lives at the repo root, not under SCRIPTS_DIR (= repo-root/scripts).
 REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
-readonly DEFAULT_TARGETS=("${REPO_DIR}/test/functions" "${REPO_DIR}/test/ci" "${REPO_DIR}/test/root")
+readonly DEFAULT_TARGETS=(
+  "${REPO_DIR}/test/functions"
+  "${REPO_DIR}/test/ci"
+  "${REPO_DIR}/test/root"
+  "${REPO_DIR}/test/shims"
+)
 
 # @description Print one line per watched repo artifact: HEAD sha, config hash, index hash.
 #              Used before/after the suite to detect fixture escapes onto the real repo.

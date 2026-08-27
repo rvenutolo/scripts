@@ -9,7 +9,7 @@ setup() {
   load '../test_helper/git_fixture'
   CHECK="${REPO_DIR}/.ci/check-bats-no-shebang"
   FIXTURE_TEST="${BATS_TEST_TMPDIR}/test"
-  mkdir -p "${FIXTURE_TEST}/functions" "${FIXTURE_TEST}/ci" "${FIXTURE_TEST}/root"
+  mkdir -p "${FIXTURE_TEST}/functions" "${FIXTURE_TEST}/ci" "${FIXTURE_TEST}/root" "${FIXTURE_TEST}/shims"
   # The check resolves REPO_DIR via `git rev-parse --show-toplevel`, so it must run with
   # cwd inside a git repo or it exits 128 before any scan. common.bash leaves cwd at
   # BATS_TEST_TMPDIR, which is deliberately not a repo (fixture-escape hardening), so
@@ -72,6 +72,15 @@ write_test_file() {
   run "${CHECK}"
   assert_failure 1
   assert_output --partial 'ci/bad.bats'
+}
+
+@test "fails on a shebang in test/shims" {
+  write_test_file "${FIXTURE_TEST}/shims/bad.bats" \
+    '#!/usr/bin/env bats' \
+    '@test "x" { run true; }'
+  run "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'shims/bad.bats'
 }
 
 @test "reports every offender across all three subdirs" {
