@@ -465,3 +465,17 @@ exit 1'
   assert_output --partial 'ERROR:'
   assert_output --partial 'gawk'
 }
+
+@test "audits scripts under scripts/shims/" {
+  mkdir --parents "${SCRIPTS}/shims/claude"
+  cat > "${SCRIPTS}/shims/claude/no-header" << 'INNEREOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+echo hi
+INNEREOF
+  chmod +x "${SCRIPTS}/shims/claude/no-header"
+  cd "${REPO}"
+  run_check
+  assert_failure
+  assert_output --partial 'shims/claude/no-header'
+}

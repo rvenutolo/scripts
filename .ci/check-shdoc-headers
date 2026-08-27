@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # @description Audit every shebang-bearing executable under non-interactive/,
-#              interactive/, install/, set_up/, misc/, .ci/, and the project root AND every library file
+#              interactive/, install/, set_up/, misc/, shims/, .ci/, and the project root AND every library file
 #              under functions/ for the project's shdoc annotation convention.
 #              Top-level scripts must carry a file-level `# @description` tag
 #              in the header, an annotation block on every helper function
@@ -36,7 +36,7 @@ args::check_no_args "$@"
 
 # @description Print every in-scope top-level script path, one per line.
 #              In-scope means any shebang-bearing file under scripts/{non-interactive,
-#              interactive,install,set_up,misc}, .ci/, or directly under the repo root.
+#              interactive,install,set_up,misc,shims}, .ci/, or directly under the repo root.
 #              Every scan root derives from REPO_DIR — the repo this command was
 #              invoked in — never from the SCRIPTS_DIR environment variable, which
 #              points at the user's main checkout and would make the audit grade the
@@ -49,7 +49,7 @@ args::check_no_args "$@"
 function collect_in_scope_scripts() {
   args::check_no_args "$@"
   local subdir
-  for subdir in non-interactive interactive install set_up misc; do
+  for subdir in non-interactive interactive install set_up misc shims; do
     if dirs::exists "${REPO_DIR}/scripts/${subdir}"; then
       shell_scripts::find "${REPO_DIR}/scripts/${subdir}"
     fi
