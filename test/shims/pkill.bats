@@ -1,3 +1,5 @@
+bats_require_minimum_version 1.5.0
+
 setup() {
   load '../test_helper/common'
   SHIM_DIR="${REPO_DIR}/scripts/shims/claude"
@@ -235,7 +237,8 @@ assert_refused() {
   local bash_only="${BATS_TEST_TMPDIR}/bash-only"
   mkdir --parents "${bash_only}"
   ln --symbolic "$(type -P bash)" "${bash_only}/bash"
-  run_shim_with "${SHIM_DIR}:${bash_only}" "${SHIM_DIR}/pkill" --full my-specific-daemon
+  run -127 timeout 10 env PATH="${SHIM_DIR}:${bash_only}" \
+    BASH_ENV="${SAFE_BASH_ENV}" "${SHIM_DIR}/pkill" --full my-specific-daemon
   assert_failure 127
   assert_output --partial 'pkill: real binary not found on PATH'
   refute_output --partial 'PAYLOAD_RAN'
