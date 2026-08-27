@@ -149,7 +149,8 @@ function shim::find_real() {
   local -r name="$1"
   local entry resolved candidate
   local -a entries
-  local -r cwd="$(pwd -P)"
+  local cwd
+  cwd="$(pwd -P)"
   # IFS scoped to the read: the script-wide IFS has no ':' in it.
   IFS=':' read -r -a entries <<< "${PATH}"
   for entry in "${entries[@]}"; do
