@@ -115,3 +115,10 @@ bats_load_library bats-assert
 # log.bash is sourced eagerly because args::check_* helpers call log::die on failure.
 # shellcheck disable=SC1091 # path resolved at runtime via SCRIPTS_DIR
 source "${SCRIPTS_DIR}/functions/log.bash"
+
+# namerefs.bash likewise: every helper that returns through an out-parameter guards its
+# nameref with namerefs::assert_available, and files::create_temp is one of them, so
+# nearly every .bats file reaches it transitively. Sourcing it per-file instead would
+# mean a "command not found" line on stdout in whichever file was missed next.
+# shellcheck disable=SC1091 # path resolved at runtime via SCRIPTS_DIR
+source "${SCRIPTS_DIR}/functions/namerefs.bash"
