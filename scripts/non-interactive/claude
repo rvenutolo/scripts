@@ -7,10 +7,10 @@
 #              Lives in non-interactive/ (not interactive/ like other wrappers)
 #              because profile selection must also cover cron, `ssh host
 #              claude ...`, and other non-interactive launches. Also passes
-#              --model opus[1m] --effort high ahead of the caller's arguments,
-#              so a /model or /effort choice another session persisted into
-#              settings.json never leaks into a new one; a caller's own
-#              --model / --effort still wins, being last.
+#              --model and --effort (from DEFAULT_MODEL / DEFAULT_EFFORT below)
+#              ahead of the caller's arguments, so a /model or /effort choice
+#              another session persisted into settings.json never leaks into a
+#              new one; a caller's own --model / --effort still wins, being last.
 #              Prepends scripts/shims/claude/ to PATH so the Claude process tree
 #              — and nothing else — resolves pkill/killall to the guarding shims.
 # @arg $@ args Optional arguments forwarded verbatim to claude.
@@ -23,6 +23,12 @@ IFS=$'\n\t'
 source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 # pass-through: any arg count valid (forwarded to claude)
+
+# The model and effort every session starts with, regardless of what another
+# session persisted into settings.json. Edit these two lines to change the
+# defaults; see the comment above the exec for how they are applied.
+readonly DEFAULT_MODEL='opus[1m]'
+readonly DEFAULT_EFFORT='high'
 
 CLAUDE_CONFIG_DIR="$(claude::config_dir)"
 export CLAUDE_CONFIG_DIR
@@ -62,4 +68,4 @@ fi
 # Placed before "$@" because argument parsing is last-wins: a caller's own
 # --model / --effort overrides these. An already-set CLAUDE_CODE_EFFORT_LEVEL
 # still wins over both, being the stronger mechanism.
-exec "${claude_bin}" --model 'opus[1m]' --effort high "$@"
+exec "${claude_bin}" --model "${DEFAULT_MODEL}" --effort "${DEFAULT_EFFORT}" "$@"
