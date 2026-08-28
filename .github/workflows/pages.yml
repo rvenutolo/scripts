@@ -33,8 +33,7 @@ jobs:
       - name: Build docs
         run: |
           set -Eeuo pipefail
-          ./.ci/in-devshell ./.ci/build-docs
-          ./.ci/in-devshell mkdocs build --strict --config-file .mkdocs.yml
+          ./.ci/in-devshell ./.ci/build-site
       - name: Generate BATS test count badge
         run: |
           set -Eeuo pipefail
