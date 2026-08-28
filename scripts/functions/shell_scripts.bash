@@ -90,9 +90,10 @@ function shell_scripts::find() {
 function shell_scripts::filter() {
   args::check_at_least_1_arg "$@"
   local -r out_name="$1"
-  local -n _out_ref="${out_name}"
+  namerefs::assert_available "${out_name}" '__shell_scripts_filter_ref'
+  local -n __shell_scripts_filter_ref="${out_name}"
   shift
-  _out_ref=()
+  __shell_scripts_filter_ref=()
   local file
   for file in "$@"; do
     if ! shell_scripts::is_shell_file "${file}"; then
@@ -104,7 +105,7 @@ function shell_scripts::filter() {
         continue
       fi
     fi
-    _out_ref+=("${file}")
+    __shell_scripts_filter_ref+=("${file}")
   done
 }
 

@@ -34,9 +34,12 @@ function sdkman_packages::uninstall_package_version() {
 #              the only place a failure is meant to be survivable.
 # @arg $1 name of the out-variable to assign the failed-package count to (passed as a name-ref)
 # @exitcode 0 always
+# @exitcode 1 the out-parameter name collides with the nameref this helper binds
 function sdkman_packages::install_sdkman_packages() {
   args::check_exactly_1_arg "$@"
-  local -n _install_sdkman_packages_failed_count="$1"
+  local -r out_name="$1"
+  namerefs::assert_available "${out_name}" '__sdkman_packages_install_sdkman_packages_ref'
+  local -n __sdkman_packages_install_sdkman_packages_ref="${out_name}"
   local -a pkgs
   local pkgs_tmp
   files::create_temp pkgs_tmp
@@ -56,7 +59,7 @@ function sdkman_packages::install_sdkman_packages() {
   fi
   # Must be the last statement: assigning the out-variable is what makes this function return 0
   # unconditionally, which is the contract the bare call above depends on.
-  _install_sdkman_packages_failed_count="${#failed_pkgs[@]}"
+  __sdkman_packages_install_sdkman_packages_ref="${#failed_pkgs[@]}"
 }
 
 # @description Print the names of all installed SDKMAN packages (excluding java).

@@ -42,10 +42,13 @@ commands::assert_executable_exists 'jq'
 # @arg $2 failure_count_var name of the caller's variable to hold the failure count
 # @stderr progress and warning lines
 # @exitcode 0 always
+# @exitcode 1 the out-parameter name collides with the nameref this helper binds
 function update_profile_plugins() {
   args::check_exactly_2_args "$@"
   local -r config_dir="$1"
-  local -n _update_profile_plugins_failure_count="$2"
+  local -r failure_count_var="$2"
+  namerefs::assert_available "${failure_count_var}" '__update_profile_plugins_ref'
+  local -n __update_profile_plugins_ref="${failure_count_var}"
   local -i failures=0
 
   # Scopes the profile for every claude invocation below. Re-exported on each call, so the
@@ -68,7 +71,7 @@ function update_profile_plugins() {
   # shellcheck disable=SC2154 # ids_tmp assigned by files::create_temp via nameref
   if ! "${CLAUDE_BIN}" plugin list --json < '/dev/null' | jq --raw-output '.[].id' > "${ids_tmp}"; then
     log::warn "Failed to list installed plugins in ${config_dir}"
-    _update_profile_plugins_failure_count=$((failures + 1))
+    __update_profile_plugins_ref=$((failures + 1))
     return
   fi
 
@@ -93,7 +96,7 @@ function update_profile_plugins() {
 
   # Must be the last statement: assigning the out-variable is what makes this function return 0
   # unconditionally, which is the contract the bare call in main depends on.
-  _update_profile_plugins_failure_count="${failures}"
+  __update_profile_plugins_ref="${failures}"
 }
 
 function main() {

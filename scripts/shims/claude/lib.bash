@@ -43,12 +43,17 @@ function shim::is_help_request() {
 # @arg $2 value_short letters of short options that take a value, e.g. 'dgGOPstuUFr'
 # @arg $3 value_long space-separated long options that take a value
 # @arg $@ args the argument list to scan (everything after $3)
+# @exitcode 125 refused: the out-array name collides with the nameref this helper binds
 function shim::positional_args() {
-  local -n _shim_out="$1"
+  if [[ "$1" == '__shim_positional_args_ref' ]]; then
+    printf '%s: out-array may not be named %s\n' "${0##*/}" '__shim_positional_args_ref' >&2
+    exit 125
+  fi
+  local -n __shim_positional_args_ref="$1"
   local -r value_short="$2"
   local -r value_long=" $3 "
   shift 3
-  _shim_out=()
+  __shim_positional_args_ref=()
   local arg cluster letter
   local -i skip_next=0 i
   while (($# > 0)); do
@@ -60,7 +65,7 @@ function shim::positional_args() {
     fi
     case "${arg}" in
       --)
-        _shim_out+=("$@")
+        __shim_positional_args_ref+=("$@")
         break
         ;;
       --*=*) ;;
@@ -83,7 +88,7 @@ function shim::positional_args() {
         done
         ;;
       *)
-        _shim_out+=("${arg}")
+        __shim_positional_args_ref+=("${arg}")
         ;;
     esac
   done

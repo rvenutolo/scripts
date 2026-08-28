@@ -183,13 +183,15 @@ function git::count_author_or_committer_matches() {
 # @arg $1 array_name name of an existing array variable to populate (via nameref)
 function git::resolve_filter_repo_cmd() {
   args::check_exactly_1_arg "$@"
-  local -n _grfrc_arr="$1"
+  local -r array_name="$1"
+  namerefs::assert_available "${array_name}" '__git_resolve_filter_repo_cmd_ref'
+  local -n __git_resolve_filter_repo_cmd_ref="${array_name}"
   if commands::executable_exists git-filter-repo; then
-    _grfrc_arr=(git-filter-repo)
+    __git_resolve_filter_repo_cmd_ref=(git-filter-repo)
   else
     log::log 'git-filter-repo not on PATH; falling back to: nix run github:NixOS/nixpkgs/nixpkgs-unstable#git-filter-repo'
     commands::executable_exists nix || log::die 'Neither git-filter-repo nor nix is available'
-    _grfrc_arr=(nix run 'github:NixOS/nixpkgs/nixpkgs-unstable#git-filter-repo' --)
+    __git_resolve_filter_repo_cmd_ref=(nix run 'github:NixOS/nixpkgs/nixpkgs-unstable#git-filter-repo' --)
   fi
 }
 

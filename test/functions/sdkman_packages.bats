@@ -298,3 +298,9 @@ setup() {
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
+
+@test "install_sdkman_packages: the reserved out-variable nameref name is refused" {
+  run --separate-stderr sdkman_packages::install_sdkman_packages '__sdkman_packages_install_sdkman_packages_ref'
+  assert_failure 1
+  assert_stderr --partial "out-parameter may not be named '__sdkman_packages_install_sdkman_packages_ref'"
+}

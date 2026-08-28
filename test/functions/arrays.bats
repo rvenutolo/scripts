@@ -300,3 +300,59 @@ setup() {
   assert_failure
   assert_output --partial 'Expected at least 2 arguments'
 }
+
+@test "diff: the reserved first-array nameref name is refused" {
+  # shellcheck disable=SC2034 # read by arrays::diff via nameref
+  local -a second=(b)
+  run --separate-stderr arrays::diff '__arrays_diff_first_ref' 'second'
+  assert_failure 1
+  assert_stderr --partial "out-parameter may not be named '__arrays_diff_first_ref'"
+}
+
+@test "diff: the reserved second-array nameref name is refused" {
+  # shellcheck disable=SC2034 # read by arrays::diff via nameref
+  local -a first=(a b)
+  run --separate-stderr arrays::diff 'first' '__arrays_diff_second_ref'
+  assert_failure 1
+  assert_stderr --partial "out-parameter may not be named '__arrays_diff_second_ref'"
+}
+
+@test "diff: caller arrays named first_array and second_array work" {
+  # These were the internal nameref names before the collision-proof convention, so a caller
+  # using them tripped a bash circular name reference and got warnings plus a wrong answer.
+  # shellcheck disable=SC2034 # read by arrays::diff via nameref
+  local -a first_array=(a b c)
+  # shellcheck disable=SC2034 # read by arrays::diff via nameref
+  local -a second_array=(b)
+  run arrays::diff 'first_array' 'second_array'
+  assert_success
+  assert_line --index 0 'a'
+  assert_line --index 1 'c'
+}
+
+@test "diff: caller arrays named first_array and second_array emit no bash warning" {
+  # The circular name reference this used to trigger was a warning on stderr, never a
+  # failure, so the exit status alone would not have caught it.
+  # shellcheck disable=SC2034 # read by arrays::diff via nameref
+  local -a first_array=(a b c)
+  # shellcheck disable=SC2034 # read by arrays::diff via nameref
+  local -a second_array=(b)
+  run --separate-stderr arrays::diff 'first_array' 'second_array'
+  assert_success
+  refute_stderr
+}
+
+@test "from_env_override: the reserved out-array nameref name is refused" {
+  run --separate-stderr arrays::from_env_override '__arrays_from_env_override_ref' 'SOME_VAR' 'a'
+  assert_failure 1
+  assert_stderr --partial "out-parameter may not be named '__arrays_from_env_override_ref'"
+}
+
+@test "from_env_override: a caller array named _out_ref works" {
+  # _out_ref was the internal nameref name before the collision-proof convention.
+  local -a _out_ref=()
+  arrays::from_env_override _out_ref 'DEFINITELY_UNSET_VAR_FOR_TEST' 'x' 'y'
+  assert_equal "${#_out_ref[@]}" 2
+  assert_equal "${_out_ref[0]}" 'x'
+  assert_equal "${_out_ref[1]}" 'y'
+}
