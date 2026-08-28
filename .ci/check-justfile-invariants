@@ -2,8 +2,9 @@
 
 # @description Assert the repo has exactly one justfile, that it is the hidden
 #              .justfile, that its recipe set and README's command table agree
-#              bidirectionally, and that the full-gate entry points still name
-#              ./run-all-checks. Two tracked justfiles make `just` refuse to run
+#              bidirectionally, that the full-gate entry points still name
+#              ./run-all-checks, and that the docs recipe still names
+#              ./.ci/build-site. Two tracked justfiles make `just` refuse to run
 #              at all, taking out every documented invocation, and README's table
 #              drifts into a union matching neither file.
 #              The gate assertions cover the machine-readable copies of the gate
@@ -16,7 +17,7 @@
 # @noargs
 # @stderr One line per violation.
 # @exitcode 0 the justfile is unique, canonical, and agrees with the docs.
-# @exitcode 1 a duplicate or missing justfile, an unparsable justfile, a missing README command table, a recipe/README mismatch, gate-name drift, or an undocumented public recipe.
+# @exitcode 1 a duplicate or missing justfile, an unparsable justfile, a missing README command table, a recipe/README mismatch, gate- or docs-recipe drift, or an undocumented public recipe.
 
 set -Eeuo pipefail
 # Without this, errexit is off inside every $(...) subshell, so a helper called
@@ -53,6 +54,14 @@ readonly CANDIDATES=(justfile Justfile JUSTFILE .justfile .JUSTFILE)
 # The recipe that must invoke the full local gate, and the command it must run.
 readonly GATE_RECIPE='all'
 readonly GATE_COMMAND='./run-all-checks'
+
+# The recipe that must invoke the docs build, and the command it must run.
+# .ci/build-site is the single definition of "build the docs" — the Pages
+# workflow and the lint suite call the same script. A recipe that restates the
+# underlying commands instead is how the recipe and the workflow drift apart,
+# and nothing else would notice.
+readonly DOCS_RECIPE='docs'
+readonly DOCS_COMMAND='./.ci/build-site'
 
 # `default` aliases another recipe rather than naming a distinct command, and
 # README documents it as an annotation on the aliased row ("`just check`
@@ -182,6 +191,36 @@ function recipe_body() {
   ' "${dump_path}"
 }
 
+# @description Print a violation line when a recipe that must stay reachable is
+#              absent from the justfile, or is present but does not invoke the
+#              command it exists to run. A producer rather than a predicate: it
+#              shells out to jq, and a predicate called from an `if` disables
+#              errexit through its whole call tree, so a jq failure would read as
+#              "this recipe is fine".
+# @arg $1 dump_path path to a JSON dump written by justfile_dump
+# @arg $2 recipe recipe name that must exist
+# @arg $3 command the command its body must invoke
+# @stdout One violation line, or nothing when the recipe invokes the command.
+function recipe_invocation_violations() {
+  args::check_exactly_3_args "$@"
+  local -r dump_path="$1"
+  local -r recipe="$2"
+  local -r command="$3"
+  local defined
+  defined="$(jq --raw-output --arg want "${recipe}" '.recipes | has($want)' "${dump_path}")"
+  if [[ "${defined}" != 'true' ]]; then
+    printf '%s: no such recipe — %s must stay reachable as: just %s\n' \
+      "${recipe}" "${command}" "${recipe}"
+    return 0
+  fi
+  local body_tmp
+  files::create_temp body_tmp
+  recipe_body "${dump_path}" "${recipe}" > "${body_tmp}"
+  if ! grep --quiet --fixed-strings "${command}" "${body_tmp}"; then
+    printf 'the %s recipe must invoke %s\n' "${recipe}" "${command}"
+  fi
+}
+
 function main() {
   args::check_no_args "$@"
   local failed=0
@@ -277,20 +316,18 @@ function main() {
     fi
   done
 
-  # 4: the gate entry points still name run-all-checks.
-  if ! arrays::contains "${GATE_RECIPE}" ${recipes[@]+"${recipes[@]}"}; then
-    printf '%s: no such recipe — the full gate must stay reachable as: just %s\n' \
-      "${GATE_RECIPE}" "${GATE_RECIPE}" >&2
+  # 4: the gate entry points still name run-all-checks, and the docs recipe
+  # still names the one script that builds the site.
+  local invocations_tmp
+  files::create_temp invocations_tmp
+  recipe_invocation_violations "${dump_tmp}" "${GATE_RECIPE}" "${GATE_COMMAND}" > "${invocations_tmp}"
+  recipe_invocation_violations "${dump_tmp}" "${DOCS_RECIPE}" "${DOCS_COMMAND}" >> "${invocations_tmp}"
+  local violation
+  while IFS= read -r violation; do
+    strings::is_empty "${violation}" && continue
+    printf '%s\n' "${violation}" >&2
     failed=1
-  else
-    local body_tmp
-    files::create_temp body_tmp
-    recipe_body "${dump_tmp}" "${GATE_RECIPE}" > "${body_tmp}"
-    if ! grep --quiet --fixed-strings "${GATE_COMMAND}" "${body_tmp}"; then
-      printf 'the %s recipe must invoke %s\n' "${GATE_RECIPE}" "${GATE_COMMAND}" >&2
-      failed=1
-    fi
-  fi
+  done < "${invocations_tmp}"
   if ! grep --quiet --fixed-strings "${GATE_COMMAND}" "${PR_TEMPLATE}"; then
     printf 'PULL_REQUEST_TEMPLATE.md must name %s in its test-plan checklist\n' \
       "${GATE_COMMAND}" >&2
