@@ -44,15 +44,19 @@ REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
 readonly CONFIG_ROOT="${CONFIG_ROOT_OVERRIDE:-${REPO_DIR}}"
 
-# Config sources, as `relative-path::extractor`. The extractor names a function
-# below rather than an inline query so each one can be read, and so a source
-# whose format needs different handling does not distort the others.
+# Config sources, as `relative-path::extractor::normalizer`. Both name functions
+# below rather than inline logic, so each one can be read, and so a source whose
+# format needs different handling does not distort the others. The normalizer is
+# per-source because the entries are not all one grammar: five configure globs,
+# and .editorconfig-checker.json configures anchored regexes, where the same
+# characters mean different things.
 readonly SOURCES=(
-  '.typos.toml::extract_typos'
-  '.github/labeler.yml::extract_labeler'
-  '.yamllint.yml::extract_yamllint'
-  '.github/workflows/ci.yml::extract_reviewdog'
-  '.treefmt.nix::extract_treefmt'
+  '.typos.toml::extract_typos::literal_prefix'
+  '.github/labeler.yml::extract_labeler::literal_prefix'
+  '.yamllint.yml::extract_yamllint::literal_prefix'
+  '.github/workflows/ci.yml::extract_reviewdog::literal_prefix'
+  '.treefmt.nix::extract_treefmt::literal_prefix'
+  '.editorconfig-checker.json::extract_editorconfig_checker::regex_literal_prefix'
 )
 
 # Paths git cannot see at all — neither tracked nor matched by a .gitignore rule.
@@ -132,15 +136,89 @@ function extract_treefmt() {
   json_array_lines "${json}"
 }
 
+# @description Print the editorconfig-checker exclusion list, one entry per line.
+#              The entries are anchored regexes rather than globs, so they are
+#              normalized by regex_literal_prefix.
+# @arg $1 file path to .editorconfig-checker.json
+# @stdout One configured path per line.
+# shellcheck disable=SC2329 # dispatched indirectly by name from SOURCES
+function extract_editorconfig_checker() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  yq --input-format=json --output-format=yaml '.Exclude[]' "${file}"
+}
+
 # @description Reduce a configured entry to the literal path prefix it pins.
 #              Everything from the first glob character onward is dropped, along
 #              with a leading `./` and any trailing slash. An entry that pins
 #              nothing yields the empty string.
 # @arg $1 entry configured path or glob
 # @stdout The literal prefix, possibly empty.
+# shellcheck disable=SC2329 # dispatched indirectly by name from SOURCES
 function literal_prefix() {
   args::check_exactly_1_arg "$@"
   local prefix="${1%%\**}"
+  prefix="${prefix#./}"
+  prefix="${prefix%/}"
+  printf '%s\n' "${prefix}"
+}
+
+# @description Reduce an anchored regex to the literal path prefix it pins.
+#              A leading `^` is dropped, `\x` contributes a literal `x`, and a
+#              trailing `$` closes the pattern rather than truncating it, so
+#              `^LICENSE$` pins LICENSE.
+#
+#              Any other unescaped metacharacter ends the prefix, and the partial
+#              path component it sat in is dropped with it. That second half is
+#              what a glob extractor does not need: in a regex `*` quantifies the
+#              atom before it, so `^scripts/gone*` pins nothing past `scripts/` —
+#              truncating at the metacharacter alone would resolve `scripts/gone`
+#              and report a live entry as stale. An entry whose first
+#              metacharacter precedes any separator pins nothing at all.
+# @arg $1 entry configured anchored regex
+# @stdout The literal prefix, possibly empty.
+# shellcheck disable=SC2329 # dispatched indirectly by name from SOURCES
+function regex_literal_prefix() {
+  args::check_exactly_1_arg "$@"
+  local -r entry="${1#^}"
+  local -r len="${#entry}"
+  local prefix=''
+  local truncated='false'
+  local i=0
+  local char
+  while ((i < len)); do
+    char="${entry:i:1}"
+    case "${char}" in
+      [\\])
+        prefix+="${entry:i+1:1}"
+        i=$((i + 2))
+        ;;
+      '$')
+        # Only a trailing `$` is the end anchor; anywhere else it is an ordinary
+        # metacharacter.
+        if ((i == len - 1)); then
+          break
+        fi
+        truncated='true'
+        break
+        ;;
+      '.' | '*' | '+' | '?' | '(' | ')' | '[' | ']' | '{' | '}' | '|' | '^')
+        truncated='true'
+        break
+        ;;
+      *)
+        prefix+="${char}"
+        i=$((i + 1))
+        ;;
+    esac
+  done
+  if [[ "${truncated}" == 'true' ]]; then
+    if [[ "${prefix}" == */* ]]; then
+      prefix="${prefix%/*}"
+    else
+      prefix=''
+    fi
+  fi
   prefix="${prefix#./}"
   prefix="${prefix%/}"
   printf '%s\n' "${prefix}"
@@ -185,10 +263,12 @@ function main() {
   files::create_temp seen_tmp
 
   local rc=0
-  local source rel extractor file entry prefix
+  local source rel rest extractor normalizer file entry prefix
   for source in "${SOURCES[@]}"; do
     rel="${source%%::*}"
-    extractor="${source##*::}"
+    rest="${source#*::}"
+    extractor="${rest%%::*}"
+    normalizer="${rest##*::}"
     file="${CONFIG_ROOT}/${rel}"
     if ! files::exists "${file}"; then
       printf '%s: configured source is missing\n' "${rel}" >&2
@@ -200,7 +280,7 @@ function main() {
     "${extractor}" "${file}" > "${entries_tmp}"
     while IFS= read -r entry; do
       strings::is_blank "${entry}" && continue
-      prefix="$(literal_prefix "${entry}")"
+      prefix="$("${normalizer}" "${entry}")"
       # No literal component — nothing to resolve.
       strings::is_empty "${prefix}" && continue
       git_knows_path "${prefix}" && continue

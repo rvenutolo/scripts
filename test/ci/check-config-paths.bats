@@ -24,7 +24,7 @@ setup() {
   write_sources
 }
 
-# Write all five configured sources with content that resolves. Individual tests
+# Write all six configured sources with content that resolves. Individual tests
 # overwrite whichever one they are about. Every source must exist on every run —
 # a missing source is itself a failure the check reports.
 write_sources() {
@@ -33,6 +33,7 @@ write_sources() {
   write_yamllint 'kept/'
   write_reviewdog './kept/*'
   write_treefmt 'kept/**'
+  write_eccheck '^kept/'
   mkdir -p "${CONFIG_ROOT}/kept"
   printf 'x\n' > "${CONFIG_ROOT}/kept/file.txt"
   restage
@@ -58,6 +59,12 @@ write_reviewdog() {
 
 write_treefmt() {
   printf '{ pkgs }: { settings.global.excludes = [ "%s" ]; }\n' "$1" > "${CONFIG_ROOT}/.treefmt.nix"
+}
+
+# The entries here are anchored regexes rather than globs, so every case below
+# spells one as it would appear in the real file, backslashes and all.
+write_eccheck() {
+  printf '{ "Exclude": ["%s"] }\n' "$1" > "${CONFIG_ROOT}/.editorconfig-checker.json"
 }
 
 # Re-stage after a test rewrites a source, so tracked-ness reflects the new tree.
@@ -122,6 +129,62 @@ restage() {
   assert_stderr --partial 'names gone'
 }
 
+@test "fails on a stale entry in .editorconfig-checker.json" {
+  write_eccheck '^gone/'
+  restage
+  run --separate-stderr "${CHECK}"
+  assert_failure 1
+  assert_stderr --partial '.editorconfig-checker.json'
+  assert_stderr --partial 'names gone'
+}
+
+# ---------- the regex grammar of .editorconfig-checker.json ----------
+
+@test "regex anchors are stripped before resolving" {
+  # ^LICENSE$ pins one exact file. Left in place, neither anchor is a path
+  # character and the entry resolves to nothing.
+  printf 'x\n' > "${CONFIG_ROOT}/LICENSE"
+  write_eccheck '^LICENSE$'
+  restage
+  run "${CHECK}"
+  assert_success
+}
+
+@test "an escaped dot resolves as a literal dot" {
+  mkdir -p "${CONFIG_ROOT}/.dotted"
+  printf 'x\n' > "${CONFIG_ROOT}/.dotted/f.txt"
+  write_eccheck '^\\.dotted/'
+  restage
+  run "${CHECK}"
+  assert_success
+}
+
+@test "an entry is truncated at the first unescaped metacharacter" {
+  # Everything from `(` on is alternation, not path text, so the entry pins
+  # kept/ and nothing more.
+  write_eccheck '^kept/(a|b)'
+  restage
+  run "${CHECK}"
+  assert_success
+}
+
+@test "a quantifier drops the incomplete component it quantifies" {
+  # `*` quantifies the preceding atom, so `kept/gone*` matches kept/gon,
+  # kept/gone, kept/gonee — it pins no component past kept/. Truncating at the
+  # metacharacter alone would resolve kept/gone and fail on a live entry.
+  write_eccheck '^kept/gone*'
+  restage
+  run "${CHECK}"
+  assert_success
+}
+
+@test "a regex entry with no literal prefix is skipped" {
+  write_eccheck '^.*\\.md$'
+  restage
+  run "${CHECK}"
+  assert_success
+}
+
 # ---------- what counts as "git knows about it" ----------
 
 @test "a gitignored directory passes even when absent from the working tree" {
@@ -173,6 +236,14 @@ restage() {
   run --separate-stderr "${CHECK}"
   assert_failure 1
   assert_stderr --partial '.yamllint.yml: configured source is missing'
+}
+
+@test "fails loudly when .editorconfig-checker.json cannot be parsed" {
+  printf '{ "Exclude": [ \n' > "${CONFIG_ROOT}/.editorconfig-checker.json"
+  restage
+  run "${CHECK}"
+  assert_failure
+  refute_output --partial 'audit passed'
 }
 
 @test "fails loudly when a source cannot be parsed, rather than reading it as empty" {
