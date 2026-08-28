@@ -92,7 +92,7 @@ To gate a script from the `install`/`set_up runners`, remove its executable bit 
 
 ## Function Library
 
-`functions/` is organized by topic — `args`, `arrays`, `commands`, `docker`, `downloads`, `env`, `files`, `flatpak`, `grep`, `http`, `json`, `log`, `mvn`, `network`, `os`, `packages`, `path`, `prompt`, `retry`, `sdkman`, `strings`, `symlinks`, `system`, `systemctl`, `text`, `time`, etc. When adding a helper, drop it in the topically-matching file; it's auto-sourced. If no existing topic fits, Claude may create a new `functions/<topic>.bash` file — but must ask first before adding the new topic.
+`functions/` is organized by topic — `args`, `arrays`, `commands`, `docker`, `downloads`, `env`, `files`, `flatpak`, `grep`, `http`, `json`, `log`, `mvn`, `namerefs`, `network`, `os`, `packages`, `path`, `prompt`, `retry`, `sdkman`, `strings`, `symlinks`, `system`, `systemctl`, `text`, `time`, etc. When adding a helper, drop it in the topically-matching file; it's auto-sourced. If no existing topic fits, Claude may create a new `functions/<topic>.bash` file — but must ask first before adding the new topic.
 
 ## Script Conventions
 
@@ -325,6 +325,57 @@ args::check_no_args "$@"   # or check_exactly_N_args / check_at_least_N_args / c
 - Library functions in `functions/*.bash` use the same `check_*_args "$@"` guards as top-level scripts.
 
 - For predicate branching on caller arg count (e.g. choosing a default vs. consuming `$1`), use `args::no_args "$@"` or `args::has_num_args N "$@"` from `functions/args.bash` — never inline `[[ "$#" -eq N ]]`. Use `args::no_args` for the zero-arg case (not `args::has_num_args 0`).
+
+### Namerefs carry a reserved name and a guard
+
+A helper that returns through an out-parameter binds the caller's variable with `local -n`. If the
+caller passes the same name the helper binds, bash does **not** fail: it prints a `circular name reference` warning to stderr, leaves the variable empty, and returns 0. The helper hands back
+nothing, the caller carries on, and the run exits 0 — a silent false green whose only trace is a
+warning far from its cause. Under `set -u` a *read-only* nameref can instead die with `unbound variable`, so the same mistake is loud in one shape and silent in another.
+
+Two rules, enforced together by `.ci/check-nameref-convention`:
+
+- **The bound name is `__<function>_ref`**, with `::` replaced by `_` — `shell_scripts::filter`
+  binds `__shell_scripts_filter_ref`. A function binding more than one takes a role word before the
+  suffix: `arrays::diff` binds `__arrays_diff_first_ref` and `__arrays_diff_second_ref`. The name is
+  never typed by a caller, so length costs nothing; what it buys is that no caller would plausibly
+  choose it. `_out_ref` and `first_array` are exactly the names that made a collision reachable.
+
+- **A guard naming that same literal precedes the binding**, so the collision dies loudly instead of
+  returning empty:
+
+  ```bash
+  local -r out_name="$1"
+  namerefs::assert_available "${out_name}" '__shell_scripts_filter_ref'
+  local -n __shell_scripts_filter_ref="${out_name}"
+  ```
+
+  Spell the reserved name literally on both lines. `namerefs::assert_available` could derive it from
+  `${FUNCNAME[1]}`, but then renaming the function would silently change what the guard checks while
+  `local -n` kept the old literal — a desync invisible without a lint. Two adjacent literals are
+  visible on sight, and the lint pins them together.
+
+**Write the guard as `if … then log::die; fi`, never `[[ … ]] && log::die`.** The `&&` form returns
+1 when the test is *false*, so under `set -e` it takes down any helper whose guard is its last
+statement, and any caller that inspects the status.
+
+A standalone file that cannot source the function library — `scripts/shims/claude/lib.bash`, the
+`misc/` scripts — inlines the equivalent test and exits with its own convention's refusal code. The
+lint accepts the bracket form for exactly this reason. Refusing is the fail-safe direction: a shim
+that cannot parse its argument list must not fall through to the real binary.
+
+The lint's `EXEMPT` keys are `<repo-relative-file>::<nameref-name>`, space-free because
+`arrays::from_env_override` splits its override on spaces, and carry the usual bidirectional
+staleness detection — an entry naming no file, or one that suppresses no violation, fails the lint
+rather than sitting there disarmed. It ships empty and should stay that way: a binding that cannot
+follow the convention is a binding that can silently return nothing.
+
+The lint pre-filters with a single `grep` to the handful of files that bind a nameref at all before
+walking any of them line by line. Both rules fire only on a binding, so the filter cannot hide a
+violation, and it is the difference between a 45-second gate step and a 2-second one.
+
+**This does not address nameref *shadowing*.** A nameref resolves through dynamic scope, so a helper
+that binds `__x_ref` to a caller variable named `foo` and then calls something with its own `local foo` writes to the wrong variable. That hazard is real, unguarded, and out of scope here.
 
 ### Library file conventions
 
