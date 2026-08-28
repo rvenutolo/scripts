@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 
 # @description Run every config/markup lint (actionlint, yamllint, JSON parse,
-#              markdownlint-cli2, typos, editorconfig-checker) in sequence and
-#              aggregate exit codes. The local equivalent of the former
-#              per-tool CI lint jobs; invoked by `just lint`, the pre-push
-#              hook, and the CI `lint` job. Does NOT run shellcheck/shdoc (that
-#              is check-scripts) or formatting (that is treefmt via
-#              `nix flake check`).
+#              markdownlint-cli2, typos, editorconfig-checker) in sequence, then
+#              build the docs site via .ci/build-site, aggregating exit codes.
+#              The local equivalent of the former per-tool CI lint jobs; invoked
+#              by `just lint`, the pre-push hook, and the CI `lint` job. Does NOT
+#              run shellcheck/shdoc (that is check-scripts) or formatting (that
+#              is treefmt via `nix flake check`).
 # @noargs
-# @stderr Output from each failing lint.
-# @exitcode 0 every lint passed.
-# @exitcode 1 one or more lints failed.
+# @stderr Output from each failing lint, and the docs build's progress lines.
+# @exitcode 0 every lint passed and the docs site built.
+# @exitcode 1 one or more lints failed, or the docs build failed.
 
 set -Eeuo pipefail
 # Without this, errexit is off inside every $(...) subshell, so a helper called
@@ -73,6 +73,14 @@ function main() {
   (cd "${REPO_DIR}" && typos) || rc=1
   log::log 'running editorconfig-checker'
   (cd "${REPO_DIR}" && editorconfig-checker) || rc=1
+  # Last on purpose. The docs build writes generated markdown into .docs/ and a
+  # rendered site into site/; running it after the linters keeps that output out
+  # of reach of anything that walks the tree. It is also the only step here that
+  # is a build rather than a lint, and it lives in this suite because that is
+  # what puts `mkdocs build --strict` behind the local gate, the pre-push hook,
+  # and the required CI lint job at once.
+  log::log 'building the docs site'
+  "${REPO_DIR}/.ci/build-site" || rc=1
   if ((rc != 0)); then
     log::warn 'one or more lint checks failed'
   fi
