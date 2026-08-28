@@ -511,8 +511,8 @@ auto-labeler had stopped labelling script changes entirely, and reviewdog was sh
 same third-party tree.
 
 `.ci/check-config-paths` enforces that every literal path configured in `.typos.toml`,
-`.github/labeler.yml`, `.yamllint.yml`, `.treefmt.nix`, and reviewdog's `exclude:` in
-`.github/workflows/ci.yml` still names something git knows about.
+`.github/labeler.yml`, `.yamllint.yml`, `.treefmt.nix`, `.editorconfig-checker.json`, and
+reviewdog's `exclude:` in `.github/workflows/ci.yml` still names something git knows about.
 
 **A path passes when it is tracked or deliberately gitignored** — both are intentional states, and
 neither query consults the working tree. That distinction is load-bearing: a plain `[ -e ]` check
@@ -531,9 +531,25 @@ detection, and the ordering inside `main` is what buys the second direction — 
 actually fails to resolve is routed through the exemption, so an exemption whose path resolves on
 its own is reported stale rather than sitting there unnoticed.
 
-Adding a config file with a path list means adding it to `SOURCES` with an extractor function.
-`.github/labels.yml` prose descriptions are deliberately out of scope: pinning an English sentence
-shape would break the moment someone rewords one.
+**The entries are not all one grammar, so `SOURCES` names a normalizer as well as an extractor.**
+Five sources configure globs and use `literal_prefix`, which truncates at the first `*`.
+`.editorconfig-checker.json` configures anchored regexes and uses `regex_literal_prefix`, where the
+same characters mean different things: `^` and a trailing `$` are anchors rather than path text,
+`\.` is a literal dot, and a metacharacter ends the prefix along with the partial path component it
+sat in. That last part is the half a glob extractor never needs — in a regex `*` quantifies the atom
+before it, so `^scripts/gone*` pins nothing past `scripts/`, and truncating at the metacharacter
+alone would resolve `scripts/gone` and report a live entry as stale.
+
+That file could not participate at all before its `Exclude` entries were anchored at the path root.
+As unanchored regexes they matched as floating substrings, and a substring is not a path prefix, so
+no extractor could model one. The motivating case: the `scripts/` reorganisation would have flagged
+the old `other/` entry — prefix `other`, which git knows nothing by — instead of it surviving by
+substring accident.
+
+Adding a config file with a path list means adding it to `SOURCES` with an extractor function, and
+with a normalizer if its entries are not globs. `.github/labels.yml` prose descriptions are
+deliberately out of scope: pinning an English sentence shape would break the moment someone rewords
+one.
 
 ### Gate scripts enable `inherit_errexit`
 
