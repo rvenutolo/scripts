@@ -574,6 +574,10 @@ is exactly the drift: two copies of one command, only one of them ever executed.
   site into `site/`; running it after the linters keeps that output out of reach of anything that
   walks the tree. It is also the only step in that suite that is a build rather than a lint.
 
+- **The `lint` CI job checks out submodules for it.** `.ci/build-docs` runs shdoc out of the
+  `.shdoc` submodule, so a checkout without `submodules: recursive` fails there and nowhere else —
+  a local run cannot reproduce it, because a working clone has the submodule initialized.
+
 - **`--strict` is the whole point.** A page missing from `.mkdocs.yml`'s nav, a dead internal link,
   an unreadable `docs_dir` — mkdocs exits 0 on every one of them without it.
 
