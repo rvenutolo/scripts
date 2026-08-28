@@ -42,6 +42,7 @@ readonly GOVERNANCE_RUNNER="${GOVERNANCE_RUNNER_OVERRIDE:-${REPO_DIR}/.ci/run-go
 #   utility, not an enforcer.
 # - apply-repo-settings: mutates the live GitHub repo via gh; not an enforcer.
 # - build-docs: generates reference docs; not an enforcer.
+# - build-site: generates the reference docs and renders the site; not an enforcer.
 # - decide-changed-tests: decides whether the BATS suite must run for a change
 #   set; a CI utility consumed by .github/actions/changed-tests, not an enforcer.
 # - diff-ruleset: prints a ruleset diff; not an enforcer.
@@ -51,6 +52,7 @@ readonly EXEMPT=(
   activate-githooks
   apply-repo-settings
   build-docs
+  build-site
   decide-changed-tests
   diff-ruleset
   in-devshell
