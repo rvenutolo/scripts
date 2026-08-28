@@ -8,7 +8,8 @@
 #              because profile selection must also cover cron, `ssh host
 #              claude ...`, and other non-interactive launches. Also pins
 #              ANTHROPIC_MODEL to opus[1m] unless already set, so a persisted
-#              /model choice does not leak across sessions.
+#              /model choice does not leak across sessions, and passes
+#              --effort high for the same reason.
 #              Prepends scripts/shims/claude/ to PATH so the Claude process tree
 #              — and nothing else — resolves pkill/killall to the guarding shims.
 # @arg $@ args Optional arguments forwarded verbatim to claude.
@@ -49,4 +50,16 @@ else
   log::warn "claude shims dir missing: ${claude_shims} (pkill/killall guard inactive)"
 fi
 
-exec "${claude_bin}" "$@"
+# Pin the default effort, for the same reason as the model above: /effort writes its choice
+# into settings.json, so a one-off `/effort medium` silently becomes the next session's default.
+#
+# The flag rather than CLAUDE_CODE_EFFORT_LEVEL, deliberately. Both pin effort at launch, but the
+# env var is a hard session lock — an in-session /effort answers "Not applied: ..." and only records
+# the choice for later — whereas the flag's pin is released by /effort in an interactive terminal.
+# That is how /model behaves under the ANTHROPIC_MODEL pin above, and the wrapper should not take
+# away mid-session tuning to set a default.
+#
+# Placed before "$@" because argument parsing is last-wins: a caller's own --effort overrides this
+# one, exactly like an already-set ANTHROPIC_MODEL overrides the pin above. An already-set
+# CLAUDE_CODE_EFFORT_LEVEL also still wins, being the stronger of the two mechanisms.
+exec "${claude_bin}" --effort high "$@"
