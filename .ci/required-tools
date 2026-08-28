@@ -46,7 +46,8 @@ jq
 just
 # invoked directly by .ci/run-lint-checks
 markdownlint-cli2
-# the .justfile `docs` recipe and the Pages workflow
+# invoked by .ci/build-site, which the `docs` recipe, the lint suite, and the
+# Pages workflow all call
 mkdocs
 # asserted by .ci/check-devshell-provides and .ci/check-flake-eval-warnings
 nix

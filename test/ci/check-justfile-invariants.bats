@@ -24,6 +24,10 @@ check:
 # Scaffold a new script
 new-script PATH:
     ./scripts/non-interactive/new-script {{PATH}}
+
+# Build the docs site locally
+docs:
+    ./.ci/in-devshell ./.ci/build-site
 EOF
 }
 
@@ -36,6 +40,7 @@ make_readme() {
 | `./run-all-checks` | `just all` | Full local gate. |
 | `./check-scripts` | `just check` (default) | Combined audit. |
 | `scripts/non-interactive/new-script <path>` | `just new-script <path>` | Scaffold a script. |
+| `./.ci/in-devshell ./.ci/build-site` | `just docs` | Build the docs site. |
 EOF
 }
 
@@ -170,6 +175,10 @@ check:
 # Scaffold a new script
 new-script PATH:
     ./scripts/non-interactive/new-script {{PATH}}
+
+# Build the docs site locally
+docs:
+    ./.ci/in-devshell ./.ci/build-site
 EOF
   run_check
   assert_failure
@@ -190,6 +199,10 @@ check:
 # Scaffold a new script
 new-script PATH:
     ./scripts/non-interactive/new-script {{PATH}}
+
+# Build the docs site locally
+docs:
+    ./.ci/in-devshell ./.ci/build-site
 EOF
   printf '| `./run-all-checks` | `just all` | Gate. |\n' >> "${ROOT}/README.md"
   run_check
@@ -269,6 +282,10 @@ new-script PATH:
 # Build the thing
 Build:
     ./build
+
+# Build the docs site locally
+docs:
+    ./.ci/in-devshell ./.ci/build-site
 EOF
   run_check
   assert_failure
@@ -297,6 +314,10 @@ new-script PATH:
 # Build the thing
 Build:
     ./build
+
+# Build the docs site locally
+docs:
+    ./.ci/in-devshell ./.ci/build-site
 EOF
   make_readme
   printf '| `./build` | `just Build` | Build it. |\n' >> "${ROOT}/README.md"
@@ -367,6 +388,10 @@ check:
 # Scaffold a new script
 new-script PATH="d":
     ./scripts/non-interactive/new-script {{PATH}}
+
+# Build the docs site locally
+docs:
+    ./.ci/in-devshell ./.ci/build-site
 EOF
   make_readme
   run_check
@@ -402,6 +427,7 @@ EOF
 | `./run-all-checks` | `just all` | Full local gate. |
 | `./check-scripts` | `just check` (default) | Combined audit. |
 | `scripts/non-interactive/new-script <path>` | `just new-script <path>` | Scaffold a script. |
+| `./.ci/in-devshell ./.ci/build-site` | `just docs` | Build the docs site. |
 EOF
   run_check
   assert_failure
@@ -427,6 +453,10 @@ check:
 # Scaffold a new script
 new-script PATH:
     ./scripts/non-interactive/new-script {{PATH}}
+
+# Build the docs site locally
+docs:
+    ./.ci/in-devshell ./.ci/build-site
 EOF
   run_check
   assert_failure
@@ -455,6 +485,10 @@ _internal-helper:
 # Scaffold a new script
 new-script PATH:
     ./scripts/non-interactive/new-script {{PATH}}
+
+# Build the docs site locally
+docs:
+    ./.ci/in-devshell ./.ci/build-site
 EOF
   run_check
   assert_success
@@ -466,4 +500,92 @@ EOF
   make_pr_template
   run_check
   assert_success
+}
+
+# --- the docs recipe must keep naming the one script that builds the site ---
+
+@test "fails when the docs recipe restates the build commands instead of calling build-site" {
+  # The exact drift this rule exists to catch: a recipe that inlines what
+  # .ci/build-site does can silently diverge from the Pages workflow.
+  make_readme
+  make_pr_template
+  cat > "${ROOT}/.justfile" << 'EOF'
+# Run the default gate
+default: check
+
+# Run the full local verification gate
+all:
+    ./run-all-checks
+
+# shellcheck + shdoc header audit
+check:
+    ./check-scripts
+
+# Scaffold a new script
+new-script PATH:
+    ./scripts/non-interactive/new-script {{PATH}}
+
+# Build the docs site locally
+docs:
+    ./.ci/in-devshell ./.ci/build-docs
+    ./.ci/in-devshell mkdocs build --strict --config-file .mkdocs.yml
+EOF
+  run_check
+  assert_failure
+  assert_output --partial 'build-site'
+}
+
+@test "fails when the docs recipe is missing entirely" {
+  make_pr_template
+  cat > "${ROOT}/.justfile" << 'EOF'
+# Run the default gate
+default: check
+
+# Run the full local verification gate
+all:
+    ./run-all-checks
+
+# shellcheck + shdoc header audit
+check:
+    ./check-scripts
+
+# Scaffold a new script
+new-script PATH:
+    ./scripts/non-interactive/new-script {{PATH}}
+EOF
+  make_readme
+  run_check
+  assert_failure
+  assert_output --partial 'docs: no such recipe'
+}
+
+@test "the gate recipe and the docs recipe are checked independently" {
+  # Both violations in one run: the aggregate reports each, rather than the
+  # first one masking the second.
+  make_readme
+  make_pr_template
+  cat > "${ROOT}/.justfile" << 'EOF'
+# Run the default gate
+default: check
+
+# Run the full local verification gate
+all:
+    ./check-scripts
+
+# shellcheck + shdoc header audit
+check:
+    ./check-scripts
+
+# Scaffold a new script
+new-script PATH:
+    ./scripts/non-interactive/new-script {{PATH}}
+
+# Build the docs site locally
+docs:
+    ./.ci/in-devshell ./.ci/build-docs
+EOF
+  run_check
+  assert_failure
+  assert_output --partial 'the all recipe must invoke ./run-all-checks'
+  assert_output --partial 'the docs recipe must invoke ./.ci/build-site'
 }

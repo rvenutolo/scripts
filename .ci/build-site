@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+# @description Build the documentation site: generate the markdown reference with
+#              .ci/build-docs, then render it with `mkdocs build --strict`. This is
+#              the single definition of "build the docs" — the `docs` recipe, the
+#              Pages workflow, and .ci/run-lint-checks all invoke this script instead
+#              of restating the two commands, so the recipe and the workflow cannot
+#              drift apart. Companion config: .mkdocs.yml. Companion deploy:
+#              .github/workflows/pages.yml.
+# @noargs
+# @stderr Progress lines from .ci/build-docs, and mkdocs' own build output.
+# @exitcode 0 the markdown reference was generated and mkdocs built the site.
+# @exitcode 1 doc generation failed, or mkdocs rejected the site under --strict.
+
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0.
+shopt -s inherit_errexit
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'mkdocs'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+
+log::log 'generating the markdown reference'
+"${REPO_DIR}/.ci/build-docs"
+log::log 'building the site with mkdocs --strict'
+# --strict promotes mkdocs' warnings to errors: a page missing from the nav, a
+# dead internal link, or an unreadable docs_dir is the whole point of the build
+# being gated, and mkdocs exits 0 on every one of them without it.
+(cd "${REPO_DIR}" && mkdocs build --strict --config-file .mkdocs.yml)

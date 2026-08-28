@@ -86,6 +86,8 @@ Note that `switch_case_indent`, `binary_next_line`, and `space_redirects` are sh
 
 - `./run-tests [<bats-args>...]` — runs BATS tests under `test/functions/`, `test/ci/`, `test/root/`, and `test/shims/` recursively when called with no args, or forwards args to the devShell's `bats` from `PATH`. Default invocation uses `bats --jobs $(nproc)` for parallel execution.
 
+- `.ci/build-site` — the single definition of "build the docs": `.ci/build-docs` to generate the markdown reference, then `mkdocs build --strict` to render it. `just docs`, the Pages workflow, and `.ci/run-lint-checks` all call this script rather than restating those two commands. See [The docs build has one definition](#the-docs-build-has-one-definition).
+
 To gate a script from the `install`/`set_up runners`, remove its executable bit (`chmod -x`).
 
 ## Function Library
@@ -550,6 +552,45 @@ Adding a config file with a path list means adding it to `SOURCES` with an extra
 with a normalizer if its entries are not globs. `.github/labels.yml` prose descriptions are
 deliberately out of scope: pinning an English sentence shape would break the moment someone rewords
 one.
+
+### The docs build has one definition
+
+`.ci/build-site` runs `.ci/build-docs` and then `mkdocs build --strict`, and every caller goes
+through it: the `docs` recipe, `.github/workflows/pages.yml`, and `.ci/run-lint-checks`. Nothing
+else spells those two commands.
+
+Before that, the recipe and the workflow each restated them. The recipe had **never worked** —
+`mkdocs` was not in the devShell until it was added, and nothing ran the recipe to notice. The
+workflow kept working because it runs on push to `main` through its own inline `run:` block, which
+is exactly the drift: two copies of one command, only one of them ever executed.
+
+- **The lint suite is where it is gated**, as its last step. That single wiring point puts
+  `mkdocs build --strict` behind `just lint`, `./run-all-checks`, `.githooks/pre-push`, and the
+  required CI `lint` job at once, for about 7 seconds. A dedicated CI job would have cost a ruleset
+  entry, a `.docs/required-checks.md` row, and a README table row, and would still never run
+  locally.
+
+- **It runs last on purpose.** The docs build writes generated markdown into `.docs/` and a rendered
+  site into `site/`; running it after the linters keeps that output out of reach of anything that
+  walks the tree. It is also the only step in that suite that is a build rather than a lint.
+
+- **The `lint` CI job checks out submodules for it.** `.ci/build-docs` runs shdoc out of the
+  `.shdoc` submodule, so a checkout without `submodules: recursive` fails there and nowhere else —
+  a local run cannot reproduce it, because a working clone has the submodule initialized.
+
+- **`--strict` is the whole point.** A page missing from `.mkdocs.yml`'s nav, a dead internal link,
+  an unreadable `docs_dir` — mkdocs exits 0 on every one of them without it.
+
+- **`.ci/check-justfile-invariants` pins the recipe** through its `DOCS_RECIPE` / `DOCS_COMMAND`
+  pair, the same way `GATE_RECIPE` / `GATE_COMMAND` pins `just all` to `./run-all-checks`. A `docs`
+  recipe that inlines the two commands again, or disappears, fails the governance gate. Both pairs
+  go through one producer, `recipe_invocation_violations`, so a missing recipe and a recipe that
+  runs the wrong thing are reported separately rather than one masking the other.
+
+- **Tests never render the real site.** `test/ci/build-site.bats` and `test/ci/run-lint-checks.bats`
+  both stub `mkdocs` and point `DOCS_DIR_OVERRIDE` at a tmpdir — `.ci/build-docs` wipes `.docs/` on
+  every run, and a parallel test reading it would race. The real `--strict` build is exercised on
+  every gate run instead.
 
 ### Gate scripts enable `inherit_errexit`
 
@@ -1175,12 +1216,12 @@ The gate is two steps: `nix fmt` (format every file via treefmt), then `./.ci/in
 1. `./check-scripts` — shfmt verify, shellcheck, the shdoc-header audit, the executable-bit audit
 1. `nix flake check` — the formatting gate plus the flake's checks
 1. `.ci/run-governance-checks` — workflow posture, Renovate config, branch ruleset
-1. `.ci/run-lint-checks` — actionlint, yamllint, JSON schema, markdownlint, typos, editorconfig-checker
+1. `.ci/run-lint-checks` — actionlint, yamllint, JSON schema, markdownlint, typos, editorconfig-checker, then the docs build (`.ci/build-site`)
 1. `./run-tests` — the BATS suite (slowest, so it runs last)
 
 It **aggregates exit codes rather than failing fast**, so one run surfaces every failing category instead of only the first. The alternative makes you rediscover the next failure on each rerun, at roughly 90s a round trip.
 
-It is **verify-only** — it never rewrites the tree. That is why `nix fmt` stays a separate step run before it: a gate that reformats the thing it is about to approve is not a gate, and the pre-push hook must never mutate the tree it is pushing.
+It is **verify-only** — it never rewrites tracked content. That is why `nix fmt` stays a separate step run before it: a gate that reformats the thing it is about to approve is not a gate, and the pre-push hook must never mutate the tree it is pushing. The one thing it does write is the gitignored docs output — `.docs/functions/`, `.docs/scripts/`, `.docs/index.md` and `site/` — because building the docs is the only way to verify they still build.
 
 `nix flake check` evaluates the **tracked git tree**, so it cannot see untracked files — a badly formatted new file passes vacuously until it is staged. `./run-all-checks` therefore **warns** (never fails) when the working tree holds untracked, non-ignored files. Staging is what exposes a new file to the formatting gate, so `git add` before trusting a green run. Warning rather than failing is deliberate: hard-failing would block the gate on scratch files and work in progress.
 

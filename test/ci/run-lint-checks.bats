@@ -1,7 +1,15 @@
 setup() {
   load '../test_helper/common'
   load '../test_helper/path_shim'
+  load '../test_helper/cli_shim'
   AGG="${REPO_DIR}/.ci/run-lint-checks"
+  # The suite's last step builds the docs site. Both halves are redirected here:
+  # the generated markdown to a per-test tmpdir, since .ci/build-docs wipes the
+  # real .docs/ and the yamllint probe below writes into it, and mkdocs to a
+  # recording stub, since rendering the repo's site/ is not this file's subject.
+  # .ci/build-site carries the tests for the real thing.
+  export DOCS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/docs"
+  cli_shim::record mkdocs
 }
 
 # .ci/run-lint-checks (an aggregator) derives its own repo root via `git
@@ -75,4 +83,35 @@ exit 0"
   run_check "${AGG}"
   assert_failure
   assert_output --partial 'one or more lint checks failed'
+}
+
+@test "builds the docs site as its last step" {
+  # Nothing else runs `mkdocs`, so its invocation is what proves the docs build
+  # is wired into the suite at all.
+  run_check "${AGG}"
+  assert_success
+  run cli_shim::calls mkdocs
+  assert_output 'build --strict --config-file .mkdocs.yml'
+}
+
+@test "fails (exit 1) when the docs build fails" {
+  # --strict makes mkdocs exit non-zero on a warning; that status has to reach
+  # the aggregator, or the gate is decorative.
+  cli_shim::record_with_output mkdocs '' 1
+  run_check "${AGG}"
+  assert_failure
+  assert_output --partial 'one or more lint checks failed'
+}
+
+@test "runs the linters even when the docs build fails" {
+  # The suite aggregates rather than failing fast, and the docs build is last:
+  # a failure there must not look like a lint failure, nor hide one.
+  cli_shim::record_with_output mkdocs '' 1
+  path_shim::add yamllint "#!/usr/bin/env bash
+printf '%s\n' \"\$@\" > '${BATS_TEST_TMPDIR}/yamllint-args'
+exit 0"
+  run_check "${AGG}"
+  assert_failure
+  run test -f "${BATS_TEST_TMPDIR}/yamllint-args"
+  assert_success
 }

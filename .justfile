@@ -39,8 +39,7 @@ shdoc-check:
 
 # Build the docs site locally
 docs:
-    ./.ci/in-devshell ./.ci/build-docs
-    ./.ci/in-devshell mkdocs build --strict --config-file .mkdocs.yml
+    ./.ci/in-devshell ./.ci/build-site
 
 # Scaffold a new top-level script with the standard header + exec bit
 new-script PATH:
