@@ -38,15 +38,23 @@ function arrays::contains() {
 # @stdout Elements present in first array but not in second, one per line
 function arrays::diff() {
   args::check_exactly_2_args "$@"
-  local -n first_array="$1"
-  local -n second_array="$2"
+  local -r first_name="$1"
+  local -r second_name="$2"
+  namerefs::assert_available "${first_name}" '__arrays_diff_first_ref'
+  namerefs::assert_available "${second_name}" '__arrays_diff_second_ref'
+  local -n __arrays_diff_first_ref="${first_name}"
+  local -n __arrays_diff_second_ref="${second_name}"
   # Guard against empty arrays: printf '%s\n' with zero args emits one spurious newline, causing
   # comm to see an empty line. Explicitly skip to_lines when the array is empty.
   local first_tmp second_tmp
   files::create_temp first_tmp
   files::create_temp second_tmp
-  [[ "${#first_array[@]}" -gt 0 ]] && arrays::to_lines "${first_array[@]}" > "${first_tmp}" || true
-  [[ "${#second_array[@]}" -gt 0 ]] && arrays::to_lines "${second_array[@]}" > "${second_tmp}" || true
+  if [[ "${#__arrays_diff_first_ref[@]}" -gt 0 ]]; then
+    arrays::to_lines "${__arrays_diff_first_ref[@]}" > "${first_tmp}"
+  fi
+  if [[ "${#__arrays_diff_second_ref[@]}" -gt 0 ]]; then
+    arrays::to_lines "${__arrays_diff_second_ref[@]}" > "${second_tmp}"
+  fi
   comm -23 "${first_tmp}" "${second_tmp}"
 }
 
@@ -62,13 +70,14 @@ function arrays::from_env_override() {
   args::check_at_least_2_args "$@"
   local -r out_name="$1"
   local -r var_name="$2"
-  local -n _out_ref="${out_name}"
+  namerefs::assert_available "${out_name}" '__arrays_from_env_override_ref'
+  local -n __arrays_from_env_override_ref="${out_name}"
   shift 2
   if [[ -v "${var_name}" ]]; then
     # Scoped IFS: the strict global IFS has no space, which would stop read -a
     # from splitting a space-separated override into elements.
-    IFS=' ' read -r -a _out_ref <<< "${!var_name}"
+    IFS=' ' read -r -a __arrays_from_env_override_ref <<< "${!var_name}"
   else
-    _out_ref=("$@")
+    __arrays_from_env_override_ref=("$@")
   fi
 }

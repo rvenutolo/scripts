@@ -477,3 +477,18 @@ EOF
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
+
+@test "filter: the reserved out-array nameref name is refused" {
+  run --separate-stderr shell_scripts::filter '__shell_scripts_filter_ref' "${TREE}/a.sh"
+  assert_failure 1
+  assert_stderr --partial "out-parameter may not be named '__shell_scripts_filter_ref'"
+}
+
+@test "filter: a caller array named _out_ref works" {
+  # _out_ref was the internal nameref name before the convention: passing it silently
+  # yielded an empty array at exit 0, with only a bash warning on stderr.
+  local -a _out_ref=()
+  shell_scripts::filter _out_ref "${TREE}/a.sh"
+  assert_equal "${#_out_ref[@]}" 1
+  assert_equal "${_out_ref[0]}" "${TREE}/a.sh"
+}

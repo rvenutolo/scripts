@@ -878,3 +878,10 @@ function _seed_repo_on_branch() {
   assert_failure
   assert_stderr --partial 'Expected no arguments'
 }
+
+@test "resolve_filter_repo_cmd: the reserved array nameref name is refused" {
+  run --separate-stderr git::resolve_filter_repo_cmd '__git_resolve_filter_repo_cmd_ref'
+  assert_failure 1
+  assert_stderr --partial 'may not be named'
+  assert_stderr --partial '__git_resolve_filter_repo_cmd_ref'
+}

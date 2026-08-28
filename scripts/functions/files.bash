@@ -564,8 +564,10 @@ function files::root_append_to_quiet() {
 # @arg $1 variable name to receive the temp file path (nameref)
 function files::create_temp() {
   args::check_exactly_1_arg "$@"
-  local -n _files_create_temp_var="$1"
-  _files_create_temp_var="$(mktemp)"
+  local -r var_name="$1"
+  namerefs::assert_available "${var_name}" '__files_create_temp_ref'
+  local -n __files_create_temp_ref="${var_name}"
+  __files_create_temp_ref="$(mktemp)"
 }
 
 # @description Print the largest regular files under a directory, biggest first.

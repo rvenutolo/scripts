@@ -1,0 +1,199 @@
+#!/usr/bin/env bash
+
+# @description Assert that every bash nameref binding follows the collision-proof naming
+#              convention and carries a guard against a caller passing the reserved name.
+#
+#              A nameref bound as `local -n x="${x}"` does not fail. Bash prints a
+#              "circular name reference" warning to stderr, leaves the variable empty and
+#              returns 0, so an out-parameter helper silently hands the caller nothing while
+#              the run continues — a silent false green, far from its cause.
+#
+#              Rule 1: the bound name is `__<function>_ref`, with `::` replaced by `_` and an
+#              optional role word before `_ref` for a function binding more than one. A name
+#              that short-circuits to something a caller might plausibly choose — `_out_ref`,
+#              `first_array` — is what makes a collision reachable in the first place.
+#
+#              Rule 2: a guard naming that same literal precedes the binding inside the same
+#              function. Either `namerefs::assert_available <name> '<reserved>'`, or, in a
+#              standalone file that cannot source the function library, an inline
+#              `[[ ... == '<reserved>' ]]` test.
+#
+#              Scope is every shell file `shell_scripts::find` emits, which excludes
+#              scripts/other/, .shdoc/ and .direnv/.
+# @noargs
+# @stderr One line per offending binding, naming the file, line, and which rule failed.
+# @exitcode 0 every nameref binding satisfies both rules.
+# @exitcode 1 at least one binding violates a rule, or an EXEMPT entry is stale.
+
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0.
+shopt -s inherit_errexit
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+
+# Keys are <repo-relative-file>::<nameref-name>, space-free because
+# arrays::from_env_override splits its override on spaces. Ships empty and should stay so:
+# a binding that cannot follow the convention is a binding that can silently return nothing.
+declare -a EXEMPT
+arrays::from_env_override EXEMPT EXEMPT_OVERRIDE
+readonly EXEMPT
+
+# The binding and function patterns are spelled so this file does not match itself: every
+# occurrence below sits to the right of an assignment, never at the start of a line.
+readonly FUNC_RE='^[[:space:]]*function[[:space:]]+([A-Za-z0-9_:]+)\(\)'
+readonly BIND_RE='^[[:space:]]*(local|declare|typeset)[[:space:]]+-[rn]*n[rn]*[[:space:]]+([A-Za-z0-9_]+)='
+
+# @description Print the reserved-name regex a nameref bound inside the given function must match.
+#              `::` becomes `_`; an optional role word may sit before the `_ref` suffix so one
+#              function can bind several namerefs (arrays::diff binds a first and a second).
+# @arg $1 func_name name of the enclosing function
+# @stdout an ERE anchored at both ends
+function reserved_name_re() {
+  args::check_exactly_1_arg "$@"
+  local -r func_name="$1"
+  printf '^__%s(_[a-z0-9]+)*_ref$\n' "${func_name//::/_}"
+}
+
+# @description Print the reserved name quoted inside a guard on the given line, or nothing when
+#              the line is not a guard. Both accepted shapes name the reserved literal in single
+#              quotes, which is what makes a desync between guard and binding detectable.
+# @arg $1 line one line of a shell file
+# @stdout the quoted reserved name, without quotes
+function guarded_name() {
+  args::check_exactly_1_arg "$@"
+  local -r line="$1"
+  if [[ "${line}" =~ namerefs::assert_available[^\']*\'([A-Za-z0-9_]+)\' ]]; then
+    printf '%s\n' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+  if [[ "${line}" =~ \[\[[^\']*==[[:space:]]*\'([A-Za-z0-9_]+)\' ]]; then
+    printf '%s\n' "${BASH_REMATCH[1]}"
+  fi
+}
+
+# @description Audit one file and print a violation line per offending binding, each prefixed with
+#              its `<rel-path>::<nameref-name>` key and a tab. Exemptions are applied by the caller,
+#              not here, so an exemption that suppresses nothing can be reported as stale. Prints
+#              nothing for a clean file, so the caller judges by whether output appeared rather than
+#              by an exit status a failed scan could fake.
+# @arg $1 file path to the shell file to audit
+# @stdout one `<key>\t<rel-path>:<line>: <message>` line per violation
+function audit_one() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local -r rel="${file#"${REPO_DIR}/"}"
+  local func='' guards='' line name found
+  local -i line_no=0
+  while IFS= read -r line; do
+    line_no+=1
+    if [[ "${line}" =~ ${FUNC_RE} ]]; then
+      func="${BASH_REMATCH[1]}"
+      guards=''
+      continue
+    fi
+    found="$(guarded_name "${line}")"
+    if strings::is_not_empty "${found}"; then
+      guards+=" ${found}"
+      continue
+    fi
+    [[ "${line}" =~ ${BIND_RE} ]] || continue
+    name="${BASH_REMATCH[2]}"
+    if strings::is_empty "${func}"; then
+      printf '%s::%s\t%s:%s: nameref %s is bound outside any function; the convention needs one\n' \
+        "${rel}" "${name}" "${rel}" "${line_no}" "${name}"
+      continue
+    fi
+    local expected_re
+    expected_re="$(reserved_name_re "${func}")"
+    if [[ ! "${name}" =~ ${expected_re} ]]; then
+      printf "%s::%s\t%s:%s: nameref %s in %s must be named __%s_ref (optionally __%s_<role>_ref)\n" \
+        "${rel}" "${name}" "${rel}" "${line_no}" "${name}" "${func}" "${func//::/_}" "${func//::/_}"
+    fi
+    if [[ " ${guards} " != *" ${name} "* ]]; then
+      printf "%s::%s\t%s:%s: nameref %s has no guard; add namerefs::assert_available <name> '%s' above it\n" \
+        "${rel}" "${name}" "${rel}" "${line_no}" "${name}" "${name}"
+    fi
+  done < "${file}"
+}
+
+# @description Print every stale EXEMPT key: one naming a file that is not in the tree, and one
+#              that suppressed no violation on this run. A suppression that no longer suppresses
+#              anything is how a lint quietly stops grading the thing it was written for, so both
+#              directions fail the run rather than passing silently.
+# @arg $1 keys_file path to a file holding one `<rel-path>::<nameref-name>` violation key per line
+# @stdout one line per stale entry
+function stale_exemptions() {
+  args::check_exactly_1_arg "$@"
+  local -r keys_file="$1"
+  local entry rel
+  for entry in "${EXEMPT[@]}"; do
+    rel="${entry%%::*}"
+    if ! files::exists "${REPO_DIR}/${rel}"; then
+      printf 'EXEMPT entry names no such file: %s\n' "${entry}"
+      continue
+    fi
+    if ! grep --quiet --line-regexp --fixed-strings -- "${entry}" "${keys_file}"; then
+      printf 'EXEMPT entry suppresses no violation: %s\n' "${entry}"
+    fi
+  done
+}
+
+function main() {
+  args::check_no_args "$@"
+
+  local files_tmp candidates_tmp report_tmp
+  files::create_temp files_tmp
+  files::create_temp candidates_tmp
+  files::create_temp report_tmp
+  shell_scripts::find > "${files_tmp}"
+
+  # Pre-filter to the handful of files that bind a nameref at all. Both rules fire only on a
+  # binding, so this cannot hide a violation, and it turns a 45-second line-by-line walk of every
+  # shell file in the tree into a sub-second one. A grep exit of 1 (and the 123 xargs reports for
+  # it) means "no match in that batch", which is not an error; anything else is.
+  local -i grep_rc=0
+  xargs --no-run-if-empty --max-args=200 \
+    grep --files-with-matches --extended-regexp -- "${BIND_RE}" \
+    < "${files_tmp}" > "${candidates_tmp}" || grep_rc=$?
+  if ((grep_rc != 0 && grep_rc != 1 && grep_rc != 123)); then
+    log::die "scan for nameref bindings failed (exit ${grep_rc})"
+  fi
+
+  local violations_tmp keys_tmp
+  files::create_temp violations_tmp
+  files::create_temp keys_tmp
+
+  local file
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    audit_one "${file}" >> "${violations_tmp}"
+  done < "${candidates_tmp}"
+  cut --fields=1 -- "${violations_tmp}" > "${keys_tmp}"
+
+  local key message
+  while IFS=$'\t' read -r key message; do
+    if arrays::contains "${key}" "${EXEMPT[@]}"; then
+      continue
+    fi
+    printf '%s\n' "${message}" >> "${report_tmp}"
+  done < "${violations_tmp}"
+  stale_exemptions "${keys_tmp}" >> "${report_tmp}"
+
+  if [[ -s "${report_tmp}" ]]; then
+    cat "${report_tmp}" >&2
+    log::warn 'nameref convention audit failed — see scripts/functions/namerefs.bash'
+    exit 1
+  fi
+  exit 0
+}
+
+main "$@"

@@ -53,12 +53,15 @@ readonly BUILTIN_MARKETPLACE='claude-plugins-official'
 # @arg $4 finding_count_var name of the caller's variable to hold the number of findings
 # @stderr one warning line per finding
 # @exitcode 0 always
+# @exitcode 1 the out-parameter name collides with the nameref this helper binds
 function report_drift() {
   args::check_exactly_4_args "$@"
   local -r first_array_name="$1"
   local -r second_array_name="$2"
   local -r description="$3"
-  local -n _report_drift_finding_count="$4"
+  local -r finding_count_var="$4"
+  namerefs::assert_available "${finding_count_var}" '__report_drift_ref'
+  local -n __report_drift_ref="${finding_count_var}"
 
   local diff_tmp
   files::create_temp diff_tmp
@@ -75,7 +78,7 @@ function report_drift() {
     log::warn "${description}: ${finding}"
   done
 
-  _report_drift_finding_count="${#findings[@]}"
+  __report_drift_ref="${#findings[@]}"
 }
 
 # @description Check one Claude profile config dir for plugin and marketplace drift. Always returns
@@ -85,10 +88,13 @@ function report_drift() {
 # @arg $2 finding_count_var name of the caller's variable to hold the total finding count
 # @stderr progress and warning lines
 # @exitcode 0 always
+# @exitcode 1 the out-parameter name collides with the nameref this helper binds
 function check_profile() {
   args::check_exactly_2_args "$@"
   local -r config_dir="$1"
-  local -n _check_profile_finding_count="$2"
+  local -r finding_count_var="$2"
+  namerefs::assert_available "${finding_count_var}" '__check_profile_ref'
+  local -n __check_profile_ref="${finding_count_var}"
 
   # Scopes the profile for every claude invocation below. Re-exported on each call, so the
   # value never leaks from one profile's iteration into the next.
@@ -97,7 +103,7 @@ function check_profile() {
   local -r settings_file="${config_dir}/settings.json"
   if ! files::exists "${settings_file}"; then
     log::warn "No settings.json in ${config_dir}; cannot check for drift"
-    _check_profile_finding_count=1
+    __check_profile_ref=1
     return
   fi
 
@@ -111,14 +117,14 @@ function check_profile() {
   # shellcheck disable=SC2154 # installed_plugins_tmp assigned by files::create_temp via nameref
   if ! "${CLAUDE_BIN}" plugin list --json < '/dev/null' | jq --raw-output '.[].id' | sort > "${installed_plugins_tmp}"; then
     log::warn "Failed to list installed plugins in ${config_dir}"
-    _check_profile_finding_count=1
+    __check_profile_ref=1
     return
   fi
 
   # shellcheck disable=SC2154 # declared_plugins_tmp assigned by files::create_temp via nameref
   if ! jq --raw-output '.enabledPlugins // {} | keys[]' "${settings_file}" | sort > "${declared_plugins_tmp}"; then
     log::warn "Failed to read enabledPlugins from ${settings_file}"
-    _check_profile_finding_count=1
+    __check_profile_ref=1
     return
   fi
 
@@ -129,7 +135,7 @@ function check_profile() {
   # shellcheck disable=SC2154 # installed_marketplaces_tmp assigned by files::create_temp via nameref
   if ! "${CLAUDE_BIN}" plugin marketplace list --json < '/dev/null' | jq --raw-output '.[].name' | sort > "${installed_marketplaces_tmp}"; then
     log::warn "Failed to list registered marketplaces in ${config_dir}"
-    _check_profile_finding_count=1
+    __check_profile_ref=1
     return
   fi
 
@@ -139,7 +145,7 @@ function check_profile() {
     printf '%s\n' "${BUILTIN_MARKETPLACE}"
   } | sort > "${declared_marketplaces_tmp}"; then
     log::warn "Failed to read extraKnownMarketplaces from ${settings_file}"
-    _check_profile_finding_count=1
+    __check_profile_ref=1
     return
   fi
 
@@ -165,7 +171,7 @@ function check_profile() {
   report_drift declared_marketplaces installed_marketplaces \
     "Marketplace declared in extraKnownMarketplaces but not registered in ${config_dir}" missing_marketplaces
 
-  _check_profile_finding_count=$((undeclared_plugins + missing_plugins + undeclared_marketplaces + missing_marketplaces))
+  __check_profile_ref=$((undeclared_plugins + missing_plugins + undeclared_marketplaces + missing_marketplaces))
 }
 
 function main() {

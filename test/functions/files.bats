@@ -1700,3 +1700,16 @@ setup_files_root_helpers() {
   assert_success
   assert_line --index 0 --regexp '^0	.*/empty$'
 }
+
+@test "create_temp: the reserved out-variable nameref name is refused" {
+  run --separate-stderr files::create_temp '__files_create_temp_ref'
+  assert_failure 1
+  assert_stderr --partial "out-parameter may not be named '__files_create_temp_ref'"
+}
+
+@test "create_temp: a caller variable named _files_create_temp_var works" {
+  # _files_create_temp_var was the internal nameref name before the convention.
+  local _files_create_temp_var=''
+  files::create_temp _files_create_temp_var
+  assert [ -f "${_files_create_temp_var}" ]
+}

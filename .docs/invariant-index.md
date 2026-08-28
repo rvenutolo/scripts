@@ -38,6 +38,7 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | no tree-inspecting repo tool resolves a scan root from SCRIPTS_DIR | `check-tree-scan-root` | `governance` | `governance` |
 | every literal path a repo config file configures still names something git knows about | `check-config-paths` | `governance` | `governance` |
 | every gate script enables `inherit_errexit` so a failed command substitution cannot exit 0 | `check-inherit-errexit` | `governance` | `governance` |
+| every nameref binding uses its reserved name and guards against a caller passing it | `check-nameref-convention` | `governance` | `governance` |
 | no gate script calls a yq/jq-backed helper from a condition | `check-errexit-predicate` | `governance` | `governance` |
 | required-checks table, protect-main ruleset, and workflow jobs agree | `check-ci-job-in-summary` | `governance` | `governance` |
 | every top-level script and library function has a shdoc annotation | `check-shdoc-headers` | `check-scripts` | `check-scripts` |
