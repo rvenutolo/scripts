@@ -604,6 +604,46 @@ with a normalizer if its entries are not globs. `.github/labels.yml` prose descr
 deliberately out of scope: pinning an English sentence shape would break the moment someone rewords
 one.
 
+### Exactly one mechanism owns `core.hooksPath`
+
+`.ci/activate-githooks` points this clone's `core.hooksPath` at the tracked `.githooks` directory on
+every devShell entry. It is the **only** thing in this repo permitted to set that key, and
+`.ci/check-hooks-path-single-writer` enforces that in two rules.
+
+**Rule 1** — no in-scope file may set the key except the sanctioned writer. Scope is the gate and
+bootstrap surface: shebang-bearing executables under `.ci/` and `.githooks/`, the repo-root runners,
+and `flake.nix`. Scripts under `scripts/` are deliberately out — they are payload that acts on the
+machine, and one may legitimately configure hooks in some *other* repo, which is exactly the
+false-positive shape `check-tree-scan-root` exempts the provisioning runners for. Reads are not
+writes: `--get`, `--unset`, a bare read with no value token, and the transient
+`git -c core.hooksPath=… ` in-process override all pass, the last because it never persists.
+
+**Rule 2** — `flake.nix` may not declare a `git-hooks.nix` / `pre-commit-hooks` input. This is the
+rule that matters, and Rule 1 cannot substitute for it: that module writes the hook path from the
+**nix store**, not from tracked content, so a repo using it has *zero* tracked files naming the key
+while rewriting it on every shell entry. A scan of the tree reads perfectly clean.
+
+The sanctioned writer is a **named constant, not an exemption**, and it must still write the key —
+if `.ci/activate-githooks` stops setting it, the constant is stale and the lint fails rather than
+quietly permitting nothing. `EXEMPT` ships empty and should stay that way, with the usual
+bidirectional staleness detection.
+
+**A gate-time check of the live `core.hooksPath` *value* would be vacuous, and this is why the lint
+scans content instead.** Every gate runs through `.ci/in-devshell`, `nix develop` runs the
+`shellHook`, and the `shellHook` runs `activate-githooks` — so the value is repaired *before* the
+wrapped command starts. Verified by poisoning the key and watching `./.ci/in-devshell true` repoint
+it in the same breath. `.githooks/pre-push` is worse than vacuous: it executes only when the hook
+path is already correct, so a check inside it can never observe the failure it exists to catch.
+Do not add a live-value assertion to `run-all-checks`; it would read green forever.
+
+**Diagnostic signature.** A `core.hooksPath` holding an *absolute* path to a `.git/hooks` directory
+means a `git-hooks.nix` devShell activated somewhere with a work-tree/git-dir mismatch. Its
+installation script computes `git rev-parse --path-format=absolute --git-common-dir` and then strips
+the work-tree prefix; from a **linked worktree**, or under a **leaked absolute `GIT_DIR`**, the strip
+fails and the absolute path is written verbatim into the shared config. The value is a literal
+string that is never re-resolved, so it survives the repo being moved and then names a path that no
+longer exists. Same class as the fixture-escape hazard the `test/` hardening exists for.
+
 ### The docs build has one definition
 
 `.ci/build-site` runs `.ci/build-docs` and then `mkdocs build --strict`, and every caller goes

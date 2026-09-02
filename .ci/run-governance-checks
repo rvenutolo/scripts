@@ -68,6 +68,7 @@ function main() {
     check-nameref-convention \
     check-inherit-errexit \
     check-errexit-predicate \
+    check-hooks-path-single-writer \
     check-ci-job-in-summary \
     check-orphan-invariants \
     check-justfile-invariants \

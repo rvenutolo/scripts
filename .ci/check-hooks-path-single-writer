@@ -1,0 +1,257 @@
+#!/usr/bin/env bash
+
+# @description Assert exactly one mechanism owns this clone's git hook path.
+#              Rule 1: no in-scope file may set core.hooksPath except the
+#              sanctioned writer, .ci/activate-githooks. Rule 2: flake.nix may
+#              not declare a git-hooks.nix / pre-commit-hooks input, because that
+#              module's devShell installationScript rewrites core.hooksPath on
+#              every shell entry from outside the tree — a second owner that no
+#              scan of tracked content can see, resolved silently by shellHook
+#              ordering rather than by decision.
+#              Scope is the gate and bootstrap surface: shebang-bearing
+#              executables under .ci/ and .githooks/, the repo-root runners, and
+#              flake.nix. Scripts under scripts/ are deliberately out — they are
+#              payload that acts on the machine, and one may legitimately
+#              configure hooks in some other repo.
+#              Reads are not writes: --get, --unset, and the transient
+#              `-c core.hooksPath=` in-process override never persist, and a
+#              comment cannot configure anything.
+#              The sanctioned writer is a named constant rather than an
+#              exemption, and it must still write the key — if it stops, the
+#              constant is stale and this lint fails rather than quietly
+#              permitting nothing.
+# @noargs
+# @stderr One line per offending file and line, and one per stale EXEMPT entry.
+# @exitcode 0 exactly one mechanism owns the hook path.
+# @exitcode 1 a second writer, a git-hooks.nix input, or a stale constant/exemption.
+
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0.
+shopt -s inherit_errexit
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+commands::assert_executable_exists 'gawk'
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly CI_DIR="${CI_DIR_OVERRIDE:-${REPO_DIR}/.ci}"
+readonly HOOKS_DIR="${HOOKS_DIR_OVERRIDE:-${REPO_DIR}/.githooks}"
+readonly ROOT_DIR="${ROOT_DIR_OVERRIDE:-${REPO_DIR}}"
+readonly FLAKE_NIX="${FLAKE_NIX_OVERRIDE:-${REPO_DIR}/flake.nix}"
+
+# The one file allowed to set the key, repo-relative. Named here rather than
+# placed in EXEMPT because it is the invariant's subject, not an escape from it:
+# the rule is "this file and no other", so a stale name must fail loudly.
+readonly SANCTIONED_WRITER="${SANCTIONED_WRITER_OVERRIDE:-.ci/activate-githooks}"
+
+# Repo-relative paths allowed a second writer. Ships empty and should stay that
+# way: a second owner of this key is the defect, not a special case. Keys carry
+# no spaces because arrays::from_env_override splits its override on spaces.
+readonly EXEMPT=()
+
+# @description Print every line that SETS core.hooksPath, as "LINENO: TEXT".
+#              A line sets the key when it carries `config`, names the key, and
+#              follows it with a value token. Requiring `config` on the line is
+#              what keeps prose that merely names the key from reading as a
+#              write; requiring a following value is what separates a write from
+#              a bare read. Comments, --get, --unset and the transient `-c` form
+#              are skipped ahead of the match.
+#              The key is spelled core[.]hooks[P]ath throughout so this script
+#              does not flag its own source — the bracketed letter is what
+#              defeats a literal scan of .ci/, and it is load bearing.
+# @arg $1 file path to an in-scope file
+# @stdout One "LINENO: TEXT" line per setting line; nothing when the file sets nothing.
+function setting_lines() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  gawk '
+    # A comment configures nothing.
+    /^[[:space:]]*#/ { next }
+    # `git -c core.hooksPath=X cmd` overrides for one process and never persists.
+    /-c[[:space:]]+core[.]hooks[P]ath=/ { next }
+    # Reads, not writes.
+    /--get/ || /--unset/ { next }
+    # A write: a git-config invocation naming the key, followed by a value token.
+    /config/ && /core[.]hooks[P]ath[[:space:]]+[^-[:space:]]/ { printf "%d: %s\n", FNR, $0 }
+  ' "${file}"
+}
+
+# @description Print every line declaring a git-hooks.nix / pre-commit-hooks
+#              flake input, as "LINENO: TEXT". The module writes the hook path
+#              from the nix store rather than from tracked content, so declaring
+#              the input is the only in-tree evidence a second owner exists.
+# @arg $1 file path to the flake file
+# @stdout One "LINENO: TEXT" line per declaring line; nothing when the file declares none.
+function hook_module_lines() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  gawk '
+    /^[[:space:]]*#/ { next }
+    /git-hooks[.]nix/ || /pre-commit-hooks/ { printf "%d: %s\n", FNR, $0 }
+  ' "${file}"
+}
+
+# @description Print the paths of root-level entries that are shell files.
+#              Non-recursive, so it yields the repo-root runners and not the
+#              scripts nested under scripts/ or .ci/. Takes the root as an
+#              argument rather than calling shell_scripts::find_root_only, which
+#              resolves the repo root itself and so cannot be pointed at a
+#              fixture tree.
+# @arg $1 root_dir directory to scan
+# @stdout One path per line; nothing when the directory holds no shell files.
+function root_shell_files() {
+  args::check_exactly_1_arg "$@"
+  local -r root_dir="$1"
+  local entry
+  for entry in "${root_dir}"/*; do
+    if files::exists "${entry}" && shell_scripts::is_shell_file "${entry}"; then
+      printf '%s\n' "${entry}"
+    fi
+  done
+}
+
+# @description Print every file in Rule 1's scope, one path per line: the
+#              shebang-bearing executables under .ci/ and .githooks/, the
+#              repo-root runners, and flake.nix.
+# @noargs
+# @stdout File paths, one per line.
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+function collect_in_scope_files() {
+  args::check_no_args "$@"
+  if dirs::exists "${CI_DIR}"; then
+    shell_scripts::find "${CI_DIR}"
+  fi
+  if dirs::exists "${HOOKS_DIR}"; then
+    shell_scripts::find "${HOOKS_DIR}"
+  fi
+  if dirs::exists "${ROOT_DIR}"; then
+    root_shell_files "${ROOT_DIR}"
+  fi
+  if files::exists "${FLAKE_NIX}"; then
+    printf '%s\n' "${FLAKE_NIX}"
+  fi
+}
+
+# @description Collect every unsanctioned setting line across Rule 1's scope,
+#              recording which exemptions and which sanctioned writer were
+#              actually used so staleness can be judged afterwards.
+#              A producer, called plainly and never from a condition: it runs
+#              gawk, and errexit is disabled through the whole call tree of a
+#              function invoked as an `if` condition or on the left of `||`, so a
+#              gawk failure there would read as a clean scan.
+# @arg $1 findings_file path to the file collecting violation lines
+# @arg $2 seen_file path to the file collecting used EXEMPT keys
+# @arg $3 sanctioned_file path to the file collecting the sanctioned writer when it writes
+# @stdout Nothing.
+function collect_second_writers() {
+  args::check_exactly_3_args "$@"
+  local -r findings_file="$1"
+  local -r seen_file="$2"
+  local -r sanctioned_file="$3"
+  local -a exempt=()
+  arrays::from_env_override exempt EXEMPT_OVERRIDE ${EXEMPT[@]+"${EXEMPT[@]}"}
+
+  local files_tmp hits_tmp
+  files::create_temp files_tmp
+  files::create_temp hits_tmp
+  # shellcheck disable=SC2119 # no args intended; SC2120 disable on function def suppresses the pair
+  collect_in_scope_files > "${files_tmp}"
+
+  local file relative hit
+  while IFS= read -r file; do
+    strings::is_empty "${file}" && continue
+    setting_lines "${file}" > "${hits_tmp}"
+    if [[ ! -s "${hits_tmp}" ]]; then
+      continue
+    fi
+    relative="${file#"${REPO_DIR}/"}"
+    if [[ "${relative}" == "${SANCTIONED_WRITER}" ]]; then
+      printf '%s\n' "${relative}" >> "${sanctioned_file}"
+      continue
+    fi
+    if arrays::contains "${relative}" ${exempt[@]+"${exempt[@]}"}; then
+      printf '%s\n' "${relative}" >> "${seen_file}"
+      continue
+    fi
+    while IFS= read -r hit; do
+      printf 'second writer of the hook path: %s:%s\n' "${relative}" "${hit}" >> "${findings_file}"
+    done < "${hits_tmp}"
+  done < "${files_tmp}"
+}
+
+# @description Collect every git-hooks.nix / pre-commit-hooks input declared in
+#              the flake file. An absent flake file declares nothing — the
+#              fixture trees the tests drive this with need not carry one.
+#              A producer for the same reason as collect_second_writers.
+# @arg $1 findings_file path to the file collecting violation lines
+# @stdout Nothing.
+function collect_hook_module_input() {
+  args::check_exactly_1_arg "$@"
+  local -r findings_file="$1"
+  if ! files::exists "${FLAKE_NIX}"; then
+    return 0
+  fi
+  local hits_tmp
+  files::create_temp hits_tmp
+  hook_module_lines "${FLAKE_NIX}" > "${hits_tmp}"
+  if [[ ! -s "${hits_tmp}" ]]; then
+    return 0
+  fi
+  local hit
+  while IFS= read -r hit; do
+    printf 'hook-module flake input declared: %s:%s\n' "${FLAKE_NIX#"${REPO_DIR}/"}" "${hit}" >> "${findings_file}"
+  done < "${hits_tmp}"
+  printf '%s\n' \
+    '  that module rewrites the hook path on every devShell entry, from the nix' \
+    '  store rather than from tracked content. Adopting it means deciding which' \
+    '  mechanism owns hook activation, and retiring the other — the shellHook' \
+    '  runs last, so leaving both in place lets ordering decide silently. Amend' \
+    '  or remove this rule as a deliberate step of that change.' >> "${findings_file}"
+}
+
+function main() {
+  args::check_no_args "$@"
+  local findings_tmp seen_tmp sanctioned_tmp
+  files::create_temp findings_tmp
+  files::create_temp seen_tmp
+  files::create_temp sanctioned_tmp
+
+  collect_second_writers "${findings_tmp}" "${seen_tmp}" "${sanctioned_tmp}"
+  collect_hook_module_input "${findings_tmp}"
+
+  # The sanctioned writer earns its name by writing. If it stops, the constant
+  # names a file that no longer owns anything and the rule protects nothing.
+  if [[ ! -s "${sanctioned_tmp}" ]]; then
+    printf 'stale SANCTIONED_WRITER: %s sets no hook-path value\n' "${SANCTIONED_WRITER}" >> "${findings_tmp}"
+  fi
+
+  # One check covers both staleness directions: an entry naming a file that does
+  # not exist never lands in seen_tmp, and neither does one naming a file that
+  # sets nothing.
+  local -a exempt=()
+  arrays::from_env_override exempt EXEMPT_OVERRIDE ${EXEMPT[@]+"${EXEMPT[@]}"}
+  local entry
+  for entry in ${exempt[@]+"${exempt[@]}"}; do
+    if ! grep --quiet --line-regexp --fixed-strings "${entry}" "${seen_tmp}"; then
+      printf 'stale EXEMPT entry: %s sets no hook-path value\n' "${entry}" >> "${findings_tmp}"
+    fi
+  done
+
+  if [[ ! -s "${findings_tmp}" ]]; then
+    exit 0
+  fi
+  local finding
+  while IFS= read -r finding; do
+    printf '%s\n' "${finding}" >&2
+  done < "${findings_tmp}"
+  log::warn 'hook-path ownership audit failed — exactly one mechanism may own the hook path.'
+  exit 1
+}
+
+main "$@"
