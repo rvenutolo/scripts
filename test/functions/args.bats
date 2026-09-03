@@ -369,6 +369,32 @@ assert_died_expecting() {
   assert_output --partial 'Expected no arguments'
 }
 
+# ---------- stdout_is_tty ----------
+
+@test "stdout_is_tty: false when stdout is captured by run" {
+  run args::stdout_is_tty
+  assert_failure
+}
+
+@test "stdout_is_tty: false when stdout is a file" {
+  run bash -c 'source "${SCRIPTS_DIR}/functions/args.bash"; args::stdout_is_tty > "$1"' _ "${BATS_TEST_TMPDIR}/out"
+  assert_failure
+}
+
+@test "stdout_is_tty: true when stdout is a pseudo-terminal" {
+  # util-linux script allocates a pty for the child command; its exit status is
+  # forwarded by --return.
+  run script --quiet --return --command \
+    'source "${SCRIPTS_DIR}/functions/args.bash"; args::stdout_is_tty' '/dev/null'
+  assert_success
+}
+
+@test "stdout_is_tty: dies with args" {
+  run args::stdout_is_tty 'extra'
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
 # ---------- print_help ----------
 
 write_fixture() {
