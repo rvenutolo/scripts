@@ -13,8 +13,18 @@
 #              new one; a caller's own --model / --effort still wins, being last.
 #              Prepends scripts/shims/claude/ to PATH so the Claude process tree
 #              — and nothing else — resolves pkill/killall to the guarding shims.
+#              An interactive session launched from a plain terminal is placed
+#              in a herdr workspace instead: the herdr server is started if
+#              needed, a workspace is created for PWD, `claude <args>` is typed
+#              into its root pane (where it resolves to this wrapper again, now
+#              inside herdr, and passes straight through), and the terminal
+#              attaches to the session. Bypassed — plain exec as before — when
+#              already inside herdr (HERDR_ENV set), when CLAUDE_NO_HERDR is
+#              set, when stdin or stdout is not a terminal, when herdr is not
+#              installed, or when any argument names a non-session shape (see
+#              HERDR_BYPASS_ARGS).
 # @arg $@ args Optional arguments forwarded verbatim to claude.
-# @exitcode 1 real claude executable not found
+# @exitcode 1 real claude executable not found, or the herdr server did not start
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -30,42 +40,163 @@ log::enable_err_trap
 readonly DEFAULT_MODEL='opus[1m]'
 readonly DEFAULT_EFFORT='high'
 
-CLAUDE_CONFIG_DIR="$(claude::config_dir)"
-export CLAUDE_CONFIG_DIR
+# Any argument equal to one of these marks the invocation as something other
+# than an interactive session, so it bypasses herdr: print mode, help/version,
+# a background session, or a claude subcommand. Exact match against every
+# argument — a prompt is one argument, so a word inside it never matches.
+readonly -a HERDR_BYPASS_ARGS=(
+  '-p' '--print' '-h' '--help' '-v' '--version' '--bg'
+  'agents' 'attach' 'auth' 'auto-mode' 'doctor' 'gateway' 'import' 'install'
+  'logs' 'mcp' 'plugin' 'plugins' 'project' 'respawn' 'rm' 'setup-token' 'stop'
+  'kill' 'ultrareview' 'update'
+)
 
-# Resolve the real binary instead of path::remove, so the exec'd session inherits
-# the caller's PATH unmodified except for the shim prepend below. Resolution
-# happens BEFORE the prepend so a `claude` inside the shim dir can never win.
-claude_bin="$(commands::executable_path claude)" || log::die 'claude executable not found'
+# How long to wait for a freshly started herdr server to answer. A real start
+# takes well under a second; the deadline only bounds a broken install.
+readonly HERDR_START_TIMEOUT_SECONDS=10
+readonly HERDR_START_POLL_SECONDS=1
 
-# Claude-only PATH shims (pkill/killall guards) — see scripts/shims/claude/.
-# Prepended here, not in a profile, so only the Claude process tree (Bash tool,
-# subagents, `bash script.sh`) sees them. Warn-and-continue when missing: a
-# missing guard must be loud, never a broken claude. CLAUDE_SHIMS_DIR_OVERRIDE is
-# a test seam on the derived path; production leaves it unset.
-claude_shims="${CLAUDE_SHIMS_DIR_OVERRIDE:-${SCRIPTS_DIR}/shims/claude}"
-if dirs::exists "${claude_shims}"; then
-  claude_shims="$(cd -P -- "${claude_shims}" && pwd -P)"
-  path::prepend "${claude_shims}"
-  export PATH
-else
-  log::warn "claude shims dir missing: ${claude_shims} (pkill/killall guard inactive)"
-fi
+# @description True when any argument is in HERDR_BYPASS_ARGS.
+# @arg $@ args the caller's arguments
+# @exitcode 0 an argument matched
+# @exitcode 1 none matched
+function has_bypass_arg() {
+  local arg
+  # Explicit returns rather than a trailing test: a search loop cannot be
+  # expressed as a single test.
+  for arg in "$@"; do
+    if arrays::contains "${arg}" "${HERDR_BYPASS_ARGS[@]}"; then
+      return 0
+    fi
+  done
+  return 1
+}
 
-# Pin the default model and effort. /model and /effort persist their choice into
-# settings.json, so a one-off switch in one session silently becomes every later
-# session's default. The flags override settings.json at launch, so a session
-# always starts here regardless of what another session wrote.
-#
-# Flags rather than env vars, deliberately. CLAUDE_CODE_EFFORT_LEVEL also pins
-# effort at launch, but as a hard session lock: an in-session /effort answers
-# "Not applied: ..." and only records the choice for later. A flag's pin is
-# released by /effort or /model in an interactive terminal, and setting a default
-# should not cost mid-session tuning. ANTHROPIC_MODEL does not lock /model, but
-# the flag beats it anyway, so using both would be a second way to say the same
-# thing with a different override story.
-#
-# Placed before "$@" because argument parsing is last-wins: a caller's own
-# --model / --effort overrides these. An already-set CLAUDE_CODE_EFFORT_LEVEL
-# still wins over both, being the stronger mechanism.
-exec "${claude_bin}" --model "${DEFAULT_MODEL}" --effort "${DEFAULT_EFFORT}" "$@"
+# @description True when this launch belongs in a herdr workspace: not already
+#   inside herdr, not opted out, both stdin and stdout are terminals, herdr is
+#   installed, and no argument names a non-session shape.
+# @arg $@ args the caller's arguments
+# @exitcode 0 launch inside herdr
+# @exitcode 1 exec claude directly
+function should_use_herdr() {
+  # HERDR_ENV and CLAUDE_NO_HERDR are legitimately unset: unset means "not in
+  # herdr" / "no opt-out", so ${VAR:-} is not a defensive default here.
+  strings::is_empty "${HERDR_ENV:-}" \
+    && strings::is_empty "${CLAUDE_NO_HERDR:-}" \
+    && ! args::stdin_exists \
+    && args::stdout_is_tty \
+    && commands::executable_exists herdr \
+    && ! has_bypass_arg "$@"
+}
+
+# @description True when the herdr server answers on its socket.
+# @noargs
+# @exitcode 0 running
+# @exitcode 1 not running
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+function herdr_server_running() {
+  args::check_no_args "$@"
+  [[ "$(herdr status server)" == *'status: running'* ]]
+}
+
+# @description Start the herdr server if it is not running and wait until it
+#   answers.
+# @noargs
+# @exitcode 1 the server did not answer within HERDR_START_TIMEOUT_SECONDS
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+function ensure_herdr_server() {
+  args::check_no_args "$@"
+  # shellcheck disable=SC2119 # no args intended; SC2120 disable on the definition suppresses the pair
+  if herdr_server_running; then
+    return
+  fi
+  log::log 'Starting herdr server'
+  # setsid --fork, not `cmd &`: setsid forks the server into its own session
+  # and returns at once, so the server outlives this process and no job is
+  # left unwaited. Panes inherit the server's environment, so CLAUDE_CONFIG_DIR
+  # is unset for it: the profile exported by this launch must not become every
+  # later pane's profile — each workspace receives its own via --env instead.
+  env --unset=CLAUDE_CONFIG_DIR setsid --fork herdr server > '/dev/null' 2>&1
+  # Subshell so the poll's own log::die (which names the polled function) is
+  # replaced by a message that says what the user can act on.
+  (retry::until_deadline "${HERDR_START_TIMEOUT_SECONDS}" "${HERDR_START_POLL_SECONDS}" herdr_server_running) \
+    || log::die 'herdr server did not start'
+}
+
+# @description Create a herdr workspace for PWD, type `claude <args>` into its
+#   root pane, and attach this terminal to the session. Does not return.
+# @arg $@ args the caller's arguments, forwarded to the claude typed into the pane
+function launch_in_herdr() {
+  # shellcheck disable=SC2119 # no args intended; SC2120 disable on the definition suppresses the pair
+  ensure_herdr_server
+  local workspace_json pane_id
+  # --env carries the profile this launch derived; the pane's own wrapper
+  # honors an already-set CLAUDE_CONFIG_DIR verbatim. The model and effort pins
+  # are deliberately not forwarded: that inner wrapper adds them.
+  workspace_json="$(herdr workspace create --cwd "${PWD}" --label "${PWD##*/}" \
+    --env "CLAUDE_CONFIG_DIR=${CLAUDE_CONFIG_DIR}" --focus)"
+  pane_id="$(jq --raw-output '.result.root_pane.pane_id' <<< "${workspace_json}")"
+  # herdr joins the command words with spaces and the pane's shell re-parses
+  # the line, so each argument is shell-quoted first or `'a b'` would arrive as
+  # two arguments. ${arg@Q} emits single-quoted (or $'…' for control characters)
+  # forms that bash reads back verbatim.
+  local -a quoted_args=()
+  local arg
+  for arg in "$@"; do
+    quoted_args+=("${arg@Q}")
+  done
+  herdr pane run "${pane_id}" claude "${quoted_args[@]}"
+  exec herdr
+}
+
+function main() {
+  CLAUDE_CONFIG_DIR="$(claude::config_dir)"
+  export CLAUDE_CONFIG_DIR
+
+  # Decided before the shim prepend below: the herdr server and every ordinary
+  # pane it spawns must see the real pkill/killall, and the claude typed into
+  # the workspace pane runs this wrapper again, which prepends the shims there.
+  if should_use_herdr "$@"; then
+    launch_in_herdr "$@"
+  fi
+
+  # Resolve the real binary instead of path::remove, so the exec'd session inherits
+  # the caller's PATH unmodified except for the shim prepend below. Resolution
+  # happens BEFORE the prepend so a `claude` inside the shim dir can never win.
+  local claude_bin
+  claude_bin="$(commands::executable_path claude)" || log::die 'claude executable not found'
+
+  # Claude-only PATH shims (pkill/killall guards) — see scripts/shims/claude/.
+  # Prepended here, not in a profile, so only the Claude process tree (Bash tool,
+  # subagents, `bash script.sh`) sees them. Warn-and-continue when missing: a
+  # missing guard must be loud, never a broken claude. CLAUDE_SHIMS_DIR_OVERRIDE is
+  # a test seam on the derived path; production leaves it unset.
+  local claude_shims="${CLAUDE_SHIMS_DIR_OVERRIDE:-${SCRIPTS_DIR}/shims/claude}"
+  if dirs::exists "${claude_shims}"; then
+    claude_shims="$(cd -P -- "${claude_shims}" && pwd -P)"
+    path::prepend "${claude_shims}"
+    export PATH
+  else
+    log::warn "claude shims dir missing: ${claude_shims} (pkill/killall guard inactive)"
+  fi
+
+  # Pin the default model and effort. /model and /effort persist their choice into
+  # settings.json, so a one-off switch in one session silently becomes every later
+  # session's default. The flags override settings.json at launch, so a session
+  # always starts here regardless of what another session wrote.
+  #
+  # Flags rather than env vars, deliberately. CLAUDE_CODE_EFFORT_LEVEL also pins
+  # effort at launch, but as a hard session lock: an in-session /effort answers
+  # "Not applied: ..." and only records the choice for later. A flag's pin is
+  # released by /effort or /model in an interactive terminal, and setting a default
+  # should not cost mid-session tuning. ANTHROPIC_MODEL does not lock /model, but
+  # the flag beats it anyway, so using both would be a second way to say the same
+  # thing with a different override story.
+  #
+  # Placed before "$@" because argument parsing is last-wins: a caller's own
+  # --model / --effort overrides these. An already-set CLAUDE_CODE_EFFORT_LEVEL
+  # still wins over both, being the stronger mechanism.
+  exec "${claude_bin}" --model "${DEFAULT_MODEL}" --effort "${DEFAULT_EFFORT}" "$@"
+}
+
+main "$@"
