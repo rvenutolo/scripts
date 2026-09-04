@@ -156,6 +156,16 @@ function args::stdin_exists() {
   ! [[ -t 0 ]]
 }
 
+# @description Return true if stdout is a terminal (as opposed to a pipe or file).
+# shellcheck disable=SC2120 # called with no args by callers, but shellcheck can't see all call sites
+# @noargs
+# @exitcode 0 if true
+# @exitcode 1 if false
+function args::stdout_is_tty() {
+  args::check_no_args "$@"
+  [[ -t 1 ]]
+}
+
 # @description Print help text derived from the file-level shdoc header of the caller (or the given script path).
 #   Parses comment lines between the shebang and the first non-comment line for @description, @arg, @noargs,
 #   @stdout, @stderr, @exitcode, and @example tags. Multi-line continuations of @description and @example
