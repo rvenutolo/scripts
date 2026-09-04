@@ -14,7 +14,7 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | every workflow sets empty top-level permissions and per-job permissions blocks | `check-min-permissions` | `governance` | `governance` |
 | every workflow job begins with a SHA-pinned harden-runner step | `check-harden-runner-first` | `governance` | `governance` |
 | every workflow job blocks egress with an explicit allowed-endpoints list | `check-harden-runner-egress` | `governance` | `governance` |
-| every non-exempt workflow job disables sudo on its harden-runner step | `check-harden-runner-disable-sudo` | `governance` | `governance` |
+| every non-exempt workflow job disables sudo and containers, no job disables file monitoring, and no job uses the deprecated disable-sudo input | `check-harden-runner-disable-sudo-and-containers` | `governance` | `governance` |
 | every host linked from markdown is in the Links workflow allowed-endpoints | `check-links-allowed-endpoints` | `governance` | `governance` |
 | no PR-triggered workflow references secrets other than GITHUB_TOKEN | `check-pr-workflows-no-secrets` | `governance` | `governance` |
 | every codecov-action step keeps fail_ci_if_error true and no validation bypass | `check-codecov-strict` | `governance` | `governance` |

@@ -1,20 +1,32 @@
 #!/usr/bin/env bash
 
-# @description Assert every job in every GitHub Actions workflow sets
-#              `disable-sudo: true` on its harden-runner step. The input strips
-#              the runner user's sudo access, so a compromised step cannot
-#              escalate to root and rewrite the runner's own tooling. Jobs that
-#              install Nix cannot take it: `DeterminateSystems/nix-installer-action`
-#              writes to `/nix` and `/var/lib/determinate` as root and fails with
-#              "sudo: a password is required". Those jobs are enumerated in
-#              EXEMPT rather than the whole Nix category being skipped, and each
-#              EXEMPT entry must name a real job that is genuinely not disabling
-#              sudo — a stale entry fails the lint rather than silently
-#              disarming it.
+# @description Assert every job in every GitHub Actions workflow carries this
+#              repo's harden-runner hardening posture, in three rules.
+#              Rule 1: every job sets `disable-sudo-and-containers: true`, which
+#              strips the runner account's sudo access and its container runtime,
+#              so a compromised step can neither escalate to root and rewrite the
+#              runner's own tooling nor escape into a container it starts. Jobs
+#              that install Nix cannot take it:
+#              `DeterminateSystems/nix-installer-action` writes to `/nix` and
+#              `/var/lib/determinate` as root and fails with "sudo: a password is
+#              required". A job running a container-based action cannot take it
+#              either. Both kinds are enumerated in EXEMPT with a per-entry
+#              reason rather than whole categories being skipped, and an entry
+#              that names no job, or names one that does set the key, fails the
+#              lint instead of silently disarming it.
+#              Rule 2: no job sets `disable-file-monitoring: true`. That input
+#              only ever reduces what the agent observes, so there is no
+#              legitimate reason to take it and the rule carries no exemptions.
+#              Rule 3: no job sets the deprecated `disable-sudo` input, at any
+#              value. Upstream marks it superseded by
+#              `disable-sudo-and-containers`; without this rule a workflow copied
+#              from an older revision carries both keys, which coexist with no
+#              error and no indication of which one is in force.
 # @noargs
 # @stderr One line per violation, plus a final count.
-# @exitcode 0 every non-exempt job sets disable-sudo: true.
-# @exitcode 1 one or more jobs do not, or an EXEMPT entry is stale.
+# @exitcode 0 every job satisfies all three rules.
+# @exitcode 1 a rule is violated, an EXEMPT entry is stale, or the workflows
+#             directory is absent.
 
 set -Eeuo pipefail
 # Without this, errexit is off inside every $(...) subshell, so a helper called
@@ -33,14 +45,9 @@ REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
 readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}"
 
-# Jobs exempt from the disable-sudo mandate, as `<workflow-file>:<job-id>`.
-# Keyed per job rather than per file so a multi-job workflow cannot be exempted
-# wholesale by accident. Every entry below is a job that runs
-# `./.github/actions/setup`, which invokes DeterminateSystems/nix-installer-action;
-# that action needs root and fails outright under disable-sudo. Verified
-# empirically on run 31288422292, where the `governance` job died at
-# `/usr/bin/sudo mkdir -p /var/lib/determinate` with "sudo: a password is
-# required".
+# Jobs exempt from Rule 1, as `<workflow-file>:<job-id>`. Keyed per job rather
+# than per file so a multi-job workflow cannot be exempted wholesale by accident.
+# Rules 2 and 3 have no exemption array and apply to these jobs as well.
 readonly EXEMPT=(
   'ci.yml:check-scripts'                                  # nix-installer-action needs root to write /nix
   'ci.yml:bats'                                           # nix-installer-action needs root to write /nix
@@ -56,11 +63,18 @@ readonly EXEMPT=(
 )
 
 # @description Print the harden-runner `with:` value of the given key for one
-#              job, or the empty string when the job has no harden-runner step.
+#              job, as a string, or the empty string when the key is absent or
+#              the job has no harden-runner step.
+#              The lookup selects the entry by key rather than indexing and
+#              falling back with `//`. That operator treats `false` as absent
+#              exactly like `null`, so a key set to `false` would read back as
+#              the empty string and Rule 3 — which fires on the key being
+#              present at all — would miss it. yq v4 does not lex `if`/`has`
+#              here, so the entry select is what distinguishes the two.
 # @arg $1 file path to a workflow YAML
 # @arg $2 job the job key
 # @arg $3 key the `with:` key to read
-# @stdout The value, or the empty string.
+# @stdout The value as a string, or the empty string.
 function harden_runner_with() {
   args::check_exactly_3_args "$@"
   local -r file="$1"
@@ -71,7 +85,8 @@ function harden_runner_with() {
   job="${job_name}" key="${with_key}" yq eval '
     [.jobs[strenv(job)].steps[]
       | select((.uses // "") | test("^step-security/harden-runner@"))]
-    | .[0].with[strenv(key)] // ""
+    | (.[0].with // {})
+    | to_entries | .[] | select(.key == strenv(key)) | .value | tostring
   ' "${file}"
 }
 
@@ -100,9 +115,10 @@ function harden_runner_count() {
 
 function main() {
   args::check_no_args "$@"
-  if ! dirs::exists "${WORKFLOWS_DIR}"; then
-    exit 0
-  fi
+  # Not `if ! dirs::exists ...; then exit 0; fi`: an absent scan target is a
+  # misdirected scan, and reporting it as a clean pass is indistinguishable from
+  # having checked every workflow and found them all fine.
+  dirs::assert_exists "${WORKFLOWS_DIR}"
 
   local -a exempt_entries=()
   arrays::from_env_override exempt_entries EXEMPT_OVERRIDE "${EXEMPT[@]}"
@@ -114,7 +130,7 @@ function main() {
   find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
 
   local total=0
-  local file name job entry hr_count disable_sudo
+  local file name job entry hr_count hardened file_monitoring deprecated
   while IFS= read -r file; do
     strings::is_empty "${file}" && continue
     name="$(basename "${file}")"
@@ -133,17 +149,35 @@ function main() {
         total=$((total + 1))
         continue
       fi
-      disable_sudo="$(harden_runner_with "${file}" "${job}" 'disable-sudo')"
+
+      # Rules 2 and 3 run before the Rule 1 exemption check, and deliberately do
+      # not consult it: EXEMPT excuses a job from disabling sudo and containers,
+      # never from the other two rules.
+      file_monitoring="$(harden_runner_with "${file}" "${job}" 'disable-file-monitoring')"
+      if [[ "${file_monitoring}" == 'true' ]]; then
+        printf '%s: job %q sets disable-file-monitoring true, which only reduces monitoring\n' \
+          "${name}" "${job}" >&2
+        total=$((total + 1))
+      fi
+
+      deprecated="$(harden_runner_with "${file}" "${job}" 'disable-sudo')"
+      if strings::is_not_empty "${deprecated}"; then
+        printf '%s: job %q sets the deprecated disable-sudo input, use disable-sudo-and-containers\n' \
+          "${name}" "${job}" >&2
+        total=$((total + 1))
+      fi
+
+      hardened="$(harden_runner_with "${file}" "${job}" 'disable-sudo-and-containers')"
       if arrays::contains "${entry}" "${exempt_entries[@]}"; then
         printf '%s\n' "${entry}" >> "${seen_tmp}"
-        if [[ "${disable_sudo}" == 'true' ]]; then
-          printf 'stale EXEMPT entry: %s already sets disable-sudo: true\n' "${entry}" >&2
+        if [[ "${hardened}" == 'true' ]]; then
+          printf 'stale EXEMPT entry: %s already sets disable-sudo-and-containers true\n' "${entry}" >&2
           total=$((total + 1))
         fi
         continue
       fi
-      if [[ "${disable_sudo}" != 'true' ]]; then
-        printf '%s: job %q sets disable-sudo %q, want true\n' "${name}" "${job}" "${disable_sudo}" >&2
+      if [[ "${hardened}" != 'true' ]]; then
+        printf '%s: job %q sets disable-sudo-and-containers %q, want true\n' "${name}" "${job}" "${hardened}" >&2
         total=$((total + 1))
       fi
     done < "${jobs_tmp}"
@@ -158,7 +192,7 @@ function main() {
   done
 
   if ((total > 0)); then
-    printf '%d job(s) not disabling sudo\n' "${total}" >&2
+    printf '%d harden-runner hardening violation(s)\n' "${total}" >&2
     exit 1
   fi
   exit 0
