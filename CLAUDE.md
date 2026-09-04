@@ -1430,17 +1430,42 @@ harden-runner v2.21.0 declares twelve inputs. Three govern hardening beyond the 
 this repo's posture on each is fixed:
 
 - **`disable-sudo-and-containers: true` is mandated**, enforced by
-  `.ci/check-harden-runner-disable-sudo-and-containers`. It strips both the runner account's sudo
-  access and its container runtime. Its `EXEMPT` array holds the eleven Nix jobs — those run
-  `./.github/actions/setup`, which invokes `DeterminateSystems/nix-installer-action`; that action
-  writes `/nix` and `/var/lib/determinate` as root and dies with "sudo: a password is required" —
-  plus any job whose action is container-based.
+  `.ci/check-harden-runner-disable-sudo-and-containers`. **It does not merely deny container
+  access — it removes the runtime**, running `apt-get purge -y docker-ce docker-ce-cli containerd.io` and `rm -rf /var/lib/docker` in the Pre step. That is stronger than the input's
+  name suggests, and it is what makes the job tiers below necessary.
 
-- **`disable-sudo` is retired.** Upstream deprecated it in favour of the superset above: *"This
-  parameter will be deprecated in the future. Please use disable-sudo-and-containers instead."*
-  The same lint's Rule 3 forbids the key outright. That rule is not decoration — the two inputs
-  coexist happily, so a workflow copied from an older revision would carry both with no error and
-  no indication which was in force.
+- **There are three tiers, and the lint carries two arrays**, because the tiers demand
+  incompatible configurations and a single array would have to collapse two of them:
+
+  | Tier                       | Jobs                                           | Configuration                       |
+  | -------------------------- | ---------------------------------------------- | ----------------------------------- |
+  | No sudo hardening possible | the eleven Nix jobs, in `EXEMPT`               | neither key                         |
+  | Sudo but not containers    | container-runtime jobs, in `CONTAINERS_EXEMPT` | `disable-sudo: true`                |
+  | Both                       | everything else                                | `disable-sudo-and-containers: true` |
+
+  Nix jobs run `./.github/actions/setup`, which invokes
+  `DeterminateSystems/nix-installer-action`; it writes `/nix` and `/var/lib/determinate` as root
+  and dies with "sudo: a password is required". `CONTAINERS_EXEMPT` holds `ci.yml:commitlint`
+  (`wagoid/commitlint-github-action` is `using: docker`) and `zizmor.yml:zizmor`
+  (`zizmorcore/zizmor-action` is a *composite* whose `action.sh` shells out to docker — **composite
+  does not imply container-free**; that workflow's own `ghcr.io` allowlist entry is the tell).
+
+  An entry appearing in both arrays is rejected before any job is examined. Without that check the
+  contradiction would be resolved by whichever lookup ran first, silently.
+
+- **`disable-sudo` is retired everywhere except `CONTAINERS_EXEMPT`.** Upstream deprecated it in
+  favour of the superset: *"This parameter will be deprecated in the future. Please use
+  disable-sudo-and-containers instead."* Rule 3 forbids the key on every other job. That rule is
+  not decoration — the two inputs coexist happily, so a workflow copied from an older revision
+  would carry both with no error and no indication which was in force. The carve-out is kept
+  narrow in both directions: a `CONTAINERS_EXEMPT` job must set the deprecated key to `true`
+  (not merely carry it), and must not set the superset at *any* value.
+
+  **This carve-out is on a clock, and the clock is not guarded.** When upstream removes the input,
+  Actions reports an unknown input as a *warning annotation* — the job stays green and runs with
+  sudo enabled. `.github/renovate.json` automerges `github-actions` bumps on a green build, so
+  that lands on `main` unreviewed. Retiring an entry means moving the job off Docker (a pinned
+  release binary, an `npx` invocation), never widening the array.
 
 - **`disable-file-monitoring` stays `false`**, held there by the same lint's Rule 2 rather than
   written into any workflow. The input only ever reduces what the agent observes, so the rule

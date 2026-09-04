@@ -8,6 +8,7 @@ setup() {
   # the synthetic corpus below — every entry would read as stale. Set-but-empty
   # clears it; tests that need an exemption re-set it on the command itself.
   export EXEMPT_OVERRIDE=''
+  export CONTAINERS_EXEMPT_OVERRIDE=''
 }
 
 # The check derives its own repo root via `git rev-parse --show-toplevel`.
@@ -197,4 +198,85 @@ EOF
   WORKFLOWS_DIR_OVERRIDE="${WF}" EXEMPT_OVERRIDE='a.yml:build' run_check "${CHECK}"
   assert_failure
   assert_output --partial 'deprecated disable-sudo'
+}
+
+# --- CONTAINERS_EXEMPT: jobs that need a container runtime -------------------
+# The superset input does not merely deny container access, it purges the
+# runtime. A job that needs one therefore takes the deprecated disable-sudo,
+# which is the strongest hardening left to it, and is the only kind of job the
+# deprecated key is permitted on.
+
+@test "containers-exempt: passes when the job sets disable-sudo true" {
+  write_job 'a.yml' 'build' 'disable-sudo:true'
+  WORKFLOWS_DIR_OVERRIDE="${WF}" CONTAINERS_EXEMPT_OVERRIDE='a.yml:build' run_check "${CHECK}"
+  assert_success
+}
+
+@test "containers-exempt: fails when the job sets neither key" {
+  write_job 'a.yml' 'build'
+  WORKFLOWS_DIR_OVERRIDE="${WF}" CONTAINERS_EXEMPT_OVERRIDE='a.yml:build' run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'must set disable-sudo true'
+}
+
+# The key without the hardening. Testing for presence rather than for the value
+# would let this through.
+@test "containers-exempt: fails when the job sets disable-sudo false" {
+  write_job 'a.yml' 'build' 'disable-sudo:false'
+  WORKFLOWS_DIR_OVERRIDE="${WF}" CONTAINERS_EXEMPT_OVERRIDE='a.yml:build' run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'must set disable-sudo true'
+}
+
+@test "containers-exempt: fails when the job also sets the superset" {
+  write_job 'a.yml' 'build' 'disable-sudo:true' 'disable-sudo-and-containers:true'
+  WORKFLOWS_DIR_OVERRIDE="${WF}" CONTAINERS_EXEMPT_OVERRIDE='a.yml:build' run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'stale CONTAINERS_EXEMPT entry'
+}
+
+# Presence, not value: the superset at false alongside the deprecated key is the
+# coexistence the deprecation rule exists to prevent, and a job that can set the
+# superset at all does not belong in this array.
+@test "containers-exempt: fails when the job sets the superset false" {
+  write_job 'a.yml' 'build' 'disable-sudo:true' 'disable-sudo-and-containers:false'
+  WORKFLOWS_DIR_OVERRIDE="${WF}" CONTAINERS_EXEMPT_OVERRIDE='a.yml:build' run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'stale CONTAINERS_EXEMPT entry'
+}
+
+@test "containers-exempt: fails when the entry names a job that does not exist" {
+  write_job 'a.yml' 'build' 'disable-sudo-and-containers:true'
+  WORKFLOWS_DIR_OVERRIDE="${WF}" CONTAINERS_EXEMPT_OVERRIDE='a.yml:nope' run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'stale CONTAINERS_EXEMPT entry: a.yml:nope matches no job'
+}
+
+# Unlike the EXEMPT arm, a missing harden-runner step is not tolerated here: the
+# entry asserts the job takes a specific input, which it cannot do without one.
+# Reported once, as the missing step, not also as a stale entry.
+@test "containers-exempt: fails when the job has no harden-runner step" {
+  printf 'jobs:\n  build:\n    steps:\n      - uses: actions/checkout@v4\n' > "${WF}/a.yml"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" CONTAINERS_EXEMPT_OVERRIDE='a.yml:build' run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'no harden-runner step'
+  refute_output --partial 'matches no job'
+}
+
+@test "rule 2 applies to a containers-exempt job" {
+  write_job 'a.yml' 'build' 'disable-sudo:true' 'disable-file-monitoring:true'
+  WORKFLOWS_DIR_OVERRIDE="${WF}" CONTAINERS_EXEMPT_OVERRIDE='a.yml:build' run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'disable-file-monitoring'
+}
+
+# The two arrays demand incompatible configurations — neither key versus the
+# deprecated key — so an entry in both would otherwise be resolved by whichever
+# lookup ran first, silently.
+@test "an entry in both arrays is rejected before any job is examined" {
+  write_job 'a.yml' 'build' 'disable-sudo:true'
+  WORKFLOWS_DIR_OVERRIDE="${WF}" EXEMPT_OVERRIDE='a.yml:build' \
+    CONTAINERS_EXEMPT_OVERRIDE='a.yml:build' run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'appears in both EXEMPT and CONTAINERS_EXEMPT'
 }
