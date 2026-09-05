@@ -8,12 +8,6 @@ setup() {
   # the synthetic corpus below — every entry would read as stale. Set-but-empty
   # clears it; tests that need an exemption re-set it on the command itself.
   export EXEMPT_OVERRIDE=''
-  export CONTAINERS_EXEMPT_OVERRIDE=''
-  # Rule 4 pins the harden-runner ref the containers tier was validated against.
-  # The array and the ref travel together — either one alone is a violation — so
-  # both start empty here, and a test that sets one sets the other.
-  export CONTAINERS_EXEMPT_HARDEN_RUNNER_REF_OVERRIDE=''
-  HR_REF="${HR#*@}"
 }
 
 # The check derives its own repo root via `git rev-parse --show-toplevel`.
@@ -40,15 +34,6 @@ write_job() {
       printf '          %s: %s\n' "${pair%%:*}" "${pair#*:}"
     done
   } > "${WF}/${file}"
-}
-
-# run_containers_check <entries> — run the check with the containers tier
-# configured: the CONTAINERS_EXEMPT entries plus the ref the fixture's
-# harden-runner step is pinned at, which Rule 4 requires alongside them.
-run_containers_check() {
-  CONTAINERS_EXEMPT_OVERRIDE="$1" \
-    CONTAINERS_EXEMPT_HARDEN_RUNNER_REF_OVERRIDE="${HR_REF}" \
-    WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
 }
 
 @test "passes when every job sets disable-sudo-and-containers: true" {
@@ -214,159 +199,12 @@ EOF
   assert_output --partial 'deprecated disable-sudo'
 }
 
-# --- CONTAINERS_EXEMPT: jobs that need a container runtime -------------------
-# The superset input does not merely deny container access, it purges the
-# runtime. A job that needs one therefore takes the deprecated disable-sudo,
-# which is the strongest hardening left to it, and is the only kind of job the
-# deprecated key is permitted on.
-
-@test "containers-exempt: passes when the job sets disable-sudo true" {
+# Rule 3 carries no exemption array in either direction: the deprecated key is
+# rejected on every job, whichever tier it sits in, so there is no configuration
+# in which a workflow can take it and still pass.
+@test "rule 3: no configuration permits the deprecated key" {
   write_job 'a.yml' 'build' 'disable-sudo:true'
-  run_containers_check 'a.yml:build'
-  assert_success
-}
-
-@test "containers-exempt: fails when the job sets neither key" {
-  write_job 'a.yml' 'build'
-  run_containers_check 'a.yml:build'
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
   assert_failure
-  assert_output --partial 'must set disable-sudo true'
-}
-
-# The key without the hardening. Testing for presence rather than for the value
-# would let this through.
-@test "containers-exempt: fails when the job sets disable-sudo false" {
-  write_job 'a.yml' 'build' 'disable-sudo:false'
-  run_containers_check 'a.yml:build'
-  assert_failure
-  assert_output --partial 'must set disable-sudo true'
-}
-
-@test "containers-exempt: fails when the job also sets the superset" {
-  write_job 'a.yml' 'build' 'disable-sudo:true' 'disable-sudo-and-containers:true'
-  run_containers_check 'a.yml:build'
-  assert_failure
-  assert_output --partial 'stale CONTAINERS_EXEMPT entry'
-}
-
-# Presence, not value: the superset at false alongside the deprecated key is the
-# coexistence the deprecation rule exists to prevent, and a job that can set the
-# superset at all does not belong in this array.
-@test "containers-exempt: fails when the job sets the superset false" {
-  write_job 'a.yml' 'build' 'disable-sudo:true' 'disable-sudo-and-containers:false'
-  run_containers_check 'a.yml:build'
-  assert_failure
-  assert_output --partial 'stale CONTAINERS_EXEMPT entry'
-}
-
-@test "containers-exempt: fails when the entry names a job that does not exist" {
-  write_job 'a.yml' 'build' 'disable-sudo-and-containers:true'
-  run_containers_check 'a.yml:nope'
-  assert_failure
-  assert_output --partial 'stale CONTAINERS_EXEMPT entry: a.yml:nope matches no job'
-}
-
-# Unlike the EXEMPT arm, a missing harden-runner step is not tolerated here: the
-# entry asserts the job takes a specific input, which it cannot do without one.
-# Reported once, as the missing step, not also as a stale entry.
-@test "containers-exempt: fails when the job has no harden-runner step" {
-  printf 'jobs:\n  build:\n    steps:\n      - uses: actions/checkout@v4\n' > "${WF}/a.yml"
-  run_containers_check 'a.yml:build'
-  assert_failure
-  assert_output --partial 'no harden-runner step'
-  refute_output --partial 'matches no job'
-}
-
-@test "rule 2 applies to a containers-exempt job" {
-  write_job 'a.yml' 'build' 'disable-sudo:true' 'disable-file-monitoring:true'
-  run_containers_check 'a.yml:build'
-  assert_failure
-  assert_output --partial 'disable-file-monitoring'
-}
-
-# The two arrays demand incompatible configurations — neither key versus the
-# deprecated key — so an entry in both would otherwise be resolved by whichever
-# lookup ran first, silently.
-@test "an entry in both arrays is rejected before any job is examined" {
-  write_job 'a.yml' 'build' 'disable-sudo:true'
-  EXEMPT_OVERRIDE='a.yml:build' run_containers_check 'a.yml:build'
-  assert_failure
-  assert_output --partial 'appears in both EXEMPT and CONTAINERS_EXEMPT'
-}
-
-# --- Rule 4: the containers tier is pinned to a validated harden-runner ref ---
-# Upstream marks `disable-sudo` for removal. When it goes, Actions reports an
-# unknown input as a warning annotation rather than an error: the job stays
-# green and runs with sudo enabled, and Renovate automerges the bump that did
-# it. A gate cannot ask upstream whether the input still exists, so it pins the
-# ref the tier was verified against and goes red when those jobs move off it.
-
-@test "rule 4: passes when a containers-exempt job pins the validated ref" {
-  write_job 'a.yml' 'build' 'disable-sudo:true'
-  run_containers_check 'a.yml:build'
-  assert_success
-}
-
-@test "rule 4: fails when a containers-exempt job pins a different ref" {
-  write_job 'a.yml' 'build' 'disable-sudo:true'
-  WORKFLOWS_DIR_OVERRIDE="${WF}" CONTAINERS_EXEMPT_OVERRIDE='a.yml:build' \
-    CONTAINERS_EXEMPT_HARDEN_RUNNER_REF_OVERRIDE='0000000000000000000000000000000000000000' \
-    run_check "${CHECK}"
-  assert_failure
-  assert_output --partial 'was validated against'
-  assert_output --partial 'still accepts the disable-sudo input'
-  assert_output --partial '1 harden-runner hardening violation(s)'
-}
-
-# Scoped to the tier. The constant asserts that one release still carries the
-# input those two jobs depend on; it says nothing about the eighteen other
-# harden-runner steps, and pinning them here would redden an ordinary grouped
-# bump over jobs whose posture the bump cannot change.
-@test "rule 4: a job outside the tier may pin any ref" {
-  cat > "${WF}/a.yml" << EOF
-jobs:
-  build:
-    steps:
-      - uses: ${HR}
-        with:
-          egress-policy: block
-          disable-sudo: true
-  other:
-    steps:
-      - uses: step-security/harden-runner@0000000000000000000000000000000000000000
-        with:
-          egress-policy: block
-          disable-sudo-and-containers: true
-EOF
-  run_containers_check 'a.yml:build'
-  assert_success
-}
-
-@test "rule 4: fails when the tier has entries but no ref is pinned" {
-  write_job 'a.yml' 'build' 'disable-sudo:true'
-  WORKFLOWS_DIR_OVERRIDE="${WF}" CONTAINERS_EXEMPT_OVERRIDE='a.yml:build' run_check "${CHECK}"
-  assert_failure
-  assert_output --partial 'CONTAINERS_EXEMPT is not empty'
-}
-
-# Reported once, against the constant. Comparing every job against an empty
-# constant would report the same defect a second time, per job, and point the
-# reader at a workflow whose pin is not what is wrong.
-@test "rule 4: a missing pin is not also reported per job" {
-  write_job 'a.yml' 'build' 'disable-sudo:true'
-  WORKFLOWS_DIR_OVERRIDE="${WF}" CONTAINERS_EXEMPT_OVERRIDE='a.yml:build' run_check "${CHECK}"
-  assert_failure
-  assert_output --partial '1 harden-runner hardening violation(s)'
-  refute_output --partial 'was validated against'
-}
-
-# The reverse direction. When both jobs move off Docker the array empties, and a
-# constant left behind would go red on the next grouped bump telling the reader
-# to re-verify an input that no job takes.
-@test "rule 4: fails when a ref is pinned for an empty tier" {
-  write_job 'a.yml' 'build' 'disable-sudo-and-containers:true'
-  WORKFLOWS_DIR_OVERRIDE="${WF}" \
-    CONTAINERS_EXEMPT_HARDEN_RUNNER_REF_OVERRIDE="${HR_REF}" run_check "${CHECK}"
-  assert_failure
-  assert_output --partial 'stale CONTAINERS_EXEMPT_HARDEN_RUNNER_REF'
+  assert_output --partial 'deprecated disable-sudo'
 }

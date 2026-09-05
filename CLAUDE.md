@@ -1396,12 +1396,14 @@ compromised dependency.
   watchdog and request-orchestrator hosts carry a per-run region/index suffix (`eus-01`,
   `iad-02`, …), so no exact host exists to prefer.
   **Every job that installs Nix carries this wildcard**, which is the rule to apply when adding a
-  workflow — not a fixed list to copy. Today that is nine: `check-scripts`, `bats`, `lint`,
-  `governance`, `nix-flake-check`, `coverage`, plus `pages`' build job, `pr-title-lint`, and
-  `protect-main-drift-check`. Before its entry was added, `pr-title-lint` logged `domain not allowed` for both hosts on every green run, which is precisely how silent this failure mode is.
-  `reviewdog` and `commitlint` are deliberately out — they carry different allowlists and neither
-  installs Nix, so neither reaches the runner watchdog/orchestrator hosts this wildcard exists for.
-  `pages`' `deploy` job is out for the same reason.
+  workflow — not a fixed list to copy. Today that is eleven: `check-scripts`, `bats`, `lint`,
+  `governance`, `commitlint`, `nix-flake-check`, `coverage`, plus `pages`' build job,
+  `pr-title-lint`, `protect-main-drift-check`, and `zizmor`. Before its entry was added,
+  `pr-title-lint` logged `domain not allowed` for both hosts on every green run, which is precisely
+  how silent this failure mode is.
+  `reviewdog` is deliberately out — it carries a different allowlist and does not install Nix, so it
+  never reaches the runner watchdog/orchestrator hosts this wildcard exists for. `pages`' `deploy`
+  job is out for the same reason.
   The intra-label form is **proven**, not assumed: before the change the Post Run step logged
   `domain not allowed: hosted-compute-watchdog-prod-eus-02.githubapp.com.`, and after it the same
   host logs as `domain resolved`. harden-runner honors a `*` in the middle of a label, so the
@@ -1434,60 +1436,41 @@ this repo's posture on each is fixed:
   access — it removes the runtime**, running `apt-get purge -y docker-ce docker-ce-cli containerd.io` and `rm -rf /var/lib/docker` in the Pre step. That is stronger than the input's
   name suggests, and it is what makes the job tiers below necessary.
 
-- **There are three tiers, and the lint carries two arrays** (plus the pinned ref described
-  below), because the tiers demand incompatible configurations and a single array would have to
-  collapse two of them:
+- **There are two tiers, and the lint carries one array**, because the two demand incompatible
+  configurations:
 
-  | Tier                       | Jobs                                           | Configuration                       |
-  | -------------------------- | ---------------------------------------------- | ----------------------------------- |
-  | No sudo hardening possible | the eleven Nix jobs, in `EXEMPT`               | neither key                         |
-  | Sudo but not containers    | container-runtime jobs, in `CONTAINERS_EXEMPT` | `disable-sudo: true`                |
-  | Both                       | everything else                                | `disable-sudo-and-containers: true` |
+  | Tier                       | Jobs                               | Configuration                       |
+  | -------------------------- | ---------------------------------- | ----------------------------------- |
+  | No sudo hardening possible | the thirteen Nix jobs, in `EXEMPT` | neither key                         |
+  | Both                       | everything else                    | `disable-sudo-and-containers: true` |
 
   Nix jobs run `./.github/actions/setup`, which invokes
   `DeterminateSystems/nix-installer-action`; it writes `/nix` and `/var/lib/determinate` as root
-  and dies with "sudo: a password is required". `CONTAINERS_EXEMPT` holds `ci.yml:commitlint`
-  (`wagoid/commitlint-github-action` is `using: docker`) and `zizmor.yml:zizmor`
-  (`zizmorcore/zizmor-action` is a *composite* whose `action.sh` shells out to docker — **composite
-  does not imply container-free**; that workflow's own `ghcr.io` allowlist entry is the tell).
+  and dies with "sudo: a password is required".
 
-  An entry appearing in both arrays is rejected before any job is examined. Without that check the
-  contradiction would be resolved by whichever lookup ran first, silently.
+- **`disable-sudo` is retired outright.** Upstream deprecated it in favour of the superset:
+  *"This parameter will be deprecated in the future. Please use disable-sudo-and-containers
+  instead."* Rule 3 forbids the key on every job, in either tier, at any value — there is no
+  configuration in which a workflow can carry it and pass. That rule is not decoration: the two
+  inputs coexist happily, so a workflow copied from an older revision would carry both with no
+  error and no indication which was in force.
 
-- **`disable-sudo` is retired everywhere except `CONTAINERS_EXEMPT`.** Upstream deprecated it in
-  favour of the superset: *"This parameter will be deprecated in the future. Please use
-  disable-sudo-and-containers instead."* Rule 3 forbids the key on every other job. That rule is
-  not decoration — the two inputs coexist happily, so a workflow copied from an older revision
-  would carry both with no error and no indication which was in force. The carve-out is kept
-  narrow in both directions: a `CONTAINERS_EXEMPT` job must set the deprecated key to `true`
-  (not merely carry it), and must not set the superset at *any* value.
+  **There was a third tier, and retiring it is why the rule now has no carve-out.** Jobs needing a
+  container runtime could not take the superset — it purges the runtime — so they took the
+  deprecated key instead, listed in a `CONTAINERS_EXEMPT` array and pinned by a
+  `CONTAINERS_EXEMPT_HARDEN_RUNNER_REF` constant that Rule 4 compared against what those jobs
+  actually pinned. That guard existed because a gate cannot ask upstream whether an input still
+  exists: when the input goes, Actions reports the unknown key as a *warning annotation*, so the
+  job stays green and runs with sudo enabled, and Renovate automerges `github-actions` bumps on a
+  green build. `ci.yml:commitlint` and `zizmor.yml:zizmor` were the two entries; both now run
+  their tool from the devShell through `.ci/in-devshell` instead of from a Docker action, so the
+  array, the constant, and Rule 4 are all gone. **Do not reintroduce the tier.** A job that needs
+  Docker is a job that cannot be sudo-hardened, and the way out is to move it off Docker, not to
+  widen an array.
 
-  **This carve-out is on a clock, and Rule 4 is what guards it.** When upstream removes the input,
-  Actions reports an unknown input as a *warning annotation* — the job stays green and runs with
-  sudo enabled. `.github/renovate.json` automerges `github-actions` bumps on a green build, so
-  that would land on `main` unreviewed, and nobody reads a Post Run config dump on an automerged
-  PR. Retiring an entry means moving the job off Docker (a pinned release binary, an `npx`
-  invocation), never widening the array.
-
-  A gate cannot ask upstream whether an input still exists, so it pins the release that was
-  checked. `CONTAINERS_EXEMPT_HARDEN_RUNNER_REF` holds the harden-runner ref whose `action.yml`
-  was read and confirmed to still declare `disable-sudo`, and Rule 4 compares it against what
-  those two jobs actually pin. All twenty harden-runner pins move together in one grouped
-  Renovate PR, so a bump goes red on exactly the two jobs whose posture it can silently change,
-  with a message saying to re-verify the input before bumping the constant. A silent posture loss
-  becomes a one-line reviewed edit.
-
-  **The constant is deliberately outside Renovate's reach.** A custom manager for it would move it
-  in the same PR that moves the pins, which is the entire failure being guarded. Rule 4 is scoped
-  to the tier for the same reason it exists: the constant asserts something about one release's
-  inputs, which says nothing about the other eighteen harden-runner steps, and pinning those here
-  would redden an ordinary bump over jobs it cannot affect.
-
-  **The constant and the array travel together in both directions**, checked before any job is
-  examined. Entries with no pinned ref leave the tier unguarded; a pinned ref with no entries is
-  dead config that would redden a later bump over a tier nobody is in. So the migration that
-  finally empties `CONTAINERS_EXEMPT` cannot leave the constant behind — the guard retires with
-  the thing it guards.
+  Note what that migration bought and what it cost: those two jobs no longer depend on a
+  deprecated input, but they install Nix, so they moved into `EXEMPT` and now run with sudo
+  available. The deprecation hazard is closed; the root path is not.
 
 - **`disable-file-monitoring` stays `false`**, held there by the same lint's Rule 2 rather than
   written into any workflow. The input only ever reduces what the agent observes, so the rule
