@@ -1434,8 +1434,9 @@ this repo's posture on each is fixed:
   access — it removes the runtime**, running `apt-get purge -y docker-ce docker-ce-cli containerd.io` and `rm -rf /var/lib/docker` in the Pre step. That is stronger than the input's
   name suggests, and it is what makes the job tiers below necessary.
 
-- **There are three tiers, and the lint carries two arrays**, because the tiers demand
-  incompatible configurations and a single array would have to collapse two of them:
+- **There are three tiers, and the lint carries two arrays** (plus the pinned ref described
+  below), because the tiers demand incompatible configurations and a single array would have to
+  collapse two of them:
 
   | Tier                       | Jobs                                           | Configuration                       |
   | -------------------------- | ---------------------------------------------- | ----------------------------------- |
@@ -1461,11 +1462,32 @@ this repo's posture on each is fixed:
   narrow in both directions: a `CONTAINERS_EXEMPT` job must set the deprecated key to `true`
   (not merely carry it), and must not set the superset at *any* value.
 
-  **This carve-out is on a clock, and the clock is not guarded.** When upstream removes the input,
+  **This carve-out is on a clock, and Rule 4 is what guards it.** When upstream removes the input,
   Actions reports an unknown input as a *warning annotation* — the job stays green and runs with
   sudo enabled. `.github/renovate.json` automerges `github-actions` bumps on a green build, so
-  that lands on `main` unreviewed. Retiring an entry means moving the job off Docker (a pinned
-  release binary, an `npx` invocation), never widening the array.
+  that would land on `main` unreviewed, and nobody reads a Post Run config dump on an automerged
+  PR. Retiring an entry means moving the job off Docker (a pinned release binary, an `npx`
+  invocation), never widening the array.
+
+  A gate cannot ask upstream whether an input still exists, so it pins the release that was
+  checked. `CONTAINERS_EXEMPT_HARDEN_RUNNER_REF` holds the harden-runner ref whose `action.yml`
+  was read and confirmed to still declare `disable-sudo`, and Rule 4 compares it against what
+  those two jobs actually pin. All twenty harden-runner pins move together in one grouped
+  Renovate PR, so a bump goes red on exactly the two jobs whose posture it can silently change,
+  with a message saying to re-verify the input before bumping the constant. A silent posture loss
+  becomes a one-line reviewed edit.
+
+  **The constant is deliberately outside Renovate's reach.** A custom manager for it would move it
+  in the same PR that moves the pins, which is the entire failure being guarded. Rule 4 is scoped
+  to the tier for the same reason it exists: the constant asserts something about one release's
+  inputs, which says nothing about the other eighteen harden-runner steps, and pinning those here
+  would redden an ordinary bump over jobs it cannot affect.
+
+  **The constant and the array travel together in both directions**, checked before any job is
+  examined. Entries with no pinned ref leave the tier unguarded; a pinned ref with no entries is
+  dead config that would redden a later bump over a tier nobody is in. So the migration that
+  finally empties `CONTAINERS_EXEMPT` cannot leave the constant behind — the guard retires with
+  the thing it guards.
 
 - **`disable-file-monitoring` stays `false`**, held there by the same lint's Rule 2 rather than
   written into any workflow. The input only ever reduces what the agent observes, so the rule
