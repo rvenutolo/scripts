@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # @description Assert every job in every GitHub Actions workflow carries this
-#              repo's harden-runner hardening posture, in four rules.
+#              repo's harden-runner hardening posture, in three rules.
 #              Rule 1: every job sets `disable-sudo-and-containers: true`, which
 #              strips the runner account's sudo access and its container runtime,
 #              so a compromised step can neither escalate to root and rewrite the
@@ -9,43 +9,27 @@
 #              that install Nix cannot take it:
 #              `DeterminateSystems/nix-installer-action` writes to `/nix` and
 #              `/var/lib/determinate` as root and fails with "sudo: a password is
-#              required". Those are listed in EXEMPT and set neither key.
-#              A job that needs a container runtime cannot take it either, but
-#              can still take the deprecated `disable-sudo` — the strongest
-#              hardening available to it — so those are listed separately in
-#              CONTAINERS_EXEMPT and are required to set it. Both arrays carry
-#              per-entry reasons rather than whole categories being skipped, and
-#              an entry that names no job, or names one whose configuration
-#              contradicts the entry, fails the lint instead of silently
-#              disarming it.
+#              required". Those are listed in EXEMPT and set neither key. The
+#              array carries per-entry reasons rather than whole categories being
+#              skipped, and an entry that names no job, or names one whose
+#              configuration contradicts the entry, fails the lint instead of
+#              silently disarming it.
 #              Rule 2: no job sets `disable-file-monitoring: true`. That input
 #              only ever reduces what the agent observes, so there is no
 #              legitimate reason to take it and the rule carries no exemptions.
-#              Rule 3: no job outside CONTAINERS_EXEMPT sets the deprecated
-#              `disable-sudo` input, at any value. Upstream marks it superseded
-#              by `disable-sudo-and-containers`; without this rule a workflow
-#              copied from an older revision carries both keys, which coexist
-#              with no error and no indication of which one is in force. The
-#              CONTAINERS_EXEMPT carve-out is narrow on purpose: those jobs must
-#              set it, and must not set the superset, so the deprecated key is
-#              never a free choice.
-#              Rule 4: the jobs in CONTAINERS_EXEMPT pin the harden-runner ref
-#              that array was verified against. A gate cannot ask upstream
-#              whether `disable-sudo` still exists, and when it stops existing
-#              Actions reports the unknown input as a warning annotation rather
-#              than an error — the job goes green with sudo enabled, on a bump
-#              Renovate automerges. Pinning the verified ref turns that silent
-#              posture loss into a red gate on exactly those jobs. The constant
-#              and the array travel together in both directions: entries with no
-#              pinned ref leave the tier unguarded, and a pinned ref with no
-#              entries is dead config that would redden a later bump over a tier
-#              nobody is in.
+#              Rule 3: no job sets the deprecated `disable-sudo` input, at any
+#              value. Upstream marks it superseded by
+#              `disable-sudo-and-containers`; without this rule a workflow copied
+#              from an older revision carries both keys, which coexist with no
+#              error and no indication of which one is in force. The rule carries
+#              no exemption array: the only jobs that ever needed the deprecated
+#              key were ones that needed a container runtime, and this repo now
+#              has none.
 # @noargs
 # @stderr One line per violation, plus a final count.
-# @exitcode 0 every job satisfies all four rules.
-# @exitcode 1 a rule is violated, an EXEMPT entry is stale, the pinned
-#             harden-runner ref disagrees with CONTAINERS_EXEMPT, or the
-#             workflows directory is absent.
+# @exitcode 0 every job satisfies all three rules.
+# @exitcode 1 a rule is violated, an EXEMPT entry is stale, or the workflows
+#             directory is absent.
 
 set -Eeuo pipefail
 # Without this, errexit is off inside every $(...) subshell, so a helper called
@@ -72,6 +56,7 @@ readonly EXEMPT=(
   'ci.yml:bats'                                           # nix-installer-action needs root to write /nix
   'ci.yml:lint'                                           # nix-installer-action needs root to write /nix
   'ci.yml:governance'                                     # nix-installer-action needs root to write /nix
+  'ci.yml:commitlint'                                     # nix-installer-action needs root to write /nix
   'ci.yml:nix-flake-check'                                # nix-installer-action needs root to write /nix
   'ci.yml:coverage'                                       # nix-installer-action needs root to write /nix
   'coverage.yml:coverage'                                 # nix-installer-action needs root to write /nix
@@ -79,33 +64,8 @@ readonly EXEMPT=(
   'pages.yml:build'                                       # nix-installer-action needs root to write /nix
   'protect-main-drift-check.yml:protect-main-drift-check' # nix-installer-action needs root to write /nix
   'pr-title-lint.yml:lint-pr-title'                       # nix-installer-action needs root to write /nix
+  'zizmor.yml:zizmor'                                     # nix-installer-action needs root to write /nix
 )
-
-# Jobs that need a container runtime, so cannot take the superset — the input
-# does not merely deny container access, it purges the runtime, running
-# `apt-get purge -y docker-ce docker-ce-cli containerd.io` in the Pre step. These
-# must set `disable-sudo: true` instead, which is the strongest hardening left to
-# them, and are the only jobs Rule 3 permits that key on.
-#
-# Retiring an entry means moving the job off Docker — a pinned release binary or
-# an npx invocation — not widening the array. The deprecated key will eventually
-# stop existing upstream, and an unknown input is only a warning annotation: the
-# job would go green with sudo enabled.
-readonly CONTAINERS_EXEMPT=(
-  'ci.yml:commitlint' # wagoid/commitlint-github-action is a docker action
-  'zizmor.yml:zizmor' # zizmorcore/zizmor-action is a composite whose action.sh shells out to docker
-)
-
-# The harden-runner ref the tier above was verified against — the release whose
-# action.yml was read and confirmed to still declare `disable-sudo`. Rule 4
-# compares it against what those jobs actually pin, so a version bump goes red on
-# exactly them and on nothing else.
-#
-# Deliberately outside Renovate's reach. A custom manager for this constant would
-# move it in the same PR that moves the pins, which is the entire failure it
-# guards against. Bumping it is a hand edit made after reading the new release's
-# inputs, and it retires along with the array it pins.
-readonly CONTAINERS_EXEMPT_HARDEN_RUNNER_REF='05e31511f85b41b11d1cf0ef85d0992719546e2c'
 
 # @description Print the harden-runner `with:` value of the given key for one
 #              job, as a string, or the empty string when the key is absent or
@@ -158,29 +118,6 @@ function harden_runner_count() {
   ' "${file}"
 }
 
-# @description Print the ref the given job's harden-runner step is pinned at —
-#              the text after the `@` in its `uses:` — or the empty string when
-#              the job declares no such step.
-#              A producer called plainly, for the same reason
-#              harden_runner_count is one: reached from a condition, a `yq`
-#              failure would be swallowed and read back as a ref that simply does
-#              not match, manufacturing a bump warning out of a parse error.
-# @arg $1 file path to a workflow YAML
-# @arg $2 job_name key of the job to inspect
-# @stdout The pinned ref, or the empty string.
-function harden_runner_ref() {
-  args::check_exactly_2_args "$@"
-  local -r file="$1"
-  local -r job_name="$2"
-  # shellcheck disable=SC2016 # yq program literal; strenv is yq syntax, not shell
-  job="${job_name}" yq eval '
-    [.jobs[strenv(job)].steps[]
-      | select((.uses // "") | test("^step-security/harden-runner@"))]
-    | (.[0].uses // "")
-    | sub("^[^@]*@"; "")
-  ' "${file}"
-}
-
 function main() {
   args::check_no_args "$@"
   # Not `if ! dirs::exists ...; then exit 0; fi`: an absent scan target is a
@@ -189,45 +126,17 @@ function main() {
   dirs::assert_exists "${WORKFLOWS_DIR}"
 
   local -a exempt_entries=()
-  local -a containers_exempt_entries=()
   arrays::from_env_override exempt_entries EXEMPT_OVERRIDE "${EXEMPT[@]}"
-  arrays::from_env_override containers_exempt_entries CONTAINERS_EXEMPT_OVERRIDE "${CONTAINERS_EXEMPT[@]}"
-  local -r validated_ref="${CONTAINERS_EXEMPT_HARDEN_RUNNER_REF_OVERRIDE-${CONTAINERS_EXEMPT_HARDEN_RUNNER_REF}}"
 
   local total=0
 
-  # The two arrays express incompatible requirements — neither key versus the
-  # deprecated key — so an entry in both would be resolved by whichever lookup
-  # ran first, silently. Reject it before any job is examined.
-  local both
-  for both in ${exempt_entries[@]+"${exempt_entries[@]}"}; do
-    if arrays::contains "${both}" "${containers_exempt_entries[@]}"; then
-      printf '%s appears in both EXEMPT and CONTAINERS_EXEMPT\n' "${both}" >&2
-      total=$((total + 1))
-    fi
-  done
-
-  # Rule 4's two halves travel together, so a tier and a pin can never drift
-  # apart unnoticed. Checked here rather than per job: neither direction is a
-  # property of any one workflow, and reporting it against one would point the
-  # reader at a pin that is not what is wrong.
-  if ((${#containers_exempt_entries[@]} > 0)) && strings::is_empty "${validated_ref}"; then
-    printf 'CONTAINERS_EXEMPT is not empty but no CONTAINERS_EXEMPT_HARDEN_RUNNER_REF is pinned\n' >&2
-    total=$((total + 1))
-  fi
-  if ((${#containers_exempt_entries[@]} == 0)) && strings::is_not_empty "${validated_ref}"; then
-    printf 'stale CONTAINERS_EXEMPT_HARDEN_RUNNER_REF: CONTAINERS_EXEMPT is empty, so delete the constant\n' >&2
-    total=$((total + 1))
-  fi
-
-  local files_tmp jobs_tmp seen_tmp containers_seen_tmp
+  local files_tmp jobs_tmp seen_tmp
   files::create_temp files_tmp
   files::create_temp seen_tmp
-  files::create_temp containers_seen_tmp
   # -name globs have no long-form equivalent in find.
   find "${WORKFLOWS_DIR}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
 
-  local file name job entry hr_count hardened file_monitoring deprecated ref
+  local file name job entry hr_count hardened file_monitoring deprecated
   while IFS= read -r file; do
     strings::is_empty "${file}" && continue
     name="$(basename "${file}")"
@@ -238,15 +147,6 @@ function main() {
       entry="${name}:${job}"
       hr_count="$(harden_runner_count "${file}" "${job}")"
       if ((hr_count == 0)); then
-        if arrays::contains "${entry}" "${containers_exempt_entries[@]}"; then
-          # Recorded as seen because the entry does name a real job. The missing
-          # step is its own violation; reporting it a second time as a stale
-          # entry would point the reader at the wrong file.
-          printf '%s\n' "${entry}" >> "${containers_seen_tmp}"
-          printf '%s: job %q has no harden-runner step\n' "${name}" "${job}" >&2
-          total=$((total + 1))
-          continue
-        fi
         if arrays::contains "${entry}" "${exempt_entries[@]}"; then
           printf '%s\n' "${entry}" >> "${seen_tmp}"
           continue
@@ -267,38 +167,6 @@ function main() {
 
       deprecated="$(harden_runner_with "${file}" "${job}" 'disable-sudo')"
       hardened="$(harden_runner_with "${file}" "${job}" 'disable-sudo-and-containers')"
-
-      if arrays::contains "${entry}" "${containers_exempt_entries[@]}"; then
-        printf '%s\n' "${entry}" >> "${containers_seen_tmp}"
-        # Compared against 'true' rather than tested for presence: a job carrying
-        # the deprecated key at false has the key without the hardening.
-        if [[ "${deprecated}" != 'true' ]]; then
-          printf '%s: job %q needs a container runtime, so it must set disable-sudo true, not %q\n' \
-            "${name}" "${job}" "${deprecated}" >&2
-          total=$((total + 1))
-        fi
-        # Tested for presence rather than against 'true': the superset at any
-        # value alongside the deprecated key is the coexistence Rule 3 exists to
-        # prevent, and a job that can set it at all does not belong in this array.
-        if strings::is_not_empty "${hardened}"; then
-          printf 'stale CONTAINERS_EXEMPT entry: %s sets disable-sudo-and-containers %q\n' \
-            "${entry}" "${hardened}" >&2
-          total=$((total + 1))
-        fi
-        # Rule 4, scoped to this tier: the constant asserts that one release
-        # still carries the input these jobs depend on, which says nothing about
-        # the other harden-runner steps in the tree. Skipped when nothing is
-        # pinned — that is already reported once, against the constant.
-        if strings::is_not_empty "${validated_ref}"; then
-          ref="$(harden_runner_ref "${file}" "${job}")"
-          if [[ "${ref}" != "${validated_ref}" ]]; then
-            printf '%s: job %q pins harden-runner %s, but CONTAINERS_EXEMPT was validated against %s; confirm that release still accepts the disable-sudo input, then bump CONTAINERS_EXEMPT_HARDEN_RUNNER_REF\n' \
-              "${name}" "${job}" "${ref}" "${validated_ref}" >&2
-            total=$((total + 1))
-          fi
-        fi
-        continue
-      fi
 
       if strings::is_not_empty "${deprecated}"; then
         printf '%s: job %q sets the deprecated disable-sudo input, use disable-sudo-and-containers\n' \
@@ -325,12 +193,6 @@ function main() {
   for exempt_entry in ${exempt_entries[@]+"${exempt_entries[@]}"}; do
     if ! grep --quiet --line-regexp --fixed-strings "${exempt_entry}" "${seen_tmp}"; then
       printf 'stale EXEMPT entry: %s matches no job\n' "${exempt_entry}" >&2
-      total=$((total + 1))
-    fi
-  done
-  for exempt_entry in ${containers_exempt_entries[@]+"${containers_exempt_entries[@]}"}; do
-    if ! grep --quiet --line-regexp --fixed-strings "${exempt_entry}" "${containers_seen_tmp}"; then
-      printf 'stale CONTAINERS_EXEMPT entry: %s matches no job\n' "${exempt_entry}" >&2
       total=$((total + 1))
     fi
   done

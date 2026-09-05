@@ -144,21 +144,44 @@ jobs:
   commitlint:
     name: commitlint
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
         with:
           egress-policy: block
-          disable-sudo: true
           allowed-endpoints: >-
-            api.github.com:443 auth.docker.io:443 codeload.github.com:443 github.com:443 objects.githubusercontent.com:443 production.cloudflare.docker.com:443 registry-1.docker.io:443
+            api.github.com:443 cache.nixos.org:443 channels.nixos.org:443 codeload.github.com:443 github.com:443 hosted-compute-*.githubapp.com:443 install.determinate.systems:443 nixos.org:443 objects.githubusercontent.com:443 raw.githubusercontent.com:443 releases.nixos.org:443 tarballs.nixos.org:443
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed # v6.2.1
+      - uses: ./.github/actions/setup
+      - name: Run commitlint
+        id: commitlint
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -Eeuo pipefail
+          # The range arrives through env: rather than interpolated into this
+          # body, which would be the template-injection sink zizmor audits for.
+          if [[ "${GITHUB_EVENT_NAME}" == 'pull_request' ]]; then
+            from="${PR_BASE_SHA}"
+            to="${PR_HEAD_SHA}"
+          else
+            from="${PUSH_BEFORE_SHA}"
+            to="${GITHUB_SHA}"
+          fi
+          # An all-zero before-SHA means the ref did not exist prior to this
+          # push, so there is no range to walk; lint the tip commit alone.
+          if [[ "${from}" =~ ^0+$ ]]; then
+            ./.ci/in-devshell commitlint --last --verbose
+          else
+            ./.ci/in-devshell commitlint --from "${from}" --to "${to}" --verbose
+          fi
   nix-flake-check:
     name: nix-flake-check
     runs-on: ubuntu-latest

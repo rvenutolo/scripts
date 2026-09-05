@@ -14,7 +14,7 @@ concurrency:
 jobs:
   zizmor:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: read
       security-events: write
@@ -22,10 +22,24 @@ jobs:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
         with:
           egress-policy: block
-          disable-sudo: true
           allowed-endpoints: >-
-            api.github.com:443 ghcr.io:443 github.com:443 pkg-containers.githubusercontent.com:443
+            api.github.com:443 cache.nixos.org:443 channels.nixos.org:443 codeload.github.com:443 github.com:443 hosted-compute-*.githubapp.com:443 install.determinate.systems:443 nixos.org:443 objects.githubusercontent.com:443 raw.githubusercontent.com:443 releases.nixos.org:443 tarballs.nixos.org:443
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: zizmorcore/zizmor-action@3dc1ecc9bcb9e94e9b2c709687979e1298497054 # v0.6.2
+      - uses: ./.github/actions/setup
+      - name: Run zizmor
+        id: zizmor
+        env:
+          # zizmor's online audits resolve action refs through the API; without a
+          # token they are skipped with a warning rather than failing the run.
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          # Findings exit non-zero, which fails this step and so skips the upload
+          # below - the same order zizmor-action's own two steps ran in.
+          ./.ci/in-devshell zizmor --format=sarif --collect=default --color=never . > "${RUNNER_TEMP}/zizmor.sarif"
+      - uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          sarif_file: ${{ runner.temp }}/zizmor.sarif
+          category: zizmor
