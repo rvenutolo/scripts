@@ -1424,6 +1424,80 @@ compromised dependency.
   extra entries are fine, missing ones fail. Adding an external link to any tracked markdown file —
   including this one — means adding its host there.
 
+### Harden-runner hardening inputs
+
+harden-runner v2.21.0 declares twelve inputs. Three govern hardening beyond the egress policy, and
+this repo's posture on each is fixed:
+
+- **`disable-sudo-and-containers: true` is mandated**, enforced by
+  `.ci/check-harden-runner-disable-sudo-and-containers`. **It does not merely deny container
+  access — it removes the runtime**, running `apt-get purge -y docker-ce docker-ce-cli containerd.io` and `rm -rf /var/lib/docker` in the Pre step. That is stronger than the input's
+  name suggests, and it is what makes the job tiers below necessary.
+
+- **There are three tiers, and the lint carries two arrays**, because the tiers demand
+  incompatible configurations and a single array would have to collapse two of them:
+
+  | Tier                       | Jobs                                           | Configuration                       |
+  | -------------------------- | ---------------------------------------------- | ----------------------------------- |
+  | No sudo hardening possible | the eleven Nix jobs, in `EXEMPT`               | neither key                         |
+  | Sudo but not containers    | container-runtime jobs, in `CONTAINERS_EXEMPT` | `disable-sudo: true`                |
+  | Both                       | everything else                                | `disable-sudo-and-containers: true` |
+
+  Nix jobs run `./.github/actions/setup`, which invokes
+  `DeterminateSystems/nix-installer-action`; it writes `/nix` and `/var/lib/determinate` as root
+  and dies with "sudo: a password is required". `CONTAINERS_EXEMPT` holds `ci.yml:commitlint`
+  (`wagoid/commitlint-github-action` is `using: docker`) and `zizmor.yml:zizmor`
+  (`zizmorcore/zizmor-action` is a *composite* whose `action.sh` shells out to docker — **composite
+  does not imply container-free**; that workflow's own `ghcr.io` allowlist entry is the tell).
+
+  An entry appearing in both arrays is rejected before any job is examined. Without that check the
+  contradiction would be resolved by whichever lookup ran first, silently.
+
+- **`disable-sudo` is retired everywhere except `CONTAINERS_EXEMPT`.** Upstream deprecated it in
+  favour of the superset: *"This parameter will be deprecated in the future. Please use
+  disable-sudo-and-containers instead."* Rule 3 forbids the key on every other job. That rule is
+  not decoration — the two inputs coexist happily, so a workflow copied from an older revision
+  would carry both with no error and no indication which was in force. The carve-out is kept
+  narrow in both directions: a `CONTAINERS_EXEMPT` job must set the deprecated key to `true`
+  (not merely carry it), and must not set the superset at *any* value.
+
+  **This carve-out is on a clock, and the clock is not guarded.** When upstream removes the input,
+  Actions reports an unknown input as a *warning annotation* — the job stays green and runs with
+  sudo enabled. `.github/renovate.json` automerges `github-actions` bumps on a green build, so
+  that lands on `main` unreviewed. Retiring an entry means moving the job off Docker (a pinned
+  release binary, an `npx` invocation), never widening the array.
+
+- **`disable-file-monitoring` stays `false`**, held there by the same lint's Rule 2 rather than
+  written into any workflow. The input only ever reduces what the agent observes, so the rule
+  carries no exemption array.
+
+**Reading a `with:` value needs an entry select, not `//`.** yq's alternative operator treats
+`false` exactly like `null`, so `.[0].with[strenv(key)] // ""` reports a key set to `false` as
+absent — which silently disarms Rule 3, whose whole subject is the key being *present*. yq v4 does
+not lex `if`/`has` in this position either, so the lookup filters `to_entries` by key and
+`tostring`s the value. Any new rule that turns on presence rather than value must use the same
+shape.
+
+Two decisions that look like omissions and are not:
+
+- **`disable-telemetry` stays `false` deliberately.** Setting it true would gate only
+  `common.printInfo(web_url)` in the action's `src/setup.ts` and the agent's feed to the
+  StepSecurity API; the Post Run dump of `/home/agent/agent.log`, where the `domain not allowed:`
+  lines come from, is unconditional in `src/cleanup.ts`. So it would not break the allowlist
+  harvest — it is declined because the StepSecurity insights page is a second, independent view on
+  blocked egress, and this repo leans on that harvest heavily enough to want both. Note that no
+  workflow allowlist names a StepSecurity host: the agent's own egress is permitted implicitly and
+  is invisible to the block policy, so disabling telemetry would prune no entry.
+
+- **`block-dns-over-https` does not exist.** It is not among the action's inputs and has no field
+  in `Configuration` in `src/interfaces.ts`. It is also moot: block mode enforces at the IP layer,
+  so DoH to a resolver outside `allowed-endpoints` is already dropped.
+
+**`pages.yml:deploy` cannot be probed before merge.** The `github-pages` environment carries a
+branch policy restricting deployments to `main`, so a branch dispatch is rejected before the job
+starts and its harden-runner step never runs. Changes to that job's harden-runner configuration are
+only observable on the first push to `main`.
+
 ### Renovate action bumps can break an allowlist
 
 A third-party action version bump can change that action's upstream hosts, turning an otherwise routine
