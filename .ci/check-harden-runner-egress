@@ -84,9 +84,10 @@ function harden_runner_count() {
 
 function main() {
   args::check_no_args "$@"
-  if ! dirs::exists "${WORKFLOWS_DIR}"; then
-    exit 0
-  fi
+  # Not `if ! dirs::exists ...; then exit 0; fi`: an absent scan target is a
+  # misdirected scan, and reporting it as a clean pass is indistinguishable from
+  # having checked every workflow and found them all fine.
+  dirs::assert_exists "${WORKFLOWS_DIR}"
 
   local -a exempt_entries=()
   arrays::from_env_override exempt_entries EXEMPT_OVERRIDE "${EXEMPT[@]}"
