@@ -1026,6 +1026,28 @@ EOF
   assert_output --partial 'Expected no arguments'
 }
 
+# ---------- get_current_default_jdk_artifact_id ----------
+
+@test "get_current_default_jdk_artifact_id: prints the artifact the current symlink points at" {
+  fixture_default_symlink '17.0.19-tem'
+  run sdkman_jdks::get_current_default_jdk_artifact_id
+  assert_success
+  assert_output '17.0.19-tem'
+}
+
+@test "get_current_default_jdk_artifact_id: dies when no symlink" {
+  # setup() creates candidates/java with no current symlink
+  run sdkman_jdks::get_current_default_jdk_artifact_id
+  assert_failure
+  assert_output --partial 'Symbolic link does not exist'
+}
+
+@test "get_current_default_jdk_artifact_id: dies with wrong arg count" {
+  run sdkman_jdks::get_current_default_jdk_artifact_id x
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
 # ---------- get_current_default_jdk_major_version ----------
 
 @test "get_current_default_jdk_major_version: extracts major from current symlink" {
@@ -1085,6 +1107,45 @@ EOF
 }
 
 @test "prune_tem_jdks_for_major_version: uninstalls all installed for major except latest available" {
+  stub_jdks_and_sdk
+  run sdkman_jdks::prune_tem_jdks_for_major_version 21
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  assert_output 'uninstall java 21.0.3-tem'
+}
+
+@test "prune_tem_jdks_for_major_version: repoints the default at the keeper before removing it" {
+  # `sdk uninstall` refuses to remove the artifact java/current points at and exits 1, which
+  # killed the whole sweep. The repoint must land before the uninstall, not merely happen.
+  stub_jdks_and_sdk
+  fixture_default_symlink '21.0.3-tem'
+  run sdkman_jdks::prune_tem_jdks_for_major_version 21
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  assert_line --index 0 'default java 21.0.5-tem'
+  assert_line --index 1 'uninstall java 21.0.3-tem'
+}
+
+@test "prune_tem_jdks_for_major_version: leaves the default alone when it is already the keeper" {
+  stub_jdks_and_sdk
+  fixture_default_symlink '21.0.5-tem'
+  run sdkman_jdks::prune_tem_jdks_for_major_version 21
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  assert_output 'uninstall java 21.0.3-tem'
+}
+
+@test "prune_tem_jdks_for_major_version: leaves a default from another major alone" {
+  stub_jdks_and_sdk
+  fixture_default_symlink '17.0.10-tem'
+  run sdkman_jdks::prune_tem_jdks_for_major_version 21
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  assert_output 'uninstall java 21.0.3-tem'
+}
+
+@test "prune_tem_jdks_for_major_version: prunes normally when no default is set" {
+  # setup() creates candidates/java with no current symlink
   stub_jdks_and_sdk
   run sdkman_jdks::prune_tem_jdks_for_major_version 21
   assert_success
