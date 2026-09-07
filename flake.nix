@@ -2,6 +2,9 @@
   description = "rvenutolo/scripts — tooling devShell and formatter";
 
   inputs = {
+    # Keep this URL in github:NixOS/nixpkgs/... form. Renovate's
+    # lockFileMaintenance refreshes flake.lock only when that exact string
+    # appears here; any other spelling leaves the lock frozen with no error.
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     systems.url = "github:nix-systems/default-linux";
     treefmt-nix.url = "github:numtide/treefmt-nix";

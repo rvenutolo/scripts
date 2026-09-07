@@ -15,6 +15,15 @@
   "git-submodules": {
     "enabled": true
   },
+  "nix": {
+    "description": "The nix manager is in beta and ships disabled; without this it never scans flake.nix and the matchManagers: [\"nix\"] packageRule below matches nothing.",
+    "enabled": true
+  },
+  "lockFileMaintenance": {
+    "description": "Enabling the nix manager alone is not enough - flake.lock only refreshes under lockFileMaintenance, which also ships disabled. Scheduled to the repo-wide Saturday window rather than its own Monday default, so there is one weekly window for everything.",
+    "enabled": true,
+    "schedule": ["before 6am on saturday"]
+  },
   "packageRules": [
     {
       "description": "github-actions: pin SHAs and auto-merge after the 7-day quarantine.",

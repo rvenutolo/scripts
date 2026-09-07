@@ -4,7 +4,9 @@
 #              (1) extends includes helpers:pinGitHubActionDigests;
 #              (2) minimumReleaseAge is set; (3) no top-level automerge
 #              (must be per-manager); (4) the github-actions packageRule sets
-#              pinDigests: true.
+#              pinDigests: true; (5) the nix manager is enabled; (6)
+#              lockFileMaintenance is enabled. The last two default to off, and
+#              flake.lock is never updated without both.
 # @noargs
 # @stderr A line describing the first failing invariant.
 # @exitcode 0 all invariants intact.
@@ -47,6 +49,16 @@ function main() {
     | any(((.matchManagers // []) | any(. == "github-actions")) and (.pinDigests == true))
   ' "${CONFIG_PATH}" > '/dev/null' 2>&1; then
     log::die 'github-actions packageRule missing pinDigests: true'
+  fi
+  # Both default to disabled, and flake.lock is refreshed only when both are on.
+  # Without them the matchManagers: ["nix"] packageRule matches nothing while
+  # still reading as an active policy.
+  if ! jq -e '.nix.enabled == true' "${CONFIG_PATH}" > '/dev/null' 2>&1; then
+    log::die 'nix manager not enabled - flake.lock is never scanned without it'
+  fi
+  if ! jq -e '.lockFileMaintenance.enabled == true' \
+    "${CONFIG_PATH}" > '/dev/null' 2>&1; then
+    log::die 'lockFileMaintenance not enabled - flake.lock is never refreshed without it'
   fi
 }
 
