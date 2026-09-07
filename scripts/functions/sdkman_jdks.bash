@@ -442,17 +442,34 @@ function sdkman_jdks::has_default_jdk() {
   symlinks::exists "${SDKMAN_CANDIDATES_DIR}/java/current"
 }
 
+# @description Print the artifact ID of the current default java. Dies if no default is set.
+# Output: stdout — artifact ID (e.g. "17.0.10-tem")
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+# @noargs
+function sdkman_jdks::get_current_default_jdk_artifact_id() {
+  args::check_no_args "$@"
+  # The guard is explicit rather than left to symlinks::get_target: that helper's log::die fires
+  # inside the command substitution's subshell, so without this the function would hand back an
+  # empty artifact ID with exit status 0 to any caller not under errexit.
+  if ! sdkman_jdks::has_default_jdk; then
+    log::die "Symbolic link does not exist: ${SDKMAN_CANDIDATES_DIR}/java/current"
+  fi
+  local target
+  target="$(symlinks::get_target "${SDKMAN_CANDIDATES_DIR}/java/current")"
+  readonly target
+  printf '%s' "${target##*/}"
+}
+
 # @description Print the major version of the current default java. Dies if no default is set.
 # Output: stdout — major version number (e.g. "17")
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
 function sdkman_jdks::get_current_default_jdk_major_version() {
   args::check_no_args "$@"
-  local target
-  target="$(symlinks::get_target "${SDKMAN_CANDIDATES_DIR}/java/current")"
-  readonly target
-  local -r artifact="${target##*/}"
-  sdkman_jdks::get_jdk_major_version "${artifact}"
+  local artifact_id
+  artifact_id="$(sdkman_jdks::get_current_default_jdk_artifact_id)"
+  readonly artifact_id
+  sdkman_jdks::get_jdk_major_version "${artifact_id}"
 }
 
 # @description Set the SDKMAN default java to the latest installed Temurin JDK of the current default's major version.
@@ -479,6 +496,9 @@ function sdkman_jdks::set_default_jdk_to_latest_patch_of_current_major() {
 #   installed at all. That is reachable whenever the newest remote artifact has not been pulled
 #   down yet — and an artifact SDKMAN has since stopped serving cannot be reinstalled once it is
 #   gone. Install the keeper first (sdkman-update does), then prune on the next run.
+#   Repoints the java/current symlink at the keeper first when the default is one of the artifacts
+#   about to go: `sdk uninstall` refuses to remove the artifact `current` points at and exits 1,
+#   which killed the whole prune sweep under errexit.
 # @arg $1 major java version
 # @stderr A warning naming the major version when pruning is declined for the reason above.
 function sdkman_jdks::prune_tem_jdks_for_major_version() {
@@ -500,6 +520,17 @@ function sdkman_jdks::prune_tem_jdks_for_major_version() {
   if [[ "${#artifact_ids[@]}" -gt 0 ]] && ! arrays::contains "${latest_artifact_id}" "${artifact_ids[@]}"; then
     log::warn "Not pruning Java ${major_version}: latest available ${latest_artifact_id} is not installed"
     return
+  fi
+  # The keeper is installed by this point, so pointing the default at it is always valid, and
+  # doing so is what lets the sweep below remove what used to be the default.
+  local current_default_artifact_id=''
+  if sdkman_jdks::has_default_jdk; then
+    current_default_artifact_id="$(sdkman_jdks::get_current_default_jdk_artifact_id)"
+  fi
+  readonly current_default_artifact_id
+  if [[ "${current_default_artifact_id}" != "${latest_artifact_id}" ]] \
+    && arrays::contains "${current_default_artifact_id}" "${artifact_ids[@]}"; then
+    sdkman_jdks::set_default_jdk_by_id "${latest_artifact_id}"
   fi
   for artifact_id in "${artifact_ids[@]}"; do
     if [[ "${artifact_id}" != "${latest_artifact_id}" ]]; then
