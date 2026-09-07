@@ -200,9 +200,22 @@ convention documented here.
 They are inputs rather than hand-written `fetchFromGitHub` pins because `flake.lock`
 stores the revision and its `narHash` **together**. A pin needs both, and Renovate cannot
 compute a `fetchFromGitHub` hash, so the pinned form could only ever open a red PR
-awaiting a hand-regenerated hash. As inputs they are covered by Renovate's ordinary `nix`
-manager, which updates the lock wholesale — no hash step, and no separate custom manager
-to maintain.
+awaiting a hand-regenerated hash. As inputs they are covered by Renovate's `nix` manager,
+which updates the lock wholesale — no hash step, and no separate custom manager to
+maintain.
+
+**That coverage takes two opt-ins, and both default to off.** The `nix` manager is in beta
+and ships `"enabled": false`, so without `"nix": { "enabled": true }` it never scans
+`flake.nix` at all; and even enabled, `flake.lock` is refreshed only under
+`lockFileMaintenance`, which is likewise disabled by default. Missing either one is silent
+in the worst way — the `matchManagers: ["nix"]` packageRule sits in the config reading as
+an active policy while matching nothing, and the only visible symptom is a lock that never
+moves. `.ci/check-renovate-invariants` asserts both keys for exactly that reason, as its
+fifth and sixth invariants.
+
+A third condition is not config at all: `lockFileMaintenance` refreshes a `flake.lock` only
+when a `github:NixOS/nixpkgs/...` string appears in `flake.nix`. This repo satisfies it, and
+`flake.nix` carries a comment at that line saying not to respell the URL.
 
 The `version` attribute is likewise derived from each input's own `lastModifiedDate`
 through the `unstableVersion` helper, so the store path relabels itself on a bump. A

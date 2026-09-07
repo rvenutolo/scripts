@@ -18,6 +18,8 @@ run_check() {
 {
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
   "minimumReleaseAge": "7 days",
+  "nix": { "enabled": true },
+  "lockFileMaintenance": { "enabled": true },
   "packageRules": [
     { "matchManagers": ["github-actions"], "automerge": true, "pinDigests": true }
   ]
@@ -66,6 +68,52 @@ EOF
   RENOVATE_JSON_OVERRIDE="${CFG}" run_check "${CHECK}"
   assert_failure
   assert_output --partial 'pinDigests'
+}
+
+@test "fails when the nix manager block is absent" {
+  cat > "${CFG}" << 'EOF'
+{ "extends": ["helpers:pinGitHubActionDigests"], "minimumReleaseAge": "7 days",
+  "lockFileMaintenance": { "enabled": true },
+  "packageRules": [ { "matchManagers": ["github-actions"], "pinDigests": true } ] }
+EOF
+  RENOVATE_JSON_OVERRIDE="${CFG}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'nix manager'
+}
+
+@test "fails when the nix manager is explicitly disabled" {
+  cat > "${CFG}" << 'EOF'
+{ "extends": ["helpers:pinGitHubActionDigests"], "minimumReleaseAge": "7 days",
+  "nix": { "enabled": false },
+  "lockFileMaintenance": { "enabled": true },
+  "packageRules": [ { "matchManagers": ["github-actions"], "pinDigests": true } ] }
+EOF
+  RENOVATE_JSON_OVERRIDE="${CFG}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'nix manager'
+}
+
+@test "fails when the lockFileMaintenance block is absent" {
+  cat > "${CFG}" << 'EOF'
+{ "extends": ["helpers:pinGitHubActionDigests"], "minimumReleaseAge": "7 days",
+  "nix": { "enabled": true },
+  "packageRules": [ { "matchManagers": ["github-actions"], "pinDigests": true } ] }
+EOF
+  RENOVATE_JSON_OVERRIDE="${CFG}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'lockFileMaintenance'
+}
+
+@test "fails when lockFileMaintenance is explicitly disabled" {
+  cat > "${CFG}" << 'EOF'
+{ "extends": ["helpers:pinGitHubActionDigests"], "minimumReleaseAge": "7 days",
+  "nix": { "enabled": true },
+  "lockFileMaintenance": { "enabled": false },
+  "packageRules": [ { "matchManagers": ["github-actions"], "pinDigests": true } ] }
+EOF
+  RENOVATE_JSON_OVERRIDE="${CFG}" run_check "${CHECK}"
+  assert_failure
+  assert_output --partial 'lockFileMaintenance'
 }
 
 @test "fails when config file missing" {
