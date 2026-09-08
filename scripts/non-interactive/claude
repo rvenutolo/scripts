@@ -28,7 +28,7 @@ log::enable_err_trap
 # session persisted into settings.json. Edit these two lines to change the
 # defaults; see the comment above the exec for how they are applied.
 readonly DEFAULT_MODEL='opus[1m]'
-readonly DEFAULT_EFFORT='high'
+readonly DEFAULT_EFFORT='medium'
 
 CLAUDE_CONFIG_DIR="$(claude::config_dir)"
 export CLAUDE_CONFIG_DIR
