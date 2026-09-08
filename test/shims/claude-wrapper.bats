@@ -61,29 +61,29 @@ EOF
   assert_line --index 0 --regexp "^${REAL_SHIMS}:"
 }
 
-@test "passes --model opus[1m] --effort high ahead of the caller's arguments" {
+@test "passes --model opus[1m] --effort medium ahead of the caller's arguments" {
   # /model and /effort persist their choice into settings.json, so without these
   # pins a one-off switch becomes every later session's default.
   run_wrapper "${FIX}/real-shims" --print 'hello'
   assert_success
-  assert_line 'ARGS=--model opus[1m] --effort high --print hello'
+  assert_line 'ARGS=--model opus[1m] --effort medium --print hello'
 }
 
 @test "passes the pins even with no caller arguments" {
   run_wrapper "${FIX}/real-shims"
   assert_success
-  assert_line 'ARGS=--model opus[1m] --effort high'
+  assert_line 'ARGS=--model opus[1m] --effort medium'
 }
 
 @test "the pinned model precedes a caller's own --model, which wins last" {
   # Claude Code parses --model last-wins, so the caller's value must come second.
   run_wrapper "${FIX}/real-shims" --model sonnet
   assert_success
-  assert_line 'ARGS=--model opus[1m] --effort high --model sonnet'
+  assert_line 'ARGS=--model opus[1m] --effort medium --model sonnet'
 }
 
 @test "the pinned effort precedes a caller's own --effort, which wins last" {
   run_wrapper "${FIX}/real-shims" --effort max
   assert_success
-  assert_line 'ARGS=--model opus[1m] --effort high --effort max'
+  assert_line 'ARGS=--model opus[1m] --effort medium --effort max'
 }
