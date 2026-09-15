@@ -185,7 +185,7 @@ function args::print_help() {
       in_header=1
       continue
     fi
-    if ((!in_header)); then
+    if ((! in_header)); then
       continue
     fi
     if strings::is_empty "${line}"; then
