@@ -245,7 +245,45 @@ add_devshell_tool() {
   local -r empty_out="$(make_bin_dir "${BATS_TEST_TMPDIR}/pkg-out")"
   local -r bin_out="$(make_bin_dir "${BATS_TEST_TMPDIR}/pkg-bin" 'faketool')"
   add_devshell_tool 'faketool'
+  export DEVSHELL_PATH_OVERRIDE="${DEVSHELL_BIN}:${bin_out}"
   DEVSHELL_PACKAGES_OVERRIDE="$(pkg_record 'fakepkg' "${empty_out}" "${bin_out}")"
+  export DEVSHELL_PACKAGES_OVERRIDE
+  run "${CHECK}"
+  assert_success
+}
+
+@test "a package bin dir that exists on disk but is off the devShell PATH provides nothing" {
+  # Regression: the check tested a package's eval-computed bin dirs for existence
+  # on disk, so its answer depended on what else the local Nix store held. A
+  # store path the devShell never puts on PATH can still be realized by some
+  # unrelated derivation, and must not make the package count as backed.
+  add_devshell_tool 'faketool'
+  local -r stray="$(make_bin_dir "${BATS_TEST_TMPDIR}/stray-realization" 'faketool')"
+  DEVSHELL_PACKAGES_OVERRIDE="$(pkg_record 'strandedpkg' "${stray}")"
+  export DEVSHELL_PACKAGES_OVERRIDE
+  run "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'strandedpkg: devShell package contributes no tool declared in .ci/required-tools'
+}
+
+@test "an exclusion for a package whose realized bin dir is off the devShell PATH is not stale" {
+  # The shape of the nix exclusion: its eval outPath is absent from the devShell
+  # PATH, and an unrelated derivation in the local store happens to realize it.
+  add_devshell_tool 'faketool'
+  local -r stray="$(make_bin_dir "${BATS_TEST_TMPDIR}/stray-realization" 'faketool')"
+  DEVSHELL_PACKAGES_OVERRIDE="$(pkg_record 'strandedpkg' "${stray}")"
+  export DEVSHELL_PACKAGES_OVERRIDE
+  export EXCLUDED_PACKAGES_OVERRIDE='strandedpkg'
+  run "${CHECK}"
+  assert_success
+  refute_output --partial 'stale EXCLUDED_PACKAGES entry'
+}
+
+@test "a package bin dir on the devShell PATH still provides its tool" {
+  add_devshell_tool 'faketool'
+  local -r pkg_bin="$(make_bin_dir "${BATS_TEST_TMPDIR}/pkg-realized" 'faketool')"
+  export DEVSHELL_PATH_OVERRIDE="${DEVSHELL_BIN}:${pkg_bin}"
+  DEVSHELL_PACKAGES_OVERRIDE="$(pkg_record 'realizedpkg' "${pkg_bin}")"
   export DEVSHELL_PACKAGES_OVERRIDE
   run "${CHECK}"
   assert_success

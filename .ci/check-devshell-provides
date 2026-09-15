@@ -25,6 +25,10 @@
 #              `p.outputs`, never `p.outPath` alone: shellcheck and jq keep their
 #              binaries in a separate `-bin` output, so an outPath-only
 #              implementation reports two correctly declared tools as unprovided.
+#              A bin directory counts only when it is also on the devShell PATH:
+#              an eval-computed store path can exist on disk because some
+#              unrelated derivation in the local store realized it, and testing
+#              for existence alone made the result depend on store contents.
 #
 #              Both queries are run against the repo this script was invoked in,
 #              never the ambient flake, so a worktree grades its own tree.
@@ -75,12 +79,13 @@ readonly EXCLUDED_PACKAGES=(
   # .ci/required-tools — the forward arm proves that, and it is the guarantee
   # that matters. The reverse arm cannot see it: it derives a package's bin
   # directories from the outPath `nix eval` computes for each entry of
-  # `p.outputs`, and for nix that path is never realized. `nix develop` puts a
-  # DIFFERENT realization of the same version on the devShell PATH, a splicing
-  # artifact of nativeBuildInputs, so every one of the four eval-computed bin
-  # dirs is absent from disk and provides_declared_tool finds nothing. Verified
-  # empirically. The entry is self-policing: drop nix from flake.nix and the
-  # staleness arm fires.
+  # `p.outputs`, and for nix none of those paths is on the devShell PATH.
+  # `nix develop` puts a DIFFERENT store path of the same version there, a
+  # splicing artifact of nativeBuildInputs. The eval-computed path may still
+  # exist on disk when another derivation in the local store references it,
+  # which is why the reverse arm counts only bin dirs on the devShell PATH.
+  # Verified empirically. The entry is self-policing: drop nix from flake.nix
+  # and the staleness arm fires.
   nix
   # Payload tooling: used by scripts/, which expects its tools from the machine.
   pwgen
@@ -282,22 +287,28 @@ function check_declared_tools_provided() {
 }
 
 # @description Report every devShell package that contributes no declared tool
-#              and is not excluded, plus every stale EXCLUDED_PACKAGES entry. An
-#              empty enumeration grades nothing: only the test seam can produce
-#              one (devshell_packages dies on an empty real enumeration), and
-#              grading exclusions against no packages would call every entry
-#              stale.
+#              and is not excluded, plus every stale EXCLUDED_PACKAGES entry. A
+#              package's bin directory is searched only when it is also on the
+#              devShell PATH, so a store path realized by something else in the
+#              local store cannot change the result. An empty enumeration grades
+#              nothing: only the test seam can produce one (devshell_packages
+#              dies on an empty real enumeration), and grading exclusions
+#              against no packages would call every entry stale.
 # @arg $1 tools_file file holding declared tool names, one per line
-# @arg $2 packages_file file holding tab-separated package records, one per line
+# @arg $2 dirs_file file holding devShell PATH directories, one per line
+# @arg $3 packages_file file holding tab-separated package records, one per line
 # @arg $@ excluded package names exempt from the rule
 # @stderr One line per unbacked package and per stale exclusion.
 # @exitcode 0 every package contributes a declared tool or is validly excluded.
 # @exitcode 1 a package contributes nothing, or an exclusion is stale.
 function check_packages_backed() {
-  args::check_at_least_2_args "$@"
+  args::check_at_least_3_args "$@"
   local -r tools_file="$1"
-  local -r packages_file="$2"
-  shift 2
+  local -r dirs_file="$2"
+  local -r packages_file="$3"
+  shift 3
+  local -a path_dirs=()
+  mapfile -t path_dirs < "${dirs_file}"
   local seen_tmp
   files::create_temp seen_tmp
   local rc=0
@@ -305,6 +316,7 @@ function check_packages_backed() {
   local record name
   local -a fields=()
   local -a dirs=()
+  local dir
   while IFS= read -r record; do
     strings::is_empty "${record}" && continue
     packages=1
@@ -312,7 +324,12 @@ function check_packages_backed() {
     # strict global IFS would also split it on newlines.
     IFS=$'\t' read -r -a fields <<< "${record}"
     name="${fields[0]}"
-    dirs=("${fields[@]:1}")
+    dirs=()
+    for dir in "${fields[@]:1}"; do
+      if arrays::contains "${dir}" ${path_dirs[@]+"${path_dirs[@]}"}; then
+        dirs+=("${dir}")
+      fi
+    done
     if provides_declared_tool "${tools_file}" ${dirs[@]+"${dirs[@]}"}; then
       continue
     fi
@@ -361,7 +378,7 @@ function main() {
 
   local failed=0
   check_declared_tools_provided "${tools_tmp}" "${dirs_tmp}" || failed=1
-  check_packages_backed "${tools_tmp}" "${packages_tmp}" ${excluded[@]+"${excluded[@]}"} || failed=1
+  check_packages_backed "${tools_tmp}" "${dirs_tmp}" "${packages_tmp}" ${excluded[@]+"${excluded[@]}"} || failed=1
   exit "${failed}"
 }
 
