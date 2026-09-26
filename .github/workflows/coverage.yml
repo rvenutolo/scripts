@@ -42,7 +42,7 @@ jobs:
       - uses: ./.github/actions/coverage
         with:
           scope: functions
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           # Written by ./.github/actions/coverage outside the tree; see its comment.
           files: ${{ runner.temp }}/coverage/functions/bats/cobertura.xml
@@ -79,7 +79,7 @@ jobs:
       - uses: ./.github/actions/coverage
         with:
           scope: gates
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           # Written by ./.github/actions/coverage outside the tree; see its comment.
           files: ${{ runner.temp }}/coverage/gates/bats/cobertura.xml
