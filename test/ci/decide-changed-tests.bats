@@ -53,7 +53,7 @@ write_changed() {
 }
 
 @test "an all-irrelevant change set skips the suite" {
-  write_changed 'README.md' 'CLAUDE.md' 'LICENSE' '.docs/invariant-index.md' \
+  write_changed 'README.md' 'CONTRIBUTING.md' 'LICENSE' '.docs/invariant-index.md' \
     '.github/ISSUE_TEMPLATE/bug.yml'
   run "${SCRIPT}" "${CHANGED}"
   assert_success

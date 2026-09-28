@@ -8,7 +8,7 @@
 #              at all, taking out every documented invocation, and README's table
 #              drifts into a union matching neither file.
 #              The gate assertions cover the machine-readable copies of the gate
-#              description — CLAUDE.md's prose list is deliberately out of scope,
+#              description — prose lists are deliberately out of scope,
 #              since string-matching prose fails on rewording.
 #              Recipe parsing is delegated to `just --dump`, so the repo does not
 #              re-encode just's grammar; README scanning is scoped to the

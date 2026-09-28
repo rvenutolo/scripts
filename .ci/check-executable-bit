@@ -142,8 +142,7 @@ function main() {
       continue
     fi
     relative="${file#"${REPO_DIR}/"}"
-    # First match wins; see the "Preserving the executable bit" section of
-    # CLAUDE.md for why each arm is ordered where it is.
+    # First match wins; each arm notes why it sits where it does.
     case "${relative}" in
       scripts/other/*)
         # Always on PATH, so a stripped bit breaks it exactly as under

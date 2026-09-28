@@ -16,8 +16,8 @@
 # Both measurements are deterministic: three full runs on an unchanged tree
 # produce byte-identical per-line hits, so a moved number means the code moved.
 #
-# The functions baseline on main is 96.5% (1944 / 2015). Roughly 60 of the 71
-# lines still uncovered are lexer artifacts that can never be hit; see CLAUDE.md.
+# Most lines left uncovered are kcov lexer artifacts (embedded awk/jq program
+# bodies, `done <redirect>` lines, bare subshell parens) that no test can hit.
 flags:
   functions:
     # carryforward keeps a flag's last known coverage when its job did not

@@ -36,8 +36,7 @@
 #              and every dotfile regardless of a further extension (.envrc, .editorconfig, .justfile
 #              and the like), minus scripts/other/, .shdoc/ and site/. The .shdoc submodule gitlink
 #              itself is also skipped where it appears as a tracked path: a gitlink is not a readable
-#              regular file. Markdown is deliberately out of scope: CLAUDE.md carries issue numbers as
-#              provenance for decisions a reader is told not to relitigate.
+#              regular file. Markdown is out of scope.
 #
 #              EXEMPT keys are <repo-relative-file>::<number>, space-free because
 #              arrays::from_env_override splits its override on spaces. The array

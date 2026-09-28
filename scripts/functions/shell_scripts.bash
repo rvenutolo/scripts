@@ -145,7 +145,7 @@ function shell_scripts::find_root_only() {
 }
 
 # @description Return true if a top-level script is required to call
-# args::handle_help_flag. CLAUDE.md mandates the call on every top-level script
+# args::handle_help_flag. The call is mandatory on every top-level script
 # with two exemptions, and both are structural rather than listed: a pass-through
 # script carries the mandatory `pass-through` comment, and a standalone script
 # never sources the function library, so the helper does not exist for it to
@@ -154,7 +154,7 @@ function shell_scripts::find_root_only() {
 # sourcing ${DOCKER_COMPOSE_DIR}/functions.bash gets this repo's helpers
 # transitively and is not exempt.
 #
-# Deliberate looseness: `pass-through` marks two different CLAUDE.md exemptions —
+# Deliberate looseness: `pass-through` marks two different exemptions —
 # the help-flag one this predicate wants, and the arg-count-guard one, which a
 # merely variadic script also carries. Three scripts (mvn-fresh, claude-resume,
 # sync-flatpaks) carry the arity marker while still owning their own --help, so

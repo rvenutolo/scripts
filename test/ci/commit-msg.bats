@@ -58,8 +58,7 @@ run_hook() {
   assert_output --partial '--no-verify'
 }
 
-# Pins the decision recorded in CLAUDE.md, "Gates run inside the hermetic devShell":
-# this hook is deliberately OUTSIDE the .ci/in-devshell boundary every other gate goes
+# Pins a deliberate decision: this hook is deliberately OUTSIDE the .ci/in-devshell boundary every other gate goes
 # through, because wrapping it would buy a nix evaluation on every single commit in
 # exchange for resolving one binary. Nothing else verifies that decision still holds.
 #
