@@ -54,7 +54,7 @@ function shdoc_one() {
 #              Exit codes (@exitcode), Example (@example). shdoc itself only emits @description at the
 #              file level, dropping every other file-level tag — this awk pass fills that gap. Reads
 #              header tags between the shebang and the first `set -E...` line (the standard top-level
-#              skeleton enforced by CLAUDE.md).
+#              script skeleton).
 # @arg $1 src source bash file
 # @arg $2 title page title (script basename)
 function render_script_header() {

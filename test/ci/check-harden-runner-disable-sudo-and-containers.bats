@@ -99,8 +99,7 @@ EOF
 # A missing scan target must not read as a clean pass. An absent directory is
 # indistinguishable from a directory whose contents are all fine, and this gate is
 # what stands between the repo and the thing it checks — the silent-false-green
-# shape this repo spends the most effort on, and the rule CLAUDE.md states as
-# "Empty scan results are failures, not clean passes".
+# shape this repo spends the most effort on.
 @test "dies when the workflows directory is absent" {
   WORKFLOWS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/absent" run_check "${CHECK}"
   assert_failure 1

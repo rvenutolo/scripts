@@ -106,8 +106,8 @@ run_runner() {
 
 # The absent-.profile case above is only half the contract. The runners source
 # ~/.profile precisely so the provisioning scripts they invoke inherit the user's
-# environment — SCRIPTS_DIR, the XDG vars, PERSONAL_PROJECTS_DIR — which CLAUDE.md
-# treats as guaranteed to be set by the time any script runs. Asserting that an
+# environment — SCRIPTS_DIR, the XDG vars, PERSONAL_PROJECTS_DIR — which every
+# script treats as guaranteed to be set by the time it runs. Asserting that an
 # export from .profile reaches the fixture script pins that end to end, rather than
 # just proving the source line did not error.
 @test "sources ~/.profile and its exports reach the scripts it runs" {
