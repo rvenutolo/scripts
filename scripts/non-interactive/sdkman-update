@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# @description Update SDKMAN metadata, install/upgrade configured SDKMAN packages and Temurin JDKs, then set the default JDK to the latest installed.
+# @description Update SDKMAN metadata, install/upgrade configured SDKMAN packages and Temurin JDKs, then move
+#              the default JDK to the latest installed patch of its current major version.
 #              A package that fails to install is logged and skipped so the Temurin JDK steps still
 #              run; the script then exits 1. Every other step fails fast, so a non-zero exit does
 #              not by itself mean package rot. Never blanket-filter non-zero in cron: read the log.
