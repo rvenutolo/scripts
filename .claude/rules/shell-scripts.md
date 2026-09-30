@@ -338,11 +338,26 @@ Generic, project-agnostic rules for writing bash scripts. Portable to any shell 
 
 - All shell scripts must pass `shellcheck` before being considered complete
 
-- Format shell scripts with: `shfmt --list --indent 2 --case-indent --binary-next-line --space-redirects --write <files>`
+- Format shell scripts with `shfmt` using this style: 2-space indent, indented `case` alternatives, binary operators (`&&`, `||`, `|`) at the start of continuation lines, and a space after redirect operators (`> file`).
 
-- Verify formatting (no in-place changes) with: `shfmt --list --indent 2 --case-indent --binary-next-line --space-redirects --diff <files>`
+- Configure that style in exactly one place, whichever the project uses:
 
-- All shell scripts must pass the verify command above before being considered complete
+  - **With `.editorconfig`** (preferred when the project has one): set the style there and pass shfmt no style flags. Any parser or printer flag makes shfmt ignore `.editorconfig` entirely.
+
+    ```ini
+    [*.{sh,bash}]
+    indent_style = space
+    indent_size = 2
+    switch_case_indent = true
+    binary_next_line = true
+    space_redirects = true
+    ```
+
+    Format with `shfmt --list --write <files>`; verify with `shfmt --list --diff <files>`.
+
+  - **Without `.editorconfig`**: pass the style as flags on every call: `--indent 2 --case-indent --binary-next-line --space-redirects`. Format with `--list --write`; verify with `--list --diff`.
+
+- All shell scripts must pass the verify step (no diff) before being considered complete
 
 - Use `# shellcheck disable=SCxxxx` only with a same-line comment justifying why
 
