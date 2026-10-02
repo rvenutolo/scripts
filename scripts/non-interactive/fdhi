@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# @description Run `fd` including hidden files and ignored files (--hidden --no-ignore).
+# @arg $@ fd options, pattern, and paths, forwarded verbatim to fd
+# @exitcode 0 delegated to fd
+# @exitcode 1 fd not installed
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+# pass-through: any arg count valid; fd owns --help
+
+if ! commands::executable_exists fd; then
+  log::die "fd executable not found"
+fi
+
+# exec replaces this process; must be the last statement (does not return)
+exec fd --hidden --no-ignore "$@"
