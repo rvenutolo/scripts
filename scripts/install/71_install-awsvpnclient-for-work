@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # @description Install the AWS VPN Client (Ubuntu-only, work hosts) and download the encrypted OVPN profile.
+# When the client is already installed, only refreshes its apt signing key and source list.
 # @noargs
 
 set -Eeuo pipefail
@@ -12,49 +13,67 @@ log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
 
-if ! hosts::is_work; then
-  exit 0
-fi
-if ! os::is_ubuntu; then
-  log::log 'This is a work computer, but not Ubuntu. Skipping installing AWS VPN Client'
-  exit 0
-fi
-if packages::dpkg_package_installed 'awsvpnclient'; then
-  exit 0
-fi
-if ! prompt::yn 'Install AWS VPN Client?'; then
-  exit 0
-fi
+readonly REPO_URL='https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo'
+readonly PUBLIC_KEY_TARGET_FILE='/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc'
+readonly LIST_TARGET_FILE='/etc/apt/sources.list.d/aws-vpn-client.list'
+readonly DE_OVPN_FILE_URL='https://raw.githubusercontent.com/rvenutolo/crypt/main/ovpn/de.ovpn'
+readonly DE_OVPN_FILE="${HOME}/de.ovpn"
 
-readonly public_key_target_file='/etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc'
-readonly list_target_file='/etc/apt/sources.list.d/aws-vpn-client.list'
+# @description Write the AWS VPN Client apt signing key and source list, replacing stale copies.
+# @noargs
+# shellcheck disable=SC2120 # args::check_no_args "$@" is a defensive arity guard; always called with no args
+function write_apt_repo_config() {
+  args::check_no_args "$@"
+  # Captured before the write so a failed download aborts instead of offering to overwrite the key with nothing.
+  local public_key
+  public_key="$(downloads::download_and_cat "${REPO_URL}/awsvpnclient_public_key.asc")"
+  readonly public_key
 
-log::log 'Adding AWS VPN Client public key'
-files::root_write "${public_key_target_file}" "$(
-  downloads::download_and_cat \
-    'https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc'
-)"
-log::log 'Added AWS VPN Client public key'
+  log::log 'Adding AWS VPN Client public key'
+  files::root_write "${PUBLIC_KEY_TARGET_FILE}" "${public_key}"
+  log::log 'Added AWS VPN Client public key'
 
-log::log 'Adding AWS VPN Client source list file'
-files::root_write "${list_target_file}" \
-  "deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu main"
-log::log 'Added AWS VPN Client source list file'
+  log::log 'Adding AWS VPN Client source list file'
+  files::root_write "${LIST_TARGET_FILE}" "deb [arch=amd64] ${REPO_URL} ubuntu main"
+  log::log 'Added AWS VPN Client source list file'
+}
 
-log::log 'Installing AWS VPN Client'
-sudo apt update
-sudo apt install --install-recommends --yes 'awsvpnclient'
-log::log 'Installed AWS VPN Client'
+function main() {
+  if ! hosts::is_work; then
+    exit 0
+  fi
+  if ! os::is_ubuntu; then
+    log::log 'This is a work computer, but not Ubuntu. Skipping installing AWS VPN Client'
+    exit 0
+  fi
+  if packages::dpkg_package_installed 'awsvpnclient'; then
+    # AWS replaces the signing key when it expires, and a stale key makes `apt update` reject the repo.
+    # shellcheck disable=SC2119 # write_apt_repo_config takes no args; $@ intentionally not forwarded
+    write_apt_repo_config
+    exit 0
+  fi
+  if ! prompt::yn 'Install AWS VPN Client?'; then
+    exit 0
+  fi
 
-if ! packages::dpkg_package_installed 'openvpn-systemd-resolved'; then
-  log::log 'Installing openvpn-systemd-resolved and restarting systemd-resolved'
-  sudo apt install 'openvpn-systemd-resolved'
-  sudo systemctl restart 'systemd-resolved'
-  log::log 'Installed openvpn-systemd-resolved and restarted systemd-resolved'
-fi
+  # shellcheck disable=SC2119 # write_apt_repo_config takes no args; $@ intentionally not forwarded
+  write_apt_repo_config
 
-log::log 'Downloading AWS VPN OVPN file'
-readonly de_ovpn_file_url='https://raw.githubusercontent.com/rvenutolo/crypt/main/ovpn/de.ovpn'
-readonly de_ovpn_file="${HOME}/de.ovpn"
-download-decrypt "${de_ovpn_file_url}" "${de_ovpn_file}"
-log::log 'Downloaded AWS VPN OVPN file'
+  log::log 'Installing AWS VPN Client'
+  sudo apt update
+  sudo apt install --install-recommends --yes 'awsvpnclient'
+  log::log 'Installed AWS VPN Client'
+
+  if ! packages::dpkg_package_installed 'openvpn-systemd-resolved'; then
+    log::log 'Installing openvpn-systemd-resolved and restarting systemd-resolved'
+    sudo apt install 'openvpn-systemd-resolved'
+    sudo systemctl restart 'systemd-resolved'
+    log::log 'Installed openvpn-systemd-resolved and restarted systemd-resolved'
+  fi
+
+  log::log 'Downloading AWS VPN OVPN file'
+  download-decrypt "${DE_OVPN_FILE_URL}" "${DE_OVPN_FILE}"
+  log::log 'Downloaded AWS VPN OVPN file'
+}
+
+main "$@"
