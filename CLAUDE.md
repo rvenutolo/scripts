@@ -266,7 +266,8 @@ currently does. On failure, default to fixing the function; escalate genuine amb
   `assert_stderr`. Never simplify `flake.nix` back to the nixpkgs packages. Renovate updates them via the `nix` manager
   and `lockFileMaintenance`, both explicitly enabled (`.ci/check-renovate-invariants`).
 - `path::*` mutate `PATH`: call them directly, not under `run`.
-- `read -rp` prompt text goes to `/dev/tty` and cannot be asserted; test file effects only.
+- `read -rp` prints its prompt to stderr only when stdin is a terminal, so a test feeding stdin has no prompt to
+  assert. To assert prompt text, stub the `prompt::*` helper in use and check the arguments it receives.
 
 Test helpers in `test/test_helper/`: `dual_mode` (stdin-or-file helpers), `env_file_fixture`, `path_shim` (stub
 commands), `os_release_fixture`, `cli_shim` (record calls, canned/stateful output, passthrough `sudo`), `git_fixture`.
