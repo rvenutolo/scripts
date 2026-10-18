@@ -54,6 +54,19 @@ prompt_via_stdin() {
   " _ "$@" <<< "${stdin_str}"
 }
 
+# Helper: replace prompt::for_value with a spy that records its argument count and
+# arguments (one per line) to PROMPT_ARGS_FILE and answers 'typed-val'. The prompt
+# text is env_file's contract; how prompt::for_value renders it is covered in
+# prompt.bats. The spy writes to a file because env_file calls it inside $(...).
+stub_prompt_for_value() {
+  PROMPT_ARGS_FILE="${BATS_TEST_TMPDIR}/prompt-args"
+  # shellcheck disable=SC2329 # invoked indirectly by env_file functions under test
+  function prompt::for_value() {
+    printf '%s\n' "$#" "$@" > "${PROMPT_ARGS_FILE}"
+    printf '%s\n' 'typed-val'
+  }
+}
+
 # ---------- env_file::assert_var_exists ----------
 
 @test "assert_var_exists: var present succeeds" {
@@ -548,34 +561,40 @@ read_back() {
   assert_output 'default-val'
 }
 
-@test "prompt_var_value: 4-arg typed value overrides default and prompt shows var/info/default" {
+@test "prompt_var_value: 4-arg prompts with var and info, passes the default, writes the answer" {
   local env_file
   env_file="$(env_file_fixture::create $'KEY=old\n')"
-  prompt_via_stdin 'typed-val' "env_file::prompt_var_value \"\$1\" 'KEY' 'info-text' 'default-val'" "${env_file}"
+  stub_prompt_for_value
+  run env_file::prompt_var_value "${env_file}" 'KEY' 'info-text' 'default-val'
   assert_success
-  # TODO: brittle ANSI-text assertion — read -rp writes prompt to /dev/tty, not captured by run
+  run cat "${PROMPT_ARGS_FILE}"
+  assert_output $'2\nEnter value for KEY ( info-text )\ndefault-val'
   run read_back "${env_file}" 'KEY'
   assert_success
   assert_output 'typed-val'
 }
 
-@test "prompt_var_value: 3-arg (info, no default) typed value with prompt showing info" {
+@test "prompt_var_value: 3-arg prompts with var and info, passes no default, writes the answer" {
   local env_file
   env_file="$(env_file_fixture::create $'KEY=old\n')"
-  prompt_via_stdin 'typed-val' "env_file::prompt_var_value \"\$1\" 'KEY' 'info-text'" "${env_file}"
+  stub_prompt_for_value
+  run env_file::prompt_var_value "${env_file}" 'KEY' 'info-text'
   assert_success
-  # TODO: brittle ANSI-text assertion — read -rp writes prompt to /dev/tty, not captured by run
+  run cat "${PROMPT_ARGS_FILE}"
+  assert_output $'1\nEnter value for KEY ( info-text )'
   run read_back "${env_file}" 'KEY'
   assert_success
   assert_output 'typed-val'
 }
 
-@test "prompt_var_value: 2-arg (no info, no default) typed value with prompt showing var" {
+@test "prompt_var_value: 2-arg prompts with var only, passes no default, writes the answer" {
   local env_file
   env_file="$(env_file_fixture::create $'KEY=old\n')"
-  prompt_via_stdin 'typed-val' "env_file::prompt_var_value \"\$1\" 'KEY'" "${env_file}"
+  stub_prompt_for_value
+  run env_file::prompt_var_value "${env_file}" 'KEY'
   assert_success
-  # TODO: brittle ANSI-text assertion — read -rp writes prompt to /dev/tty, not captured by run
+  run cat "${PROMPT_ARGS_FILE}"
+  assert_output $'1\nEnter value for KEY'
   run read_back "${env_file}" 'KEY'
   assert_success
   assert_output 'typed-val'
