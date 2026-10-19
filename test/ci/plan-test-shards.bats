@@ -99,6 +99,18 @@ write_seven() {
   assert_output "$(printf '%s\n' suite/mid1.bats suite/mid2.bats)"
 }
 
+@test "files with no tests still leave every shard non-empty" {
+  write_bats 'suite/full.bats' 1
+  write_bats 'suite/empty1.bats' 0
+  write_bats 'suite/empty2.bats' 0
+  local shard
+  for shard in 0 1 2; do
+    run "${SCRIPT}" 3 "${shard}" suite
+    assert_success
+    refute_output ''
+  done
+}
+
 @test "a weights entry for a file outside the scan is ignored" {
   write_seven
   printf '# comment\n\nsuite/gone.bats\t5000\n' > "${WEIGHTS}"

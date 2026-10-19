@@ -87,6 +87,11 @@ function weighted_files() { # variadic: one or more roots
       printf '%s\t%s\n' "${weights["${path}"]}" "${path}"
     else
       tests="$(grep --count '^@test ' "${REPO_DIR}/${path}" || true)" # no tests is a count, not a failure
+      # A zero weight would never move the lightest shard's total, so files with
+      # no tests could pile onto one shard and leave another empty.
+      if ((tests < 1)); then
+        tests=1
+      fi
       printf '%s\t%s\n' "$((MS_PER_TEST * tests))" "${path}"
     fi
   done < "${found_tmp}"
