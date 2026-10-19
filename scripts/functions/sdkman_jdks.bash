@@ -41,7 +41,7 @@ function sdkman_jdks::set_default_jdk_by_id() {
 ### FORMATTED JDK INFO
 
 # @description Fetch the remote Temurin JDK catalog, newest first. Always performs a network
-#   round-trip: `sdk list java` issues an uncached HTTPS request to the SDKMAN API (~0.4s).
+#   round-trip: `sdk list java` issues an uncached HTTPS request to the SDKMAN API.
 #   Callers want sdkman_jdks::get_tem_jdk_catalog, which memoizes this per process.
 #   The installed/in-use markers `sdk list java` prints are deliberately discarded — installed
 #   state is owned by the candidates dir (see sdkman_jdks::get_formatted_installed_tem_jdks).

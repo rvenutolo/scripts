@@ -1,0 +1,8 @@
+# Default BATS suite roots, one repo-relative directory per line. ./run-tests
+# runs these when given no arguments, and CI reads the same list, so a suite
+# added here runs in both places. Blank lines and lines starting with # are
+# skipped.
+test/functions
+test/ci
+test/root
+test/shims

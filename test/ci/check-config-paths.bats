@@ -24,7 +24,7 @@ setup() {
   write_sources
 }
 
-# Write all six configured sources with content that resolves. Individual tests
+# Write all eight configured sources with content that resolves. Individual tests
 # overwrite whichever one they are about. Every source must exist on every run —
 # a missing source is itself a failure the check reports.
 write_sources() {
@@ -34,6 +34,8 @@ write_sources() {
   write_reviewdog './kept/*'
   write_treefmt 'kept/**'
   write_eccheck '^kept/'
+  write_test_suites 'kept'
+  write_shard_weights 'kept/file.txt'
   mkdir -p "${CONFIG_ROOT}/kept"
   printf 'x\n' > "${CONFIG_ROOT}/kept/file.txt"
   restage
@@ -65,6 +67,18 @@ write_treefmt() {
 # spells one as it would appear in the real file, backslashes and all.
 write_eccheck() {
   printf '{ "Exclude": ["%s"] }\n' "$1" > "${CONFIG_ROOT}/.editorconfig-checker.json"
+}
+
+# One suite root per line; the real file also carries comments and blank lines.
+write_test_suites() {
+  mkdir -p "${CONFIG_ROOT}/.ci"
+  printf '# suite roots\n\n%s\n' "$1" > "${CONFIG_ROOT}/.ci/test-suites"
+}
+
+# One `path<TAB>milliseconds` row; only the path field is configuration.
+write_shard_weights() {
+  mkdir -p "${CONFIG_ROOT}/.ci"
+  printf '# weights\n%s\t1000\n' "$1" > "${CONFIG_ROOT}/.ci/test-shard-weights"
 }
 
 # Re-stage after a test rewrites a source, so tracked-ness reflects the new tree.
@@ -227,6 +241,31 @@ restage() {
   restage
   run "${CHECK}"
   assert_success
+}
+
+@test "fails on a stale root in .ci/test-suites" {
+  write_test_suites 'gone'
+  restage
+  run --separate-stderr "${CHECK}"
+  assert_failure 1
+  assert_stderr --partial '.ci/test-suites'
+  assert_stderr --partial 'names gone'
+}
+
+@test "comment and blank lines in .ci/test-suites are not read as paths" {
+  printf '# gone/\n\n   \nkept\n' > "${CONFIG_ROOT}/.ci/test-suites"
+  restage
+  run "${CHECK}"
+  assert_success
+}
+
+@test "fails on a stale path in .ci/test-shard-weights" {
+  write_shard_weights 'gone.bats'
+  restage
+  run --separate-stderr "${CHECK}"
+  assert_failure 1
+  assert_stderr --partial '.ci/test-shard-weights'
+  assert_stderr --partial 'names gone.bats'
 }
 
 # ---------- missing and unparsable sources fail loudly ----------

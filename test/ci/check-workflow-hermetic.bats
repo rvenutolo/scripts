@@ -222,7 +222,7 @@ EOF
   assert_success
 }
 
-@test "the shipped exemptions cover the changed-tests decide and setup root-devshell steps" {
+@test "the shipped exemptions cover the changed-tests decide, setup root-devshell, and ci verdict steps" {
   unset EXEMPT_OVERRIDE
   mkdir -p "${ACT_ROOT}/changed-tests" "${ACT_ROOT}/setup"
   cat > "${ACT_ROOT}/changed-tests/action.yml" << 'EOF'
@@ -240,6 +240,14 @@ runs:
     - id: root-devshell
       shell: bash
       run: nix build '.#devShells.x86_64-linux.default.inputDerivation'
+EOF
+  cat > "${WF}/ci.yml" << 'EOF'
+on: pull_request
+jobs:
+  bats:
+    steps:
+      - id: verdict
+        run: exit 0
 EOF
   run_check
   assert_success

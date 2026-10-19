@@ -109,11 +109,11 @@
               # is not this one fails loudly instead of silently missing them.
               (bats.withLibraries (l: [
                 # Both libraries come from flake INPUTS pinned in flake.lock, not
-                # from the nixpkgs releases. nixpkgs ships bats-assert 2.1.0,
-                # which has no assert_stderr / refute_stderr: those live only on
+                # from the nixpkgs releases. The bats-assert release nixpkgs
+                # ships has no assert_stderr / refute_stderr: those live only on
                 # master, and this repo's whole stderr convention -- plus
                 # .ci/check-stderr-assertions, which enforces it -- is built on
-                # them. Taking the release would break ~30 tests and silently
+                # them. Taking the release would break every test using them and silently
                 # un-enforce a documented rule. flake.lock carries the rev and the
                 # narHash together, so Renovate's nix manager updates both.
                 #
@@ -168,8 +168,8 @@
               # docs site — `mkdocs build` for the .justfile `docs` recipe and the
               # Pages workflow. withPackages, not python3Packages.mkdocs-material:
               # the bare package ships no bin/ directory at all, so it puts no
-              # `mkdocs` on PATH, while this env provides mkdocs 1.6.1 and the
-              # material theme 9.7.6 on the same site-packages.
+              # `mkdocs` on PATH, while this env provides mkdocs and the
+              # material theme on the same site-packages.
               (python3.withPackages (ps: [ ps.mkdocs-material ]))
             ];
 

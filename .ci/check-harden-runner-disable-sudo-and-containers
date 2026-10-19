@@ -53,7 +53,7 @@ readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}
 # wholesale by accident. These must set neither key; Rules 2 and 3 still apply.
 readonly EXEMPT=(
   'ci.yml:check-scripts'                                  # nix-installer-action needs root to write /nix
-  'ci.yml:bats'                                           # nix-installer-action needs root to write /nix
+  'ci.yml:bats-shard'                                     # nix-installer-action needs root to write /nix
   'ci.yml:lint'                                           # nix-installer-action needs root to write /nix
   'ci.yml:governance'                                     # nix-installer-action needs root to write /nix
   'ci.yml:commitlint'                                     # nix-installer-action needs root to write /nix

@@ -44,8 +44,8 @@ fi
 #
 # This gate exists because `nix fmt` cannot replace it. treefmt matches formatters to
 # files by EXTENSION, and this repo's top-level executables have none by convention, so
-# treefmt's shfmt only ever sees *.sh/*.bash — leaving the ~306 extensionless
-# executables and ~68 .bats files with no formatting gate at all.
+# treefmt's shfmt only ever sees *.sh/*.bash — leaving the extensionless
+# executables and the .bats files with no formatting gate at all.
 #
 # No style flags are passed on purpose. shfmt reads .editorconfig for style, but ONLY
 # when it is given no parser or printer flag — adding -i/-ci/-bn/-sr here would
