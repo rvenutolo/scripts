@@ -47,9 +47,9 @@ readonly CONFIG_ROOT="${CONFIG_ROOT_OVERRIDE:-${REPO_DIR}}"
 # Config sources, as `relative-path::extractor::normalizer`. Both name functions
 # below rather than inline logic, so each one can be read, and so a source whose
 # format needs different handling does not distort the others. The normalizer is
-# per-source because the entries are not all one grammar: five configure globs,
-# and .editorconfig-checker.json configures anchored regexes, where the same
-# characters mean different things.
+# per-source because the entries are not all one grammar: most configure globs or
+# literal paths, and .editorconfig-checker.json configures anchored regexes, where
+# the same characters mean different things.
 readonly SOURCES=(
   '.typos.toml::extract_typos::literal_prefix'
   '.github/labeler.yml::extract_labeler::literal_prefix'
@@ -57,6 +57,7 @@ readonly SOURCES=(
   '.github/workflows/ci.yml::extract_reviewdog::literal_prefix'
   '.treefmt.nix::extract_treefmt::literal_prefix'
   '.editorconfig-checker.json::extract_editorconfig_checker::regex_literal_prefix'
+  '.ci/test-suites::extract_data_lines::literal_prefix'
 )
 
 # Paths git cannot see at all — neither tracked nor matched by a .gitignore rule.
@@ -146,6 +147,23 @@ function extract_editorconfig_checker() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
   yq --input-format=json --output-format=yaml '.Exclude[]' "${file}"
+}
+
+# @description Print the path field of a repo data file: the text before the
+#              first tab on each line, skipping blank lines and # comments.
+# @arg $1 file path to a line-oriented data file
+# @stdout One configured path per line.
+# shellcheck disable=SC2329 # dispatched indirectly by name from SOURCES
+function extract_data_lines() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  local line
+  while IFS= read -r line; do
+    if strings::is_blank "${line}" || [[ "${line}" == '#'* ]]; then
+      continue
+    fi
+    printf '%s\n' "${line%%$'\t'*}"
+  done < "${file}"
 }
 
 # @description Reduce a configured entry to the literal path prefix it pins.

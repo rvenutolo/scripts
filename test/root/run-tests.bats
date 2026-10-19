@@ -60,6 +60,12 @@ make_recording_bats_stub_with_body() {
   write_bats_stub "${STUB_BIN}" "${body}"
 }
 
+# Give the fake repo a one-suite .ci/test-suites, which a no-argument run reads.
+write_suites_fixture() {
+  mkdir --parents "${FAKE_REPO}/.ci"
+  printf '%s\n' 'test/alpha' > "${FAKE_REPO}/.ci/test-suites"
+}
+
 run_in_fake_repo() {
   cd "${FAKE_REPO}" || return 1
   # BASH_ENV=SAFE_BASH_ENV: a child bash would otherwise re-source the user's
@@ -121,8 +127,32 @@ make_guard_bin() {
   assert_output --partial 'flock not found on PATH'
 }
 
-@test "no-arg invocation runs the four default suites in parallel" {
+@test "no-arg invocation runs the suites listed in .ci/test-suites" {
   install_bats_stub
+  mkdir --parents "${FAKE_REPO}/.ci"
+  printf '%s\n' '# comment lines and blank lines are skipped' '' 'test/alpha' 'test/beta' \
+    > "${FAKE_REPO}/.ci/test-suites"
+  run_in_fake_repo
+  assert_success
+  local recorded
+  recorded="$(cat "${ARGS_LOG}")"
+  [[ "${recorded}" == *"${FAKE_REPO}/test/alpha"* ]]
+  [[ "${recorded}" == *"${FAKE_REPO}/test/beta"* ]]
+  [[ "${recorded}" != *'comment'* ]]
+  [[ "${recorded}" != *"${FAKE_REPO}/test/shims"* ]]
+}
+
+@test "dies when .ci/test-suites is missing" {
+  install_bats_stub
+  run_in_fake_repo
+  assert_failure 1
+  assert_output --partial "${FAKE_REPO}/.ci/test-suites"
+}
+
+@test "no-arg invocation runs the four shipped default suites in parallel" {
+  install_bats_stub
+  mkdir --parents "${FAKE_REPO}/.ci"
+  cp -- "${REPO_DIR}/.ci/test-suites" "${FAKE_REPO}/.ci/test-suites"
   run_in_fake_repo
   assert_success
   local recorded
@@ -160,6 +190,7 @@ make_guard_bin() {
   # fixture escape, and exits 0 as if all tests passed.
   # shellcheck disable=SC2016 # single quotes are deliberate: the snippet is evaluated by the stub, not here
   make_recording_bats_stub_with_body 'git config --file "$(git rev-parse --path-format=absolute --git-path config)" bats.escaped true'
+  write_suites_fixture
   run_in_fake_repo
   assert_failure
   assert_output --partial 'mutated the real repo'
@@ -167,6 +198,7 @@ make_guard_bin() {
 
 @test "tripwire: fails when the suite moves HEAD" {
   make_recording_bats_stub_with_body 'git commit --quiet --allow-empty --message stray'
+  write_suites_fixture
   run_in_fake_repo
   assert_failure
   assert_output --partial 'mutated the real repo'
@@ -174,6 +206,7 @@ make_guard_bin() {
 
 @test "tripwire: silent on a clean green run" {
   make_recording_bats_stub_with_body ''
+  write_suites_fixture
   run_in_fake_repo
   assert_success
   refute_output --partial 'mutated the real repo'
@@ -181,6 +214,7 @@ make_guard_bin() {
 
 @test "tripwire: a red suite still reports the bats exit, not the tripwire" {
   make_recording_bats_stub_with_body 'exit 1'
+  write_suites_fixture
   run_in_fake_repo
   assert_failure
   refute_output --partial 'mutated the real repo'

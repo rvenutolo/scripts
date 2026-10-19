@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 
-# @description Run the BATS test suite under test/functions/, test/ci/,
-#              test/root/, and test/shims/ in parallel, or forward
-#              arguments directly to bats.
-# @arg $@ args Optional bats arguments or test file paths; omit to run all
-#         tests under test/functions/, test/ci/, test/root/, and
-#         test/shims/.
+# @description Run the BATS suites listed in .ci/test-suites in parallel, or
+#              forward arguments directly to bats.
+# @arg $@ args Optional bats arguments or test file paths; omit to run every
+#         suite listed in .ci/test-suites.
 # @exitcode 0 all tests passed and the repo was left untouched.
-# @exitcode 1 bats, flock, or GNU parallel not found, one or more tests failed, or the suite mutated the repo.
+# @exitcode 1 bats, flock, or GNU parallel not found, .ci/test-suites missing, one or more tests failed, or the suite mutated the repo.
 
 set -Eeuo pipefail
 # Without this, errexit is off inside every $(...) subshell, so a helper called
@@ -23,12 +21,27 @@ log::enable_err_trap
 # test/ lives at the repo root, not under SCRIPTS_DIR (= repo-root/scripts).
 REPO_DIR="$(git rev-parse --show-toplevel)"
 readonly REPO_DIR
-readonly DEFAULT_TARGETS=(
-  "${REPO_DIR}/test/functions"
-  "${REPO_DIR}/test/ci"
-  "${REPO_DIR}/test/root"
-  "${REPO_DIR}/test/shims"
-)
+readonly SUITES_FILE="${REPO_DIR}/.ci/test-suites"
+
+# @description Print the absolute path of each suite root listed in .ci/test-suites,
+#              one per line, skipping blank lines and # comments. Read only when no
+#              arguments are given, so the tool guards and pass-through runs do not
+#              depend on the file.
+# @noargs
+# @stdout One absolute suite root per line.
+# @exitcode 1 .ci/test-suites does not exist.
+# shellcheck disable=SC2120 # called with no args by main, but shellcheck can't see the call site
+function default_targets() {
+  args::check_no_args "$@"
+  files::assert_exists "${SUITES_FILE}"
+  local line
+  while IFS= read -r line; do
+    if strings::is_blank "${line}" || [[ "${line}" == '#'* ]]; then
+      continue
+    fi
+    printf '%s/%s\n' "${REPO_DIR}" "${line}"
+  done < "${SUITES_FILE}"
+}
 
 # @description Print one line per watched repo artifact: HEAD sha, config hash, index hash.
 #              Used before/after the suite to detect fixture escapes onto the real repo.
@@ -70,7 +83,13 @@ function main() {
   # shellcheck disable=SC2119 # intentional no-arg call; repo_state takes no args
   before="$(repo_state)"
   if (($# == 0)); then
-    bats --jobs "$(nproc)" --recursive --print-output-on-failure "${DEFAULT_TARGETS[@]}" || status=$?
+    local targets_file
+    files::create_temp targets_file
+    # shellcheck disable=SC2119 # intentional no-arg call; default_targets takes no args
+    default_targets > "${targets_file}"
+    local -a targets
+    mapfile -t targets < "${targets_file}"
+    bats --jobs "$(nproc)" --recursive --print-output-on-failure "${targets[@]}" || status=$?
   else
     bats "$@" || status=$?
   fi
