@@ -301,16 +301,28 @@ jobs:
       - name: Run nix flake check
         run: ./.ci/in-devshell ./.ci/check-flake-eval-warnings
   coverage:
-    name: coverage
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    name: coverage (${{ matrix.scope }})
     # The Codecov upload lives in coverage.yml, which is push-triggered so it
     # can carry CODECOV_TOKEN (.ci/check-pr-workflows-no-secrets forbids any
     # non-GITHUB_TOKEN secret in a PR-triggered file). This job is the PR half:
-    # it produces the report as a downloadable artifact and uploads nothing.
-    if: github.event_name == 'pull_request'
+    # it produces the reports as downloadable artifacts and uploads nothing.
+    #
+    # coverage is not a required check, but it is gated on changed-tests like
+    # the bats shards, so a PR that changes no test-relevant files does not
+    # re-run the suite under kcov. The two scopes run as parallel jobs, as in
+    # coverage.yml. Each scope runs its whole suite in one kcov process rather
+    # than in shards: a gates suite split across processes and merged with
+    # `kcov --merge` drops covered lines that a single run records.
+    needs: changed-tests
+    if: github.event_name == 'pull_request' && needs.changed-tests.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        scope: [functions, gates]
     steps:
       - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
@@ -321,29 +333,14 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
-          fetch-depth: 0 # full history so changed-tests can diff the PR range
-      # coverage is not a required check, but gate it the same way as bats so a
-      # PR that changes no test-relevant files does not re-run the whole suite
-      # under kcov.
-      - id: changes
-        uses: ./.github/actions/changed-tests
       - uses: ./.github/actions/setup
-        if: steps.changes.outputs.run == 'true'
-      # Both scopes run as steps of this one job rather than as two jobs, unlike
-      # coverage.yml. Nothing is uploaded here, so there is no per-upload egress
-      # to isolate.
       - uses: ./.github/actions/coverage
-        if: steps.changes.outputs.run == 'true'
         with:
-          scope: functions
-      - uses: ./.github/actions/coverage
-        if: steps.changes.outputs.run == 'true'
-        with:
-          scope: gates
+          scope: ${{ matrix.scope }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always() && steps.changes.outputs.run == 'true'
+        if: always()
         with:
-          name: coverage-report
+          name: coverage-report-${{ matrix.scope }}
           path: ${{ runner.temp }}/coverage/
           # coverage runs under `if: always()` as a best-effort debug
           # artifact; warn is correct here (allowlisted in

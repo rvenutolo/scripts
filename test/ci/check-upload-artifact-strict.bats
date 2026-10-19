@@ -42,7 +42,7 @@ jobs:
     steps:
       - uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
+          name: coverage-report-${{ matrix.scope }}
           path: coverage/
           if-no-files-found: warn
 EOF
@@ -58,7 +58,7 @@ jobs:
     steps:
       - uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
+          name: coverage-report-${{ matrix.scope }}
           path: coverage/
           if-no-files-found: ignore
 EOF
@@ -74,7 +74,7 @@ jobs:
     steps:
       - uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
+          name: coverage-report-${{ matrix.scope }}
           path: coverage/
           if-no-files-found: error
 EOF
