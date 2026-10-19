@@ -312,7 +312,7 @@ jobs:
     # re-run the suite under kcov. The two scopes run as parallel jobs, as in
     # coverage.yml. Each scope runs its whole suite in one kcov process rather
     # than in shards: a gates suite split across processes and merged with
-    # `kcov --merge` lost covered lines that the single run records.
+    # `kcov --merge` drops covered lines that a single run records.
     needs: changed-tests
     if: github.event_name == 'pull_request' && needs.changed-tests.outputs.run == 'true'
     runs-on: ubuntu-latest
