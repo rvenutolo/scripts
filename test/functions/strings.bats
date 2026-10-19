@@ -383,3 +383,7 @@ setup() {
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
+
+@test "SHARD_RED_MARKER" {
+  false
+}
