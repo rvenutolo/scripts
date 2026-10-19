@@ -1,0 +1,11 @@
+# Shard weights, in milliseconds, for the .bats files whose cost is out of
+# proportion to their test count, mostly end-to-end tests that run real gates.
+# Each value is the wall time of the file run alone under kcov, the slowest way
+# CI runs it. .ci/plan-test-shards weights every unlisted file by its test count.
+# Format: <repo-relative path><TAB><milliseconds>.
+test/ci/build-docs.bats	235299
+test/root/check-scripts.bats	214861
+test/ci/run-lint-checks.bats	89238
+test/ci/build-site.bats	54573
+test/ci/run-governance-checks.bats	41580
+test/ci/check-shdoc-headers.bats	39821

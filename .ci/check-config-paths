@@ -58,6 +58,7 @@ readonly SOURCES=(
   '.treefmt.nix::extract_treefmt::literal_prefix'
   '.editorconfig-checker.json::extract_editorconfig_checker::regex_literal_prefix'
   '.ci/test-suites::extract_data_lines::literal_prefix'
+  '.ci/test-shard-weights::extract_data_lines::literal_prefix'
 )
 
 # Paths git cannot see at all — neither tracked nor matched by a .gitignore rule.
