@@ -113,8 +113,7 @@ function justfile_dump() {
 #              `just` reports private=true for both a `_` name prefix and a
 #              `[private]` attribute, which are the two ways it hides a recipe
 #              from `just --list`. Note that `just` rejects digit-initial recipe
-#              names outright — verified on just 1.51.0 — so no pattern here
-#              needs to accommodate them.
+#              names outright, so no pattern here needs to accommodate them.
 # @arg $1 dump_path path to a JSON dump written by justfile_dump
 # @stdout One `private<TAB>name` or `public<TAB>name` line per recipe.
 function classified_recipes() {

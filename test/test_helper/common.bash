@@ -47,7 +47,7 @@ export GIT_CEILING_DIRECTORIES="${REPO_DIR}"
 #   2. It pollutes the tree. Under this harness nix wrote nix/sentry/settings.dat into the
 #      working directory, which editorconfig-checker then failed on — reddening
 #      run-lint-checks.bats, a file with no connection to the lint that caused it.
-#   3. It is slow: seconds per invocation, against a suite of ~2000 tests.
+#   3. It is slow: seconds per invocation, multiplied across the whole suite.
 # The ambient PATH is a deliberately WRONG value — it is exactly the inherited-PATH
 # confusion check-devshell-provides exists to catch. That is fine here: no test may assert
 # the real devShell's contents. That assertion belongs to the `governance` CI job and the

@@ -64,7 +64,7 @@ function repo_state() {
 function main() {
   # Unset BASH_ENV so bats' per-test subshells don't re-source the user's
   # interactive ~/.bashrc. That re-source fires for every test subshell —
-  # making the full suite ~40x slower (≈20 min vs ≈30 s) — and clobbers
+  # making the full suite many times slower — and clobbers
   # exported vars like SCRIPTS_DIR in child shells, breaking hermeticity.
   unset BASH_ENV
   # bats, flock, and parallel all come from the flake devShell. Named guards beat the

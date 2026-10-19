@@ -14,7 +14,7 @@ trim_trailing_whitespace = true
 # flags, so .treefmt.nix and check-scripts must pass none.
 #
 # The path list exists because this repo's top-level executables have NO extension by
-# convention, so *.sh/*.bash alone would miss ~306 of them. scripts/other/ is
+# convention, so *.sh/*.bash alone would miss most of them. scripts/other/ is
 # deliberately absent: third-party scripts are never reformatted.
 [*.{sh,bash,bats}]
 indent_style = space

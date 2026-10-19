@@ -226,16 +226,15 @@ jobs:
           persist-credentials: false
           fetch-depth: 0 # full history so changed-tests can diff the PR range
       # coverage is not a required check, but gate it the same way as bats so a
-      # PR that changes no test-relevant files does not spend ~9 min re-running
-      # the whole suite under kcov.
+      # PR that changes no test-relevant files does not re-run the whole suite
+      # under kcov.
       - id: changes
         uses: ./.github/actions/changed-tests
       - uses: ./.github/actions/setup
         if: steps.changes.outputs.run == 'true'
       # Both scopes run as steps of this one job rather than as two jobs, unlike
       # coverage.yml. Nothing is uploaded here, so there is no per-upload egress
-      # to isolate, and the gates suite adds only ~2.5 min against the functions
-      # suite's ~9 — not worth duplicating a job preamble for.
+      # to isolate.
       - uses: ./.github/actions/coverage
         if: steps.changes.outputs.run == 'true'
         with:

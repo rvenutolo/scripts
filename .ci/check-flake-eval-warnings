@@ -6,8 +6,8 @@
 #              cold run printed — so a warm local gate is quieter than CI, which
 #              always starts cold, and a newly introduced flake warning is
 #              invisible to ./run-all-checks. `--no-eval-cache` forces a real
-#              evaluation every time; the measured cost is ~2s against a
-#              ~90s gate. This check is a strict superset of the bare
+#              evaluation every time, a small cost next to the rest of the
+#              gate. This check is a strict superset of the bare
 #              `nix flake check` step it replaces: flake check's own exit status
 #              still fails the gate. Both surfaces — ./run-all-checks and the
 #              `nix-flake-check` CI job — call this one script so the local and
