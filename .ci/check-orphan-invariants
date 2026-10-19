@@ -47,6 +47,8 @@ readonly GOVERNANCE_RUNNER="${GOVERNANCE_RUNNER_OVERRIDE:-${REPO_DIR}/.ci/run-go
 #   set; a CI utility consumed by .github/actions/changed-tests, not an enforcer.
 # - diff-ruleset: prints a ruleset diff; not an enforcer.
 # - in-devshell: runs a command inside the flake devShell; a wrapper, not an enforcer.
+# - plan-test-shards: prints one CI shard's slice of the BATS files; a utility, not
+#   an enforcer.
 # - run-governance-checks / run-lint-checks: aggregate runners, not enforcers.
 readonly EXEMPT=(
   activate-githooks
@@ -56,6 +58,7 @@ readonly EXEMPT=(
   decide-changed-tests
   diff-ruleset
   in-devshell
+  plan-test-shards
   run-governance-checks
   run-lint-checks
 )

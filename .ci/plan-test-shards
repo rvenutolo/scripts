@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+
+# @description Print the .bats files that belong to one shard of a test suite, so
+#              parallel CI jobs can each run a disjoint slice. Every job computes
+#              the same partition independently: files are weighted (a millisecond
+#              figure from .ci/test-shard-weights, otherwise a fixed cost per
+#              test), taken heaviest first, and each is assigned to the shard with
+#              the smallest running total, ties going to the lowest index.
+# @arg $1 count number of shards, an integer of at least 1
+# @arg $2 index shard to print, an integer from 0 to count - 1
+# @arg $@ roots optional repo-relative suite roots; defaults to the roots listed in
+#         .ci/test-suites
+# @stdout The repo-relative paths of the shard's .bats files, one per line, sorted.
+# @exitcode 1 a bad count or index, a missing root or weights file, no .bats files
+#             under the roots, or more shards than files.
+# @example
+#   .ci/plan-test-shards 4 0
+#   .ci/plan-test-shards 3 2 test/ci test/root
+
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0.
+shopt -s inherit_errexit
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_at_least_2_args "$@"
+
+readonly COUNT="$1"
+readonly INDEX="$2"
+shift 2
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly SUITES_FILE="${REPO_DIR}/.ci/test-suites"
+readonly WEIGHTS_FILE="${TEST_SHARD_WEIGHTS_OVERRIDE:-${REPO_DIR}/.ci/test-shard-weights}"
+
+# The weight of a file with no entry in the weights file, per test it holds.
+readonly MS_PER_TEST=250
+
+# @description Print the non-comment, non-blank lines of a data file.
+# @arg $1 file path to a line-oriented data file
+# @stdout One data line per line.
+function data_lines() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  files::assert_exists "${file}"
+  local line
+  while IFS= read -r line; do
+    if strings::is_blank "${line}" || [[ "${line}" == '#'* ]]; then
+      continue
+    fi
+    printf '%s\n' "${line}"
+  done < "${file}"
+}
+
+# @description Print `weight<TAB>path` for every .bats file under the given roots.
+# @arg $@ roots repo-relative suite roots
+# @stdout One `weight<TAB>path` line per file, unordered.
+function weighted_files() { # variadic: one or more roots
+  args::check_at_least_1_arg "$@"
+  local -A weights=()
+  local weights_tmp
+  files::create_temp weights_tmp
+  # shellcheck disable=SC2154 # weights_tmp assigned by files::create_temp via nameref
+  data_lines "${WEIGHTS_FILE}" > "${weights_tmp}"
+  local line
+  while IFS= read -r line; do
+    weights["${line%%$'\t'*}"]="${line#*$'\t'}"
+  done < "${weights_tmp}"
+
+  local found_tmp
+  files::create_temp found_tmp
+  local root
+  for root in "$@"; do
+    dirs::assert_exists "${REPO_DIR}/${root}"
+    # shellcheck disable=SC2154 # found_tmp assigned by files::create_temp via nameref
+    find "${REPO_DIR}/${root}" -type f -name '*.bats' -printf "${root}/%P\n" >> "${found_tmp}"
+  done
+
+  local path tests
+  while IFS= read -r path; do
+    if [[ -v "weights[${path}]" ]]; then
+      printf '%s\t%s\n' "${weights["${path}"]}" "${path}"
+    else
+      tests="$(grep --count '^@test ' "${REPO_DIR}/${path}" || true)" # no tests is a count, not a failure
+      printf '%s\t%s\n' "$((MS_PER_TEST * tests))" "${path}"
+    fi
+  done < "${found_tmp}"
+}
+
+function main() { # variadic: optional roots
+  if [[ ! "${COUNT}" =~ ^[0-9]+$ ]] || ((COUNT < 1)); then
+    log::die "count must be an integer of at least 1: ${COUNT}"
+  fi
+  if [[ ! "${INDEX}" =~ ^[0-9]+$ ]] || ((INDEX >= COUNT)); then
+    log::die "index must be an integer from 0 to $((COUNT - 1)): ${INDEX}"
+  fi
+
+  local -a roots=("$@")
+  if (($# == 0)); then
+    local suites_tmp
+    files::create_temp suites_tmp
+    # shellcheck disable=SC2154 # suites_tmp assigned by files::create_temp via nameref
+    data_lines "${SUITES_FILE}" > "${suites_tmp}"
+    mapfile -t roots < "${suites_tmp}"
+  fi
+
+  local weighted_tmp sorted_tmp
+  files::create_temp weighted_tmp
+  files::create_temp sorted_tmp
+  # shellcheck disable=SC2154 # weighted_tmp assigned by files::create_temp via nameref
+  weighted_files "${roots[@]}" > "${weighted_tmp}"
+  # Heaviest first, then by path, so every job walks the files in the same order.
+  # shellcheck disable=SC2154 # sorted_tmp assigned by files::create_temp via nameref
+  LC_ALL=C sort --field-separator=$'\t' --key=1,1nr --key=2,2 "${weighted_tmp}" > "${sorted_tmp}"
+
+  local -a files
+  mapfile -t files < "${sorted_tmp}"
+  if ((${#files[@]} == 0)); then
+    log::die "no .bats files under: ${roots[*]}"
+  fi
+  if ((COUNT > ${#files[@]})); then
+    log::die "count ${COUNT} exceeds the ${#files[@]} test files, so a shard would be empty"
+  fi
+
+  local -a totals=()
+  local i
+  for ((i = 0; i < COUNT; i++)); do
+    totals[i]=0
+  done
+  local entry weight lightest
+  local -a mine=()
+  for entry in "${files[@]}"; do
+    weight="${entry%%$'\t'*}"
+    lightest=0
+    for ((i = 1; i < COUNT; i++)); do
+      if ((totals[i] < totals[lightest])); then
+        lightest="${i}"
+      fi
+    done
+    totals[lightest]=$((totals[lightest] + weight))
+    if ((lightest == INDEX)); then
+      mine+=("${entry#*$'\t'}")
+    fi
+  done
+
+  printf '%s\n' "${mine[@]}" | LC_ALL=C sort
+}
+
+main "$@"
