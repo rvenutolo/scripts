@@ -80,9 +80,14 @@ readonly FORBIDDEN_PATTERN="(^|[^[:alnum:]_-])${NIX_WORD}[[:space:]]+${DEVELOP_W
 # creates the GC roots that the cache action's post-job save honours, so it
 # must run with the nix that nix-installer-action provides, outside the shell
 # whose closure it is rooting.
+#
+# The ci.yml `verdict` step runs in the no-Nix job behind the required `bats`
+# check. It only compares `needs` results, and installing Nix to do that would
+# put a full devShell setup on the path of every PR.
 readonly EXEMPT=(
   '.github/actions/changed-tests/action.yml::decide'
   '.github/actions/setup/action.yml::root-devshell'
+  '.github/workflows/ci.yml::verdict'
 )
 
 # @description Emit one record per step that carries a `run:` key, for both the

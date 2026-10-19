@@ -29,12 +29,47 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Run check-scripts
         run: ./.ci/in-devshell ./check-scripts
-  bats:
-    name: bats
+  # Decides once whether the BATS suite must run, for every job that runs it.
+  # No Nix: .ci/decide-changed-tests needs only bash and git.
+  changed-tests:
+    name: changed-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      run: ${{ steps.changes.outputs.run }}
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: block
+          disable-sudo-and-containers: true
+          allowed-endpoints: >-
+            api.github.com:443 codeload.github.com:443 github.com:443 objects.githubusercontent.com:443
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # full history so changed-tests can diff the PR range
+      - id: changes
+        uses: ./.github/actions/changed-tests
+  # Each shard runs the slice of the suite .ci/plan-test-shards assigns to its
+  # index. The planner is deterministic, so the shards partition the suite
+  # without a planning job ahead of them. SHARD_COUNT must match the matrix.
+  bats-shard:
+    name: bats-shard (${{ matrix.shard }})
+    needs: changed-tests
+    if: needs.changed-tests.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    env:
+      SHARD_COUNT: 4
+      SHARD_INDEX: ${{ matrix.shard }}
     steps:
       - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
@@ -45,34 +80,88 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
-          fetch-depth: 0 # full history so changed-tests can diff the PR range
-      # This job is a required check, so it must always run and report a status.
-      # changed-tests only gates the heavy steps below — when nothing
-      # test-relevant changed the job still succeeds, reporting green quickly.
-      - id: changes
-        uses: ./.github/actions/changed-tests
       - uses: ./.github/actions/setup
-        if: steps.changes.outputs.run == 'true'
-      - name: Run BATS
-        if: steps.changes.outputs.run == 'true'
+      - name: Run BATS shard
         run: |
           set -Eeuo pipefail
-          # shellcheck disable=SC2016 # $(nproc) must run inside the in-devshell
-          # bash -c, not in the runner shell — the whole invocation belongs on the
-          # hermetic side of the boundary; single quotes intended.
-          # The suite roots come from .ci/test-suites, the list ./run-tests reads.
+          # shellcheck disable=SC2016 # $(nproc) and the shard variables must expand
+          # inside the in-devshell bash -c, on the hermetic side of the boundary;
+          # single quotes intended.
+          # ./run-tests forwards its arguments to bats and adds its repo-mutation
+          # tripwire. Every shard's junit report is named after its index, so the
+          # reports do not overwrite each other when the bats job merges them.
           ./.ci/in-devshell bash -c '
             set -Eeuo pipefail
+            ./.ci/plan-test-shards "${SHARD_COUNT}" "${SHARD_INDEX}" > bats-shard-files.txt
+            mapfile -t files < bats-shard-files.txt
             mkdir -p bats-junit
-            grep --invert-match --extended-regexp "^[[:space:]]*(#|$)" .ci/test-suites > bats-suites.txt
-            mapfile -t suites < bats-suites.txt
-            bats --jobs "$(nproc)" --recursive \
-              --print-output-on-failure \
+            status=0
+            ./run-tests --jobs "$(nproc)" --print-output-on-failure \
               --report-formatter junit --output bats-junit \
-              "${suites[@]}"
+              "${files[@]}" || status=$?
+            mv bats-junit/report.xml "bats-junit/report-${SHARD_INDEX}.xml"
+            exit "${status}"
           '
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: bats-junit-${{ matrix.shard }}
+          path: bats-junit/
+          if-no-files-found: error
+  # The required `bats` check. It must always run and report a status, so it
+  # depends on the shards with `if: always()` and decides green or red itself:
+  # green when changed-tests found nothing test-relevant, or when every shard
+  # passed; red otherwise, including when changed-tests itself failed. No Nix.
+  bats:
+    name: bats
+    needs: [changed-tests, bats-shard]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: block
+          disable-sudo-and-containers: true
+          allowed-endpoints: >-
+            api.github.com:443 github.com:443
+      - id: verdict
+        env:
+          CHANGED_RESULT: ${{ needs.changed-tests.result }}
+          RUN: ${{ needs.changed-tests.outputs.run }}
+          SHARDS_RESULT: ${{ needs.bats-shard.result }}
+        run: |
+          set -Eeuo pipefail
+          if [[ "${CHANGED_RESULT}" != 'success' ]]; then
+            printf 'changed-tests did not succeed (%s)\n' "${CHANGED_RESULT}" >&2
+            exit 1
+          fi
+          case "${RUN}" in
+            false)
+              printf 'no test-relevant changes; the suite did not need to run\n'
+              ;;
+            true)
+              if [[ "${SHARDS_RESULT}" != 'success' ]]; then
+                printf 'bats shards did not all succeed (%s)\n' "${SHARDS_RESULT}" >&2
+                exit 1
+              fi
+              printf 'every bats shard passed\n'
+              ;;
+            *)
+              printf 'changed-tests produced no run decision (%s)\n' "${RUN}" >&2
+              exit 1
+              ;;
+          esac
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: always() && needs.changed-tests.outputs.run == 'true'
+        with:
+          pattern: bats-junit-*
+          merge-multiple: true
+          path: bats-junit
       - uses: mikepenz/action-junit-report@6ef3fdcfcd5f0b5d14df3e659ef19b8c6820f93d # v6.6.1
-        if: always() && steps.changes.outputs.run == 'true'
+        if: always() && needs.changed-tests.outputs.run == 'true'
         with:
           report_paths: bats-junit/*.xml
           check_name: BATS results

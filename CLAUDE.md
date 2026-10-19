@@ -68,7 +68,7 @@ Run repo scripts through `./.ci/in-devshell <script>` (or from an entered direnv
   `*.bats`; `./check-scripts` covers those with a verify-only shfmt step.
 - `./check-scripts [<file-or-dir>...]` — shfmt verify, shellcheck, shdoc-header audit, executable-bit audit.
 - `./shellcheck-scripts [<file-or-dir>...]` — shellcheck all shell files except `scripts/other/`.
-- `./run-tests [<bats-args>...]` — BATS over `test/functions/`, `test/ci/`, `test/root/`, `test/shims/` in parallel.
+- `./run-tests [<bats-args>...]` — BATS over the suites listed in `.ci/test-suites`, in parallel. CI shards the same list with `.ci/plan-test-shards`.
   Single file: `./run-tests test/functions/strings.bats`; subset: `--filter 'is_blank'`.
 - `./run-all-checks` — the full gate (see [Before Committing](#before-committing)).
 - `scripts/non-interactive/new-script <path>` — scaffold a new script with header and exec bit.
