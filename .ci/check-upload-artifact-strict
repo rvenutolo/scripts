@@ -36,7 +36,10 @@ readonly ACTIONS_DIR="${ACTIONS_DIR_OVERRIDE:-${REPO_DIR}/.github/actions}"
 # `if: always()` as best-effort debug uploads that legitimately produce no
 # files when an upstream step fails — `warn` is semantically correct there
 # (error would conflate a path bug with an upstream failure).
-readonly ALLOWLISTED_NAMES=('coverage-report')
+# The coverage name is matched as written in the workflow, expression and all:
+# the ci.yml coverage job uploads one artifact per matrix scope.
+# shellcheck disable=SC2016 # a literal GitHub Actions expression, never a shell expansion
+readonly ALLOWLISTED_NAMES=('coverage-report-${{ matrix.scope }}')
 
 # @description Emit a `name|tag|value` descriptor line for every
 #              `actions/upload-artifact` step in the given YAML file. Handles
