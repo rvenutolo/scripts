@@ -70,6 +70,8 @@ jobs:
     env:
       SHARD_COUNT: 4
       SHARD_INDEX: ${{ matrix.shard }}
+      # .ci/in-devshell clears the environment; these cross into it by name.
+      IN_DEVSHELL_KEEP: SHARD_COUNT SHARD_INDEX
     steps:
       - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
@@ -85,8 +87,8 @@ jobs:
         run: |
           set -Eeuo pipefail
           # shellcheck disable=SC2016 # $(nproc) and the shard variables must expand
-          # inside the in-devshell bash -c, on the hermetic side of the boundary;
-          # single quotes intended.
+          # inside the in-devshell bash -c, on the hermetic side of the boundary,
+          # where IN_DEVSHELL_KEEP carries them; single quotes intended.
           # ./run-tests forwards its arguments to bats and adds its repo-mutation
           # tripwire. Every shard's junit report is named after its index, so the
           # reports do not overwrite each other when the bats job merges them.
@@ -99,7 +101,11 @@ jobs:
             ./run-tests --jobs "$(nproc)" --print-output-on-failure \
               --report-formatter junit --output bats-junit \
               "${files[@]}" || status=$?
-            mv bats-junit/report.xml "bats-junit/report-${SHARD_INDEX}.xml"
+            # No report means run-tests died before bats ran; its status is the
+            # error to surface, not a failed rename.
+            if [[ -f bats-junit/report.xml ]]; then
+              mv bats-junit/report.xml "bats-junit/report-${SHARD_INDEX}.xml"
+            fi
             exit "${status}"
           '
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -119,6 +125,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
+      # checks: write lets action-junit-report create the BATS results check run.
+      checks: write
       contents: read
     steps:
       - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1

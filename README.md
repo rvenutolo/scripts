@@ -72,7 +72,7 @@ Bypass any hook with `--no-verify` on the corresponding git command.
 
 ```bash
 git submodule update --init --recursive   # one-time, on fresh clones (for .shdoc)
-./.ci/in-devshell ./run-tests                              # test/functions/, test/ci/, test/root/, and test/shims/
+./.ci/in-devshell ./run-tests                              # every suite in .ci/test-suites
 ./.ci/in-devshell ./run-tests test/functions/strings.bats  # single file
 ./.ci/in-devshell ./run-tests --filter 'is_blank' test/functions/strings.bats   # subset by name
 ```
