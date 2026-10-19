@@ -75,7 +75,15 @@ readonly FORBIDDEN_PATTERN="(^|[^[:alnum:]_-])${NIX_WORD}[[:space:]]+${DEVELOP_W
 # before ./.github/actions/setup installs Nix, deliberately. It is what decides
 # whether the Nix-backed jobs run at all, so it cannot itself depend on them; it
 # needs only bash and SCRIPTS_DIR, both present on the bare runner.
-readonly EXEMPT=('.github/actions/changed-tests/action.yml::decide')
+#
+# The setup `root-devshell` step is permanent for the same kind of reason: it
+# creates the GC roots that the cache action's post-job save honours, so it
+# must run with the nix that nix-installer-action provides, outside the shell
+# whose closure it is rooting.
+readonly EXEMPT=(
+  '.github/actions/changed-tests/action.yml::decide'
+  '.github/actions/setup/action.yml::root-devshell'
+)
 
 # @description Emit one record per step that carries a `run:` key, for both the
 #              workflow (`.jobs[].steps[]`) and composite-action
