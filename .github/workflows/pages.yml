@@ -29,7 +29,8 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
-      - uses: ./.github/actions/setup
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
       - name: Build docs
         run: |
           set -Eeuo pipefail

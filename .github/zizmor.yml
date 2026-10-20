@@ -1,7 +1,13 @@
 # zizmor configuration — https://docs.zizmor.sh/configuration/
 #
-# No rule ignores are currently needed: this repo has no `workflow_run`
+# No rule ignores are configured here: this repo has no `workflow_run`
 # triggers (the audit's main false-positive source) and pins every `uses:`
 # to a SHA. Add per-rule `ignore:` blocks here ONLY with a comment explaining
 # why a finding is a false positive — never blanket-disable a rule.
+#
+# The `self-repository` audit is suppressed inline instead, with
+# `# zizmor: ignore[self-repository]` on each `uses: ./...` line, so a new
+# local-action call stays a finding until someone reviews it. The `$/` form
+# the audit asks for is not adoptable while actionlint rejects it, and every
+# job checks out its own commit, so `./` and `$/` resolve to the same tree.
 rules: {}

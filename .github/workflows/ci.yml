@@ -26,7 +26,8 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
-      - uses: ./.github/actions/setup
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
       - name: Run check-scripts
         run: ./.ci/in-devshell ./check-scripts
   # Decides once whether the BATS suite must run, for every job that runs it.
@@ -50,8 +51,9 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0 # full history so changed-tests can diff the PR range
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
       - id: changes
-        uses: ./.github/actions/changed-tests
+        uses: ./.github/actions/changed-tests # zizmor: ignore[self-repository]
   # Each shard runs the slice of the suite .ci/plan-test-shards assigns to its
   # index. The planner is deterministic, so the shards partition the suite
   # without a planning job ahead of them. SHARD_COUNT must match the matrix.
@@ -82,7 +84,8 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
-      - uses: ./.github/actions/setup
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
       - name: Run BATS shard
         run: |
           set -Eeuo pipefail
@@ -220,7 +223,8 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
-      - uses: ./.github/actions/setup
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
       - name: Run lint suite
         run: ./.ci/in-devshell ./.ci/run-lint-checks
   governance:
@@ -238,7 +242,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
       - name: Run governance suite
         run: ./.ci/in-devshell ./.ci/run-governance-checks
   commitlint:
@@ -257,7 +262,8 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: ./.github/actions/setup
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
       - name: Run commitlint
         id: commitlint
         env:
@@ -297,7 +303,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
       - name: Run nix flake check
         run: ./.ci/in-devshell ./.ci/check-flake-eval-warnings
   # The Codecov upload lives in coverage.yml, which is push-triggered so it can
@@ -341,8 +348,10 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
-      - uses: ./.github/actions/setup
-      - uses: ./.github/actions/coverage
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/coverage # zizmor: ignore[self-repository]
         with:
           scope: ${{ matrix.scope }}
           shard-count: ${{ matrix.count }}
@@ -374,7 +383,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
       # Without merge-multiple, each artifact lands in its own directory named
       # after it, which is the one-directory-per-run layout kcov --merge reads.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2

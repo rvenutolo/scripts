@@ -38,8 +38,10 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
-      - uses: ./.github/actions/setup
-      - uses: ./.github/actions/coverage
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/coverage # zizmor: ignore[self-repository]
         with:
           scope: functions
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
@@ -75,8 +77,10 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
-      - uses: ./.github/actions/setup
-      - uses: ./.github/actions/coverage
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/coverage # zizmor: ignore[self-repository]
         with:
           scope: gates
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
