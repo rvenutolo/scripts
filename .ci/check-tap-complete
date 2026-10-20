@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+# @description Verify that a TAP stream reports every test its plan announces, so a
+#              run that stopped early (a killed kcov or bats process) is not read as
+#              a passing one. A truncated stream holds no `not ok` line, so
+#              counting failures alone cannot tell it from a clean run. Only
+#              completeness is checked: failed and skipped results count as
+#              reported, because the run's own exit status already carries failure.
+# @arg $1 file path to a TAP stream, such as bats --formatter tap output
+# @stderr The reported and planned counts, or the first missing test number.
+# @exitcode 1 the file is missing, holds no plan or more than one, or does not
+#             report each planned test number exactly once.
+# @example
+#   .ci/check-tap-complete "${RUNNER_TEMP}/coverage/gates-0.tap"
+
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0.
+shopt -s inherit_errexit
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_exactly_1_arg "$@"
+
+readonly TAP_FILE="$1"
+
+# Only column-0 result lines count: bats prefixes test output with `# `, and
+# anything else interleaved (kcov warnings, prose) is not a result.
+readonly PLAN_PATTERN='^1\.\.([0-9]+)$'
+readonly RESULT_PATTERN='^(not )?ok ([0-9]+)( |$)'
+
+function main() {
+  files::assert_exists "${TAP_FILE}"
+  local planned=''
+  local -A seen=()
+  local reported=0
+  local line number
+  while IFS= read -r line; do
+    if [[ "${line}" =~ ${PLAN_PATTERN} ]]; then
+      if strings::is_not_empty "${planned}"; then
+        log::die "${TAP_FILE}: more than one TAP plan"
+      fi
+      planned="$((10#${BASH_REMATCH[1]}))"
+    elif [[ "${line}" =~ ${RESULT_PATTERN} ]]; then
+      number="$((10#${BASH_REMATCH[2]}))"
+      seen["${number}"]=1
+      reported=$((reported + 1))
+    fi
+  done < "${TAP_FILE}"
+
+  if strings::is_empty "${planned}"; then
+    log::die "${TAP_FILE}: no TAP plan"
+  fi
+  local i
+  for ((i = 1; i <= planned; i++)); do
+    if [[ ! -v "seen[${i}]" ]]; then
+      log::die "${TAP_FILE}: reported ${reported} of ${planned} planned tests; no result for test ${i}"
+    fi
+  done
+  for number in "${!seen[@]}"; do
+    if ((number < 1 || number > planned)); then
+      log::die "${TAP_FILE}: reported ${reported} of ${planned} planned tests; test ${number} is outside the plan"
+    fi
+  done
+  if ((reported != planned)); then
+    log::die "${TAP_FILE}: reported ${reported} of ${planned} planned tests"
+  fi
+}
+
+main "$@"
