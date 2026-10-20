@@ -393,7 +393,10 @@ jobs:
             printf 'expected %s %s shard reports, found %s\n' "${SHARD_COUNT}" "${SCOPE}" "${#shards[@]}" >&2
             exit 1
           fi
-          # kcov --merge writes kcov-merged/cobertura.xml under its output directory.
+          # kcov --merge writes kcov-merged/cobertura.xml under its output
+          # directory, which it creates only one level deep, so without the
+          # parent it dies with "Can't open directory" before merging anything.
+          mkdir --parents "${RUNNER_TEMP}/coverage"
           ./.ci/in-devshell kcov --merge "${RUNNER_TEMP}/coverage/${SCOPE}" "${shards[@]}"
           if [[ ! -s "${RUNNER_TEMP}/coverage/${SCOPE}/kcov-merged/cobertura.xml" ]]; then
             printf 'kcov --merge wrote no %s cobertura.xml\n' "${SCOPE}" >&2
