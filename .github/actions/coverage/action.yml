@@ -3,7 +3,7 @@ name: coverage
 # composite: a local action cannot perform its own initial checkout, and the
 # kcov invocation below needs the Nix devShell that setup installs.
 description: >-
-  Run one BATS suite under kcov, producing $RUNNER_TEMP/coverage/<scope>/bats/cobertura.xml.
+  Run one BATS suite, or one shard of it, under kcov, producing $RUNNER_TEMP/coverage/<scope>/bats/cobertura.xml.
 inputs:
   scope:
     # The two measurements are kept separate all the way to Codecov, where they
@@ -15,6 +15,20 @@ inputs:
     description: >-
       Which tree to measure. `functions` covers scripts/functions, exercised by test/functions. `gates` covers .ci/, .githooks/, and the repo-root runners, exercised by test/ci and test/root.
     required: true
+  shard-count:
+    # Shards of one scope run as separate kcov processes, usually on separate
+    # runners, and are recombined with `kcov --merge`. The merged report has the
+    # same total-line and covered-line sets as a single run, provided every shard
+    # ran its whole slice — which is why each shard checks its TAP stream.
+    description: >-
+      How many shards the scope's suite is split into by .ci/plan-test-shards. 1 runs the whole suite.
+    required: false
+    default: '1'
+  shard-index:
+    description: >-
+      Which shard to run, from 0 to shard-count - 1.
+    required: false
+    default: '0'
 runs:
   using: composite
   steps:
@@ -22,6 +36,8 @@ runs:
       shell: bash
       env:
         SCOPE: ${{ inputs.scope }}
+        SHARD_COUNT: ${{ inputs.shard-count }}
+        SHARD_INDEX: ${{ inputs.shard-index }}
       # kcov comes from the flake devShell (flake.nix carries a one-line PS4 patch
       # on it — see the comment there). Its C++ reader keeps up with this suite's
       # trace volume, and three full runs on an unchanged tree produce
@@ -85,9 +101,18 @@ runs:
         # per-scope subdirectory makes it two: without this it dies with
         # "Can't write helper" before running a single test.
         mkdir --parents "${RUNNER_TEMP}/coverage/${SCOPE}"
-        # The scope's kcov flags and its suite list are both variable-length, so
+        # The scope's kcov flags and its suite roots are both variable-length, so
         # they are passed as one argument vector split on a literal `--`.
+        #
+        # The suite is run as the file list .ci/plan-test-shards assigns to this
+        # shard (all of it for a count of 1). bats reports in TAP on stdout,
+        # which is teed to a file outside the kcov directory and checked by
+        # .ci/check-tap-complete: a killed run holds no `not ok` line, so only
+        # counting results against the plan tells it from a clean one. stderr
+        # stays out of that file because a test's unterminated stderr line would
+        # swallow the `ok ` prefix of the result printed after it.
         ./.ci/in-devshell bash -c '
+          set -Eeuo pipefail
           kcov_args=()
           while [[ "$1" != "--" ]]; do
             kcov_args+=("$1")
@@ -95,11 +120,17 @@ runs:
           done
           shift
           scope="$1"
-          shift
+          count="$2"
+          index="$3"
+          shift 3
+          ./.ci/plan-test-shards "${count}" "${index}" "$@" > "${RUNNER_TEMP}/coverage/${scope}-files.txt"
+          mapfile -t files < "${RUNNER_TEMP}/coverage/${scope}-files.txt"
           kcov \
             --bash-parser="$(type -P bash)" \
             --bash-dont-parse-binary-dir \
             "${kcov_args[@]}" \
             "${RUNNER_TEMP}/coverage/${scope}" \
-            bats --recursive "$@"
-        ' _ "${kcov_args[@]}" -- "${SCOPE}" "${suites[@]}"
+            bats --formatter tap "${files[@]}" \
+            | tee "${RUNNER_TEMP}/coverage/${scope}.tap"
+          ./.ci/check-tap-complete "${RUNNER_TEMP}/coverage/${scope}.tap"
+        ' _ "${kcov_args[@]}" -- "${SCOPE}" "${SHARD_COUNT}" "${SHARD_INDEX}" "${suites[@]}"

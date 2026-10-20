@@ -300,19 +300,22 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Run nix flake check
         run: ./.ci/in-devshell ./.ci/check-flake-eval-warnings
-  coverage:
-    name: coverage (${{ matrix.scope }})
-    # The Codecov upload lives in coverage.yml, which is push-triggered so it
-    # can carry CODECOV_TOKEN (.ci/check-pr-workflows-no-secrets forbids any
-    # non-GITHUB_TOKEN secret in a PR-triggered file). This job is the PR half:
-    # it produces the reports as downloadable artifacts and uploads nothing.
-    #
-    # coverage is not a required check, but it is gated on changed-tests like
-    # the bats shards, so a PR that changes no test-relevant files does not
-    # re-run the suite under kcov. The two scopes run as parallel jobs, as in
-    # coverage.yml. Each scope runs its whole suite in one kcov process rather
-    # than in shards: a gates suite split across processes and merged with
-    # `kcov --merge` drops covered lines that a single run records.
+  # The Codecov upload lives in coverage.yml, which is push-triggered so it can
+  # carry CODECOV_TOKEN (.ci/check-pr-workflows-no-secrets forbids any
+  # non-GITHUB_TOKEN secret in a PR-triggered file). These jobs are the PR half:
+  # they produce the reports as downloadable artifacts and upload nothing.
+  #
+  # coverage is not a required check, but it is gated on changed-tests like the
+  # bats shards, so a PR that changes no test-relevant files does not re-run the
+  # suite under kcov. Each scope's suite is split by .ci/plan-test-shards across
+  # separate kcov processes, and the coverage job recombines each scope's shards
+  # with `kcov --merge`; the merged report has the same total-line and
+  # covered-line sets as a single run as long as every shard ran its whole
+  # slice, which the coverage action checks. Each scope's count appears twice,
+  # here and in the coverage job's matrix; its merge step fails when the number
+  # of shard reports it downloads differs from its count.
+  coverage-shard:
+    name: coverage-shard (${{ matrix.scope }} ${{ matrix.index }})
     needs: changed-tests
     if: github.event_name == 'pull_request' && needs.changed-tests.outputs.run == 'true'
     runs-on: ubuntu-latest
@@ -322,7 +325,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scope: [functions, gates]
+        include:
+          - {scope: functions, count: 2, index: 0}
+          - {scope: functions, count: 2, index: 1}
+          - {scope: gates, count: 3, index: 0}
+          - {scope: gates, count: 3, index: 1}
+          - {scope: gates, count: 3, index: 2}
     steps:
       - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
@@ -337,6 +345,63 @@ jobs:
       - uses: ./.github/actions/coverage
         with:
           scope: ${{ matrix.scope }}
+          shard-count: ${{ matrix.count }}
+          shard-index: ${{ matrix.index }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-shard-${{ matrix.scope }}-${{ matrix.index }}
+          path: ${{ runner.temp }}/coverage/${{ matrix.scope }}/
+          if-no-files-found: error
+  coverage:
+    name: coverage (${{ matrix.scope }})
+    needs: coverage-shard
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {scope: functions, count: 2}
+          - {scope: gates, count: 3}
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: block
+          allowed-endpoints: >-
+            api.github.com:443 cache.nixos.org:443 channels.nixos.org:443 codeload.github.com:443 github.com:443 hosted-compute-*.githubapp.com:443 install.determinate.systems:443 nixos.org:443 objects.githubusercontent.com:443 raw.githubusercontent.com:443 releases.nixos.org:443 tarballs.nixos.org:443
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      # Without merge-multiple, each artifact lands in its own directory named
+      # after it, which is the one-directory-per-run layout kcov --merge reads.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: coverage-shard-${{ matrix.scope }}-*
+          path: ${{ runner.temp }}/shards
+      - name: Merge shard reports
+        env:
+          SCOPE: ${{ matrix.scope }}
+          SHARD_COUNT: ${{ matrix.count }}
+        run: |
+          set -Eeuo pipefail
+          shopt -s nullglob
+          shards=("${RUNNER_TEMP}/shards/coverage-shard-${SCOPE}-"*/)
+          if ((${#shards[@]} != SHARD_COUNT)); then
+            printf 'expected %s %s shard reports, found %s\n' "${SHARD_COUNT}" "${SCOPE}" "${#shards[@]}" >&2
+            exit 1
+          fi
+          # kcov --merge writes kcov-merged/cobertura.xml under its output
+          # directory, which it creates only one level deep, so without the
+          # parent it dies with "Can't open directory" before merging anything.
+          mkdir --parents "${RUNNER_TEMP}/coverage"
+          ./.ci/in-devshell kcov --merge "${RUNNER_TEMP}/coverage/${SCOPE}" "${shards[@]}"
+          if [[ ! -s "${RUNNER_TEMP}/coverage/${SCOPE}/kcov-merged/cobertura.xml" ]]; then
+            printf 'kcov --merge wrote no %s cobertura.xml\n' "${SCOPE}" >&2
+            exit 1
+          fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:

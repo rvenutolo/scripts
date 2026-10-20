@@ -54,4 +54,5 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | every package the flake devShell declares contributes a tool the repo declares, or is excluded by name | `check-devshell-provides` | `governance` | `governance` |
 | every tool a repo-tooling call site names is declared in .ci/required-tools | `check-tool-declarations` | `governance` | `governance` |
 | `nix flake check` passes and emits no evaluation warnings | `check-flake-eval-warnings` | `nix-flake-check` | `nix-flake-check` |
+| every kcov coverage shard reports a result for each test its TAP plan announces, so a truncated shard is never merged | `check-tap-complete` | `coverage-shard (${{ matrix.scope }} ${{ matrix.index }})` | |
 <!-- invariant-index:end -->

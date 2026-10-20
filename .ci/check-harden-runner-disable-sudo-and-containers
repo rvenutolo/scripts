@@ -59,6 +59,7 @@ readonly EXEMPT=(
   'ci.yml:commitlint'                                     # nix-installer-action needs root to write /nix
   'ci.yml:nix-flake-check'                                # nix-installer-action needs root to write /nix
   'ci.yml:coverage'                                       # nix-installer-action needs root to write /nix
+  'ci.yml:coverage-shard'                                 # nix-installer-action needs root to write /nix
   'coverage.yml:coverage'                                 # nix-installer-action needs root to write /nix
   'coverage.yml:coverage-gates'                           # nix-installer-action needs root to write /nix
   'pages.yml:build'                                       # nix-installer-action needs root to write /nix
