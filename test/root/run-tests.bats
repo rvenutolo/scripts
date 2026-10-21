@@ -177,6 +177,25 @@ make_guard_bin() {
   [[ "${recorded}" != *"${FAKE_REPO}/test/functions"* ]]
 }
 
+@test "CI shard flags plus explicit files are forwarded without the default suites" {
+  install_bats_stub
+  # The shipped suites file is present, so a leak of the default roots would show.
+  mkdir --parents "${FAKE_REPO}/.ci"
+  cp -- "${REPO_DIR}/.ci/test-suites" "${FAKE_REPO}/.ci/test-suites"
+  run_in_fake_repo --jobs 4 --print-output-on-failure --report-formatter junit --output 'junit-out' \
+    'test/ci/a.bats' 'test/functions/b.bats'
+  assert_success
+  local recorded
+  recorded="$(cat "${ARGS_LOG}")"
+  assert_equal "${recorded}" \
+    '--jobs 4 --print-output-on-failure --report-formatter junit --output junit-out test/ci/a.bats test/functions/b.bats'
+  [[ "${recorded}" != *'--recursive'* ]]
+  local suite
+  for suite in functions ci root shims; do
+    [[ "${recorded}" != *"${FAKE_REPO}/test/${suite}"* ]]
+  done
+}
+
 @test "dies when GNU parallel is unavailable" {
   local bin_dir
   bin_dir="$(make_guard_bin 'parallel')"
