@@ -257,3 +257,17 @@ write_seven() {
   assert_success
   assert_output 'suite/b/seven.bats'
 }
+
+@test "a root holding find -printf directives is printed literally" {
+  write_bats 'suite/pct%d/one.bats' 1
+  run "${SCRIPT}" 1 0 'suite/pct%d'
+  assert_success
+  assert_output 'suite/pct%d/one.bats'
+}
+
+@test "a root holding a backslash is printed literally" {
+  write_bats 'suite/back\tslash/one.bats' 1
+  run "${SCRIPT}" 1 0 'suite/back\tslash'
+  assert_success
+  assert_output 'suite/back\tslash/one.bats'
+}
