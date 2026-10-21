@@ -28,8 +28,13 @@ runs:
     #
     # inputDerivation references every package the devShell provides, so its
     # closure is exactly what `.ci/in-devshell` needs at runtime. The flake
-    # inputs are rooted too, since evaluating the flake needs their sources and
-    # re-fetching nixpkgs in every job would cost more than storing it.
+    # inputs and the repo's own source snapshot (`self`) are rooted too, since
+    # evaluating the flake needs their sources and re-fetching nixpkgs in every
+    # job would cost more than storing it.
+    #
+    # The attribute paths hard-code x86_64-linux because every caller runs on
+    # ubuntu-latest, which is x86_64. The cache key's runner.os names only the
+    # OS, not the architecture, so it cannot be substituted here.
     - id: root-devshell
       shell: bash
       run: |
