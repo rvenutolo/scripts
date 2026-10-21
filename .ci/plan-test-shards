@@ -60,6 +60,11 @@ function weighted_files() { # variadic: one or more roots
   files::create_temp found_tmp
   local root
   for root in "$@"; do
+    # Paths are built as root/relative and looked up verbatim in the weights
+    # file, so a trailing slash would yield `root//file` and miss its entry.
+    while [[ "${root}" == */ ]]; do
+      root="${root%/}"
+    done
     dirs::assert_exists "${REPO_DIR}/${root}"
     # shellcheck disable=SC2154 # found_tmp assigned by files::create_temp via nameref
     find "${REPO_DIR}/${root}" -type f -name '*.bats' -printf "${root}/%P\n" >> "${found_tmp}"
