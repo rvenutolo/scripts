@@ -99,15 +99,16 @@ jobs:
             set -Eeuo pipefail
             ./.ci/plan-test-shards "${SHARD_COUNT}" "${SHARD_INDEX}" > "${RUNNER_TEMP}/bats-shard-files.txt"
             mapfile -t files < "${RUNNER_TEMP}/bats-shard-files.txt"
-            mkdir -p bats-junit
+            junit_dir="${RUNNER_TEMP}/bats-junit"
+            mkdir --parents "${junit_dir}"
             status=0
             ./run-tests --jobs "$(nproc)" --print-output-on-failure \
-              --report-formatter junit --output bats-junit \
+              --report-formatter junit --output "${junit_dir}" \
               "${files[@]}" || status=$?
             # No report means run-tests died before bats ran; its status is the
             # error to surface, not a failed rename.
-            if [[ -f bats-junit/report.xml ]]; then
-              mv bats-junit/report.xml "bats-junit/report-${SHARD_INDEX}.xml"
+            if [[ -f "${junit_dir}/report.xml" ]]; then
+              mv "${junit_dir}/report.xml" "${junit_dir}/report-${SHARD_INDEX}.xml"
             fi
             exit "${status}"
           '
@@ -115,7 +116,7 @@ jobs:
         if: always()
         with:
           name: bats-junit-${{ matrix.shard }}
-          path: bats-junit/
+          path: ${{ runner.temp }}/bats-junit/
           if-no-files-found: error
   # The required `bats` check. It must always run and report a status, so it
   # depends on the shards with `if: always()` and decides green or red itself:
