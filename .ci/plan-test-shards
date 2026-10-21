@@ -41,22 +41,6 @@ readonly WEIGHTS_FILE="${TEST_SHARD_WEIGHTS_OVERRIDE:-${REPO_DIR}/.ci/test-shard
 # The weight of a file with no entry in the weights file, per test it holds.
 readonly MS_PER_TEST=250
 
-# @description Print the non-comment, non-blank lines of a data file.
-# @arg $1 file path to a line-oriented data file
-# @stdout One data line per line.
-function data_lines() {
-  args::check_exactly_1_arg "$@"
-  local -r file="$1"
-  files::assert_exists "${file}"
-  local line
-  while IFS= read -r line; do
-    if strings::is_blank "${line}" || [[ "${line}" == '#'* ]]; then
-      continue
-    fi
-    printf '%s\n' "${line}"
-  done < "${file}"
-}
-
 # @description Print `weight<TAB>path` for every .bats file under the given roots.
 # @arg $@ roots repo-relative suite roots
 # @stdout One `weight<TAB>path` line per file, unordered.
@@ -66,7 +50,7 @@ function weighted_files() { # variadic: one or more roots
   local weights_tmp
   files::create_temp weights_tmp
   # shellcheck disable=SC2154 # weights_tmp assigned by files::create_temp via nameref
-  data_lines "${WEIGHTS_FILE}" > "${weights_tmp}"
+  files::data_lines "${WEIGHTS_FILE}" > "${weights_tmp}"
   local line
   while IFS= read -r line; do
     weights["${line%%$'\t'*}"]="${line#*$'\t'}"
@@ -110,7 +94,7 @@ function main() { # variadic: optional roots
     local suites_tmp
     files::create_temp suites_tmp
     # shellcheck disable=SC2154 # suites_tmp assigned by files::create_temp via nameref
-    data_lines "${SUITES_FILE}" > "${suites_tmp}"
+    files::data_lines "${SUITES_FILE}" > "${suites_tmp}"
     mapfile -t roots < "${suites_tmp}"
   fi
 

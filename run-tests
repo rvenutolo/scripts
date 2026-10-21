@@ -33,14 +33,14 @@ readonly SUITES_FILE="${REPO_DIR}/.ci/test-suites"
 # shellcheck disable=SC2120 # called with no args by main, but shellcheck can't see the call site
 function default_targets() {
   args::check_no_args "$@"
-  files::assert_exists "${SUITES_FILE}"
-  local line
-  while IFS= read -r line; do
-    if strings::is_blank "${line}" || [[ "${line}" == '#'* ]]; then
-      continue
-    fi
-    printf '%s/%s\n' "${REPO_DIR}" "${line}"
-  done < "${SUITES_FILE}"
+  local suites_tmp
+  files::create_temp suites_tmp
+  # shellcheck disable=SC2154 # suites_tmp assigned by files::create_temp via nameref
+  files::data_lines "${SUITES_FILE}" > "${suites_tmp}"
+  local suite
+  while IFS= read -r suite; do
+    printf '%s/%s\n' "${REPO_DIR}" "${suite}"
+  done < "${suites_tmp}"
 }
 
 # @description Print one line per watched repo artifact: HEAD sha, config hash, index hash.
