@@ -56,9 +56,12 @@ jobs:
         uses: ./.github/actions/changed-tests # zizmor: ignore[self-repository]
   # Each shard runs the slice of the suite .ci/plan-test-shards assigns to its
   # index. The planner is deterministic, so the shards partition the suite
-  # without a planning job ahead of them. SHARD_COUNT must match the matrix.
+  # without a planning job ahead of them. The shard count and index come from
+  # strategy.job-total and strategy.job-index, so the matrix length is the only
+  # place the count is written: a hand-kept count that disagreed with it would
+  # drop or duplicate a slice of the suite without failing any shard.
   bats-shard:
-    name: bats-shard (${{ matrix.shard }})
+    name: bats-shard (${{ strategy.job-index }})
     needs: changed-tests
     if: needs.changed-tests.outputs.run == 'true'
     runs-on: ubuntu-latest
@@ -70,8 +73,8 @@ jobs:
       matrix:
         shard: [0, 1, 2, 3]
     env:
-      SHARD_COUNT: 4
-      SHARD_INDEX: ${{ matrix.shard }}
+      SHARD_COUNT: ${{ strategy.job-total }}
+      SHARD_INDEX: ${{ strategy.job-index }}
       # .ci/in-devshell clears the environment; these cross into it by name.
       IN_DEVSHELL_KEEP: SHARD_COUNT SHARD_INDEX
     steps:
@@ -115,7 +118,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: bats-junit-${{ matrix.shard }}
+          name: bats-junit-${{ strategy.job-index }}
           path: ${{ runner.temp }}/bats-junit/
           if-no-files-found: error
   # The required `bats` check. It must always run and report a status, so it
