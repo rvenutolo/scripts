@@ -144,6 +144,25 @@ EOF
   assert_output --partial 'must be error'
 }
 
+# The allowlist names the per-scope coverage artifact as written in ci.yml; the
+# bare name must not share its exemption.
+@test "fails when the bare coverage-report name uses warn" {
+  cat > "${WF}/a.yml" << 'EOF'
+on: push
+jobs:
+  build:
+    steps:
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: warn
+EOF
+  run_check
+  assert_failure 1
+  assert_output --partial '(name=coverage-report) has if-no-files-found: warn; must be error'
+}
+
 @test "fails on an invalid if-no-files-found value" {
   cat > "${WF}/a.yml" << 'EOF'
 on: push
