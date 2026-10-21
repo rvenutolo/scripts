@@ -239,3 +239,21 @@ write_seven() {
   assert_success
   assert_output --partial 'shard'
 }
+
+@test "a root with trailing slashes yields the same paths as without" {
+  write_seven
+  run "${SCRIPT}" 1 0 suite/a suite/b
+  assert_success
+  local -r plain="${output}"
+  run "${SCRIPT}" 1 0 suite/a/ suite/b//
+  assert_success
+  assert_output "${plain}"
+}
+
+@test "a root with a trailing slash still matches its weights entries" {
+  write_seven
+  printf 'suite/b/seven.bats\t100000\n' > "${WEIGHTS}"
+  run "${SCRIPT}" 2 0 suite/a/ suite/b/
+  assert_success
+  assert_output 'suite/b/seven.bats'
+}
