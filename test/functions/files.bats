@@ -540,6 +540,145 @@ setup() {
   assert_output --partial 'Expected exactly 1 argument'
 }
 
+# ---------- files::data_lines ----------
+
+@test "data_lines: prints data lines in order" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s\n' 'one' 'two' 'three' > "${file}"
+  run files::data_lines "${file}"
+  assert_success
+  assert_output $'one\ntwo\nthree'
+}
+
+@test "data_lines: single data line" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s\n' 'only' > "${file}"
+  run files::data_lines "${file}"
+  assert_success
+  assert_output 'only'
+}
+
+@test "data_lines: skips empty lines" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s\n' '' 'one' '' '' 'two' '' > "${file}"
+  run files::data_lines "${file}"
+  assert_success
+  assert_output $'one\ntwo'
+}
+
+@test "data_lines: skips whitespace-only lines" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s\n' '   ' 'one' $'\t' $' \t ' 'two' > "${file}"
+  run files::data_lines "${file}"
+  assert_success
+  assert_output $'one\ntwo'
+}
+
+@test "data_lines: skips lines starting with #" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s\n' '# header' 'one' '#' '#two' 'three' > "${file}"
+  run files::data_lines "${file}"
+  assert_success
+  assert_output $'one\nthree'
+}
+
+@test "data_lines: indented # is data" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s\n' '  # indented' $'\t# tabbed' > "${file}"
+  run files::data_lines "${file}"
+  assert_success
+  assert_output $'  # indented\n\t# tabbed'
+}
+
+@test "data_lines: # after data is kept as part of the line" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s\n' 'path # note' > "${file}"
+  run files::data_lines "${file}"
+  assert_success
+  assert_output 'path # note'
+}
+
+@test "data_lines: surrounding whitespace and inner tabs are kept" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s\n' '  lead' 'trail  ' $'a\tb\tc' > "${file}"
+  run files::data_lines "${file}"
+  assert_success
+  assert_output $'  lead\ntrail  \na\tb\tc'
+}
+
+@test "data_lines: backslashes are kept" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s\n' 'a\nb\\c' > "${file}"
+  run files::data_lines "${file}"
+  assert_success
+  assert_output 'a\nb\\c'
+}
+
+@test "data_lines: last line without a trailing newline is kept" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s' $'one\ntwo' > "${file}"
+  run files::data_lines "${file}"
+  assert_success
+  assert_output $'one\ntwo'
+}
+
+@test "data_lines: only line without a trailing newline is kept" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s' 'only' > "${file}"
+  run files::data_lines "${file}"
+  assert_success
+  assert_output 'only'
+}
+
+@test "data_lines: comment as unterminated last line is skipped" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s' $'one\n# trailing' > "${file}"
+  run files::data_lines "${file}"
+  assert_success
+  assert_output 'one'
+}
+
+@test "data_lines: empty file -> no output, success" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  : > "${file}"
+  run files::data_lines "${file}"
+  assert_success
+  assert_output ''
+}
+
+@test "data_lines: only comments and blanks -> no output, success" {
+  local -r file="${BATS_TEST_TMPDIR}/f"
+  printf '%s\n' '# a' '' '   ' '# b' > "${file}"
+  run files::data_lines "${file}"
+  assert_success
+  assert_output ''
+}
+
+@test "data_lines: missing file -> dies" {
+  run files::data_lines "${BATS_TEST_TMPDIR}/nope"
+  assert_failure 1
+  assert_output --partial "${BATS_TEST_TMPDIR}/nope does not exist"
+}
+
+@test "data_lines: directory -> dies" {
+  mkdir --parents "${BATS_TEST_TMPDIR}/d"
+  run files::data_lines "${BATS_TEST_TMPDIR}/d"
+  assert_failure 1
+  assert_output --partial 'does not exist'
+}
+
+@test "data_lines: dies with 0 args" {
+  run files::data_lines < /dev/null
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "data_lines: dies with 2 args" {
+  run files::data_lines a b
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- files::write (canonical) ----------
 
 @test "write: nonexistent dest -> creates with content (auto-answer Y)" {

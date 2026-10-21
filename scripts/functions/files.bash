@@ -714,6 +714,27 @@ function files::hash_if_exists() {
   fi
 }
 
+# @description Print the data lines of a line-oriented data file: every line except blank
+#              (empty or whitespace-only) lines and lines whose first character is `#`.
+#              Data lines are printed verbatim, so an indented `#` is data. A final line
+#              without a trailing newline is still printed.
+# @arg $1 file path to a line-oriented data file
+# @stdout One data line per line, in file order.
+# @exitcode 1 the file does not exist.
+function files::data_lines() {
+  args::check_exactly_1_arg "$@"
+  local -r file="$1"
+  files::assert_exists "${file}"
+  local line
+  # `|| [[ -n ... ]]`: read fails on an unterminated last line but still fills `line`.
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    if strings::is_blank "${line}" || [[ "${line}" == '#'* ]]; then
+      continue
+    fi
+    printf '%s\n' "${line}"
+  done < "${file}"
+}
+
 # @description Compute a batch-rename plan. For each file, apply `sed s/<pattern>/<replacement>/`
 #              to its basename (directory portion untouched). Emits surviving `old\tnew` pairs to
 #              stdout and warns (stderr) for each skip: no-op (unchanged name), destination already
