@@ -28,13 +28,33 @@ runs:
     #
     # inputDerivation references every package the devShell provides, so its
     # closure is exactly what `.ci/in-devshell` needs at runtime. The flake
-    # inputs are rooted too, since evaluating the flake needs their sources and
-    # re-fetching nixpkgs in every job would cost more than storing it.
+    # inputs and the repo's own source snapshot (`self`) are rooted too, since
+    # evaluating the flake needs their sources and re-fetching nixpkgs in every
+    # job would cost more than storing it.
+    #
+    # Entering the devShell also needs two things outside that closure: the
+    # flake's nixpkgs bashInteractive with all its default outputs (`man`
+    # included), and the nix-shell-env derivation built from the devShell.
+    # Rooting both keeps devShell entry free of downloads and builds on a warm
+    # cache. The shell env is rooted through `nix print-dev-env --profile`,
+    # because only `.ci/in-devshell` may enter the devShell.
+    #
+    # The formatting check's own output is built from `self`, so it changes on
+    # every commit and caching it buys nothing; its inputDerivation is rooted
+    # instead, so `nix flake check` finds treefmt, the formatters, and the
+    # check's build tools already in the store.
+    #
+    # The attribute paths hard-code x86_64-linux because every caller runs on
+    # ubuntu-latest, which is x86_64. The cache key's runner.os names only the
+    # OS, not the architecture, so it cannot be substituted here.
     - id: root-devshell
       shell: bash
       run: |
         set -Eeuo pipefail
         nix build '.#devShells.x86_64-linux.default.inputDerivation' --out-link "${RUNNER_TEMP}/gcroots/devshell"
+        nix build --inputs-from . 'nixpkgs#bashInteractive' --out-link "${RUNNER_TEMP}/gcroots/bash-interactive"
+        nix print-dev-env --profile "${RUNNER_TEMP}/gcroots/shell-env" > /dev/null
+        nix build '.#checks.x86_64-linux.formatting.inputDerivation' --out-link "${RUNNER_TEMP}/gcroots/formatting-check"
         # The store paths are pulled out of the JSON with bash's own regex
         # matching, so the step depends on nothing the runner image happens to
         # ship.
