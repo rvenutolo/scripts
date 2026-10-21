@@ -158,13 +158,14 @@ function extract_editorconfig_checker() {
 function extract_data_lines() {
   args::check_exactly_1_arg "$@"
   local -r file="$1"
+  local lines_tmp
+  files::create_temp lines_tmp
+  # shellcheck disable=SC2154 # lines_tmp assigned by files::create_temp via nameref
+  files::data_lines "${file}" > "${lines_tmp}"
   local line
   while IFS= read -r line; do
-    if strings::is_blank "${line}" || [[ "${line}" == '#'* ]]; then
-      continue
-    fi
     printf '%s\n' "${line%%$'\t'*}"
-  done < "${file}"
+  done < "${lines_tmp}"
 }
 
 # @description Reduce a configured entry to the literal path prefix it pins.

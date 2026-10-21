@@ -4,6 +4,10 @@ setup() {
   source "${SCRIPTS_DIR}/functions/args.bash"
   # shellcheck disable=SC1091 # paths resolved at runtime via SCRIPTS_DIR
   source "${SCRIPTS_DIR}/functions/log.bash"
+  # shellcheck disable=SC1091 # paths resolved at runtime via SCRIPTS_DIR
+  source "${SCRIPTS_DIR}/functions/strings.bash"
+  # shellcheck disable=SC1091 # paths resolved at runtime via SCRIPTS_DIR
+  source "${SCRIPTS_DIR}/functions/files.bash"
   load '../test_helper/git_fixture'
   SCRIPT="${REPO_DIR}/.ci/plan-test-shards"
   # The planner resolves its repo root via `git rev-parse --show-toplevel`, and
@@ -150,14 +154,12 @@ write_seven() {
     assert_success
     printf '%s\n' "${output}" >> "${all}"
   done
-  local root
+  local root roots="${BATS_TEST_TMPDIR}/roots.txt"
+  files::data_lines "${REPO_DIR}/.ci/test-suites" > "${roots}"
   : > "${expected}"
   while IFS= read -r root; do
-    if [[ -z "${root}" || "${root}" == '#'* ]]; then
-      continue
-    fi
     find "${root}" -type f -name '*.bats' >> "${expected}"
-  done < "${REPO_DIR}/.ci/test-suites"
+  done < "${roots}"
   run sort "${all}"
   assert_output "$(sort "${expected}")"
 }
