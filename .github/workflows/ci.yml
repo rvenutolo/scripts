@@ -89,16 +89,16 @@ jobs:
       - name: Run BATS shard
         run: |
           set -Eeuo pipefail
-          # shellcheck disable=SC2016 # $(nproc) and the shard variables must expand
+          # shellcheck disable=SC2016 # $(nproc), RUNNER_TEMP and the shard variables must expand
           # inside the in-devshell bash -c, on the hermetic side of the boundary,
-          # where IN_DEVSHELL_KEEP carries them; single quotes intended.
+          # where the keep lists carry them; single quotes intended.
           # ./run-tests forwards its arguments to bats and adds its repo-mutation
           # tripwire. Every shard's junit report is named after its index, so the
           # reports do not overwrite each other when the bats job merges them.
           ./.ci/in-devshell bash -c '
             set -Eeuo pipefail
-            ./.ci/plan-test-shards "${SHARD_COUNT}" "${SHARD_INDEX}" > bats-shard-files.txt
-            mapfile -t files < bats-shard-files.txt
+            ./.ci/plan-test-shards "${SHARD_COUNT}" "${SHARD_INDEX}" > "${RUNNER_TEMP}/bats-shard-files.txt"
+            mapfile -t files < "${RUNNER_TEMP}/bats-shard-files.txt"
             mkdir -p bats-junit
             status=0
             ./run-tests --jobs "$(nproc)" --print-output-on-failure \
