@@ -4,17 +4,22 @@
 #              (`${XDG_CONFIG_HOME}/claude/personal` and `${XDG_CONFIG_HOME}/claude/work`).
 #              Each profile's marketplaces are refreshed before its plugins are updated,
 #              because an un-refreshed marketplace does not expose new plugin versions.
+#              After the updates, every user-scope plugin whose recorded commit differs from the
+#              commit its marketplace entry pins is uninstalled and reinstalled: `plugin update`
+#              compares only plugin.json versions, so a pin that moves without a version bump
+#              would otherwise never reach the installed copy.
 #              Replaces topgrade's built-in `claude_code_plugins` step, which invokes this
 #              repo's `claude` wrapper and therefore derives a single profile from PWD --
 #              leaving the other profile's plugins to rot indefinitely.
-#              A marketplace refresh or plugin update that fails is logged and skipped so the
+#              A marketplace refresh, plugin update, or reinstall that fails is logged and skipped so the
 #              remaining plugins and profiles are still processed; the script then exits 1.
 #              Never blanket-filter a non-zero exit in cron: read the log to see what failed.
 # @noargs
 # @stdout pass-through output from the underlying claude plugin commands
 # @stderr progress lines per profile and per plugin, plus a warning per failure
-# @exitcode 0 every marketplace refresh and plugin update succeeded
-# @exitcode 1 a refresh, listing, or update failed; claude was not found; or no profile dir exists
+# @exitcode 0 every marketplace refresh, plugin update, and drift reinstall succeeded
+# @exitcode 1 a refresh, listing, update, pin lookup, or reinstall failed; claude was not found; or no
+#   profile dir exists
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -94,9 +99,141 @@ function update_profile_plugins() {
     fi
   done
 
+  # Runs after the update loop so a plugin whose version did bump is already at its pinned commit
+  # and is not reinstalled needlessly. Bare call for the same errexit reason as in main.
+  local -i drift_failures=0
+  reinstall_drifted_plugins "${config_dir}" drift_failures
+
   # Must be the last statement: assigning the out-variable is what makes this function return 0
   # unconditionally, which is the contract the bare call in main depends on.
-  __update_profile_plugins_ref="${failures}"
+  __update_profile_plugins_ref=$((failures + drift_failures))
+}
+
+# @description Put back a settings file's pre-reinstall bytes when the reinstall changed only its
+#   key order. Uninstalling a plugin deletes its `enabledPlugins` key and installing appends it at
+#   the end, and settings.json is chezmoi-managed, so a reorder alone would leave a permanent
+#   diff for the next `chezmoi apply`. A real content change is left in place and reported.
+# @arg $1 settings_file path to the profile's settings.json, possibly a symlink
+# @arg $2 snapshot_file copy of settings_file taken before the uninstall
+# @stderr a progress line on restore, or a warning when the content changed or could not be read
+function restore_settings_key_order() {
+  args::check_exactly_2_args "$@"
+  local -r settings_file="$1"
+  local -r snapshot_file="$2"
+  if cmp --silent -- "${snapshot_file}" "${settings_file}"; then
+    return
+  fi
+  local before after
+  if ! before="$(jq --sort-keys --compact-output '.' "${snapshot_file}")" \
+    || ! after="$(jq --sort-keys --compact-output '.' "${settings_file}")"; then
+    log::warn "Could not compare ${settings_file} with its pre-reinstall copy; left as is"
+    return
+  fi
+  if [[ "${before}" != "${after}" ]]; then
+    log::warn "Reinstall changed ${settings_file} beyond key order; left as is"
+    return
+  fi
+  # cp writes through the symlink chezmoi places at settings.json; a move would replace the link
+  # with a regular file.
+  cp -- "${snapshot_file}" "${settings_file}"
+  log::log "Restored key order in ${settings_file}"
+}
+
+# @description Reinstall every user-scope plugin in one Claude profile config dir whose recorded
+#   commit differs from the commit its marketplace entry pins. Plugins whose entry has a relative
+#   source or pins no commit, and plugins with no recorded commit, are skipped. Project- and
+#   local-scope installs are skipped because uninstalling them needs that project as the cwd.
+#   Always returns 0; the caller learns about failures through the out-variable.
+# @arg $1 config_dir absolute path to a Claude profile config dir
+# @arg $2 failure_count_var name of the caller's variable to hold the failure count
+# @stderr progress and warning lines
+# @exitcode 0 always
+# @exitcode 1 the out-parameter name collides with the nameref this helper binds
+function reinstall_drifted_plugins() {
+  args::check_exactly_2_args "$@"
+  local -r config_dir="$1"
+  local -r failure_count_var="$2"
+  namerefs::assert_available "${failure_count_var}" '__reinstall_drifted_plugins_ref'
+  local -n __reinstall_drifted_plugins_ref="${failure_count_var}"
+  local -i failures=0
+  local -r installed_file="${config_dir}/plugins/installed_plugins.json"
+  local -r marketplaces_file="${config_dir}/plugins/known_marketplaces.json"
+  local -r settings_file="${config_dir}/settings.json"
+
+  # Claude writes no install record until a first plugin is installed.
+  if ! files::exists "${installed_file}"; then
+    __reinstall_drifted_plugins_ref=0
+    return
+  fi
+
+  local records_tmp
+  files::create_temp records_tmp
+  # shellcheck disable=SC2154 # records_tmp assigned by files::create_temp via nameref
+  if ! jq --raw-output '.plugins | to_entries[] | .key as $id | .value[]
+      | select(.scope == "user" and (.gitCommitSha | type) == "string")
+      | [$id, .gitCommitSha] | @tsv' "${installed_file}" > "${records_tmp}"; then
+    log::warn "Failed to read installed plugin commits from ${installed_file}"
+    __reinstall_drifted_plugins_ref=1
+    return
+  fi
+  local -a records
+  mapfile -t records < "${records_tmp}"
+
+  local snapshot_tmp
+  files::create_temp snapshot_tmp
+  local record plugin_id installed_sha location pinned_sha has_snapshot
+  for record in "${records[@]}"; do
+    plugin_id="${record%%$'\t'*}"
+    installed_sha="${record#*$'\t'}"
+
+    if ! location="$(jq --raw-output --arg m "${plugin_id##*@}" '.[$m].installLocation // empty' \
+      "${marketplaces_file}")"; then
+      log::warn "Failed to read registered marketplaces from ${marketplaces_file}"
+      failures+=1
+      continue
+    fi
+    if strings::is_empty "${location}"; then
+      log::warn "Marketplace of plugin ${plugin_id} is not registered in ${config_dir}; cannot check its pin"
+      failures+=1
+      continue
+    fi
+    if ! pinned_sha="$(jq --raw-output --arg n "${plugin_id%@*}" \
+      'first(.plugins[] | select(.name == $n) | .source | objects | .sha // empty) // empty' \
+      "${location}/.claude-plugin/marketplace.json")"; then
+      log::warn "Failed to read the pin of plugin ${plugin_id} from ${location}"
+      failures+=1
+      continue
+    fi
+    if [[ ! "${pinned_sha}" =~ ^[0-9a-f]{40}$ || "${pinned_sha}" == "${installed_sha}" ]]; then
+      continue
+    fi
+
+    log::log "Reinstalling plugin ${plugin_id} in ${config_dir}: installed commit ${installed_sha} is not pinned ${pinned_sha}"
+    has_snapshot='false'
+    if files::exists "${settings_file}"; then
+      # shellcheck disable=SC2154 # snapshot_tmp assigned by files::create_temp via nameref
+      cp -- "${settings_file}" "${snapshot_tmp}"
+      has_snapshot='true'
+    fi
+    # --keep-data: this is a refresh of the same plugin, so its persistent data must survive.
+    if ! "${CLAUDE_BIN}" plugin uninstall --keep-data --scope user "${plugin_id}" < '/dev/null'; then
+      log::warn "Failed to uninstall plugin ${plugin_id} in ${config_dir}; it stays at commit ${installed_sha}"
+      failures+=1
+      continue
+    fi
+    if ! "${CLAUDE_BIN}" plugin install --yes --scope user "${plugin_id}" < '/dev/null'; then
+      log::warn "Failed to reinstall plugin ${plugin_id} in ${config_dir} after uninstalling it, so it is not installed; run: CLAUDE_CONFIG_DIR='${config_dir}' claude plugin install --scope user ${plugin_id}"
+      failures+=1
+      continue
+    fi
+    log::log "Reinstalled plugin ${plugin_id} in ${config_dir}"
+    if [[ "${has_snapshot}" == 'true' ]]; then
+      restore_settings_key_order "${settings_file}" "${snapshot_tmp}"
+    fi
+  done
+
+  # Must be the last statement: see update_profile_plugins.
+  __reinstall_drifted_plugins_ref="${failures}"
 }
 
 function main() {
