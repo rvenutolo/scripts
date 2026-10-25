@@ -83,6 +83,16 @@ write_test_file() {
   assert_output --partial 'shims/bad.bats'
 }
 
+@test "fails on a shebang in test/non-interactive" {
+  mkdir --parents "${FIXTURE_TEST}/non-interactive"
+  write_test_file "${FIXTURE_TEST}/non-interactive/bad.bats" \
+    '#!/usr/bin/env bats' \
+    '@test "x" { run true; }'
+  run "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'non-interactive/bad.bats'
+}
+
 @test "reports every offender across all four subdirs" {
   write_test_file "${FIXTURE_TEST}/functions/a.bats" \
     '#!/usr/bin/env bats' \
