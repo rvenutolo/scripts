@@ -130,6 +130,17 @@ plain_status_use() {
   assert_output --partial 'root/bad.bats'
 }
 
+@test "rule 1: applies in test/shims too" {
+  mkdir --parents "${FIXTURE_TEST}/shims"
+  write_test_file "${FIXTURE_TEST}/shims/bad.bats" \
+    '@test "x" {' \
+    "$(raw_stderr_glob)" \
+    '}'
+  run "${CHECK}"
+  assert_failure
+  assert_output --partial 'shims/bad.bats'
+}
+
 @test "rule 2: fails on a substring stdout assertion after --separate-stderr" {
   write_test_file "${FIXTURE_TEST}/functions/trap.bats" \
     '@test "x" {' \
