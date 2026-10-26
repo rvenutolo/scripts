@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Shared test setup loader for all *.bats files under test/functions/, test/ci/,
-# and test/root/.
+# Shared test setup loader for every *.bats suite under test/ (one directory per
+# suite, as listed in .ci/test-suites).
 # Each .bats file's setup() loads this, then sources the file under test.
 #
 # Globals exported:
@@ -11,7 +11,7 @@
 # bats-support / bats-assert are loaded here so individual test files do not
 # each repeat the load.
 
-# BATS_TEST_DIRNAME points at test/functions (the dir of the running .bats file).
+# BATS_TEST_DIRNAME points at the running .bats file's suite dir (e.g. test/functions).
 # Repo root is two levels up; the function library lives under scripts/.
 REPO_DIR="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
 SCRIPTS_DIR="${REPO_DIR}/scripts"
