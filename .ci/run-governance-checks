@@ -36,12 +36,14 @@ function main() {
   args::check_no_args "$@"
   local rc=0
   local check
+  # check-harden-runner-egress is off: it requires egress-policy block, and every job runs
+  # in audit mode until block mode stops dropping allowed hosts on westus2 runners:
+  # https://github.com/step-security/harden-runner/issues/708
   for check in \
     check-uses-sha-pinned \
     check-patch-tag-pins \
     check-min-permissions \
     check-harden-runner-first \
-    check-harden-runner-egress \
     check-harden-runner-disable-sudo-and-containers \
     check-links-allowed-endpoints \
     check-pr-workflows-no-secrets \

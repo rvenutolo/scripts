@@ -13,7 +13,6 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | every SHA-pinned `uses:` reference carries a version-tag comment | `check-patch-tag-pins` | `governance` | `governance` |
 | every workflow sets empty top-level permissions and per-job permissions blocks | `check-min-permissions` | `governance` | `governance` |
 | every workflow job begins with a SHA-pinned harden-runner step | `check-harden-runner-first` | `governance` | `governance` |
-| every workflow job blocks egress with an explicit allowed-endpoints list | `check-harden-runner-egress` | `governance` | `governance` |
 | every workflow job takes the strongest harden-runner sudo hardening it can, no job disables file monitoring, and only container-runtime jobs may use the deprecated disable-sudo input | `check-harden-runner-disable-sudo-and-containers` | `governance` | `governance` |
 | every host linked from markdown is in the Links workflow allowed-endpoints | `check-links-allowed-endpoints` | `governance` | `governance` |
 | no PR-triggered workflow references secrets other than GITHUB_TOKEN | `check-pr-workflows-no-secrets` | `governance` | `governance` |

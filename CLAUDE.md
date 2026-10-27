@@ -320,15 +320,21 @@ same gate (several minutes; bypass with `git push --no-verify`). Hooks activate 
 
 - **Changed-path gating** (`.ci/decide-changed-tests`) is a denylist: a path runs the suite unless it matches an
   `IRRELEVANT` glob. Never invert it to an allowlist. `.editorconfig` is test-relevant.
-- **Every job runs `step-security/harden-runner` first with `egress-policy: block`** and an explicit
-  `allowed-endpoints`, written as a single-line `>-` folded scalar (`|-` silently collapses the list into one endpoint;
-  yamlfmt rewraps multi-line lists). `.yamllint.yml`'s `line-length.max: 600` exists for this.
-- Blocked egress is a silent drop; a green job may have had calls blocked. Find blocked hosts in the harden-runner Post
-  Run log: `gh run view --job "${JOB_ID}" --log | grep -E 'domain not allowed: [^[:space:]]+'` (strip the trailing
-  dot, append `:443`). Some hosts only appear on a cold Nix cache.
+- **Every job runs `step-security/harden-runner` first** with an explicit `allowed-endpoints`, written as a
+  single-line `>-` folded scalar (`|-` silently collapses the list into one endpoint; yamlfmt rewraps multi-line
+  lists). `.yamllint.yml`'s `line-length.max: 600` exists for this.
+- **Every job runs `egress-policy: audit`, not `block`**, because block mode drops connections to allowed hosts on
+  `westus2` runners
+  ([step-security/harden-runner#708](https://github.com/step-security/harden-runner/issues/708)). Each step carries
+  a `TODO` pointing at that issue. Keep `allowed-endpoints` accurate anyway: restoring block is a one-word change per
+  step. While audit is on, `.ci/check-harden-runner-egress` is out of `.ci/run-governance-checks` and listed in
+  `.ci/check-orphan-invariants`' `EXEMPT`; its own tests still run.
+- In block mode, blocked egress is a silent drop; in audit mode nothing is dropped. Either way, find unlisted hosts in
+  the harden-runner Post Run log: `gh run view --job "${JOB_ID}" --log | grep -E 'domain not allowed: [^[:space:]]+'`
+  (strip the trailing dot, append `:443`). Some hosts only appear on a cold Nix cache.
 - Prefer exact hosts. Jobs that install Nix carry `hosted-compute-*.githubapp.com:443` because runner hosts rotate.
 - `keybase.io:443` in `coverage.yml` is required: codecov-action verifies its CLI with a key fetched from there, and a
-  blocked fetch quietly falls through to an unverified binary. Codecov's Sentry host stays blocked on purpose.
+  blocked fetch quietly falls through to an unverified binary. Codecov's Sentry host stays off the allowlist on purpose.
 - Every host linked from tracked markdown must be in `links.yml`'s allowlist (`.ci/check-links-allowed-endpoints`).
 - Non-Nix jobs set `disable-sudo-and-containers: true`; Nix jobs cannot (the installer needs root) and are listed in
   that lint's `EXEMPT`. The deprecated `disable-sudo` input is forbidden. A job that needs Docker cannot be
