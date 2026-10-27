@@ -7,7 +7,7 @@
 #              so a compromised step can neither escalate to root and rewrite the
 #              runner's own tooling nor escape into a container it starts. Jobs
 #              that install Nix cannot take it:
-#              `DeterminateSystems/nix-installer-action` writes to `/nix` and
+#              `DeterminateSystems/determinate-nix-action` writes to `/nix` and
 #              `/var/lib/determinate` as root and fails with "sudo: a password is
 #              required". Those are listed in EXEMPT and set neither key. The
 #              array carries per-entry reasons rather than whole categories being
@@ -52,20 +52,20 @@ readonly WORKFLOWS_DIR="${WORKFLOWS_DIR_OVERRIDE:-${REPO_DIR}/.github/workflows}
 # Keyed per job rather than per file so a multi-job workflow cannot be exempted
 # wholesale by accident. These must set neither key; Rules 2 and 3 still apply.
 readonly EXEMPT=(
-  'ci.yml:check-scripts'                                  # nix-installer-action needs root to write /nix
-  'ci.yml:bats-shard'                                     # nix-installer-action needs root to write /nix
-  'ci.yml:lint'                                           # nix-installer-action needs root to write /nix
-  'ci.yml:governance'                                     # nix-installer-action needs root to write /nix
-  'ci.yml:commitlint'                                     # nix-installer-action needs root to write /nix
-  'ci.yml:nix-flake-check'                                # nix-installer-action needs root to write /nix
-  'ci.yml:coverage'                                       # nix-installer-action needs root to write /nix
-  'ci.yml:coverage-shard'                                 # nix-installer-action needs root to write /nix
-  'coverage.yml:coverage'                                 # nix-installer-action needs root to write /nix
-  'coverage.yml:coverage-gates'                           # nix-installer-action needs root to write /nix
-  'pages.yml:build'                                       # nix-installer-action needs root to write /nix
-  'protect-main-drift-check.yml:protect-main-drift-check' # nix-installer-action needs root to write /nix
-  'pr-title-lint.yml:lint-pr-title'                       # nix-installer-action needs root to write /nix
-  'zizmor.yml:zizmor'                                     # nix-installer-action needs root to write /nix
+  'ci.yml:check-scripts'                                  # determinate-nix-action needs root to write /nix
+  'ci.yml:bats-shard'                                     # determinate-nix-action needs root to write /nix
+  'ci.yml:lint'                                           # determinate-nix-action needs root to write /nix
+  'ci.yml:governance'                                     # determinate-nix-action needs root to write /nix
+  'ci.yml:commitlint'                                     # determinate-nix-action needs root to write /nix
+  'ci.yml:nix-flake-check'                                # determinate-nix-action needs root to write /nix
+  'ci.yml:coverage'                                       # determinate-nix-action needs root to write /nix
+  'ci.yml:coverage-shard'                                 # determinate-nix-action needs root to write /nix
+  'coverage.yml:coverage'                                 # determinate-nix-action needs root to write /nix
+  'coverage.yml:coverage-gates'                           # determinate-nix-action needs root to write /nix
+  'pages.yml:build'                                       # determinate-nix-action needs root to write /nix
+  'protect-main-drift-check.yml:protect-main-drift-check' # determinate-nix-action needs root to write /nix
+  'pr-title-lint.yml:lint-pr-title'                       # determinate-nix-action needs root to write /nix
+  'zizmor.yml:zizmor'                                     # determinate-nix-action needs root to write /nix
 )
 
 # @description Print the harden-runner `with:` value of the given key for one
