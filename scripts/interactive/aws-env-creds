@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# @description Print `export` lines for an AWS profile's credentials, picking the profile with `fzf` when none is
+#              given. Stdout carries only the `export` lines, so `eval "$(aws-env-creds)"` sets them in the
+#              calling shell.
+# @arg $1 profile Optional AWS profile name; omit to pick one from `aws configure list-profiles`.
+# @stdout `export AWS_ACCESS_KEY_ID=...` lines from `aws configure export-credentials --format env`.
+# @exitcode 1 Exporting the credentials failed, e.g. the SSO session expired.
+# @exitcode 130 The profile picker was aborted.
+# @example
+#   eval "$(aws-env-creds)"
+#   eval "$(aws-env-creds de-dev)"
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_at_most_1_arg "$@"
+
+if args::no_args "$@"; then
+  # fzf draws on the terminal, not stdout, so only the chosen name is captured here.
+  profile="$(aws configure list-profiles | sort | fzf::select)"
+else
+  profile="$1"
+fi
+readonly PROFILE="${profile}"
+
+creds="$(aws configure export-credentials --profile "${PROFILE}" --format 'env')" \
+  || log::die "Could not export credentials for '${PROFILE}'; if the SSO session expired, run aws-sso"
+readonly CREDS="${creds}"
+
+printf '%s\n' "${CREDS}"

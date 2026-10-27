@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+# @description Log in to the 'de' AWS SSO session in the browser.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+aws sso login --sso-session 'de'
