@@ -329,9 +329,13 @@ same gate (several minutes; bypass with `git push --no-verify`). Hooks activate 
   a `TODO` pointing at that issue. Keep `allowed-endpoints` accurate anyway: restoring block is a one-word change per
   step. While audit is on, `.ci/check-harden-runner-egress` is out of `.ci/run-governance-checks` and listed in
   `.ci/check-orphan-invariants`' `EXEMPT`; its own tests still run.
-- In block mode, blocked egress is a silent drop; in audit mode nothing is dropped. Either way, find unlisted hosts in
-  the harden-runner Post Run log: `gh run view --job "${JOB_ID}" --log | grep -E 'domain not allowed: [^[:space:]]+'`
-  (strip the trailing dot, append `:443`). Some hosts only appear on a cold Nix cache.
+- In block mode, blocked egress is a silent drop; find the blocked hosts in the harden-runner Post Run log with
+  `gh run view --job "${JOB_ID}" --log | grep -E 'domain not allowed: [^[:space:]]+'` (strip the trailing dot,
+  append `:443`). Audit mode never logs `domain not allowed`; it logs every connection as
+  `endpoint called ip address:port <ip>:<port>, domain: <host>.`, so diff those hosts against `allowed-endpoints`.
+  GitHub's own results and cache hosts (`results-receiver.actions.githubusercontent.com`,
+  `productionresultssa*.blob.core.windows.net`) appear there but need no entry. Some hosts only appear on a cold Nix
+  cache.
 - Prefer exact hosts. Jobs that install Nix carry `hosted-compute-*.githubapp.com:443` because runner hosts rotate.
 - `keybase.io:443` in `coverage.yml` is required: codecov-action verifies its CLI with a key fetched from there, and a
   blocked fetch quietly falls through to an unverified binary. Codecov's Sentry host stays off the allowlist on purpose.
