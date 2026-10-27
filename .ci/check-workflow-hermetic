@@ -62,7 +62,7 @@ readonly WRAPPER='.ci/in-devshell'
 # self-reference device .ci/check-tree-scan-root and .ci/check-errexit-predicate
 # both document; here it also buys tolerance of runs of whitespace, which a
 # literal would not have. The surrounding classes are word boundaries, so
-# `in-devshell` and `nix-installer-action` do not match.
+# `in-devshell` and `determinate-nix-action` do not match.
 readonly NIX_WORD='nix'
 readonly DEVELOP_WORD='develop'
 readonly FORBIDDEN_SPELLING="${NIX_WORD} ${DEVELOP_WORD}"
@@ -78,7 +78,7 @@ readonly FORBIDDEN_PATTERN="(^|[^[:alnum:]_-])${NIX_WORD}[[:space:]]+${DEVELOP_W
 #
 # The setup `root-devshell` step is permanent for the same kind of reason: it
 # creates the GC roots that the cache action's post-job save honours, so it
-# must run with the nix that nix-installer-action provides, outside the shell
+# must run with the nix that determinate-nix-action provides, outside the shell
 # whose closure it is rooting.
 #
 # The ci.yml `verdict` step runs in the no-Nix job behind the required `bats`
