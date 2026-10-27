@@ -50,11 +50,15 @@ readonly GOVERNANCE_RUNNER="${GOVERNANCE_RUNNER_OVERRIDE:-${REPO_DIR}/.ci/run-go
 # - plan-test-shards: prints one CI shard's slice of the BATS files; a utility, not
 #   an enforcer.
 # - run-governance-checks / run-lint-checks: aggregate runners, not enforcers.
+# - check-harden-runner-egress: an enforcer that is off while every job runs
+#   harden-runner in audit mode, because block mode drops allowed hosts on westus2
+#   runners: https://github.com/step-security/harden-runner/issues/708
 readonly EXEMPT=(
   activate-githooks
   apply-repo-settings
   build-docs
   build-site
+  check-harden-runner-egress
   decide-changed-tests
   diff-ruleset
   in-devshell

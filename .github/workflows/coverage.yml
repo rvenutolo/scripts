@@ -24,7 +24,9 @@ jobs:
     steps:
       - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
-          egress-policy: block
+          # TODO: restore egress-policy block once block mode stops dropping allowed hosts on
+          # westus2 runners: https://github.com/step-security/harden-runner/issues/708
+          egress-policy: audit
           # keybase.io is load-bearing, not incidental: codecov.sh fetches the
           # Codecov signing key from it to verify the CLI. Blocked, the fetch
           # returns empty and the signature check fails.
@@ -67,7 +69,9 @@ jobs:
     steps:
       - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
-          egress-policy: block
+          # TODO: restore egress-policy block once block mode stops dropping allowed hosts on
+          # westus2 runners: https://github.com/step-security/harden-runner/issues/708
+          egress-policy: audit
           # Same allowlist as the `coverage` job above, and for the same
           # reasons — keybase.io and storage.googleapis.com are both load-bearing
           # parts of the codecov-action upload path, not incidental.
