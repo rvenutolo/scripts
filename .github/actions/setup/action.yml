@@ -7,6 +7,15 @@ runs:
   using: composite
   steps:
     - uses: DeterminateSystems/determinate-nix-action@96c5ee93a9dddf2830d31e1da6ec719077336c28 # v3.23.3
+      with:
+        # Turns off the installer's diagnostics. They go to
+        # install.determinate.systems, the host the installer is downloaded from,
+        # so the harden-runner allowlist cannot separate them from the download.
+        diagnostic-endpoint: ""
+      env:
+        # Turns off the action's OpenTelemetry export to otel.determinate.systems,
+        # which is deliberately absent from every harden-runner allowlist.
+        OTEL_SDK_DISABLED: "true"
     # The key hashes this file as well as flake.lock, so a change to how the
     # store is rooted or collected saves under a fresh key. A primary-key hit
     # skips the save, GC included, so without the salt an existing oversized
