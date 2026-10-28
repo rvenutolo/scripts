@@ -1,0 +1,49 @@
+name: Coverage drop
+# Monitor, not a PR gate: PRs never upload to Codecov, so the per-flag
+# `codecov/project*` statuses exist only on main commits. A failing one opens
+# a `coverage-drop` issue for its flag, or comments on the open one.
+on:
+  status:
+permissions: {}
+concurrency:
+  # One group per status context, so two drops of the same flag never race to
+  # open duplicate issues. Never cancelled: a cancelled run is a lost report.
+  group: coverage-drop-${{ github.event.context }}
+  cancel-in-progress: false
+jobs:
+  report:
+    name: report
+    if: >-
+      github.event.state == 'failure' && startsWith(github.event.context, 'codecov/project') && contains(github.event.branches.*.name, 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          # TODO: restore egress-policy block once block mode stops dropping allowed hosts on
+          # westus2 runners: https://github.com/step-security/harden-runner/issues/708
+          egress-policy: audit
+          allowed-endpoints: >-
+            api.github.com:443 cache.nixos.org:443 channels.nixos.org:443 codeload.github.com:443 github.com:443 hosted-compute-*.githubapp.com:443 install.determinate.systems:443 nix-installer20230104193028379800000001.s3.dualstack.us-east-2.amazonaws.com:443 nixos.org:443 objects.githubusercontent.com:443 raw.githubusercontent.com:443 releases.nixos.org:443 tarballs.nixos.org:443
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
+      - name: Report the coverage drop
+        id: report
+        env:
+          CONTEXT: ${{ github.event.context }}
+          STATE: ${{ github.event.state }}
+          DESCRIPTION: ${{ github.event.description }}
+          SHA: ${{ github.event.sha }}
+          TARGET_URL: ${{ github.event.target_url }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        # The event values reach the script as arguments, expanded by this
+        # runner shell, so only GH_TOKEN and GH_REPO cross into the devShell,
+        # and both are on in-devshell's fixed allowlist.
+        run: ./.ci/in-devshell ./.ci/report-coverage-drop "${CONTEXT}" "${STATE}" "${DESCRIPTION}" "${SHA}" "${TARGET_URL}"

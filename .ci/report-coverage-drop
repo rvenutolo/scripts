@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+
+# @description Turn one failing Codecov project status on a main commit into a
+#              per-flag GitHub issue. `codecov/project` maps to the `functions`
+#              flag and `codecov/project/<flag>` to `<flag>`. With no open
+#              `coverage-drop` issue titled `Coverage drop: <flag>`, opens one;
+#              with one open, comments on it, unless the issue body or a comment
+#              already carries this commit's marker. Any other context, and any
+#              state but `failure`, is logged and ignored. The repo comes from
+#              GH_REPO, which must be set.
+# @arg $1 context the status context (e.g. `codecov/project/gates`)
+# @arg $2 state the status state (`failure`, `success`, `pending`, `error`)
+# @arg $3 description the status description, quoted verbatim in the report
+# @arg $4 sha the commit SHA the status was posted on
+# @arg $5 target_url the status target URL (the Codecov report)
+# @stderr Progress messages.
+# @exitcode 0 the event was reported, already reported, or ignored.
+# @exitcode 1 wrong argument count, GH_REPO unset, or a gh/jq call failed.
+
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0.
+shopt -s inherit_errexit
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+# The library's check_exactly_N_args guards stop at 4.
+if ! args::has_num_args 5 "$@"; then
+  log::die 'Expected exactly 5 arguments'
+fi
+commands::assert_executable_exists 'gh'
+commands::assert_executable_exists 'jq'
+
+readonly CONTEXT="$1"
+readonly STATE="$2"
+readonly DESCRIPTION="$3"
+readonly SHA="$4"
+readonly TARGET_URL="$5"
+# Bound before any event is filtered, so a caller that forgets GH_REPO fails on
+# every event rather than only on the first real coverage drop.
+readonly REPO="${GH_REPO}"
+readonly LABEL='coverage-drop'
+
+# @description Print the Codecov flag a status context reports on, or nothing
+#              when the context is not a Codecov project status.
+# @arg $1 context the status context
+# @stdout The flag name, or nothing.
+function flag_for_context() {
+  args::check_exactly_1_arg "$@"
+  local -r context="$1"
+  case "${context}" in
+    'codecov/project')
+      # project.default in .codecov.yml is pinned to the functions flag.
+      printf 'functions\n'
+      ;;
+    codecov/project/*)
+      printf '%s\n' "${context#codecov/project/}"
+      ;;
+    *) ;;
+  esac
+}
+
+# @description Print the issue or comment body for one report.
+# @arg $1 flag the Codecov flag
+# @stdout The Markdown body, ending with the per-commit marker line.
+function report_body() {
+  args::check_exactly_1_arg "$@"
+  local -r flag="$1"
+  # shellcheck disable=SC2016 # the backticks are Markdown code spans, not command substitution
+  printf 'Codecov reports a coverage drop for the `%s` flag on `main`.\n\n' "${flag}"
+  printf -- '- Status: %s\n' "${DESCRIPTION}"
+  printf -- '- Commit: %s\n' "${SHA}"
+  printf -- '- Report: %s\n\n' "${TARGET_URL}"
+  printf '<!-- coverage-drop sha=%s -->\n' "${SHA}"
+}
+
+# The positionals are bound to readonly constants at top level, after the arity
+# guard; main reads those rather than its own arguments.
+function main() {
+  local flag
+  flag="$(flag_for_context "${CONTEXT}")"
+  if strings::is_empty "${flag}" || [[ "${flag}" == */* ]]; then
+    log::log "ignoring ${CONTEXT}: not a Codecov project status"
+    exit 0
+  fi
+  if [[ "${STATE}" != 'failure' ]]; then
+    log::log "ignoring ${CONTEXT}: state is ${STATE}, not failure"
+    exit 0
+  fi
+
+  local -r title="Coverage drop: ${flag}"
+  local body
+  body="$(report_body "${flag}")"
+
+  local issues
+  issues="$(gh issue list --repo "${REPO}" --state open --label "${LABEL}" --json number,title --limit 100)"
+  local number
+  number="$(jq --raw-output --arg title "${title}" \
+    '[.[] | select(.title == $title) | .number] | first // empty' <<< "${issues}")"
+
+  if strings::is_empty "${number}"; then
+    log::log "opening '${title}' on ${REPO}"
+    gh issue create --repo "${REPO}" --title "${title}" --label "${LABEL}" --body "${body}"
+    exit 0
+  fi
+
+  local -r marker="<!-- coverage-drop sha=${SHA} -->"
+  local thread
+  thread="$(gh issue view "${number}" --repo "${REPO}" --json body,comments)"
+  local reported
+  reported="$(jq --raw-output --arg marker "${marker}" \
+    '[.body, .comments[].body] | any(contains($marker))' <<< "${thread}")"
+  if [[ "${reported}" == 'true' ]]; then
+    log::log "issue #${number} already reports ${SHA}"
+    exit 0
+  fi
+
+  log::log "commenting on issue #${number} ('${title}') on ${REPO}"
+  gh issue comment "${number}" --repo "${REPO}" --body "${body}"
+}
+
+main "$@"

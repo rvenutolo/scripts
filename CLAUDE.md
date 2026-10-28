@@ -297,6 +297,9 @@ For prompt tests, set `SCRIPTS_AUTO_ANSWER=y` to accept defaults, or feed stdin 
 (`scripts/functions`, the headline number), `gates` (`.ci/`, `.githooks/`), `root` (root runners), `shims`
 (`scripts/shims/`). Keep them separate.
 
+A failing `codecov/project*` status on `main` opens a `coverage-drop` issue for that flag, or comments on the
+open one (`coverage-drop.yml` → `.ci/report-coverage-drop`). Nothing blocks PRs on coverage.
+
 - kcov is patched in `flake.nix` (`.nix/kcov-ansi-c-quoting.patch`, plus a PS4 `postPatch`). Don't drop either;
   `.gitignore` needs its `!.nix/*.patch` negation.
 - Many uncovered lines are lexer artifacts that no test can hit: embedded awk/jq/sed bodies, `done <redirect>` lines,
