@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# @description Run `ccusage` with CLAUDE_CONFIG_DIR forced to the work profile,
+#              overriding derivation and any inherited value (the `ccusage`
+#              wrapper honors a set value verbatim).
+# @arg $@ args Optional arguments forwarded verbatim to ccusage.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is not statically followable
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+# pass-through: any arg count valid (forwarded to ccusage)
+
+CLAUDE_CONFIG_DIR="${XDG_CONFIG_HOME}/claude/work" exec ccusage "$@"

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+# @description Run `ccusage` over every Claude profile at once: CLAUDE_CONFIG_DIR
+#              is set to each existing profile config dir, comma-separated,
+#              which ccusage reads as several data dirs and reports combined.
+#              Ignores PWD and any inherited CLAUDE_CONFIG_DIR.
+# @arg $@ args Optional arguments forwarded verbatim to ccusage.
+# @exitcode 1 no Claude profile config dir exists
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is not statically followable
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+# pass-through: any arg count valid (forwarded to ccusage)
+
+files::create_temp dirs_tmp
+# shellcheck disable=SC2154 # dirs_tmp assigned by files::create_temp via nameref
+claude::profile_dirs > "${dirs_tmp}"
+mapfile -t profile_dirs < "${dirs_tmp}"
+if ((${#profile_dirs[@]} == 0)); then
+  log::die "No Claude profile config dirs found under ${XDG_CONFIG_HOME}/claude"
+fi
+
+CLAUDE_CONFIG_DIR="$(IFS=',' && printf '%s' "${profile_dirs[*]}")"
+export CLAUDE_CONFIG_DIR
+exec ccusage "$@"
