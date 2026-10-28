@@ -18,8 +18,8 @@
 # gets its own status (`codecov/project/<flag>`). The README badge is likewise
 # pinned with `?flag=functions`.
 #
-# Every measurement is deterministic: three full runs on an unchanged tree
-# produce byte-identical per-line hits, so a moved number means the code moved.
+# Measurement is deterministic: an unchanged tree produces the same per-line
+# hits, so a moved number means the code moved.
 #
 # Most lines left uncovered are kcov lexer artifacts (embedded awk/jq program
 # bodies, `done <redirect>` lines, bare subshell parens) that no test can hit.
@@ -55,9 +55,8 @@ coverage:
       gates:
         flags:
           - gates
-        # A real target, on the same terms as `default` above. Two independent
-        # CI runs measure the same tree to five significant figures, which is
-        # the same determinism the functions scope has.
+        # A real target, on the same terms as `default` above. kcov is
+        # deterministic, so an unchanged tree reports the same number.
         target: auto
         threshold: 1%
       root:

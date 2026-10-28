@@ -250,10 +250,10 @@ Never touch lint self-reference devices or `scripts/other/`.
 Tests are **specification-driven**: encode what a function should do (name, doc comment, invariants), not what it
 currently does. On failure, default to fixing the function; escalate genuine ambiguity.
 
-- Every helper in `scripts/functions/*.bash` has tests in `test/functions/<topic>.bats` covering each behavior, the
-  edge-case sweep (empty, whitespace, single/multi element, separators, arg-count boundaries), every arity guard, every
-  `@exitcode`, and success/failure paths. New helpers ship with tests in the same PR, plus any new test helper needed to
-  stub side effects.
+- Every public helper in `scripts/functions/*.bash` has tests in `test/functions/<topic>.bats` covering each behavior,
+  the edge-case sweep (empty, whitespace, single/multi element, separators, arg-count boundaries), every arity
+  guard, every `@exitcode`, and success/failure paths. New helpers ship with tests in the same PR, plus any new test
+  helper needed to stub side effects.
 - Every public helper (`topic::name`) is referenced by at least one test under `test/functions/`, enforced by
   `.ci/check-helper-has-test`. Private helpers (`topic::_name`) are tested only through their public callers, never
   directly.

@@ -320,16 +320,17 @@ jobs:
   # bats shards, so a PR that changes no test-relevant files does not re-run the
   # suite under kcov. There is one scope per Codecov flag (functions, gates,
   # root, shims; see .github/actions/coverage). Each scope's suite is split by
-  # .ci/plan-test-shards across separate kcov processes. Counts are chosen so
-  # every shard's weighted cost (.ci/test-shard-weights) is close to the others',
-  # so no single shard sets the wall time. A count of 1 still goes through the
-  # shard-and-merge path, so every scope reports the same way. The coverage job
-  # recombines each scope's shards
-  # with `kcov --merge`; the merged report has the same total-line and
-  # covered-line sets as a single run as long as every shard ran its whole
-  # slice, which the coverage action checks. Each scope's count appears twice,
-  # here and in the coverage job's matrix; its merge step fails when the number
-  # of shard reports it downloads differs from its count.
+  # .ci/plan-test-shards across separate kcov processes. Counts are chosen so no
+  # shard's weighted cost (.ci/test-shard-weights) exceeds the largest
+  # single-file cost the scope cannot be split below, so a large file sets the
+  # wall time and a small suite takes a count of 1. A count of 1 still goes
+  # through the shard-and-merge path, so every scope reports the same way. The
+  # coverage job recombines each scope's shards with `kcov --merge`; the merged
+  # report has the same total-line and covered-line sets as a single run as
+  # long as every shard ran its whole slice, which the coverage action checks.
+  # Each scope's count appears twice, here and in the coverage job's matrix; its
+  # merge step fails when the number of shard reports it downloads differs from
+  # its count.
   coverage-shard:
     name: coverage-shard (${{ matrix.scope }} ${{ matrix.index }})
     needs: changed-tests
