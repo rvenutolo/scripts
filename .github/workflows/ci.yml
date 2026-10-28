@@ -330,7 +330,8 @@ jobs:
   # long as every shard ran its whole slice, which the coverage action checks.
   # Each scope's count appears twice, here and in the coverage job's matrix; its
   # merge step fails when the number of shard reports it downloads differs from
-  # its count.
+  # its count. A count of 1 merges the download directory itself, because
+  # download-artifact does not create a per-artifact directory for a lone match.
   coverage-shard:
     name: coverage-shard (${{ matrix.scope }} ${{ matrix.index }})
     needs: changed-tests
@@ -399,8 +400,9 @@ jobs:
           persist-credentials: false
       # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
       - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
-      # Without merge-multiple, each artifact lands in its own directory named
-      # after it, which is the one-directory-per-run layout kcov --merge reads.
+      # Without merge-multiple, two or more matching artifacts each land in
+      # their own directory named after them, which is the one-directory-per-run
+      # layout kcov --merge reads; a single match lands in the path itself.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: coverage-shard-${{ matrix.scope }}-*
@@ -412,10 +414,23 @@ jobs:
         run: |
           set -Eeuo pipefail
           shopt -s nullglob
-          shards=("${RUNNER_TEMP}/shards/coverage-shard-${SCOPE}-"*/)
-          if ((${#shards[@]} != SHARD_COUNT)); then
-            printf 'expected %s %s shard reports, found %s\n' "${SHARD_COUNT}" "${SCOPE}" "${#shards[@]}" >&2
-            exit 1
+          # download-artifact extracts a lone matching artifact straight into
+          # its path, with no coverage-shard-<scope>-<n>/ directory, so a count
+          # of 1 has no subdirectory to glob. The report is then the download
+          # directory itself, recognised by the bats/cobertura.xml every shard
+          # writes.
+          if ((SHARD_COUNT == 1)); then
+            if [[ ! -s "${RUNNER_TEMP}/shards/bats/cobertura.xml" ]]; then
+              printf 'expected 1 %s shard report, found none\n' "${SCOPE}" >&2
+              exit 1
+            fi
+            shards=("${RUNNER_TEMP}/shards")
+          else
+            shards=("${RUNNER_TEMP}/shards/coverage-shard-${SCOPE}-"*/)
+            if ((${#shards[@]} != SHARD_COUNT)); then
+              printf 'expected %s %s shard reports, found %s\n' "${SHARD_COUNT}" "${SCOPE}" "${#shards[@]}" >&2
+              exit 1
+            fi
           fi
           # kcov --merge writes kcov-merged/cobertura.xml under its output
           # directory, which it creates only one level deep, so without the
