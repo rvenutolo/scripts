@@ -8,17 +8,17 @@ function packages::dpkg_package_installed() {
     | grep::contains_regex_ignore_case "^$1;.*ok installed\$"
 }
 
-# @description Print the list of universal packages (appimage/flatpak/nixpkgs) that should be installed on this machine.
+# @description Print the list of universal packages (appimage/flatpak/mise/nixpkgs) that should be installed on this machine.
 # Filters by package type and the column matching the current host, excluding disabled packages.
 # --quiet = suppress messages about disabled packages
 # --ignore [PACKAGE]... = omit the named packages from output
 # Output: stdout — package names, one per line, sorted
-# @arg $1 package list type (appimage, flatpak, nixpkgs, or nixpkgs-unstable)
+# @arg $1 package list type (appimage, flatpak, mise, nixpkgs, or nixpkgs-unstable)
 function packages::get_universal() {
   args::check_at_least_1_arg "$@"
   local package_type
   case "$1" in
-    appimage | flatpak | nixpkgs | nixpkgs-unstable)
+    appimage | flatpak | mise | nixpkgs | nixpkgs-unstable)
       readonly package_type="$1"
       ;;
     *)

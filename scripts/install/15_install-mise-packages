@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+# @description Install the configured mise package list into the global mise config.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is not statically followable
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+if ! commands::executable_exists 'mise'; then
+  log::log 'mise executable not found'
+  exit 0
+fi
+
+if ! prompt::yn 'Install mise packages?'; then
+  exit 0
+fi
+
+log::log 'Installing mise packages'
+# `mise use --global` both installs and records the tool in the global config's
+# [tools] table; that table is what puts the tool on PATH via activate/shims.
+packages::get_universal 'mise' \
+  | sed --expression='s/$/@latest/' \
+  | xargs --no-run-if-empty --max-args=100 mise use --global
+log::log 'Installed mise packages'
