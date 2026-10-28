@@ -1,19 +1,24 @@
-# Coverage is collected by kcov (.github/actions/coverage) as two independent
-# measurements, uploaded from coverage.yml under two flags:
+# Coverage is collected by kcov (.github/actions/coverage) as four independent
+# measurements, uploaded from coverage.yml under four flags:
 #
 #   functions — scripts/functions, exercised by test/functions. The helper
 #               library the repo ships. This is the headline number.
-#   gates     — .ci/ plus the repo-root runners, exercised by test/ci and
-#               test/root. The tooling that grades the library.
+#   gates     — .ci/ plus .githooks/, exercised by test/ci. The tooling that
+#               grades the library.
+#   root      — the six repo-root runners (check-scripts, run-all-checks,
+#               run-install-scripts, run-set-up-scripts, run-tests,
+#               shellcheck-scripts), exercised by test/root.
+#   shims     — scripts/shims/, exercised by test/shims. The pkill/killall
+#               guards the claude wrapper puts on PATH.
 #
 # They are kept apart on purpose. Merging them would change what the headline
-# number means, and a regression in one tree must not be masked by the other's
+# number means, and a regression in one tree must not be masked by another's
 # size. `project.default` is therefore pinned to `flags: [functions]` so
-# `codecov/project` measures exactly what it measured before the gates flag
-# existed; the gates measurement gets its own status. The README badge is
-# likewise pinned with `?flag=functions`.
+# `codecov/project` measures scripts/functions alone; each other measurement
+# gets its own status (`codecov/project/<flag>`). The README badge is likewise
+# pinned with `?flag=functions`.
 #
-# Both measurements are deterministic: three full runs on an unchanged tree
+# Every measurement is deterministic: three full runs on an unchanged tree
 # produce byte-identical per-line hits, so a moved number means the code moved.
 #
 # Most lines left uncovered are kcov lexer artifacts (embedded awk/jq program
@@ -21,23 +26,27 @@
 flags:
   functions:
     # carryforward keeps a flag's last known coverage when its job did not
-    # upload. Without it a transient failure in one of the two coverage jobs
+    # upload. Without it a transient failure in one of the coverage jobs
     # reads as that tree's coverage collapsing to nothing, which is a false
     # alarm indistinguishable from a real one.
     carryforward: true
   gates:
     carryforward: true
+  root:
+    carryforward: true
+  shims:
+    carryforward: true
 coverage:
   status:
     project:
       default:
-        # Scoped to the functions flag so this status keeps its pre-existing
-        # meaning exactly. Widening it to both flags would silently redefine
+        # Scoped to the functions flag so this status measures the helper
+        # library alone. Widening it to more flags would silently redefine
         # the one number this repo gates on.
         flags:
           - functions
         # `auto` compares to the base commit. The 1% threshold is not a noise
-        # allowance — the number is deterministic now — but ordinary refactors
+        # allowance — the number is deterministic — but ordinary refactors
         # legitimately move a 2000-line denominator by a few lines, and a
         # required-looking red status on a half-point dip trains everyone to
         # ignore the one place a real regression would show.
@@ -49,6 +58,18 @@ coverage:
         # A real target, on the same terms as `default` above. Two independent
         # CI runs measure the same tree to five significant figures, which is
         # the same determinism the functions scope has.
+        target: auto
+        threshold: 1%
+      root:
+        flags:
+          - root
+        # Same terms as `gates` above.
+        target: auto
+        threshold: 1%
+      shims:
+        flags:
+          - shims
+        # Same terms as `gates` above.
         target: auto
         threshold: 1%
     patch:

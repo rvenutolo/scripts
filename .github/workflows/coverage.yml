@@ -10,10 +10,11 @@ concurrency:
   # latest-wins, so cancelling a superseded run loses nothing, whereas an
   # interrupted site deploy can half-publish.
   cancel-in-progress: true
-# The two measurements are separate jobs rather than two steps of one, so
-# neither serializes behind the other's timeout and each carries only the
-# egress its own upload needs. They upload to the same Codecov project under
-# different flags; .codecov.yml is what keeps their statuses apart.
+# The four measurements (functions, gates, root, shims) are separate jobs
+# rather than steps of one, so none serializes behind another's timeout and
+# each carries only the egress its own upload needs. They upload to the same
+# Codecov project under different flags; .codecov.yml is what keeps their
+# statuses apart.
 jobs:
   coverage:
     name: coverage
@@ -88,6 +89,76 @@ jobs:
           # Written by ./.github/actions/coverage outside the tree; see its comment.
           files: ${{ runner.temp }}/coverage/gates/bats/cobertura.xml
           flags: gates
+          token: ${{ secrets.CODECOV_TOKEN }}
+          # See the `coverage` job above: this MUST stay true.
+          fail_ci_if_error: true
+  coverage-root:
+    name: coverage-root
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          # TODO: restore egress-policy block once block mode stops dropping allowed hosts on
+          # westus2 runners: https://github.com/step-security/harden-runner/issues/708
+          egress-policy: audit
+          # Same allowlist as the `coverage` job above, and for the same
+          # reasons — keybase.io and storage.googleapis.com are both load-bearing
+          # parts of the codecov-action upload path, not incidental.
+          allowed-endpoints: >-
+            api.github.com:443 cache.nixos.org:443 channels.nixos.org:443 cli.codecov.io:443 codeload.github.com:443 github.com:443 hosted-compute-*.githubapp.com:443 ingest.codecov.io:443 install.determinate.systems:443 nix-installer20230104193028379800000001.s3.dualstack.us-east-2.amazonaws.com:443 keybase.io:443 nixos.org:443 objects.githubusercontent.com:443 raw.githubusercontent.com:443 releases.nixos.org:443 storage.googleapis.com:443 tarballs.nixos.org:443
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          persist-credentials: false
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/coverage # zizmor: ignore[self-repository]
+        with:
+          scope: root
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          # Written by ./.github/actions/coverage outside the tree; see its comment.
+          files: ${{ runner.temp }}/coverage/root/bats/cobertura.xml
+          flags: root
+          token: ${{ secrets.CODECOV_TOKEN }}
+          # See the `coverage` job above: this MUST stay true.
+          fail_ci_if_error: true
+  coverage-shims:
+    name: coverage-shims
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          # TODO: restore egress-policy block once block mode stops dropping allowed hosts on
+          # westus2 runners: https://github.com/step-security/harden-runner/issues/708
+          egress-policy: audit
+          # Same allowlist as the `coverage` job above, and for the same
+          # reasons — keybase.io and storage.googleapis.com are both load-bearing
+          # parts of the codecov-action upload path, not incidental.
+          allowed-endpoints: >-
+            api.github.com:443 cache.nixos.org:443 channels.nixos.org:443 cli.codecov.io:443 codeload.github.com:443 github.com:443 hosted-compute-*.githubapp.com:443 ingest.codecov.io:443 install.determinate.systems:443 nix-installer20230104193028379800000001.s3.dualstack.us-east-2.amazonaws.com:443 keybase.io:443 nixos.org:443 objects.githubusercontent.com:443 raw.githubusercontent.com:443 releases.nixos.org:443 storage.googleapis.com:443 tarballs.nixos.org:443
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          persist-credentials: false
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/setup # zizmor: ignore[self-repository]
+      # `$/` waits on actionlint support; this job runs its own commit, so `./` is the same tree.
+      - uses: ./.github/actions/coverage # zizmor: ignore[self-repository]
+        with:
+          scope: shims
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          # Written by ./.github/actions/coverage outside the tree; see its comment.
+          files: ${{ runner.temp }}/coverage/shims/bats/cobertura.xml
+          flags: shims
           token: ${{ secrets.CODECOV_TOKEN }}
           # See the `coverage` job above: this MUST stay true.
           fail_ci_if_error: true

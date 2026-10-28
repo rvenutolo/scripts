@@ -62,6 +62,8 @@ readonly EXEMPT=(
   'ci.yml:coverage-shard'                                 # determinate-nix-action needs root to write /nix
   'coverage.yml:coverage'                                 # determinate-nix-action needs root to write /nix
   'coverage.yml:coverage-gates'                           # determinate-nix-action needs root to write /nix
+  'coverage.yml:coverage-root'                            # determinate-nix-action needs root to write /nix
+  'coverage.yml:coverage-shims'                           # determinate-nix-action needs root to write /nix
   'pages.yml:build'                                       # determinate-nix-action needs root to write /nix
   'protect-main-drift-check.yml:protect-main-drift-check' # determinate-nix-action needs root to write /nix
   'pr-title-lint.yml:lint-pr-title'                       # determinate-nix-action needs root to write /nix

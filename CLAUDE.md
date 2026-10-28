@@ -290,8 +290,9 @@ For prompt tests, set `SCRIPTS_AUTO_ANSWER=y` to accept defaults, or feed stdin 
 
 ### Coverage
 
-`.github/actions/coverage` runs kcov in two scopes, uploaded under separate Codecov flags: `functions`
-(`scripts/functions`, the headline number) and `gates` (`.ci/`, `.githooks/`, root runners). Keep them separate.
+`.github/actions/coverage` runs kcov in four scopes, uploaded under separate Codecov flags: `functions`
+(`scripts/functions`, the headline number), `gates` (`.ci/`, `.githooks/`), `root` (root runners), `shims`
+(`scripts/shims/`). Keep them separate.
 
 - kcov is patched in `flake.nix` (`.nix/kcov-ansi-c-quoting.patch`, plus a PS4 `postPatch`). Don't drop either;
   `.gitignore` needs its `!.nix/*.patch` negation.

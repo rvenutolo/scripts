@@ -318,8 +318,13 @@ jobs:
   #
   # coverage is not a required check, but it is gated on changed-tests like the
   # bats shards, so a PR that changes no test-relevant files does not re-run the
-  # suite under kcov. Each scope's suite is split by .ci/plan-test-shards across
-  # separate kcov processes, and the coverage job recombines each scope's shards
+  # suite under kcov. There is one scope per Codecov flag (functions, gates,
+  # root, shims; see .github/actions/coverage). Each scope's suite is split by
+  # .ci/plan-test-shards across separate kcov processes. Counts are chosen so
+  # every shard's weighted cost (.ci/test-shard-weights) is close to the others',
+  # so no single shard sets the wall time. A count of 1 still goes through the
+  # shard-and-merge path, so every scope reports the same way. The coverage job
+  # recombines each scope's shards
   # with `kcov --merge`; the merged report has the same total-line and
   # covered-line sets as a single run as long as every shard ran its whole
   # slice, which the coverage action checks. Each scope's count appears twice,
@@ -342,6 +347,8 @@ jobs:
           - {scope: gates, count: 3, index: 0}
           - {scope: gates, count: 3, index: 1}
           - {scope: gates, count: 3, index: 2}
+          - {scope: root, count: 1, index: 0}
+          - {scope: shims, count: 1, index: 0}
     steps:
       - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
@@ -378,6 +385,8 @@ jobs:
         include:
           - {scope: functions, count: 2}
           - {scope: gates, count: 3}
+          - {scope: root, count: 1}
+          - {scope: shims, count: 1}
     steps:
       - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
