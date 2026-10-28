@@ -17,7 +17,8 @@ Script directories live under `scripts/`; `SCRIPTS_DIR` points at `repo-root/scr
 - `scripts/interactive/` — everything that prompts, launches a GUI, or assumes a terminal, **plus every wrapper**
   (`mvn`, `gradle`, `kate`, flatpak wrappers, …). On `PATH` only in interactive shells, so wrappers shadow real binaries
   only when a human is at the keyboard. **Exception:** the `claude` wrapper lives in `non-interactive/`, because it
-  derives `CLAUDE_CONFIG_DIR` from `PWD` (honoring an already-set value) and must also work from cron/`ssh`/scripts. No tests.
+  derives `CLAUDE_CONFIG_DIR` from `PWD` (honoring an already-set value) and must also work from cron/`ssh`/scripts.
+  No tests.
 - `scripts/other/` — third-party scripts copied verbatim. **Never modify anything here unless explicitly told to touch a
   specific file** — no formatting, shellcheck fixes, or refactors. Always on `PATH`; excluded from formatting and
   shellcheck. Only `.ci/check-executable-bit` inspects it (file mode is not content).
