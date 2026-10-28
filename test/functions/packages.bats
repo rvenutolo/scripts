@@ -309,6 +309,18 @@ CSV
   assert_output 'neovim'
 }
 
+@test "get_universal: supports mise type and keeps backend-prefixed names verbatim" {
+  stub_personal_desktop
+  install_download_shim
+  cat > "${BATS_TEST_TMPDIR}/csv" << 'CSV'
+1,mise,github:colbymchenry/codegraph,y,n,n,n,
+2,nixpkgs,ignored,y,n,n,n,
+CSV
+  run packages::get_universal mise --quiet
+  assert_success
+  assert_output 'github:colbymchenry/codegraph'
+}
+
 # ---------- get_distro ----------
 # distro.csv columns: $1=pkg_name, $2=personal_desktop, $3=personal_laptop,
 #                     $4=work_laptop, $5=server, $6=disabled_reason

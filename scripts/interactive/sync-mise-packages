@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+# @description Reconcile the global mise config's tools with the universal package list — install missing tools, prompt to remove extras, update everything, and prune unused versions.
+# @arg $@ filters Optional filter args forwarded to `packages::get_universal` to scope the package list.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced via SCRIPTS_DIR, not a relative path
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+# pass-through: any arg count valid ($@ forwarded as filter args to packages::get_universal)
+
+commands::assert_executable_exists 'mise'
+
+files::create_temp pkg_list_file
+# shellcheck disable=SC2154 # pkg_list_file assigned by files::create_temp via nameref
+packages::get_universal 'mise' "$@" | sort > "${pkg_list_file}"
+mapfile -t tools_from_package_list < "${pkg_list_file}"
+readonly tools_from_package_list
+
+# The JSON keys are the global config's [tools] keys exactly as `mise use` wrote
+# them (e.g. github:owner/repo), so they compare directly with the package list.
+files::create_temp installed_file
+# shellcheck disable=SC2154 # installed_file assigned by files::create_temp via nameref
+mise ls --global --json | jq --raw-output 'keys[]' | sort > "${installed_file}"
+mapfile -t tools_installed < "${installed_file}"
+readonly tools_installed
+
+files::create_temp diff_file
+# shellcheck disable=SC2154 # diff_file assigned by files::create_temp via nameref
+arrays::diff tools_from_package_list tools_installed > "${diff_file}"
+mapfile -t tools_to_install < "${diff_file}"
+readonly tools_to_install
+
+files::create_temp pkg_list_sorted_file
+files::create_temp installed_sorted_file
+files::create_temp remove_file
+# shellcheck disable=SC2154 # pkg_list_sorted_file assigned by files::create_temp via nameref
+arrays::to_lines "${tools_from_package_list[@]}" > "${pkg_list_sorted_file}"
+# shellcheck disable=SC2154 # installed_sorted_file assigned by files::create_temp via nameref
+arrays::to_lines "${tools_installed[@]}" > "${installed_sorted_file}"
+# shellcheck disable=SC2154 # remove_file assigned by files::create_temp via nameref
+comm -13 "${pkg_list_sorted_file}" "${installed_sorted_file}" > "${remove_file}"
+mapfile -t tools_to_remove < "${remove_file}"
+readonly tools_to_remove
+
+if ((${#tools_to_install[@]})) && prompt::yn 'Install missing mise packages?'; then
+  log::log 'Installing missing mise packages'
+  arrays::to_lines "${tools_to_install[@]}" \
+    | sed --expression='s/$/@latest/' \
+    | xargs --no-run-if-empty --max-args=100 mise use --global
+  log::log 'Installed missing mise packages'
+fi
+
+for tool_to_remove in "${tools_to_remove[@]}"; do
+  if prompt::yn "Remove ${tool_to_remove}?"; then
+    log::log "Removing ${tool_to_remove}"
+    mise unuse --global "${tool_to_remove}"
+    log::log "Removed ${tool_to_remove}"
+  fi
+done
+
+log::log 'Updating all mise packages'
+mise upgrade --yes
+log::log 'Updated all mise packages'
+
+# `mise unuse` can leave a removed tool's installs on disk; prune deletes every
+# version that no config still requests.
+log::log 'Removing unused mise package versions'
+mise prune --yes
+log::log 'Removed unused mise package versions'

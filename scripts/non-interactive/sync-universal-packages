@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# @description Run `sync-flatpaks`, `sync-appimages`, and `home-manager-update` for each tool that is installed.
+# @description Run `sync-flatpaks`, `sync-appimages`, `home-manager-update`, and `sync-mise-packages` for each tool that is installed.
 # @noargs
 
 set -Eeuo pipefail
@@ -22,4 +22,9 @@ fi
 
 if commands::executable_exists 'home-manager'; then
   home-manager-update
+fi
+
+# After home-manager-update, which is what installs mise itself.
+if commands::executable_exists 'mise'; then
+  sync-mise-packages
 fi
