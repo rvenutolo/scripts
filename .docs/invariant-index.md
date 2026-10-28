@@ -31,6 +31,7 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | every multi-line bash run: block begins with set -Eeuo pipefail | `check-run-block-strict` | `governance` | `governance` |
 | every workflow run step runs inside the devShell and no workflow spells `nix develop` | `check-workflow-hermetic` | `governance` | `governance` |
 | every .ci/, .githooks/, and repo-root script has a paired bats test file | `check-script-has-test` | `governance` | `governance` |
+| every public scripts/functions helper is referenced by a test under test/functions | `check-helper-has-test` | `governance` | `governance` |
 | every arity-violating test asserts its guard message | `check-vacuous-arity-tests` | `governance` | `governance` |
 | every BATS test asserts on stderr, stdout, and status through bats-assert | `check-stderr-assertions` | `governance` | `governance` |
 | no .bats test file opens with a shebang | `check-bats-no-shebang` | `governance` | `governance` |

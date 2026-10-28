@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+
+# @description Assert every public helper defined in scripts/functions/*.bash is
+#              referenced by at least one test under test/functions/. A public
+#              helper is a `topic::name` function whose name does not start with
+#              an underscore; private helpers (`topic::_name`) are skipped because
+#              tests use only the public API. A reference is the full name
+#              followed by a non-identifier character or end of line, so a
+#              longer name never covers a prefix of it. Any file under
+#              test/functions/ counts. An EXEMPT entry that names no public
+#              helper, or names one that is referenced, fails the lint rather
+#              than silently disarming it.
+# @noargs
+# @stderr One line per unreferenced helper, one per stale exemption, then a count.
+# @exitcode 0 every non-exempt public helper is referenced by a test.
+# @exitcode 1 an unreferenced helper, a stale EXEMPT entry, a missing directory, or no helpers found.
+
+set -Eeuo pipefail
+# Without this, errexit is off inside every $(...) subshell, so a helper called
+# as `n="$(scan ...)"` runs past a failed command and this gate exits 0.
+shopt -s inherit_errexit
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+readonly REPO_DIR
+readonly FUNCTIONS_DIR="${FUNCTIONS_DIR_OVERRIDE:-${REPO_DIR}/scripts/functions}"
+readonly TEST_FUNCTIONS_DIR="${TEST_FUNCTIONS_DIR_OVERRIDE:-${REPO_DIR}/test/functions}"
+
+# Public helpers exempt from the mandate, as `topic::name`. Deliberately empty:
+# every public helper is referenced by a test. An entry here that names no
+# public helper, or names one that is referenced, fails the lint rather than
+# silently disarming it.
+readonly EXEMPT=()
+
+# Matches a definition line. The class after `::` starts with [a-z], which
+# excludes the underscore-prefixed private helpers.
+readonly DEFINITION_REGEX='^function [a-z_]+::[a-z][a-z0-9_]*\(\)'
+
+# @description Print every public definition in the functions dir as
+#              `<name><TAB><file>`, one per line.
+# @stdout One line per public helper.
+function list_public_helpers() {
+  args::check_no_args "$@"
+  local file line name
+  local definitions_tmp
+  for file in "${FUNCTIONS_DIR}"/*.bash; do
+    files::exists "${file}" || continue
+    files::create_temp definitions_tmp
+    # grep exits 1 for a file with no definitions, which is legitimate.
+    grep --only-matching --extended-regexp "${DEFINITION_REGEX}" "${file}" > "${definitions_tmp}" || true
+    while IFS= read -r line; do
+      strings::is_empty "${line}" && continue
+      name="${line#function }"
+      name="${name%()}"
+      printf '%s\t%s\n' "${name}" "${file##*/}"
+    done < "${definitions_tmp}"
+  done
+}
+
+function main() {
+  args::check_no_args "$@"
+  dirs::assert_exists "${FUNCTIONS_DIR}"
+  dirs::assert_exists "${TEST_FUNCTIONS_DIR}"
+  local -a exempt=()
+  arrays::from_env_override exempt EXEMPT_OVERRIDE ${EXEMPT[@]+"${EXEMPT[@]}"}
+
+  local helpers_tmp
+  files::create_temp helpers_tmp
+  list_public_helpers "$@" > "${helpers_tmp}"
+  if ! files::is_non_empty "${helpers_tmp}"; then
+    log::die "No public helpers found under ${FUNCTIONS_DIR}"
+  fi
+
+  # Every test file's text in one file, so each helper costs a single grep.
+  local tests_tmp test_file
+  files::create_temp tests_tmp
+  for test_file in "${TEST_FUNCTIONS_DIR}"/*.bats; do
+    files::exists "${test_file}" || continue
+    cat "${test_file}" >> "${tests_tmp}"
+  done
+
+  local failed=0 missing=0 name file referenced
+  local seen_tmp
+  files::create_temp seen_tmp
+  while IFS=$'\t' read -r name file; do
+    referenced=1
+    if ! grep --quiet --extended-regexp "(^|[^a-z0-9_:])${name}(\$|[^a-z0-9_])" "${tests_tmp}"; then
+      referenced=0
+    fi
+    if arrays::contains "${name}" ${exempt[@]+"${exempt[@]}"}; then
+      printf '%s\n' "${name}" >> "${seen_tmp}"
+      if ((referenced == 1)); then
+        printf 'stale EXEMPT entry: %s is referenced by a test\n' "${name}" >&2
+        failed=1
+      fi
+      continue
+    fi
+    if ((referenced == 0)); then
+      printf '%s (%s): no test under test/functions references it\n' "${name}" "${file}" >&2
+      missing=$((missing + 1))
+      failed=1
+    fi
+  done < "${helpers_tmp}"
+
+  local entry
+  for entry in ${exempt[@]+"${exempt[@]}"}; do
+    if ! grep --quiet --line-regexp --fixed-strings "${entry}" "${seen_tmp}"; then
+      printf 'stale EXEMPT entry: %s matches no public helper\n' "${entry}" >&2
+      failed=1
+    fi
+  done
+
+  if ((missing > 0)); then
+    printf '%s public helper(s) without a test reference\n' "${missing}" >&2
+  fi
+  exit "${failed}"
+}
+
+main "$@"
