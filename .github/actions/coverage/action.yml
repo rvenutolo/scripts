@@ -6,14 +6,16 @@ description: >-
   Run one BATS suite, or one shard of it, under kcov, producing $RUNNER_TEMP/coverage/<scope>/bats/cobertura.xml.
 inputs:
   scope:
-    # The two measurements are kept separate all the way to Codecov, where they
-    # are uploaded under the `functions` and `gates` flags. Merging them would
-    # change what the headline number means: scripts/functions is the helper
-    # library the repo ships, and .ci/ plus .githooks/ plus the root runners
-    # are the gates that grade it. A regression in one must not be masked by the
-    # other's size.
+    # The four measurements are kept separate all the way to Codecov, where they
+    # are uploaded under the `functions`, `gates`, `root` and `shims` flags.
+    # Merging them would change what the headline number means:
+    # scripts/functions is the helper library the repo ships, .ci/ plus
+    # .githooks/ are the gates that grade it, the root runners are the entry
+    # points that drive those gates, and scripts/shims/ are the process-kill
+    # guards the claude wrapper installs. A regression in one must not be
+    # masked by another's size.
     description: >-
-      Which tree to measure. `functions` covers scripts/functions, exercised by test/functions. `gates` covers .ci/, .githooks/, and the repo-root runners, exercised by test/ci and test/root.
+      Which tree to measure. `functions` covers scripts/functions, exercised by test/functions. `gates` covers .ci/ and .githooks/, exercised by test/ci. `root` covers the repo-root runners, exercised by test/root. `shims` covers scripts/shims/, exercised by test/shims.
     required: true
   shard-count:
     # Shards of one scope run as separate kcov processes, usually on separate
@@ -53,8 +55,10 @@ runs:
       # --bash-parse-files-in-dir: kcov only reports files it saw execute. This
       # walks the directory so a never-executed script scores 0% instead of
       # vanishing from the denominator. It takes a comma-separated list and does
-      # not recurse, which is why the gates scope names the repo root separately
-      # from .ci/ — the root runners are files, not a directory.
+      # not recurse, which is why the shims scope names each shim subdirectory
+      # rather than scripts/shims/ itself. The root scope walks the repo root,
+      # which also holds config files and non-runner scripts; its --include-path
+      # names the six runners, so nothing else reaches the report.
       #
       # Every path is absolute via git rev-parse rather than $PWD, so the root is
       # the repo, not wherever the step happened to be invoked from — the rule
@@ -80,8 +84,8 @@ runs:
             ;;
           gates)
             kcov_args=(
-              --include-path="${repo}/.ci,${repo}/.githooks,${repo}/check-scripts,${repo}/run-all-checks,${repo}/run-install-scripts,${repo}/run-set-up-scripts,${repo}/run-tests,${repo}/shellcheck-scripts"
-              --bash-parse-files-in-dir="${repo}/.ci,${repo}/.githooks,${repo}"
+              --include-path="${repo}/.ci,${repo}/.githooks"
+              --bash-parse-files-in-dir="${repo}/.ci,${repo}/.githooks"
               # .ci/required-tools is data, not code: a comment-and-tool-name
               # list with no shebang and no executable bit, consumed by
               # check-devshell-provides and check-tool-declarations. Walking
@@ -90,10 +94,24 @@ runs:
               # and do not belong in a code-coverage denominator.
               --exclude-path="${repo}/.ci/required-tools"
             )
-            suites=('test/ci' 'test/root')
+            suites=('test/ci')
+            ;;
+          root)
+            kcov_args=(
+              --include-path="${repo}/check-scripts,${repo}/run-all-checks,${repo}/run-install-scripts,${repo}/run-set-up-scripts,${repo}/run-tests,${repo}/shellcheck-scripts"
+              --bash-parse-files-in-dir="${repo}"
+            )
+            suites=('test/root')
+            ;;
+          shims)
+            kcov_args=(
+              --include-path="${repo}/scripts/shims"
+              --bash-parse-files-in-dir="${repo}/scripts/shims/claude"
+            )
+            suites=('test/shims')
             ;;
           *)
-            printf 'coverage: unknown scope %s (expected functions or gates)\n' "${SCOPE}" >&2
+            printf 'coverage: unknown scope %s (expected functions, gates, root or shims)\n' "${SCOPE}" >&2
             exit 1
             ;;
         esac

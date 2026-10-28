@@ -4,6 +4,9 @@
 - name: ci
   color: 006b75
   description: GitHub Actions, hooks, automation
+- name: coverage-drop
+  color: b60205
+  description: Codecov coverage dropped on main
 - name: docs
   color: 0075ca
   description: Documentation, README, comments

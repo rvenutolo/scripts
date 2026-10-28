@@ -6,5 +6,3 @@ test/functions
 test/ci
 test/root
 test/shims
-test/non-interactive
-test/interactive

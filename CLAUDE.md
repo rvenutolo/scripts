@@ -13,11 +13,12 @@ machines. Pure shell, no build system. Helper functions in `scripts/functions/*.
 Script directories live under `scripts/`; `SCRIPTS_DIR` points at `repo-root/scripts`.
 
 - `scripts/non-interactive/` — automation-safe scripts, callable from cron, `topgrade`, etc.: **no prompts, no GUI, no
-  `fzf`/pickers, no TTY assumptions.** Always on `PATH`.
+  `fzf`/pickers, no TTY assumptions.** Always on `PATH`. No tests.
 - `scripts/interactive/` — everything that prompts, launches a GUI, or assumes a terminal, **plus every wrapper**
   (`mvn`, `gradle`, `kate`, flatpak wrappers, …). On `PATH` only in interactive shells, so wrappers shadow real binaries
   only when a human is at the keyboard. **Exception:** the `claude` wrapper lives in `non-interactive/`, because it
   derives `CLAUDE_CONFIG_DIR` from `PWD` (honoring an already-set value) and must also work from cron/`ssh`/scripts.
+  No tests.
 - `scripts/other/` — third-party scripts copied verbatim. **Never modify anything here unless explicitly told to touch a
   specific file** — no formatting, shellcheck fixes, or refactors. Always on `PATH`; excluded from formatting and
   shellcheck. Only `.ci/check-executable-bit` inspects it (file mode is not content).
@@ -249,10 +250,13 @@ Never touch lint self-reference devices or `scripts/other/`.
 Tests are **specification-driven**: encode what a function should do (name, doc comment, invariants), not what it
 currently does. On failure, default to fixing the function; escalate genuine ambiguity.
 
-- Every helper in `scripts/functions/*.bash` has tests in `test/functions/<topic>.bats` covering each behavior, the
-  edge-case sweep (empty, whitespace, single/multi element, separators, arg-count boundaries), every arity guard, every
-  `@exitcode`, and success/failure paths. New helpers ship with tests in the same PR, plus any new test helper needed to
-  stub side effects.
+- Every public helper in `scripts/functions/*.bash` has tests in `test/functions/<topic>.bats` covering each behavior,
+  the edge-case sweep (empty, whitespace, single/multi element, separators, arg-count boundaries), every arity
+  guard, every `@exitcode`, and success/failure paths. New helpers ship with tests in the same PR, plus any new test
+  helper needed to stub side effects.
+- Every public helper (`topic::name`) is referenced by at least one test under `test/functions/`, enforced by
+  `.ci/check-helper-has-test`. Private helpers (`topic::_name`) are tested only through their public callers, never
+  directly.
 - `.bats` files have **no shebang** and are not executable. `setup()` does `load '../test_helper/common'` and sources
   the file under test plus its dependencies.
 - **Arity tests assert the guard message**, not just `assert_failure`
@@ -265,6 +269,8 @@ currently does. On failure, default to fixing the function; escalate genuine amb
 - **bats-assert and bats-support come from flake inputs**, not nixpkgs — the nixpkgs bats-assert release lacks
   `assert_stderr`. Never simplify `flake.nix` back to the nixpkgs packages. Renovate updates them via the `nix` manager
   and `lockFileMaintenance`, both explicitly enabled (`.ci/check-renovate-invariants`).
+- Scripts in `scripts/interactive/` and `scripts/non-interactive/` (including the `claude` wrapper) get no tests and no
+  coverage. `functions`, `.ci/` + `.githooks/`, root runners and shims must be fully tested.
 - `path::*` mutate `PATH`: call them directly, not under `run`.
 - `read -rp` prints its prompt to stderr only when stdin is a terminal, so a test feeding stdin has no prompt to
   assert. To assert prompt text, stub the `prompt::*` helper in use and check the arguments it receives.
@@ -287,8 +293,12 @@ For prompt tests, set `SCRIPTS_AUTO_ANSWER=y` to accept defaults, or feed stdin 
 
 ### Coverage
 
-`.github/actions/coverage` runs kcov in two scopes, uploaded under separate Codecov flags: `functions`
-(`scripts/functions`, the headline number) and `gates` (`.ci/`, `.githooks/`, root runners). Keep them separate.
+`.github/actions/coverage` runs kcov in four scopes, uploaded under separate Codecov flags: `functions`
+(`scripts/functions`, the headline number), `gates` (`.ci/`, `.githooks/`), `root` (root runners), `shims`
+(`scripts/shims/`). Keep them separate.
+
+A failing `codecov/project*` status on `main` opens a `coverage-drop` issue for that flag, or comments on the
+open one (`coverage-drop.yml` → `.ci/report-coverage-drop`). Nothing blocks PRs on coverage.
 
 - kcov is patched in `flake.nix` (`.nix/kcov-ansi-c-quoting.patch`, plus a PS4 `postPatch`). Don't drop either;
   `.gitignore` needs its `!.nix/*.patch` negation.
