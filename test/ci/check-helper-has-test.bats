@@ -68,6 +68,15 @@ run_check() {
   assert_stderr --partial 'demo::is_empty '
 }
 
+@test "a reference to a name with a longer left side does not cover it" {
+  make_lib 'demo' 'demo::one'
+  make_test_file 'demo.bats' 'run xdemo::one'
+  run_check
+  assert_failure 1
+  assert_stderr --partial 'demo::one '
+  assert_stderr --partial 'no test under test/functions references it'
+}
+
 @test "a reference in any test file counts" {
   make_lib 'demo' 'demo::one' 'demo::two'
   make_test_file 'demo.bats' 'run demo::one'
@@ -110,6 +119,8 @@ run_check() {
   rmdir "${FUNCS}"
   run_check
   assert_failure 1
+  assert_stderr --partial "${FUNCS}"
+  refute_stderr --partial 'No public helpers'
 }
 
 @test "fails when the test dir is missing" {
@@ -117,12 +128,15 @@ run_check() {
   rmdir "${TESTS}"
   run_check
   assert_failure 1
+  assert_stderr --partial "${TESTS}"
+  refute_stderr --partial 'No public helpers'
 }
 
 @test "fails when no helpers are found" {
   make_lib 'demo'
   run_check
   assert_failure 1
+  assert_stderr --partial 'No public helpers found under'
 }
 
 @test "rejects arguments" {

@@ -34,7 +34,7 @@ report() {
 @test "dies when given four arguments" {
   cli_shim::record 'gh'
   run_check "${CHECK}" 'codecov/project/gates' 'failure' "${DESC}" "${SHA}"
-  assert_failure
+  assert_failure 1
   assert_output --partial 'Expected exactly 5 arguments'
   run cli_shim::call_count 'gh'
   assert_output '0'
@@ -43,7 +43,7 @@ report() {
 @test "dies when given six arguments" {
   cli_shim::record 'gh'
   run_check "${CHECK}" 'codecov/project/gates' 'failure' "${DESC}" "${SHA}" "${URL}" 'extra'
-  assert_failure
+  assert_failure 1
   assert_output --partial 'Expected exactly 5 arguments'
 }
 
