@@ -23,7 +23,7 @@
 #              rule carries no numeric carve-out, since a numeric status compare is
 #              exactly what assert_failure N replaces.
 #              Scope is every *.bats file under test/functions, test/ci, test/root,
-#              test/shims, test/non-interactive.
+#              test/shims.
 #              Vendored bats submodules are out of scope. Each exemption must stay
 #              warranted — an entry naming no in-scope file, or naming one with no
 #              flagged line, fails the lint rather than silently disarming it.
@@ -117,7 +117,7 @@ function offending_lines() {
 function collect_in_scope_files() {
   args::check_no_args "$@"
   local subdir entry
-  for subdir in functions ci root shims non-interactive; do
+  for subdir in functions ci root shims; do
     if ! dirs::exists "${TEST_DIR}/${subdir}"; then
       continue
     fi

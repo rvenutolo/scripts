@@ -141,15 +141,14 @@ plain_status_use() {
   assert_output --partial 'shims/bad.bats'
 }
 
-@test "rule 1: applies in test/non-interactive too" {
+@test "ignores .bats files outside the suite dirs (test/non-interactive)" {
   mkdir --parents "${FIXTURE_TEST}/non-interactive"
   write_test_file "${FIXTURE_TEST}/non-interactive/bad.bats" \
     '@test "x" {' \
     "$(raw_stderr_glob)" \
     '}'
   run "${CHECK}"
-  assert_failure
-  assert_output --partial 'non-interactive/bad.bats'
+  assert_success
 }
 
 @test "rule 2: fails on a substring stdout assertion after --separate-stderr" {

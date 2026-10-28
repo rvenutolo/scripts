@@ -19,8 +19,8 @@ All script directories live under a top-level `scripts/` dir; `SCRIPTS_DIR` poin
 
 | Path                       | Purpose                                                                                                                                                                  | On `PATH`           |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
-| `scripts/non-interactive/` | Automation-safe utility scripts: no prompts, no GUI, no picker, no TTY assumptions. Callable by cron/`topgrade`/other programs.                                          | yes                 |
-| `scripts/interactive/`     | Utility scripts that prompt, launch a GUI, or drive a picker, plus every wrapper (`mvn`, `gradle`, `kate`, `claude`, flatpak wrappers).                                  | interactive shells  |
+| `scripts/non-interactive/` | Automation-safe utility scripts: no prompts, no GUI, no picker, no TTY assumptions. Callable by cron/`topgrade`/other programs. Untested.                                | yes                 |
+| `scripts/interactive/`     | Utility scripts that prompt, launch a GUI, or drive a picker, plus every wrapper (`mvn`, `gradle`, `kate`, `claude`, flatpak wrappers). Untested.                        | interactive shells  |
 | `scripts/other/`           | Third-party scripts copied verbatim; never modified locally.                                                                                                             | yes                 |
 | `scripts/install/`         | Numbered scripts run in order by `run-install-scripts` to provision a new machine.                                                                                       | no                  |
 | `scripts/set_up/`          | Idempotent post-install configuration, run recursively by `run-set-up-scripts`. Each script self-checks whether it should run.                                           | no                  |
@@ -80,6 +80,8 @@ git submodule update --init --recursive   # one-time, on fresh clones (for .shdo
 BATS, `bats-support`, and `bats-assert` come from the flake devShell — `bats.withLibraries` in `flake.nix`. The wrapper it produces exports `BATS_LIB_PATH`, so `test/test_helper/common.bash` loads the two libraries with `bats_load_library` and a bats that is not the flake's fails loudly instead of silently missing them. `.shdoc` is still a submodule, which is why the bootstrap line above stays.
 
 Every helper in `functions/*.bash` has a matching `test/functions/<topic>.bats` (or topic-prefixed group) — coverage is mandatory for new helpers. Shared fixtures live under `test/test_helper/` (CLI shims, env-file fixtures, `os-release` overrides, prompt mocks, etc.).
+
+Scripts in `scripts/interactive/` and `scripts/non-interactive/` (including the `claude` wrapper) get no tests and no coverage; `functions/`, `.ci/` and `.githooks/`, the root runners, and `scripts/shims/` are fully tested.
 
 Tests are spec-driven: each test encodes what the function *should* do based on its name, doc comment, and reasonable invariants — not what the current implementation happens to do.
 

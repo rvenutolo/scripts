@@ -13,11 +13,11 @@ machines. Pure shell, no build system. Helper functions in `scripts/functions/*.
 Script directories live under `scripts/`; `SCRIPTS_DIR` points at `repo-root/scripts`.
 
 - `scripts/non-interactive/` — automation-safe scripts, callable from cron, `topgrade`, etc.: **no prompts, no GUI, no
-  `fzf`/pickers, no TTY assumptions.** Always on `PATH`.
+  `fzf`/pickers, no TTY assumptions.** Always on `PATH`. No tests.
 - `scripts/interactive/` — everything that prompts, launches a GUI, or assumes a terminal, **plus every wrapper**
   (`mvn`, `gradle`, `kate`, flatpak wrappers, …). On `PATH` only in interactive shells, so wrappers shadow real binaries
   only when a human is at the keyboard. **Exception:** the `claude` wrapper lives in `non-interactive/`, because it
-  derives `CLAUDE_CONFIG_DIR` from `PWD` (honoring an already-set value) and must also work from cron/`ssh`/scripts.
+  derives `CLAUDE_CONFIG_DIR` from `PWD` (honoring an already-set value) and must also work from cron/`ssh`/scripts. No tests.
 - `scripts/other/` — third-party scripts copied verbatim. **Never modify anything here unless explicitly told to touch a
   specific file** — no formatting, shellcheck fixes, or refactors. Always on `PATH`; excluded from formatting and
   shellcheck. Only `.ci/check-executable-bit` inspects it (file mode is not content).
@@ -265,6 +265,8 @@ currently does. On failure, default to fixing the function; escalate genuine amb
 - **bats-assert and bats-support come from flake inputs**, not nixpkgs — the nixpkgs bats-assert release lacks
   `assert_stderr`. Never simplify `flake.nix` back to the nixpkgs packages. Renovate updates them via the `nix` manager
   and `lockFileMaintenance`, both explicitly enabled (`.ci/check-renovate-invariants`).
+- Scripts in `scripts/interactive/` and `scripts/non-interactive/` (including the `claude` wrapper) get no tests and no
+  coverage. `functions`, `.ci/` + `.githooks/`, root runners and shims must be fully tested.
 - `path::*` mutate `PATH`: call them directly, not under `run`.
 - `read -rp` prints its prompt to stderr only when stdin is a terminal, so a test feeding stdin has no prompt to
   assert. To assert prompt text, stub the `prompt::*` helper in use and check the arguments it receives.
