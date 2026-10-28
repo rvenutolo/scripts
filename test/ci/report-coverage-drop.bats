@@ -126,6 +126,18 @@ report() {
   assert_output '2'
 }
 
+@test "comments on an open issue whose body and comment bodies are null" {
+  cli_shim::record_stateful 'gh' \
+    '[{"number":7,"title":"Coverage drop: gates"}]' \
+    '{"body":null,"comments":[{"body":null}]}' \
+    ''
+  report 'codecov/project/gates' 'failure'
+  assert_success
+  run cli_shim::calls 'gh'
+  assert_output --partial 'issue comment 7 --repo someone/somewhere --body'
+  refute_output --partial 'issue create'
+}
+
 @test "ignores a non-failure state" {
   cli_shim::record 'gh'
   report 'codecov/project/gates' 'success'
@@ -162,13 +174,13 @@ report() {
   path_shim::add 'gh' '#!/usr/bin/env bash
 exit 1'
   report 'codecov/project/gates' 'failure'
-  assert_failure
+  assert_failure 1
 }
 
 @test "fails when gh returns unparsable JSON" {
   cli_shim::record_stateful 'gh' 'not json' ''
   report 'codecov/project/gates' 'failure'
-  assert_failure
+  assert_failure 5
   run cli_shim::calls 'gh'
   refute_output --partial 'issue create'
 }

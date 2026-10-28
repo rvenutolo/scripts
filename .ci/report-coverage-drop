@@ -15,7 +15,8 @@
 # @arg $5 target_url the status target URL (the Codecov report)
 # @stderr Progress messages.
 # @exitcode 0 the event was reported, already reported, or ignored.
-# @exitcode 1 wrong argument count, GH_REPO unset, or a gh/jq call failed.
+# @exitcode 1 wrong argument count, GH_REPO unset, or a gh call failed.
+# @exitcode 5 gh returned JSON that jq cannot parse.
 
 set -Eeuo pipefail
 # Without this, errexit is off inside every $(...) subshell, so a helper called
@@ -112,7 +113,7 @@ function main() {
   thread="$(gh issue view "${number}" --repo "${REPO}" --json body,comments)"
   local reported
   reported="$(jq --raw-output --arg marker "${marker}" \
-    '[.body, .comments[].body] | any(contains($marker))' <<< "${thread}")"
+    '[(.body // ""), (.comments[].body // "")] | any(contains($marker))' <<< "${thread}")"
   if [[ "${reported}" == 'true' ]]; then
     log::log "issue #${number} already reports ${SHA}"
     exit 0

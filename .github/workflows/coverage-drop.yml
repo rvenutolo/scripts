@@ -5,16 +5,25 @@ name: Coverage drop
 on:
   status:
 permissions: {}
+# Keyed on the run id, so no two runs ever share it. The real serialization is
+# the job-level group on `report`: a workflow-level group is joined before the
+# job's `if:` is evaluated, so every pending and success status Codecov posts
+# would queue there and push out a pending failure run, losing its report.
 concurrency:
-  # One group per status context, so two drops of the same flag never race to
-  # open duplicate issues. Never cancelled: a cancelled run is a lost report.
-  group: coverage-drop-${{ github.event.context }}
+  group: ${{ github.workflow }}-${{ github.run_id }}
   cancel-in-progress: false
 jobs:
   report:
     name: report
     if: >-
       github.event.state == 'failure' && startsWith(github.event.context, 'codecov/project') && contains(github.event.branches.*.name, 'main')
+    # One group per status context, so two drops of the same flag never race to
+    # open duplicate issues; a run skipped by `if:` never joins it. GitHub keeps
+    # one pending run per group, so a queued failure run can still be superseded
+    # by a newer failure for the same flag, which reports its own commit.
+    concurrency:
+      group: coverage-drop-${{ github.event.context }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
