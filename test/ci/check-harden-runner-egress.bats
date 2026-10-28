@@ -37,6 +37,13 @@ write_job() {
   assert_success
 }
 
+# Block mode is the shipped posture: no workflow in the repo may fall back to
+# audit, and no job may be quietly exempted to make one pass.
+@test "every real workflow job blocks egress" {
+  run_check "${CHECK}"
+  assert_success
+}
+
 @test "fails when a job is still on audit" {
   write_job 'a.yml' 'build' 'audit' ''
   WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"

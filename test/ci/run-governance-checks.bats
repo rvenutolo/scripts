@@ -86,6 +86,16 @@ announced_count() {
   [ "$(ran_count)" -ge 30 ]
 }
 
+# The egress lint is the only thing that fails CI when a job runs harden-runner
+# in audit mode, so dropping it from the roster would let audit return unnoticed.
+@test "runs the harden-runner egress check" {
+  stub_all_ci_checks
+  GOVERNANCE_CI_DIR_OVERRIDE="${CI}" run_check "${AGG}"
+  assert_success
+  run grep --fixed-strings --line-regexp 'check-harden-runner-egress' "${RAN}"
+  assert_success
+}
+
 @test "exits 1 when a check fails but still runs the rest" {
   stub_all_ci_checks
   # check-uses-sha-pinned is the FIRST entry in the roster, so a fail-fast

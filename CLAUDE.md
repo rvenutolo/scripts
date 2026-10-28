@@ -323,7 +323,7 @@ same gate (several minutes; bypass with `git push --no-verify`). Hooks activate 
 - **Every job runs `step-security/harden-runner` first** with an explicit `allowed-endpoints`, written as a
   single-line `>-` folded scalar (`|-` silently collapses the list into one endpoint; yamlfmt rewraps multi-line
   lists). `.yamllint.yml`'s `line-length.max: 600` exists for this.
-- **Every job runs `egress-policy: block`.**
+- **Every job runs `egress-policy: block`**, enforced by `.ci/check-harden-runner-egress`.
 - Blocked egress is a silent drop; a green job may have had calls blocked. Find blocked hosts in the harden-runner Post
   Run log: `gh run view --job "${JOB_ID}" --log | grep -E 'domain not allowed: [^[:space:]]+'` (strip the trailing
   dot, append `:443`). GitHub's own results and cache hosts (`results-receiver.actions.githubusercontent.com`,
