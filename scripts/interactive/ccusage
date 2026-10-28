@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# @description Run the real `ccusage` with CLAUDE_CONFIG_DIR resolved the same
+#              way the `claude` wrapper resolves it: an already-set (non-empty)
+#              value is honored verbatim; otherwise the profile is derived from
+#              PWD (at or under ${WORK_PROJECTS_DIR} -> work profile, else
+#              personal).
+# @arg $@ args Optional arguments forwarded verbatim to ccusage.
+# @exitcode 1 real ccusage executable not found
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is not statically followable
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+# pass-through: any arg count valid (forwarded to ccusage)
+
+CLAUDE_CONFIG_DIR="$(claude::config_dir)"
+export CLAUDE_CONFIG_DIR
+
+ccusage_bin="$(commands::executable_path ccusage)" || log::die 'ccusage executable not found'
+
+exec "${ccusage_bin}" "$@"
