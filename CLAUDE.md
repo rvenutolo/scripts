@@ -5,8 +5,8 @@ Guidance for Claude Code when working in this repository.
 ## Repository Purpose
 
 Personal collection of bash scripts for system setup, package install, and day-to-day utilities on the user's Linux
-machines. Pure shell, no build system. Helper functions in `scripts/functions/*.bash` are covered by a BATS suite under
-`test/`.
+machines. Pure shell, no build system. A BATS suite under `test/` covers the function library, the `.ci/` and
+`.githooks/` gates, the root runners, and the shims; the day-to-day scripts are untested by design.
 
 ## Layout
 
@@ -59,7 +59,8 @@ Every non-`misc/` script sources `"${SCRIPTS_DIR}/.functions.bash"`. A few Docke
 sources this repo's library, so all helpers (including `log::enable_err_trap`) are available there.
 
 `.ci/activate-githooks` and `.ci/in-devshell` are bootstrap scripts: they run before the devShell exists (where
-`SCRIPTS_DIR` may be unset), so they source nothing, omit `args::handle_help_flag`, and inline the standalone `ERR` trap.
+`SCRIPTS_DIR` may be unset), so they source nothing, omit `args::handle_help_flag`, and inline the standalone `ERR`
+trap.
 
 ## Common Commands
 
@@ -69,8 +70,9 @@ Run repo scripts through `./.ci/in-devshell <script>` (or from an entered direnv
   `*.bats`; `./check-scripts` covers those with a verify-only shfmt step.
 - `./check-scripts [<file-or-dir>...]` — shfmt verify, shellcheck, shdoc-header audit, executable-bit audit.
 - `./shellcheck-scripts [<file-or-dir>...]` — shellcheck all shell files except `scripts/other/`.
-- `./run-tests [<bats-args>...]` — BATS over the suites listed in `.ci/test-suites`, in parallel. CI shards the same list with `.ci/plan-test-shards`.
-  Single file: `./run-tests test/functions/strings.bats`; subset: `--filter 'is_blank'`.
+- `./run-tests [<bats-args>...]` — BATS over the suites listed in `.ci/test-suites`, in parallel. CI shards the same
+  list with `.ci/plan-test-shards`. Single file: `./run-tests test/functions/strings.bats`; subset:
+  `--filter 'is_blank'`.
 - `./run-all-checks` — the full gate (see [Before Committing](#before-committing)).
 - `scripts/non-interactive/new-script <path>` — scaffold a new script with header and exec bit.
 - `.ci/build-site` — the single definition of the docs build (`.ci/build-docs` + `mkdocs build --strict`). Callers go
@@ -164,13 +166,14 @@ Every top-level executable (under `scripts/{non-interactive,interactive,install,
 carries a file-level shdoc block between the shebang and `set -Eeuo pipefail`: `@description`, `@arg $N` for each
 positional (or `@noargs`), `@stdout`/`@stderr` when meaningful, `@exitcode N` for every non-zero exit, optional
 `@example`. Helper functions in scripts get full annotation blocks too (except `main`). Library files need a block per
-function but no file-level `@description`. Annotation blocks must not contain a bare `TODO` (a backticked `` `TODO` `` is
-fine). Enforced by `.ci/check-shdoc-headers`.
+function but no file-level `@description`. Annotation blocks must not contain a bare `TODO` (a backticked
+`` `TODO` `` is fine). Enforced by `.ci/check-shdoc-headers`.
 
 ### Library files and naming
 
 - Library files (`scripts/functions/*.bash`): shebang only — no strict mode, no `IFS`, no sourcing, no `ERR` trap, no
-  `main`, not executable, `snake_case.bash`, hand-created. Functions are namespaced `topic::name`. All other rules apply.
+  `main`, not executable, `snake_case.bash`, hand-created. Functions are namespaced `topic::name`. All other rules
+  apply.
 - Top-level executables: no extension, `kebab-case`, executable, created via `new-script`.
 
 ### Namerefs
@@ -227,8 +230,8 @@ must be listed in its `GATED` array.
   it, and `flake.nix` may not use `git-hooks.nix`. Enforced by `.ci/check-hooks-path-single-writer`.
 
 - **Configured paths must resolve.** Paths in `.typos.toml`, `.github/labeler.yml`, `.yamllint.yml`, `.treefmt.nix`,
-  `.editorconfig-checker.json`, and reviewdog's `exclude:` must be tracked or gitignored (`.ci/check-config-paths`). A new
-  config with a path list gets added to its `SOURCES`.
+  `.editorconfig-checker.json`, and reviewdog's `exclude:` must be tracked or gitignored (`.ci/check-config-paths`). A
+  new config with a path list gets added to its `SOURCES`.
 
 - **Lint `EXEMPT` arrays** use space-free keys (`arrays::from_env_override` splits on spaces) and fail on stale entries.
   Keep them empty where possible.
@@ -250,13 +253,14 @@ Never touch lint self-reference devices or `scripts/other/`.
 Tests are **specification-driven**: encode what a function should do (name, doc comment, invariants), not what it
 currently does. On failure, default to fixing the function; escalate genuine ambiguity.
 
-- Every public helper in `scripts/functions/*.bash` has tests in `test/functions/<topic>.bats` covering each behavior,
-  the edge-case sweep (empty, whitespace, single/multi element, separators, arg-count boundaries), every arity
-  guard, every `@exitcode`, and success/failure paths. New helpers ship with tests in the same PR, plus any new test
-  helper needed to stub side effects.
-- Every public helper (`topic::name`) is referenced by at least one test under `test/functions/`, enforced by
-  `.ci/check-helper-has-test`. Private helpers (`topic::_name`) are tested only through their public callers, never
-  directly.
+- Scripts in `scripts/interactive/` and `scripts/non-interactive/` (including the `claude` wrapper) get no tests and no
+  coverage. The function library, `.ci/` + `.githooks/`, the root runners and the shims must be fully tested.
+- Every public helper (`topic::name`) in `scripts/functions/*.bash` has tests in `test/functions/<topic>.bats` (or a
+  topic-prefixed `<topic>_*.bats`) covering each behavior, the edge-case sweep (empty, whitespace, single/multi
+  element, separators, arg-count boundaries), every arity guard, every `@exitcode`, and success/failure paths. New
+  helpers ship with tests in the same PR, plus any new test helper needed to stub side effects.
+  `.ci/check-helper-has-test` fails on any public helper no test references. Private helpers (`topic::_name`) are
+  tested only through their public callers, never directly.
 - `.bats` files have **no shebang** and are not executable. `setup()` does `load '../test_helper/common'` and sources
   the file under test plus its dependencies.
 - **Arity tests assert the guard message**, not just `assert_failure`
@@ -269,8 +273,6 @@ currently does. On failure, default to fixing the function; escalate genuine amb
 - **bats-assert and bats-support come from flake inputs**, not nixpkgs — the nixpkgs bats-assert release lacks
   `assert_stderr`. Never simplify `flake.nix` back to the nixpkgs packages. Renovate updates them via the `nix` manager
   and `lockFileMaintenance`, both explicitly enabled (`.ci/check-renovate-invariants`).
-- Scripts in `scripts/interactive/` and `scripts/non-interactive/` (including the `claude` wrapper) get no tests and no
-  coverage. `functions`, `.ci/` + `.githooks/`, root runners and shims must be fully tested.
 - `path::*` mutate `PATH`: call them directly, not under `run`.
 - `read -rp` prints its prompt to stderr only when stdin is a terminal, so a test feeding stdin has no prompt to
   assert. To assert prompt text, stub the `prompt::*` helper in use and check the arguments it receives.
@@ -288,8 +290,8 @@ For prompt tests, set `SCRIPTS_AUTO_ANSWER=y` to accept defaults, or feed stdin 
   `BATS_TEST_TMPDIR`; `pre-push` calls `git::clear_local_env`; `run-tests` fails if HEAD/config/index change. Keep all
   of these.
 - Tests must not invoke real `nix`; stub it.
-- Some tests clear `BASH_ENV` so a child bash does not re-source `~/.bashrc` and escape the shim `PATH`. That makes
-  them invisible to kcov; keep them that way.
+- Some tests neutralize `BASH_ENV` so a child bash does not re-source `~/.bashrc` and escape the shim `PATH`; keep
+  them that way. kcov still traces them: it follows child shells through a preloaded library, not `BASH_ENV`.
 
 ### Coverage
 
@@ -297,8 +299,8 @@ For prompt tests, set `SCRIPTS_AUTO_ANSWER=y` to accept defaults, or feed stdin 
 (`scripts/functions`, the headline number), `gates` (`.ci/`, `.githooks/`), `root` (root runners), `shims`
 (`scripts/shims/`). Keep them separate.
 
-A failing `codecov/project*` status on `main` opens a `coverage-drop` issue for that flag, or comments on the
-open one (`coverage-drop.yml` → `.ci/report-coverage-drop`). Nothing blocks PRs on coverage.
+A failing `codecov/project*` status on `main` opens a `coverage-drop` issue for that flag, or comments on the open one
+(`coverage-drop.yml` → `.ci/report-coverage-drop`). Nothing blocks PRs on coverage.
 
 - kcov is patched in `flake.nix` (`.nix/kcov-ansi-c-quoting.patch`, plus a PS4 `postPatch`). Don't drop either;
   `.gitignore` needs its `!.nix/*.patch` negation.
