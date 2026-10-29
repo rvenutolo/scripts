@@ -188,9 +188,14 @@ function devshell_packages() {
     printf '%s\n' "${DEVSHELL_PACKAGES_OVERRIDE}"
     return 0
   fi
+  # The reference is git+file://, never a bare path: Nix reads a bare absolute
+  # path as path:, which copies the whole working tree into the store, ignored
+  # and untracked files included, and aborts on a non-regular file such as a
+  # daemon's Unix socket. Through git the check sees only tracked files (dirty
+  # edits to them included), the same tree CI and `nix flake check` evaluate.
   local -r nix_expr="
     let
-      flake = builtins.getFlake \"${REPO_DIR}\";
+      flake = builtins.getFlake \"git+file://${REPO_DIR}\";
       system = builtins.currentSystem;
       pkgName =
         p:
