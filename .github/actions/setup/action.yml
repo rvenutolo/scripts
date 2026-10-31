@@ -6,7 +6,7 @@ description: Install Nix, restore the Nix store cache, and GC-root the devShell 
 runs:
   using: composite
   steps:
-    - uses: DeterminateSystems/determinate-nix-action@96c5ee93a9dddf2830d31e1da6ec719077336c28 # v3.23.3
+    - uses: DeterminateSystems/determinate-nix-action@f296148a827001a9a82d3685b53210c06e5d3b67 # v3.24.0
       with:
         # Turns off the installer's diagnostics. They go to
         # install.determinate.systems, the host the installer is downloaded from,
