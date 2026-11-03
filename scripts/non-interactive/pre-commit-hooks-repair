@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+
+# @description Rewrite the pre-commit-generated git hooks in each given repo so they find bash and pre-commit on PATH
+# instead of through absolute /nix/store paths, which break once a garbage collection removes them. Never installs
+# hooks; a repo without pre-commit hooks is left as is. A path that does not exist or is not a git repo is skipped
+# with a warning, so one list can serve hosts that lack some of the checkouts. With `--scan`, each path is a root
+# searched for repos instead; a root that is a symlink is followed, and a root that is itself a repo is included.
+# @arg $1 --scan Optional. Treat the paths as roots to search for repos, up to SCAN_MAX_DEPTH levels deep.
+# @arg $@ paths Repo paths (or scan roots with --scan); defaults to the current directory.
+# @exitcode 1 A pre-commit hook still references /nix/store in a line that cannot be rewritten.
+# @example
+#   pre-commit-hooks-repair
+#   pre-commit-hooks-repair --scan "${PERSONAL_PROJECTS_DIR}" "${WORK_PROJECTS_DIR}"
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+# variadic: zero paths means the current directory
+
+# Deep enough for <root>/<group>/<repo> layouts plus one more level, without walking into dependency trees.
+readonly SCAN_MAX_DEPTH=4
+
+# @description Print the repos found under each scan root, one canonical path per line, deduplicated. A root that does
+# not exist is skipped with a warning.
+# @arg $@ roots Directories to search.
+# @stdout Repo work-tree paths.
+function find_repos() { # variadic: iterates 0+ roots
+  local found_tmp
+  files::create_temp found_tmp
+  local root
+  for root in "$@"; do
+    if ! dirs::exists "${root}"; then
+      log::warn "${root} does not exist; skipping"
+      continue
+    fi
+    # -H follows a symlinked root (the dotfiles checkout is one) but no symlink below it. A .git dir is pruned,
+    # so the search never descends into a repo's own git dir.
+    # shellcheck disable=SC2154 # found_tmp assigned by files::create_temp via nameref
+    find -H "${root}" -maxdepth "${SCAN_MAX_DEPTH}" -name '.git' -type d -prune -printf '%h\n' >> "${found_tmp}" # -H: no long-form equivalent
+  done
+  local -a repos=()
+  mapfile -t repos < "${found_tmp}"
+  if ((${#repos[@]} > 0)); then
+    realpath --canonicalize-missing -- "${repos[@]}" | sort --unique
+  fi
+}
+
+function main() {
+  local scan='false'
+  if [[ "${1:-}" == '--scan' ]]; then
+    scan='true'
+    shift
+  fi
+  local -a paths=("$@")
+  if ((${#paths[@]} == 0)); then
+    paths=("${PWD}")
+  fi
+  local -a repos=()
+  if [[ "${scan}" == 'true' ]]; then
+    local repos_tmp
+    files::create_temp repos_tmp
+    # shellcheck disable=SC2154 # repos_tmp assigned by files::create_temp via nameref
+    find_repos "${paths[@]}" > "${repos_tmp}"
+    mapfile -t repos < "${repos_tmp}"
+  else
+    repos=("${paths[@]}")
+  fi
+  local -a unrepaired=()
+  local -a all_unrepaired=()
+  local repo
+  for repo in "${repos[@]}"; do
+    if ! git::is_git_repo "${repo}"; then
+      log::warn "${repo} is not a git repo; skipping"
+      continue
+    fi
+    git::repair_pre_commit_hooks "${repo}" unrepaired
+    all_unrepaired+=("${unrepaired[@]}")
+  done
+  if ((${#all_unrepaired[@]} > 0)); then
+    log::die "${#all_unrepaired[@]} hook(s) still reference /nix/store; see warnings above"
+  fi
+}
+
+main "$@"

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# @description Run `pre-commit install` in the current repo, then rewrite its pre-commit-generated git hooks to find bash
+# and pre-commit on PATH instead of through the /nix/store paths a nix-packaged pre-commit bakes in, which break once a
+# garbage collection removes them. Also repairs pre-commit hooks of types not named in this run.
+# @arg $@ args Passed through to `pre-commit install` (e.g. `--hook-type commit-msg`).
+# @exitcode 1 Not inside a git repo, pre-commit not found, or a hook keeps a store path that cannot be rewritten.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+# pass-through: any arg count valid
+
+git::assert_git_repo "${PWD}"
+commands::assert_executable_exists 'pre-commit'
+pre-commit install "$@"
+pre-commit-hooks-repair "${PWD}"
