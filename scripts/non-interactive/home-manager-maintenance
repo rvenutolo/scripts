@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-# @description Run periodic Nix store maintenance: garbage-collect generations older than 10 days. Store dedup is handled by the daemon (auto-optimise-store).
+# @description Run periodic Nix store maintenance: repair pre-commit git hooks that call bash and pre-commit through
+# /nix/store paths, then garbage-collect generations older than 10 days. Store dedup is handled by the daemon
+# (auto-optimise-store). Both the home-manager-cleanup.timer user service and home-manager-update run this.
 # @noargs
 
 set -Eeuo pipefail
@@ -11,5 +13,13 @@ source "${SCRIPTS_DIR}/.functions.bash"
 log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
+
+# Repair before collecting: the collection is what deletes the store paths an unrepaired hook still execs, and the
+# rewrite is text-only, so it never needs the build it replaces. DOTFILES_DIR is listed apart from the projects dirs
+# because it is a symlink there, which the scan does not follow below a root. A failed repair must not block the
+# collection.
+if ! pre-commit-hooks-repair --scan "${PERSONAL_PROJECTS_DIR}" "${WORK_PROJECTS_DIR}" "${DOTFILES_DIR}"; then
+  log::warn 'pre-commit hook repair failed; collecting garbage anyway'
+fi
 
 nix-collect-garbage --delete-older-than 10d
