@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+# @description Rewrite the pre-commit-generated git hooks in each given repo so they find bash and pre-commit on PATH
+# instead of through absolute /nix/store paths, which break once a garbage collection removes them. Never installs
+# hooks; a repo without pre-commit hooks is left as is. A path that does not exist or is not a git repo is skipped
+# with a warning, so one list can serve hosts that lack some of the checkouts.
+# @arg $@ repos Repo paths to repair; defaults to the current directory.
+# @exitcode 1 A pre-commit hook still references /nix/store in a line that cannot be rewritten.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+# variadic: zero args means the current directory
+
+function main() {
+  local -a repos=("$@")
+  if ((${#repos[@]} == 0)); then
+    repos=("${PWD}")
+  fi
+  local -a unrepaired=()
+  local -a all_unrepaired=()
+  local repo
+  for repo in "${repos[@]}"; do
+    if ! git::is_git_repo "${repo}"; then
+      log::warn "${repo} is not a git repo; skipping"
+      continue
+    fi
+    git::repair_pre_commit_hooks "${repo}" unrepaired
+    all_unrepaired+=("${unrepaired[@]}")
+  done
+  if ((${#all_unrepaired[@]} > 0)); then
+    log::die "${#all_unrepaired[@]} hook(s) still reference /nix/store; see warnings above"
+  fi
+}
+
+main "$@"
