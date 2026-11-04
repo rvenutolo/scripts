@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# @description Show dependency, plugin, and property updates for the current Maven project, ignoring
+#   pre-release versions, by running `mvn-display-dependency-updates`, `mvn-display-plugin-updates`,
+#   and `mvn-display-property-updates` in turn. Stops at the first check that fails.
+# @noargs
+# @stderr a heading before each check
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+log::log 'Dependency updates'
+"${SCRIPTS_DIR}/non-interactive/mvn-display-dependency-updates"
+
+log::log 'Plugin updates'
+"${SCRIPTS_DIR}/non-interactive/mvn-display-plugin-updates"
+
+log::log 'Property updates'
+"${SCRIPTS_DIR}/non-interactive/mvn-display-property-updates"
