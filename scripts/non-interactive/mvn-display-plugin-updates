@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# @description Run `mvn versions:display-plugin-updates` against the current Maven project.
+# @description Run `mvn versions:display-plugin-updates` against the current Maven project, ignoring
+#   pre-release versions (alpha, beta, milestone, RC) unless the project configures its own filter.
 # @noargs
 
 set -Eeuo pipefail
@@ -12,4 +13,4 @@ log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
 
-mvn versions:display-plugin-updates
+mvn versions:display-plugin-updates "-Dmaven.version.ignore=$(mvn::prerelease_ignore_regex)"
