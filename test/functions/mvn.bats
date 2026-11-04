@@ -54,3 +54,65 @@ setup() {
   assert_failure
   assert_output --partial 'Expected at most 1 argument'
 }
+
+# ---------- prerelease_ignore_regex ----------
+
+# Maven's Versions plugin applies each ignore regex with Java's Matcher.matches(), so the
+# whole version must match; anchoring for PCRE grep reproduces that.
+function prerelease_regex_matches() {
+  local -r version="$1"
+  local regex
+  regex="$(mvn::prerelease_ignore_regex)"
+  printf '%s\n' "${version}" | grep --perl-regexp --quiet "^(?:${regex})$"
+}
+
+@test "prerelease_ignore_regex: matches pre-release versions" {
+  local -a prereleases=(
+    '1.0-alpha' '1.0-alpha1' '1.0-alpha-1' '2.1.0-alpha1' '1.0.ALPHA2'
+    '1.0-beta' '1.0-beta2' '4.0.0-beta-5' '1.0.Beta1'
+    '2.2.0-M1' '5.0.0.M2' '1.0-m3' '1.0-milestone-1' '1.0.MILESTONE2'
+    '1.0-RC' '1.0-RC1' '4.2.0-RC1' '1.0.RC1' '1.0-rc.2' '1.0-rc-3'
+    '1.0-CR2' '1.0.CR1'
+    '1.0-b1' '1.0-b-2' '1.0-a2'
+    '2.0-M4-groovy-3.0' '1.0-beta-1-jre'
+  )
+  local version
+  for version in "${prereleases[@]}"; do
+    run prerelease_regex_matches "${version}"
+    assert_success
+  done
+}
+
+@test "prerelease_ignore_regex: does not match release versions" {
+  local -a releases=(
+    '1.0' '2.0.20' '4.1.2' '20040616'
+    '33.8.0-jre' '33.0.0-android' '1.18.17-jdk5'
+    '5.3.0.RELEASE' '5.6.15.Final' '1.0.GA'
+    '1.1-groovy-2.4' '2.4-groovy-4.0'
+    '1.0-b' '1.0-a' '1.0-amd64' '1.0-mysql' '1.0-crypto'
+  )
+  local version
+  for version in "${releases[@]}"; do
+    run prerelease_regex_matches "${version}"
+    assert_failure 1
+  done
+}
+
+@test "prerelease_ignore_regex: contains no comma" {
+  # maven.version.ignore splits its value on commas into separate regexes.
+  run mvn::prerelease_ignore_regex
+  assert_success
+  refute_output --partial ','
+}
+
+@test "prerelease_ignore_regex: prints a single line" {
+  run mvn::prerelease_ignore_regex
+  assert_success
+  [[ "${#lines[@]}" -eq 1 ]]
+}
+
+@test "prerelease_ignore_regex: dies with any args" {
+  run mvn::prerelease_ignore_regex a
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
