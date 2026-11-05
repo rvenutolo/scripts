@@ -1,7 +1,7 @@
 ---
 name: comment-archaeology-sweep
-description: Cuts chronology out of code comments and runtime strings — issue/PR numbers, accounts of prior implementations, references to plan documents — while keeping the rationale a reader can act on. TRIGGER RULES — (1) When the user explicitly invokes the slash command `/comment-archaeology-sweep [path]`, run the skill immediately without asking. (2) When the user makes a natural-language request that sounds like this skill's purpose ("sweep the comments", "cut the issue numbers", "clean up the historical comments", "does this comment still earn its place", or any paraphrase), do NOT auto-run — first ask the user "Run the comment-archaeology-sweep skill on <path>?" and only proceed if they confirm. Never silently invoke the skill from a natural-language request. The skill applies its rubric autonomously, leaves the working tree dirty, and produces a rationale report. It does NOT commit.
-agent: true
+description: Cuts chronology out of code comments and runtime strings — issue/PR numbers, accounts of prior implementations, references to plan documents — while keeping the rationale a reader can act on. Leaves the working tree dirty and produces a rationale report; does not commit.
+disable-model-invocation: true
 ---
 
 # comment-archaeology-sweep
@@ -10,18 +10,7 @@ Cut chronology out of comments and runtime strings while keeping the rationale i
 
 ## Trigger
 
-Two paths:
-
-1. **Slash command** — `/comment-archaeology-sweep [path]`. Run the skill immediately. No
-   confirmation prompt.
-1. **Natural-language paraphrase** — anything that sounds like this skill's purpose ("sweep the
-   comments", "cut the issue numbers", "clean up the historical comments", "does this comment
-   still earn its place", etc.). Do NOT auto-run. Ask first: "Run the comment-archaeology-sweep
-   skill on `<path>`?" Proceed only on confirmation. If the user says no, handle the request
-   however they prefer (or not at all).
-
-Never silently invoke the skill from a natural-language request — the confirmation prompt is
-mandatory in that path.
+Run only through `/comment-archaeology-sweep [path]`. Never invoke it from a natural-language request.
 
 ## The rubric
 
