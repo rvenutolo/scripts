@@ -26,8 +26,18 @@ runs:
     # the devShell's closure out of that collection; without it the saved
     # archive would be near empty and every job would re-download the closure
     # and rebuild the patched kcov from source.
+    #
+    # Only main saves; every other ref restores. GitHub scopes a cache to the
+    # ref that saved it, and a run restores only its own ref's caches and the
+    # default branch's, so a cache saved from a pull request, a merge-queue run
+    # or a dispatch on a feature branch serves nothing else yet still counts
+    # against the repository's 10 GB limit. The gate is on github.ref, not on
+    # the event name: an event gate still saves from a feature-branch dispatch.
+    # Every push to main runs CI through this action, so main keeps a fresh
+    # cache for each new key.
     - uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7
       with:
+        save: ${{ github.ref == 'refs/heads/main' }}
         primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock', '.github/actions/setup/action.yml') }}
         restore-prefixes-first-match: nix-${{ runner.os }}-
         gc-max-store-size-linux: 0
