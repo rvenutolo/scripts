@@ -110,7 +110,7 @@ family as `y[q]` and `@@STDERR@@`.
    begins with `shellcheck` or `shfmt` — ShellCheck reads `# shellcheck ...` at the line start
    as a directive, failing with SC1072/SC1073. The trap is reflow-specific; the words are
    harmless mid-sentence. Reword to fix, never add a suppression. Verify with `grep -nE '^\s*#\s+(shellcheck|shfmt)\b' <changed-files>` and confirm each match is intentional.
-1. **Verify** — `nix fmt`, then `./.ci/in-devshell ./run-all-checks`. Both clean. Then
+1. **Verify** — `nix fmt`, then `./run-all-checks`. Both clean. Then
    `git diff --summary` — it must print nothing. A `mode change` line means step 2 lost an
    executable bit.
 1. **Report**, then stop.

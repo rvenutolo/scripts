@@ -2,6 +2,10 @@
 
 # @description Run the BATS suites listed in .ci/test-suites in parallel, or
 #              forward arguments directly to bats.
+#
+#              With IN_DEVSHELL unset, as in an interactive `nix develop` or
+#              direnv shell, it first re-runs itself through .ci/in-devshell,
+#              so no tool resolves from the host PATH.
 # @arg $@ args Optional bats arguments or test file paths; omit to run every
 #         suite listed in .ci/test-suites.
 # @exitcode 0 all tests passed and the repo was left untouched.
@@ -12,6 +16,19 @@ set -Eeuo pipefail
 # as `n="$(scan ...)"` runs past a failed command and this gate exits 0.
 shopt -s inherit_errexit
 IFS=$'\n\t'
+
+# An interactive `nix develop` or direnv shell leaves IN_DEVSHELL unset and the
+# host PATH behind the flake's tools, so a tool the flake lacks would resolve from
+# the host. Re-run through .ci/in-devshell, which sets IN_DEVSHELL and so stops
+# the recursion. Above the `source` on purpose: SCRIPTS_DIR may be unset out
+# here, and the devShell sets it. Inline [[ -z ]] rather than strings::is_empty
+# for the same reason: the function library is not loaded yet. Outside the
+# devShell nothing but bash, git, GNU coreutils and nix is assumed.
+if [[ -z "${IN_DEVSHELL:-}" ]]; then
+  SELF_PATH="$(readlink --canonicalize -- "${BASH_SOURCE[0]}")"
+  SELF_DIR="${SELF_PATH%/*}"
+  exec "${SELF_DIR}/.ci/in-devshell" "${SELF_PATH}" "$@"
+fi
 
 #shellcheck disable=SC1091
 source "${SCRIPTS_DIR}/.functions.bash"
@@ -71,13 +88,13 @@ function main() {
   # tools' own errors: bats --jobs dies inside GNU parallel on a missing flock, with a
   # message that says nothing about how this repo is meant to be run.
   if ! commands::executable_exists 'bats'; then
-    log::die "bats not found on PATH — run './.ci/in-devshell ./run-tests' or 'just test'"
+    log::die "bats not found on PATH — the flake devShell provides it: run './run-tests' or 'just test'"
   fi
   if ! commands::executable_exists 'flock'; then
-    log::die "flock not found on PATH — required for bats --jobs. Run './.ci/in-devshell ./run-tests' or 'just test'"
+    log::die "flock not found on PATH — required for bats --jobs. The flake devShell provides it: run './run-tests' or 'just test'"
   fi
   if ! commands::executable_exists 'parallel'; then
-    log::die "GNU parallel not found on PATH — required for bats --jobs. Run './.ci/in-devshell ./run-tests' or 'just test'"
+    log::die "GNU parallel not found on PATH — required for bats --jobs. The flake devShell provides it: run './run-tests' or 'just test'"
   fi
   local before after status=0
   # shellcheck disable=SC2119 # intentional no-arg call; repo_state takes no args
