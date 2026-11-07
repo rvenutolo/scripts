@@ -2,9 +2,13 @@
 
 # @description Run a command inside this repo's Nix devShell with a hermetic
 #              environment. This is the single entrypoint for every gate: the
-#              pre-push hook, the .justfile recipes, and every CI workflow step
-#              go through it, so local and CI runs cannot drift apart and no gate
-#              can silently resolve a tool from the ambient machine.
+#              gate entry scripts (run-all-checks, run-tests, check-scripts,
+#              .ci/run-lint-checks, .ci/check-devshell-provides) re-run
+#              themselves through it when started outside the devShell, and the
+#              pre-push hook, the .justfile recipes and every CI workflow step go
+#              through it, so local and CI runs cannot drift apart and no gate
+#              can silently resolve a tool from the ambient machine. It is how to
+#              run any other command, script or not, inside the boundary.
 #
 #              `nix develop --ignore-environment` is what makes the boundary
 #              real: without it the devShell inherits the caller's PATH and an
@@ -17,7 +21,34 @@
 #
 #              Nesting is free. IN_DEVSHELL is exported into the shell and kept
 #              across the boundary, so a wrapped ./run-all-checks pays one nix
-#              evaluation for all five of its sub-gates instead of six.
+#              evaluation for all five of its sub-gates instead of six, and the
+#              command is run directly, with no second evaluation.
+#
+#              The flake is the repo this script lives in, found from the
+#              script's own resolved path rather than the caller's working
+#              directory, so a gate script reached through a symlink from any
+#              directory enters the right devShell. The command itself still
+#              runs in the caller's working directory.
+#
+#              `nix develop` makes a temp directory of its own and execs the
+#              command, so nothing would ever remove it. The script therefore
+#              runs it as a child inside a private directory made under the
+#              caller's TMPDIR, with TMPDIR kept and pointing there, and deletes
+#              that directory once the command has ended, however it ends.
+#              Everything nix and the command write to TMPDIR goes with it.
+#
+#              "The command" is the direct child, nix and what it execs. The
+#              directory is removed only after that child exits, and not on a
+#              signal alone: a command that catches one keeps running in it.
+#              Processes the command leaves running in the background are not
+#              waited for. SIGTERM and SIGHUP are forwarded to the command only,
+#              so a command that dies without passing one on can leave
+#              descendants running after the directory is gone; `timeout` and CI
+#              cancellation signal the whole process group, which reaches them.
+#              A SIGINT sent to this script alone, not to the foreground process
+#              group, is not forwarded at all: a Ctrl-C already reaches the
+#              command through the process group, and forwarding would deliver
+#              it twice.
 #
 #              Standalone on purpose, in the .ci/activate-githooks mold: it runs
 #              *before* the environment it creates, so it cannot source
@@ -27,16 +58,24 @@
 #              scripts/misc/ standalone scripts do, and omits
 #              args::handle_help_flag: every argument belongs to the wrapped
 #              command, so a --help here would have to be forwarded anyway. It
-#              needs only bash, git, and nix from the host.
+#              needs only bash 4.4+, git, GNU coreutils (date, dirname, mktemp,
+#              readlink, rm) and nix from the host; every script that re-runs
+#              itself through it has the same requirement before the devShell
+#              exists.
 # @arg $@ command the command to run inside the devShell, plus its arguments
-# @stderr A usage line when no command is given, or a diagnostic when the working
-#         directory is not inside a git repo. Everything else is the wrapped
-#         command's own output.
+# @stderr A usage line when no command is given, or the reason the script cannot
+#         run. Everything else is the wrapped command's own output.
 # @exitcode 0 the wrapped command succeeded.
-# @exitcode 1 no command was given, or the working directory is not inside a git repo.
-# @exitcode * otherwise the exit status of the wrapped command, which replaces this process.
+# @exitcode 1 no command was given, this script is not inside a git repo, or
+#             TMPDIR names no directory.
+# @exitcode 129 hung up before the command started (130 interrupted, 143
+#               terminated).
+# @exitcode * otherwise the wrapped command's exit status (128+N when a signal
+#             killed it, or when bash lost the status of a command that ended
+#             during a forwarded signal), nix's own when the devShell cannot be
+#             entered, or the failing mktemp or readlink status.
 # @example
-#   .ci/in-devshell ./run-all-checks
+#   .ci/in-devshell nix flake check
 #   IN_DEVSHELL_KEEP='PR_TITLE' .ci/in-devshell ./.ci/check-foo
 
 set -Eeuo pipefail
@@ -82,7 +121,53 @@ readonly KEEP_VARS=(
   # Runner facts.
   RUNNER_OS
   RUNNER_TEMP
+  # Points at the private directory made below, so what nix and the command
+  # write there is removed with it.
+  TMPDIR
 )
+
+# Global, not local to main: the EXIT trap runs after main has returned.
+tmp_dir=''
+child_pid=''
+got_signal=''
+
+# @description Remove the private temp directory, if one was made. The EXIT trap.
+# @noargs
+# shellcheck disable=SC2329 # invoked by the EXIT trap in main
+function remove_tmp_dir() {
+  if [[ -n "${tmp_dir}" ]]; then
+    rm --recursive --force -- "${tmp_dir:?}"
+  fi
+}
+
+# @description The INT, TERM and HUP trap. A Ctrl-C reaches the child through
+#              the shared process group, so SIGINT is not forwarded: a second
+#              copy would read as a second Ctrl-C, which makes a command abort
+#              its own cleanup. SIGTERM and SIGHUP are usually sent to this
+#              script alone, and reach the child only through this forward. The
+#              traps stay set, so every further signal is handled too, and main
+#              keeps waiting until the child has ended: the directory is never
+#              removed under a child still running, and the exit status is the
+#              child's own. A signal landing between the launch and the
+#              assignment of child_pid finds the child through `$!`; before the
+#              launch `$!` is unset and there is nothing to wait for, so the
+#              script exits at once with the conventional status. The status is
+#              also recorded in got_signal, for main's wait loop.
+# @arg $1 signal_name the signal received: INT, TERM or HUP
+# @arg $2 status the conventional 128+N exit status for that signal
+# shellcheck disable=SC2329 # invoked by the INT, TERM and HUP traps in main
+function on_signal() {
+  local -r signal_name="$1"
+  local -r status="$2"
+  child_pid="${child_pid:-${!:-}}"
+  if [[ -z "${child_pid}" ]]; then
+    exit "${status}"
+  fi
+  got_signal="${status}"
+  if [[ "${signal_name}" != 'INT' ]]; then
+    kill -s "${signal_name}" "${child_pid}" 2> '/dev/null' || true
+  fi
+}
 
 function main() {
   if (($# == 0)); then
@@ -98,16 +183,22 @@ function main() {
     exec "$@"
   fi
 
-  local repo_dir
-  if ! repo_dir="$(git rev-parse --show-toplevel 2> '/dev/null')"; then
-    printf '%s: not a git repo: %s\n' "${0##*/}" "$(pwd)" >&2
+  # The flake reference is the repo this script lives in, found from its own
+  # resolved path and never from the caller's working directory or an
+  # environment variable: a gate must evaluate the tree it is grading, or a
+  # worktree silently gets the main checkout's devShell, also when reached
+  # through a symlink from elsewhere. Git exports GIT_DIR to the hooks it runs,
+  # and with GIT_DIR set and no GIT_WORK_TREE, rev-parse names the -C directory
+  # itself as the top level, so both are unset in the substitution's subshell
+  # for this one call.
+  local wrapper_dir repo_dir
+  wrapper_dir="$(dirname -- "$(readlink --canonicalize -- "${BASH_SOURCE[0]}")")"
+  if ! repo_dir="$(unset GIT_DIR GIT_WORK_TREE && git -C "${wrapper_dir}" rev-parse --show-toplevel 2> '/dev/null')"; then
+    printf '%s: not a git repo: %s\n' "${0##*/}" "${wrapper_dir}" >&2
     exit 1
   fi
-  readonly repo_dir
+  readonly wrapper_dir repo_dir
 
-  # The flake reference is the repo this script was invoked in, never a relative
-  # path and never an environment variable: a gate must evaluate the tree it is
-  # grading, or a worktree silently gets the main checkout's devShell.
   export SCRIPTS_DIR="${repo_dir}/scripts"
   export IN_DEVSHELL=1
 
@@ -129,7 +220,59 @@ function main() {
   done
   nix_args+=(--command)
 
-  exec nix "${nix_args[@]}" "$@"
+  local -r parent_dir="${TMPDIR:-/tmp}"
+  if [[ ! -d "${parent_dir}" ]]; then
+    printf '%s: TMPDIR %s names no directory\n' "${0##*/}" "${parent_dir}" >&2
+    exit 1
+  fi
+  trap remove_tmp_dir EXIT
+  # Absolute, because nix rejects a relative TMPDIR and the command could not
+  # use one after changing directory.
+  tmp_dir="$(mktemp --directory --tmpdir="$(readlink --canonicalize -- "${parent_dir}")" in-devshell.XXXXXX)"
+  export TMPDIR="${tmp_dir}"
+  # Set only once tmp_dir is assigned, so on_signal never exits while mktemp's
+  # directory exists but tmp_dir, which the EXIT trap reads, is still empty.
+  # Before this point a signal takes its default action.
+  trap 'on_signal HUP 129' HUP
+  trap 'on_signal INT 130' INT
+  trap 'on_signal TERM 143' TERM
+
+  # Run in the background only so `wait` can be interrupted by the traps above;
+  # a foreground child would hold them off until it exited. Without job control
+  # bash starts a background child with SIGINT and SIGQUIT ignored and stdin on
+  # /dev/null, so the subshell restores both signals and stdin is passed
+  # explicitly: the command behaves as it would in the foreground.
+  (
+    trap - INT QUIT
+    exec nix "${nix_args[@]}" "$@"
+  ) <&0 &
+  child_pid="$!"
+  # A trapped signal cuts `wait` short, so after any wait a trap ran in, wait
+  # again: the child may still run, and a wait on a child that has ended since
+  # returns its saved status. Deciding by whether the child still answers
+  # `kill -0` instead would race twice: the signal can land just before `wait`
+  # starts, and the child can end between the cut-short wait and the check,
+  # which would report 128+N for a command that exited 0. Bash loses the status
+  # only when the child ended during the very wait a trap cut short; the next
+  # wait then finds no such child (5.2 reports 255, 5.3 reports 127, with a
+  # message silenced here), and the conventional 128+N of the last signal
+  # stands in. So a real 127 or 255 after a forwarded signal reads as 128+N.
+  local rc=0
+  local signal_status=''
+  while true; do
+    got_signal=''
+    rc=0
+    wait "${child_pid}" 2> '/dev/null' || rc="$?"
+    if [[ -n "${got_signal}" ]]; then
+      signal_status="${got_signal}"
+      continue
+    fi
+    if [[ -n "${signal_status}" ]] && ((rc == 127 || rc == 255)); then
+      rc="${signal_status}"
+    fi
+    break
+  done
+  exit "${rc}"
 }
 
 main "$@"

@@ -10,6 +10,8 @@ setup() {
   # .ci/build-site carries the tests for the real thing.
   export DOCS_DIR_OVERRIDE="${BATS_TEST_TMPDIR}/docs"
   cli_shim::record mkdocs
+  load '../test_helper/devshell_nix'
+  devshell_nix::setup
 }
 
 # .ci/run-lint-checks (an aggregator) derives its own repo root via `git
@@ -114,4 +116,61 @@ exit 0"
   assert_failure
   run test -f "${BATS_TEST_TMPDIR}/yamllint-args"
   assert_success
+}
+
+# The self-wrap cases: a direct run from a shell outside the devShell re-runs the
+# script through .ci/in-devshell. devshell_nix::run_outside starts it the way such
+# a shell would, against the stub nix (see devshell_nix.bash).
+
+@test "self-wrap: a direct run re-runs itself inside the devShell, with the host PATH gone" {
+  devshell_nix::install_emulator
+  cd "${REPO_DIR}" || return 1
+  run devshell_nix::run_outside "${REPO_DIR}/.ci/run-lint-checks" --help
+  assert_success
+  assert_output --partial 'actionlint'
+  devshell_nix::assert_reran "${REPO_REAL}/.ci/run-lint-checks" --help
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: arguments and exit status survive the re-run" {
+  devshell_nix::install_recorder 7
+  cd "${REPO_DIR}" || return 1
+  run devshell_nix::run_outside "${REPO_DIR}/.ci/run-lint-checks" 'a b' '' '*'
+  assert_failure 7
+  devshell_nix::assert_reran "${REPO_REAL}/.ci/run-lint-checks" 'a b' '' '*'
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: a run through a symlink from the repo root hands itself to the devShell" {
+  devshell_nix::install_recorder 5
+  ln --symbolic -- "${REPO_DIR}/.ci/run-lint-checks" "${BATS_TEST_TMPDIR}/link"
+  cd "${REPO_DIR}" || return 1
+  run devshell_nix::run_outside "${BATS_TEST_TMPDIR}/link" 'x'
+  assert_failure 5
+  devshell_nix::assert_reran "${REPO_REAL}/.ci/run-lint-checks" 'x'
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: a run through a symlink from outside any repo hands itself to the devShell" {
+  devshell_nix::install_recorder 6
+  mkdir -- "${BATS_TEST_TMPDIR}/elsewhere"
+  ln --symbolic -- "${REPO_DIR}/.ci/run-lint-checks" "${BATS_TEST_TMPDIR}/elsewhere/link"
+  cd "${BATS_TEST_TMPDIR}/elsewhere" || return 1
+  run devshell_nix::run_outside "${BATS_TEST_TMPDIR}/elsewhere/link" 'y'
+  assert_failure 6
+  devshell_nix::assert_reran "${REPO_REAL}/.ci/run-lint-checks" 'y'
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: with IN_DEVSHELL already set there is no re-run" {
+  devshell_nix::install_recorder 42
+  cd "${REPO_DIR}" || return 1
+  run env IN_DEVSHELL=1 PATH="${HOST_DIR}:${NIX_STUB_DIR}:${PATH}" TMPDIR="${NIX_SCRATCH}" \
+    "${REPO_DIR}/.ci/run-lint-checks" --help
+  assert_success
+  assert_output --partial 'actionlint'
+  assert [ ! -e "${NIX_ARGS_FILE}" ]
 }

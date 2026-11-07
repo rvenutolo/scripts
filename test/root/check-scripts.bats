@@ -7,6 +7,8 @@ setup() {
   # check-scripts derives its own repo root via `git rev-parse --show-toplevel`
   # from the CWD, and bats does not guarantee a CWD. Pin it.
   cd "${REPO_DIR}" || return 1
+  load '../test_helper/devshell_nix'
+  devshell_nix::setup
 }
 
 # check-scripts always runs the two whole-repo audits regardless of its
@@ -124,4 +126,61 @@ setup() {
 
   refute_output --partial '+++ '
   refute_output --partial 'SC2'
+}
+
+# The self-wrap cases: a direct run from a shell outside the devShell re-runs the
+# script through .ci/in-devshell. devshell_nix::run_outside starts it the way such
+# a shell would, against the stub nix (see devshell_nix.bash).
+
+@test "self-wrap: a direct run re-runs itself inside the devShell, with the host PATH gone" {
+  devshell_nix::install_emulator
+  cd "${REPO_DIR}" || return 1
+  run devshell_nix::run_outside "${REPO_DIR}/check-scripts" --help
+  assert_success
+  assert_output --partial 'shellcheck'
+  devshell_nix::assert_reran "${REPO_REAL}/check-scripts" --help
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: arguments and exit status survive the re-run" {
+  devshell_nix::install_recorder 7
+  cd "${REPO_DIR}" || return 1
+  run devshell_nix::run_outside "${REPO_DIR}/check-scripts" 'a b' '' '*'
+  assert_failure 7
+  devshell_nix::assert_reran "${REPO_REAL}/check-scripts" 'a b' '' '*'
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: a run through a symlink from the repo root hands itself to the devShell" {
+  devshell_nix::install_recorder 5
+  ln --symbolic -- "${REPO_DIR}/check-scripts" "${BATS_TEST_TMPDIR}/link"
+  cd "${REPO_DIR}" || return 1
+  run devshell_nix::run_outside "${BATS_TEST_TMPDIR}/link" 'x'
+  assert_failure 5
+  devshell_nix::assert_reran "${REPO_REAL}/check-scripts" 'x'
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: a run through a symlink from outside any repo hands itself to the devShell" {
+  devshell_nix::install_recorder 6
+  mkdir -- "${BATS_TEST_TMPDIR}/elsewhere"
+  ln --symbolic -- "${REPO_DIR}/check-scripts" "${BATS_TEST_TMPDIR}/elsewhere/link"
+  cd "${BATS_TEST_TMPDIR}/elsewhere" || return 1
+  run devshell_nix::run_outside "${BATS_TEST_TMPDIR}/elsewhere/link" 'y'
+  assert_failure 6
+  devshell_nix::assert_reran "${REPO_REAL}/check-scripts" 'y'
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: with IN_DEVSHELL already set there is no re-run" {
+  devshell_nix::install_recorder 42
+  cd "${REPO_DIR}" || return 1
+  run env IN_DEVSHELL=1 PATH="${HOST_DIR}:${NIX_STUB_DIR}:${PATH}" TMPDIR="${NIX_SCRATCH}" \
+    "${REPO_DIR}/check-scripts" --help
+  assert_success
+  assert_output --partial 'shellcheck'
+  assert [ ! -e "${NIX_ARGS_FILE}" ]
 }

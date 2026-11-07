@@ -38,12 +38,12 @@ Most repo-level operations have both a shell script and a `just` recipe (see [`.
 | `./.ci/in-devshell ./.ci/build-site`                  | `just docs`              | Build the docs site locally (`.ci/build-docs`, then `mkdocs build --strict`).                                           |
 | `./.ci/in-devshell ./.ci/check-shdoc-headers`         | `just shdoc-check`       | Audit shdoc header coverage on scripts and library helpers.                                                             |
 | `./.ci/in-devshell ./.ci/run-governance-checks`       | `just governance`        | Run the repo-governance lint suite (workflow posture, Renovate, ruleset).                                               |
-| `./.ci/in-devshell ./.ci/run-lint-checks`             | `just lint`              | Run the config/markup lint suite (actionlint, yamllint, JSON, markdown, typos, editorconfig), then build the docs site. |
-| `./.ci/in-devshell ./check-scripts [<paths>...]`      | `just check` (default)   | Combined `shellcheck`, shdoc-header, and executable-bit audit; non-zero exit on failure.                                |
+| `./.ci/run-lint-checks`                               | `just lint`              | Run the config/markup lint suite (actionlint, yamllint, JSON, markdown, typos, editorconfig), then build the docs site. |
+| `./check-scripts [<paths>...]`                        | `just check` (default)   | Combined `shellcheck`, shdoc-header, and executable-bit audit; non-zero exit on failure.                                |
 | `nix fmt`                                             | `just format`            | Format every file via treefmt (shfmt for shell).                                                                        |
 | `nix flake check`                                     | `just format-check`      | Verify formatting (treefmt) and run flake checks.                                                                       |
-| `./.ci/in-devshell ./run-all-checks`                  | `just all`               | Full local gate: `check-scripts`, `nix flake check`, governance, lint, and BATS suites.                                 |
-| `./.ci/in-devshell ./run-tests [<bats-args>...]`      | `just test`              | Run the BATS suites listed in `.ci/test-suites`.                                                                        |
+| `./run-all-checks`                                    | `just all`               | Full local gate: `check-scripts`, `nix flake check`, governance, lint, and BATS suites.                                 |
+| `./run-tests [<bats-args>...]`                        | `just test`              | Run the BATS suites listed in `.ci/test-suites`.                                                                        |
 | `./.ci/in-devshell ./shellcheck-scripts [<paths>...]` | `just shellcheck`        | Run `shellcheck` over shell scripts.                                                                                    |
 | `scripts/non-interactive/new-script <path>`           | `just new-script <path>` | Scaffold a new top-level script with the standard header and exec bit.                                                  |
 
@@ -53,9 +53,9 @@ Set `SCRIPTS_DIR` to `repo-root/scripts`. Every script sources `${SCRIPTS_DIR}/.
 
 ## Development
 
-Tooling is provided by a Nix flake devShell. Install [Nix](https://nixos.org/) and [direnv](https://direnv.net/), then run `direnv allow` (or `nix develop`) in the repo root. Every tool (shfmt, shellcheck, bats, formatters, etc.) is then available — nothing else to install, and CI uses the same flake. Entering the devShell also activates the tracked git hooks (see [Git hooks](#git-hooks)). The local gate is `nix fmt` followed by `./.ci/in-devshell ./run-all-checks`.
+Tooling is provided by a Nix flake devShell. Install [Nix](https://nixos.org/) and [direnv](https://direnv.net/), then run `direnv allow` (or `nix develop`) in the repo root. Every tool (shfmt, shellcheck, bats, formatters, etc.) is then available — nothing else to install, and CI uses the same flake. Entering the devShell also activates the tracked git hooks (see [Git hooks](#git-hooks)). The local gate is `nix fmt` followed by `./run-all-checks`.
 
-Every gate runs through [`.ci/in-devshell`](.ci/in-devshell), which re-execs the command under `nix develop --ignore-environment`. The ambient `PATH` is gone inside that boundary, so a tool missing from `flake.nix` fails loudly instead of resolving from the machine or the runner image. CI, `just`, and the `pre-push` hook all go through the same wrapper, so local and CI runs cannot diverge.
+Every gate runs through [`.ci/in-devshell`](.ci/in-devshell), which runs the command under `nix develop --ignore-environment`. The ambient `PATH` is gone inside that boundary, so a tool missing from `flake.nix` fails loudly instead of resolving from the machine or the runner image. The gate entry scripts (`run-all-checks`, `run-tests`, `check-scripts`, `.ci/run-lint-checks`, `.ci/check-devshell-provides`) enter the devShell themselves: started with `IN_DEVSHELL` unset, as from an interactive `nix develop` or direnv shell, each re-runs itself through the wrapper, also when reached through a symlink. Every other script, and any command that is not a script, is run as `./.ci/in-devshell <command>`. CI, `just`, and the `pre-push` hook all go through the same wrapper, so local and CI runs cannot diverge. The wrapper runs the command in a private temp directory under the caller's `TMPDIR` and removes it when the command ends.
 
 ## Git hooks
 
@@ -72,9 +72,9 @@ Bypass any hook with `--no-verify` on the corresponding git command.
 
 ```bash
 git submodule update --init --recursive   # one-time, on fresh clones (for .shdoc)
-./.ci/in-devshell ./run-tests                              # every suite in .ci/test-suites
-./.ci/in-devshell ./run-tests test/functions/strings.bats  # single file
-./.ci/in-devshell ./run-tests --filter 'is_blank' test/functions/strings.bats   # subset by name
+./run-tests                              # every suite in .ci/test-suites
+./run-tests test/functions/strings.bats  # single file
+./run-tests --filter 'is_blank' test/functions/strings.bats   # subset by name
 ```
 
 BATS, `bats-support`, and `bats-assert` come from the flake devShell — `bats.withLibraries` in `flake.nix`. The wrapper it produces exports `BATS_LIB_PATH`, so `test/test_helper/common.bash` loads the two libraries with `bats_load_library` and a bats that is not the flake's fails loudly instead of silently missing them. `.shdoc` is still a submodule, which is why the bootstrap line above stays.

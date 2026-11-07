@@ -64,7 +64,9 @@ trap.
 
 ## Common Commands
 
-Run repo scripts through `./.ci/in-devshell <script>` (or from an entered direnv shell).
+The gate entry scripts (`run-all-checks`, `run-tests`, `check-scripts`, `.ci/run-lint-checks`,
+`.ci/check-devshell-provides`) enter the devShell themselves: with `IN_DEVSHELL` unset they re-run through
+`.ci/in-devshell`. Run every other repo script, and any command that is not a script, as `./.ci/in-devshell <command>`.
 
 - `nix fmt` — format via treefmt. It matches by extension, so it **does not** reach extensionless executables or
   `*.bats`; `./check-scripts` covers those with a verify-only shfmt step.
@@ -203,7 +205,10 @@ must be listed in its `GATED` array.
   `nix develop --ignore-environment` with a fixed `--keep` allowlist (`KEEP_VARS`). Nothing else may spell
   `nix develop`. Per-call extra variables go in `IN_DEVSHELL_KEEP`, never the fixed list. `nix fmt` and `new-script`
   stay outside. `.githooks/commit-msg` is deliberately outside too (one tool, not worth a nix evaluation per commit) —
-  do not wrap it. Enforced by `.ci/check-workflow-hermetic`.
+  do not wrap it. Enforced by `.ci/check-workflow-hermetic`. The five gate entry scripts named under
+  [Common Commands](#common-commands) carry a self-wrap block above their `source` line (it cannot use `SCRIPTS_DIR`,
+  which the devShell sets). No other script self-wraps. The wrapper runs `nix develop` as a child inside a private
+  directory under the caller's `TMPDIR`, kept as `TMPDIR`, and removes it once the command ends.
 
 - **Scan roots come from `REPO_DIR`**, never `SCRIPTS_DIR` (which points at the main checkout, so a worktree would be
   graded against the wrong tree). The provisioning runners are the exception. Enforced by `.ci/check-tree-scan-root`.
@@ -278,7 +283,8 @@ currently does. On failure, default to fixing the function; escalate genuine amb
   assert. To assert prompt text, stub the `prompt::*` helper in use and check the arguments it receives.
 
 Test helpers in `test/test_helper/`: `dual_mode` (stdin-or-file helpers), `env_file_fixture`, `path_shim` (stub
-commands), `os_release_fixture`, `cli_shim` (record calls, canned/stateful output, passthrough `sudo`), `git_fixture`.
+commands), `os_release_fixture`, `cli_shim` (record calls, canned/stateful output, passthrough `sudo`), `git_fixture`,
+`devshell_nix` (a stub `nix develop` that records or runs the command, for `.ci/in-devshell` and the self-wrap cases).
 For prompt tests, set `SCRIPTS_AUTO_ANSWER=y` to accept defaults, or feed stdin through `bash -c` with `<<<`.
 
 ### Test safety
@@ -289,7 +295,9 @@ For prompt tests, set `SCRIPTS_AUTO_ANSWER=y` to accept defaults, or feed stdin 
   own discovery). `common.bash` scrubs `GIT_*`, pins git config to `/dev/null`, and confines tests to
   `BATS_TEST_TMPDIR`; `pre-push` calls `git::clear_local_env`; `run-tests` fails if HEAD/config/index change. Keep all
   of these.
-- Tests must not invoke real `nix`; stub it.
+- Tests must not invoke real `nix`; stub it. `common.bash` exports `IN_DEVSHELL=1` so the self-wrapping gate scripts
+  never re-run through the real `nix develop`; only the cases that exercise the re-run unset it, against the
+  `devshell_nix` stub.
 - Some tests neutralize `BASH_ENV` so a child bash does not re-source `~/.bashrc` and escape the shim `PATH`; keep
   them that way. kcov still traces them: it follows child shells through a preloaded library, not `BASH_ENV`.
 
@@ -314,7 +322,7 @@ A failing `codecov/project*` status on `main` opens a `coverage-drop` issue for 
 ## Before Committing
 
 1. `nix fmt`
-1. `./.ci/in-devshell ./run-all-checks`
+1. `./run-all-checks`
 
 `run-all-checks` is verify-only and aggregates failures across `./check-scripts`, `nix flake check`,
 `.ci/run-governance-checks`, `.ci/run-lint-checks` (ending with the docs build), and `./run-tests`. `nix flake check`

@@ -32,6 +32,11 @@
 #
 #              Both queries are run against the repo this script was invoked in,
 #              never the ambient flake, so a worktree grades its own tree.
+#
+#              With IN_DEVSHELL unset, as in an interactive `nix develop` or
+#              direnv shell, it first re-runs itself through .ci/in-devshell,
+#              so no tool resolves from the host PATH. Fixture mode (either
+#              DEVSHELL_*_OVERRIDE seam set) runs where it is started.
 # @noargs
 # @stderr One line per tool that is not provided by the flake devShell, per
 #         devShell package that contributes no declared tool, and per stale
@@ -45,6 +50,22 @@ set -Eeuo pipefail
 # as `n="$(scan ...)"` runs past a failed command and this gate exits 0.
 shopt -s inherit_errexit
 IFS=$'\n\t'
+
+# An interactive `nix develop` or direnv shell leaves IN_DEVSHELL unset and the
+# host PATH behind the flake's tools, so a tool the flake lacks would resolve from
+# the host. Re-run through .ci/in-devshell, which sets IN_DEVSHELL and so stops
+# the recursion. Above the `source` on purpose: SCRIPTS_DIR may be unset out
+# here, and the devShell sets it. Inline [[ -z ]] rather than strings::is_empty
+# for the same reason: the function library is not loaded yet. Outside the
+# devShell nothing but bash, git, GNU coreutils and nix is assumed. Fixture mode,
+# with either DEVSHELL_*_OVERRIDE seam set, skips the re-run: it grades the PATH
+# and package list the seams supply, not the caller's, and the re-run would wipe
+# the seams.
+if [[ -z "${IN_DEVSHELL:-}" && ! -v DEVSHELL_PATH_OVERRIDE && ! -v DEVSHELL_PACKAGES_OVERRIDE ]]; then
+  SELF_PATH="$(readlink --canonicalize -- "${BASH_SOURCE[0]}")"
+  SELF_DIR="${SELF_PATH%/*}"
+  exec "${SELF_DIR}/in-devshell" "${SELF_PATH}" "$@"
+fi
 
 # shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
 source "${SCRIPTS_DIR}/.functions.bash"

@@ -7,6 +7,10 @@
 #              by `just lint`, the pre-push hook, and the CI `lint` job. Does NOT
 #              run shellcheck/shdoc (that is check-scripts) or formatting (that
 #              is treefmt via `nix flake check`).
+#
+#              With IN_DEVSHELL unset, as in an interactive `nix develop` or
+#              direnv shell, it first re-runs itself through .ci/in-devshell,
+#              so no tool resolves from the host PATH.
 # @noargs
 # @stderr Output from each failing lint, and the docs build's progress lines.
 # @exitcode 0 every lint passed and the docs site built.
@@ -17,6 +21,19 @@ set -Eeuo pipefail
 # as `n="$(scan ...)"` runs past a failed command and this gate exits 0.
 shopt -s inherit_errexit
 IFS=$'\n\t'
+
+# An interactive `nix develop` or direnv shell leaves IN_DEVSHELL unset and the
+# host PATH behind the flake's tools, so a tool the flake lacks would resolve from
+# the host. Re-run through .ci/in-devshell, which sets IN_DEVSHELL and so stops
+# the recursion. Above the `source` on purpose: SCRIPTS_DIR may be unset out
+# here, and the devShell sets it. Inline [[ -z ]] rather than strings::is_empty
+# for the same reason: the function library is not loaded yet. Outside the
+# devShell nothing but bash, git, GNU coreutils and nix is assumed.
+if [[ -z "${IN_DEVSHELL:-}" ]]; then
+  SELF_PATH="$(readlink --canonicalize -- "${BASH_SOURCE[0]}")"
+  SELF_DIR="${SELF_PATH%/*}"
+  exec "${SELF_DIR}/in-devshell" "${SELF_PATH}" "$@"
+fi
 
 # shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
 source "${SCRIPTS_DIR}/.functions.bash"
