@@ -65,6 +65,14 @@ export DEVSHELL_PATH_OVERRIDE="${PATH}"
 # per case to drive that arm.
 export DEVSHELL_PACKAGES_OVERRIDE=''
 
+# Same mandate, third route. The gate entry scripts re-run themselves through
+# .ci/in-devshell, and so through `nix develop`, whenever IN_DEVSHELL is unset. A suite
+# started from a plain shell, rather than through the wrapper, would therefore reach the
+# real nix from every test that runs one of them. The sentinel says "already inside", so
+# every such test runs the script directly. The cases that exercise the re-run itself
+# unset it for the one command they run (see devshell_nix.bash).
+export IN_DEVSHELL=1
+
 # Several tests must stop a child bash from re-sourcing the user's interactive ~/.bashrc,
 # which re-prepends the real nix PATH ahead of a per-test shim dir. Clearing BASH_ENV does
 # that, but BASH_ENV is also the channel kcov injects its trace helper through: the subject

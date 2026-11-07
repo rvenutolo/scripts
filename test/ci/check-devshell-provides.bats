@@ -34,6 +34,8 @@ setup() {
   # real devShell packages that no synthetic enumeration contains, so it is
   # emptied here for the same reason the tool list is.
   export EXCLUDED_PACKAGES_OVERRIDE=''
+  load '../test_helper/devshell_nix'
+  devshell_nix::setup
 }
 
 # Build one tab-separated package record: the package name, then one bin
@@ -382,3 +384,70 @@ $(pkg_record 'twopkg' "${two}")"
 # failing run-lint-checks.bats in the process. See the DEVSHELL_PATH_OVERRIDE block in
 # test_helper/common.bash. The real devShell is asserted by the `governance` CI job and by
 # ./run-all-checks, both of which run this lint in an unmodified environment.
+
+# The self-wrap cases: a direct run from a shell outside the devShell re-runs the
+# script through .ci/in-devshell. devshell_nix::run_outside starts it the way such
+# a shell would, against the stub nix (see devshell_nix.bash).
+
+@test "self-wrap: a direct run re-runs itself inside the devShell, with the host PATH gone" {
+  devshell_nix::install_emulator
+  cd "${FIXTURE_REPO}" || return 1
+  run devshell_nix::run_outside "${REPO_DIR}/.ci/check-devshell-provides" --help
+  assert_success
+  assert_output --partial 'required-tools'
+  devshell_nix::assert_reran "${REPO_REAL}/.ci/check-devshell-provides" --help
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: arguments and exit status survive the re-run" {
+  devshell_nix::install_recorder 7
+  cd "${FIXTURE_REPO}" || return 1
+  run devshell_nix::run_outside "${REPO_DIR}/.ci/check-devshell-provides" 'a b' '' '*'
+  assert_failure 7
+  devshell_nix::assert_reran "${REPO_REAL}/.ci/check-devshell-provides" 'a b' '' '*'
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: a run through a symlink from the repo root hands itself to the devShell" {
+  devshell_nix::install_recorder 5
+  ln --symbolic -- "${REPO_DIR}/.ci/check-devshell-provides" "${BATS_TEST_TMPDIR}/link"
+  cd "${REPO_DIR}" || return 1
+  run devshell_nix::run_outside "${BATS_TEST_TMPDIR}/link" 'x'
+  assert_failure 5
+  devshell_nix::assert_reran "${REPO_REAL}/.ci/check-devshell-provides" 'x'
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: a run through a symlink from outside any repo hands itself to the devShell" {
+  devshell_nix::install_recorder 6
+  mkdir -- "${BATS_TEST_TMPDIR}/elsewhere"
+  ln --symbolic -- "${REPO_DIR}/.ci/check-devshell-provides" "${BATS_TEST_TMPDIR}/elsewhere/link"
+  cd "${BATS_TEST_TMPDIR}/elsewhere" || return 1
+  run devshell_nix::run_outside "${BATS_TEST_TMPDIR}/elsewhere/link" 'y'
+  assert_failure 6
+  devshell_nix::assert_reran "${REPO_REAL}/.ci/check-devshell-provides" 'y'
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: with IN_DEVSHELL already set there is no re-run" {
+  devshell_nix::install_recorder 42
+  cd "${FIXTURE_REPO}" || return 1
+  run env IN_DEVSHELL=1 PATH="${HOST_DIR}:${NIX_STUB_DIR}:${PATH}" TMPDIR="${NIX_SCRATCH}" \
+    "${REPO_DIR}/.ci/check-devshell-provides" --help
+  assert_success
+  assert_output --partial 'required-tools'
+  assert [ ! -e "${NIX_ARGS_FILE}" ]
+}
+
+@test "self-wrap: fixture mode, with the devShell seams set, runs without a re-run" {
+  # The seams are environment variables the re-run would wipe, and with them set
+  # the lint asks nothing of nix and grades no PATH of the caller's.
+  devshell_nix::install_recorder 42
+  add_devshell_tool 'faketool'
+  run env --unset=IN_DEVSHELL PATH="${HOST_DIR}:${NIX_STUB_DIR}:${PATH}" TMPDIR="${NIX_SCRATCH}" "${CHECK}"
+  assert_success
+  assert [ ! -e "${NIX_ARGS_FILE}" ]
+}

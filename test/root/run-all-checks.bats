@@ -15,6 +15,8 @@ setup() {
   FAKE_REPO="$(cd "${FAKE_REPO}" && pwd -P)"
   git_fixture::init "${FAKE_REPO}"
   STEP_LOG="${BATS_TEST_TMPDIR}/steps.log"
+  load '../test_helper/devshell_nix'
+  devshell_nix::setup
 }
 
 # Install one stub step inside the fake repo. Every stub appends its own name to
@@ -189,4 +191,61 @@ recorded_steps() {
   assert_success
   assert_output --partial 'run-all-checks'
   assert_output --partial 'Exit codes:'
+}
+
+# The self-wrap cases: a direct run from a shell outside the devShell re-runs the
+# script through .ci/in-devshell. devshell_nix::run_outside starts it the way such
+# a shell would, against the stub nix (see devshell_nix.bash).
+
+@test "self-wrap: a direct run re-runs itself inside the devShell, with the host PATH gone" {
+  devshell_nix::install_emulator
+  cd "${FAKE_REPO}" || return 1
+  run devshell_nix::run_outside "${REPO_DIR}/run-all-checks" --help
+  assert_success
+  assert_output --partial 'Exit codes:'
+  devshell_nix::assert_reran "${REPO_REAL}/run-all-checks" --help
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: arguments and exit status survive the re-run" {
+  devshell_nix::install_recorder 7
+  cd "${FAKE_REPO}" || return 1
+  run devshell_nix::run_outside "${REPO_DIR}/run-all-checks" 'a b' '' '*'
+  assert_failure 7
+  devshell_nix::assert_reran "${REPO_REAL}/run-all-checks" 'a b' '' '*'
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: a run through a symlink from the repo root hands itself to the devShell" {
+  devshell_nix::install_recorder 5
+  ln --symbolic -- "${REPO_DIR}/run-all-checks" "${BATS_TEST_TMPDIR}/link"
+  cd "${REPO_DIR}" || return 1
+  run devshell_nix::run_outside "${BATS_TEST_TMPDIR}/link" 'x'
+  assert_failure 5
+  devshell_nix::assert_reran "${REPO_REAL}/run-all-checks" 'x'
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: a run through a symlink from outside any repo hands itself to the devShell" {
+  devshell_nix::install_recorder 6
+  mkdir -- "${BATS_TEST_TMPDIR}/elsewhere"
+  ln --symbolic -- "${REPO_DIR}/run-all-checks" "${BATS_TEST_TMPDIR}/elsewhere/link"
+  cd "${BATS_TEST_TMPDIR}/elsewhere" || return 1
+  run devshell_nix::run_outside "${BATS_TEST_TMPDIR}/elsewhere/link" 'y'
+  assert_failure 6
+  devshell_nix::assert_reran "${REPO_REAL}/run-all-checks" 'y'
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: with IN_DEVSHELL already set there is no re-run" {
+  devshell_nix::install_recorder 42
+  cd "${FAKE_REPO}" || return 1
+  run env IN_DEVSHELL=1 PATH="${HOST_DIR}:${NIX_STUB_DIR}:${PATH}" TMPDIR="${NIX_SCRATCH}" \
+    "${REPO_DIR}/run-all-checks" --help
+  assert_success
+  assert_output --partial 'Exit codes:'
+  assert [ ! -e "${NIX_ARGS_FILE}" ]
 }

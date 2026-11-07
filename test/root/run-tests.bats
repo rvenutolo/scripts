@@ -31,6 +31,10 @@ setup() {
   # prepended ahead of the devShell's real bats.
   STUB_BIN="${BATS_TEST_TMPDIR}/stub-bin"
   mkdir --parents "${STUB_BIN}"
+  load '../test_helper/devshell_nix'
+  # The stub devShell's PATH starts with the recording bats, so a re-run reaches
+  # it rather than the real one.
+  PATH="${STUB_BIN}:${PATH}" devshell_nix::setup
 }
 
 # Write an executable `bats` into $1 that records its argv to ARGS_LOG, runs the
@@ -115,7 +119,7 @@ make_guard_bin() {
   run_in_fake_repo_with_path "${bin_dir}"
   assert_failure
   assert_output --partial 'bats not found on PATH'
-  assert_output --partial './.ci/in-devshell ./run-tests'
+  assert_output --partial "'./run-tests'"
   assert_output --partial 'just test'
 }
 
@@ -237,4 +241,63 @@ make_guard_bin() {
   run_in_fake_repo
   assert_failure
   refute_output --partial 'mutated the real repo'
+}
+
+# The self-wrap cases: a direct run from a shell outside the devShell re-runs the
+# script through .ci/in-devshell. devshell_nix::run_outside starts it the way such
+# a shell would, against the stub nix (see devshell_nix.bash).
+
+@test "self-wrap: a direct run re-runs itself inside the devShell, with the host PATH gone" {
+  devshell_nix::install_emulator
+  install_bats_stub
+  cd "${FAKE_REPO}" || return 1
+  run devshell_nix::run_outside "${REPO_DIR}/run-tests" --filter 'x y'
+  assert_success
+  assert_equal "$(cat "${ARGS_LOG}")" '--filter x y'
+  devshell_nix::assert_reran "${REPO_REAL}/run-tests" --filter 'x y'
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: arguments and exit status survive the re-run" {
+  devshell_nix::install_recorder 7
+  cd "${FAKE_REPO}" || return 1
+  run devshell_nix::run_outside "${REPO_DIR}/run-tests" 'a b' '' '*'
+  assert_failure 7
+  devshell_nix::assert_reran "${REPO_REAL}/run-tests" 'a b' '' '*'
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: a run through a symlink from the repo root hands itself to the devShell" {
+  devshell_nix::install_recorder 5
+  ln --symbolic -- "${REPO_DIR}/run-tests" "${BATS_TEST_TMPDIR}/link"
+  cd "${REPO_DIR}" || return 1
+  run devshell_nix::run_outside "${BATS_TEST_TMPDIR}/link" 'x'
+  assert_failure 5
+  devshell_nix::assert_reran "${REPO_REAL}/run-tests" 'x'
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: a run through a symlink from outside any repo hands itself to the devShell" {
+  devshell_nix::install_recorder 6
+  mkdir -- "${BATS_TEST_TMPDIR}/elsewhere"
+  ln --symbolic -- "${REPO_DIR}/run-tests" "${BATS_TEST_TMPDIR}/elsewhere/link"
+  cd "${BATS_TEST_TMPDIR}/elsewhere" || return 1
+  run devshell_nix::run_outside "${BATS_TEST_TMPDIR}/elsewhere/link" 'y'
+  assert_failure 6
+  devshell_nix::assert_reran "${REPO_REAL}/run-tests" 'y'
+  devshell_nix::assert_in_devshell
+  devshell_nix::assert_scratch_empty
+}
+
+@test "self-wrap: with IN_DEVSHELL already set there is no re-run" {
+  devshell_nix::install_recorder 42
+  install_bats_stub
+  cd "${FAKE_REPO}" || return 1
+  run env IN_DEVSHELL=1 PATH="${HOST_DIR}:${NIX_STUB_DIR}:${STUB_BIN}:${PATH}" TMPDIR="${NIX_SCRATCH}" \
+    "${REPO_DIR}/run-tests" --filter 'x y'
+  assert_success
+  assert_equal "$(cat "${ARGS_LOG}")" '--filter x y'
+  assert [ ! -e "${NIX_ARGS_FILE}" ]
 }
