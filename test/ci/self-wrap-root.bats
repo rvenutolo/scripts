@@ -51,6 +51,7 @@ wrapped_scripts() {
   for path in "${scripts[@]}"; do
     slashes="${path//[^\/]/}"
     depth="${#slashes}"
+    # shellcheck disable=SC2016 # the literal source text the script must carry
     expected='SELF_REPO="${SELF_PATH%'
     for ((i = 0; i <= depth; i++)); do
       expected+='/*'

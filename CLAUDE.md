@@ -37,7 +37,8 @@ Script directories live under `scripts/`; `SCRIPTS_DIR` points at `repo-root/scr
 At the **repo root** (not under `scripts/`): `lib/` (vendored Groovy jars), `.ci/` (repo tooling, not on `PATH`),
 `test/`, `.github/`, `.shdoc/`, `.docs/`, the root runners (`check-scripts`, `shellcheck-scripts`, `run-all-checks`,
 `run-install-scripts`, `run-set-up-scripts`, `run-tests`), and all config files. Repo tooling derives the repo root via
-`git rev-parse --show-toplevel` (a local `REPO_DIR`).
+`git rev-parse --show-toplevel` (a local `REPO_DIR`), except the self-wrapping gate entry scripts, which take it from
+their own path (`SELF_REPO`).
 
 ## Required Environment
 
@@ -207,8 +208,11 @@ must be listed in its `GATED` array.
   stay outside. `.githooks/commit-msg` is deliberately outside too (one tool, not worth a nix evaluation per commit) —
   do not wrap it. Enforced by `.ci/check-workflow-hermetic`. The five gate entry scripts named under
   [Common Commands](#common-commands) carry a self-wrap block above their `source` line (it cannot use `SCRIPTS_DIR`,
-  which the devShell sets). No other script self-wraps. The wrapper runs `nix develop` as a child inside a private
-  directory under the caller's `TMPDIR`, kept as `TMPDIR`, and removes it once the command ends.
+  which the devShell sets). The block sets `SELF_REPO`, the script's canonical path with its depth stripped, and the
+  script uses it as `REPO_DIR`, so a gate started through a symlink or from another repository grades its own; the
+  ones that call cwd-rooted children run those from there (`check-scripts` per child, since its path arguments stay
+  relative to the caller; `run-tests` needs no `cd`). No other script self-wraps. The wrapper runs `nix develop` as a
+  child inside a private directory under the caller's `TMPDIR`, kept as `TMPDIR`, and removes it once the command ends.
 
 - **Scan roots come from `REPO_DIR`**, never `SCRIPTS_DIR` (which points at the main checkout, so a worktree would be
   graded against the wrong tree). The provisioning runners are the exception. Enforced by `.ci/check-tree-scan-root`.

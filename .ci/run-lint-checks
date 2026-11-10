@@ -22,6 +22,13 @@ set -Eeuo pipefail
 shopt -s inherit_errexit
 IFS=$'\n\t'
 
+# The repo root is this file's own canonical path with its depth in the repo
+# stripped, never the caller's working directory: run through a symlink, from a
+# subdirectory, or from inside another repository, the gate still grades the
+# repository it belongs to.
+SELF_PATH="$(readlink --canonicalize -- "${BASH_SOURCE[0]}")"
+SELF_REPO="${SELF_PATH%/*/*}"
+
 # An interactive `nix develop` or direnv shell leaves IN_DEVSHELL unset and the
 # host PATH behind the flake's tools, so a tool the flake lacks would resolve from
 # the host. Re-run through .ci/in-devshell, which sets IN_DEVSHELL and so stops
@@ -30,9 +37,7 @@ IFS=$'\n\t'
 # for the same reason: the function library is not loaded yet. Outside the
 # devShell nothing but bash, git, GNU coreutils and nix is assumed.
 if [[ -z "${IN_DEVSHELL:-}" ]]; then
-  SELF_PATH="$(readlink --canonicalize -- "${BASH_SOURCE[0]}")"
-  SELF_DIR="${SELF_PATH%/*}"
-  exec "${SELF_DIR}/in-devshell" "${SELF_PATH}" "$@"
+  exec "${SELF_REPO}/.ci/in-devshell" "${SELF_PATH}" "$@"
 fi
 
 # shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
@@ -41,8 +46,11 @@ log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
 
-REPO_DIR="$(git rev-parse --show-toplevel)"
+REPO_DIR="${SELF_REPO}"
 readonly REPO_DIR
+# The docs build is a separate script that finds its repo root from the working
+# directory, so it runs from this one.
+cd -- "${REPO_DIR}"
 
 function main() {
   args::check_no_args "$@"

@@ -17,6 +17,13 @@ set -Eeuo pipefail
 shopt -s inherit_errexit
 IFS=$'\n\t'
 
+# The repo root is this file's own canonical path with its depth in the repo
+# stripped, never the caller's working directory: run through a symlink, from a
+# subdirectory, or from inside another repository, the gate still grades the
+# repository it belongs to.
+SELF_PATH="$(readlink --canonicalize -- "${BASH_SOURCE[0]}")"
+SELF_REPO="${SELF_PATH%/*}"
+
 # An interactive `nix develop` or direnv shell leaves IN_DEVSHELL unset and the
 # host PATH behind the flake's tools, so a tool the flake lacks would resolve from
 # the host. Re-run through .ci/in-devshell, which sets IN_DEVSHELL and so stops
@@ -25,9 +32,7 @@ IFS=$'\n\t'
 # for the same reason: the function library is not loaded yet. Outside the
 # devShell nothing but bash, git, GNU coreutils and nix is assumed.
 if [[ -z "${IN_DEVSHELL:-}" ]]; then
-  SELF_PATH="$(readlink --canonicalize -- "${BASH_SOURCE[0]}")"
-  SELF_DIR="${SELF_PATH%/*}"
-  exec "${SELF_DIR}/.ci/in-devshell" "${SELF_PATH}" "$@"
+  exec "${SELF_REPO}/.ci/in-devshell" "${SELF_PATH}" "$@"
 fi
 
 #shellcheck disable=SC1091
@@ -36,7 +41,7 @@ log::enable_err_trap
 # pass-through: any arg count valid (forwarded to bats)
 
 # test/ lives at the repo root, not under SCRIPTS_DIR (= repo-root/scripts).
-REPO_DIR="$(git rev-parse --show-toplevel)"
+REPO_DIR="${SELF_REPO}"
 readonly REPO_DIR
 readonly SUITES_FILE="${REPO_DIR}/.ci/test-suites"
 
@@ -68,9 +73,9 @@ function repo_state() {
   args::check_no_args "$@"
   local head_ref config_hash index_hash
   # An empty repo has no HEAD; --quiet --verify prints nothing, so substitute a marker.
-  head_ref="$(git rev-parse --quiet --verify HEAD || printf 'NO-HEAD')"
-  config_hash="$(files::hash_if_exists "$(git rev-parse --path-format=absolute --git-path config)")"
-  index_hash="$(files::hash_if_exists "$(git rev-parse --path-format=absolute --git-path index)")"
+  head_ref="$(git -C "${REPO_DIR}" rev-parse --quiet --verify HEAD || printf 'NO-HEAD')"
+  config_hash="$(files::hash_if_exists "$(git -C "${REPO_DIR}" rev-parse --path-format=absolute --git-path config)")"
+  index_hash="$(files::hash_if_exists "$(git -C "${REPO_DIR}" rev-parse --path-format=absolute --git-path index)")"
   printf 'HEAD=%s\nconfig=%s\nindex=%s\n' "${head_ref}" "${config_hash}" "${index_hash}"
 }
 

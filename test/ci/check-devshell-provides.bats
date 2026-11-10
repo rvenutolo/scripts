@@ -9,12 +9,10 @@ setup() {
   source "${SCRIPTS_DIR}/functions/log.bash"
   load '../test_helper/git_fixture'
   CHECK="${REPO_DIR}/.ci/check-devshell-provides"
-  # The check resolves REPO_DIR via `git rev-parse --show-toplevel`, so it must
-  # run with cwd inside a git repo or it exits 128 before any scan. common.bash
-  # leaves cwd at BATS_TEST_TMPDIR, which is deliberately not a repo
-  # (fixture-escape hardening), so give the check a throwaway fixture repo to
-  # resolve. Only REPO_DIR resolution depends on it — the devShell PATH comes from
-  # the override below, which short-circuits the `nix print-dev-env` query.
+  # The check takes its repo root from its own path, not the cwd, so it is
+  # started from a throwaway fixture repo: whatever the cwd holds must not
+  # change the result. The devShell PATH comes from the override below, which
+  # short-circuits the `nix print-dev-env` query.
   FIXTURE_REPO="${BATS_TEST_TMPDIR}/repo"
   git_fixture::init "${FIXTURE_REPO}"
   cd "${FIXTURE_REPO}" || return 1
