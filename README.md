@@ -49,7 +49,7 @@ Most repo-level operations have both a shell script and a `just` recipe (see [`.
 
 ## Required environment
 
-Set `SCRIPTS_DIR` to `repo-root/scripts`. Every script sources `${SCRIPTS_DIR}/.functions.bash`. The user's `~/.profile` is expected to export it. Repo-tooling scripts that need the repo root itself derive it via `git rev-parse --show-toplevel`.
+Set `SCRIPTS_DIR` to `repo-root/scripts`. Every script sources `${SCRIPTS_DIR}/.functions.bash`. The user's `~/.profile` is expected to export it. Repo-tooling scripts that need the repo root itself derive it via `git rev-parse --show-toplevel`, except the self-wrapping gate entry scripts, which take it from their own path, so they grade their own repository from any working directory.
 
 ## Development
 

@@ -9,8 +9,8 @@ setup() {
   load '../test_helper/git_fixture'
   FAKE_REPO="${BATS_TEST_TMPDIR}/fake-repo"
   mkdir -p "${FAKE_REPO}/.ci"
-  # pwd -P so the path matches the canonical path the runner derives its root from;
-  # BATS_TEST_TMPDIR can sit under a symlinked TMPDIR.
+  # pwd -P so the path matches the canonical path the runner derives its root
+  # from; BATS_TEST_TMPDIR can sit under a symlinked TMPDIR.
   FAKE_REPO="$(cd "${FAKE_REPO}" && pwd -P)"
   # The runner takes its repo root from its own path, so the fixture cases run a
   # copy at the root of the fake repo, the same depth as the original, next to

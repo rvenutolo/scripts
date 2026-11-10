@@ -15,8 +15,8 @@ setup() {
   load '../test_helper/git_fixture'
   FAKE_REPO="${BATS_TEST_TMPDIR}/fake-repo"
   mkdir -p "${FAKE_REPO}"
-  # pwd -P so the path matches the canonical path the runner derives its root from;
-  # BATS_TEST_TMPDIR can sit under a symlinked TMPDIR.
+  # pwd -P so the path matches the canonical path the runner derives its root
+  # from; BATS_TEST_TMPDIR can sit under a symlinked TMPDIR.
   FAKE_REPO="$(cd "${FAKE_REPO}" && pwd -P)"
   # The runner takes its repo root from its own path, so the fixture cases run a
   # copy at the root of the fake repo, the same depth as the original.
@@ -99,8 +99,9 @@ make_guard_bin() {
   mkdir --parents "${bin_dir}"
   local tool tool_path
   # bash: /usr/bin/env resolves the shebang through PATH. readlink: the runner's
-  # own path. git: repo state. date: log::log timestamps. awk + sed: path::remove. nproc: the --jobs count.
-  # flock + parallel: what `bats --jobs` needs, and what the runner guards on.
+  # own path. git: repo state. date: log::log timestamps. awk + sed: path::remove.
+  # nproc: the --jobs count. flock + parallel: what `bats --jobs` needs, and what
+  # the runner guards on.
   for tool in bash readlink git date awk sed nproc flock parallel; do
     if [[ "${tool}" == "${omitted}" ]]; then
       continue
