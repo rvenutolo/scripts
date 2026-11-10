@@ -14,11 +14,9 @@ setup() {
   devshell_nix::setup
 }
 
-# .ci/run-lint-checks (an aggregator) derives its own repo root via `git
-# rev-parse --show-toplevel`, as do the sub-checks it shells out to.
-# common.bash's fixture-escape hardening leaves CWD at BATS_TEST_TMPDIR
-# (outside any git repo) by design, so cd into REPO_DIR before every
-# invocation — this test targets the real repo.
+# .ci/run-lint-checks takes its repo root from its own path, so it grades the
+# real repo from any CWD; run it from the repo root, where the gate is normally
+# started, rather than from the BATS_TEST_TMPDIR common.bash leaves as CWD.
 run_check() {
   cd "${REPO_DIR}" || return 1
   run "$@"

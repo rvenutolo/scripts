@@ -13,12 +13,15 @@ setup() {
   # shellcheck disable=SC1091 # paths resolved at runtime via SCRIPTS_DIR
   source "${SCRIPTS_DIR}/functions/log.bash"
   load '../test_helper/git_fixture'
-  SCRIPT="${REPO_DIR}/run-tests"
   FAKE_REPO="${BATS_TEST_TMPDIR}/fake-repo"
   mkdir -p "${FAKE_REPO}"
-  # pwd -P so the path matches what `git rev-parse --show-toplevel` reports;
-  # BATS_TEST_TMPDIR can sit under a symlinked TMPDIR.
+  # pwd -P so the path matches the canonical path the runner derives its root
+  # from; BATS_TEST_TMPDIR can sit under a symlinked TMPDIR.
   FAKE_REPO="$(cd "${FAKE_REPO}" && pwd -P)"
+  # The runner takes its repo root from its own path, so the fixture cases run a
+  # copy at the root of the fake repo, the same depth as the original.
+  SCRIPT="${FAKE_REPO}/run-tests"
+  cp -- "${REPO_DIR}/run-tests" "${SCRIPT}"
   git_fixture::init "${FAKE_REPO}"
   # The mutation-tripwire tests need a resolvable HEAD and a committer identity
   # (GIT_CONFIG_GLOBAL is /dev/null in this harness — see common.bash), so every
@@ -95,10 +98,11 @@ make_guard_bin() {
   local -r bin_dir="${BATS_TEST_TMPDIR}/guard-bin-no-${omitted}"
   mkdir --parents "${bin_dir}"
   local tool tool_path
-  # bash: /usr/bin/env resolves the shebang through PATH. git: repo-root lookup.
-  # date: log::log timestamps. awk + sed: path::remove. nproc: the --jobs count.
-  # flock + parallel: what `bats --jobs` needs, and what the runner guards on.
-  for tool in bash git date awk sed nproc flock parallel; do
+  # bash: /usr/bin/env resolves the shebang through PATH. readlink: the runner's
+  # own path. git: repo state. date: log::log timestamps. awk + sed: path::remove.
+  # nproc: the --jobs count. flock + parallel: what `bats --jobs` needs, and what
+  # the runner guards on.
+  for tool in bash readlink git date awk sed nproc flock parallel; do
     if [[ "${tool}" == "${omitted}" ]]; then
       continue
     fi

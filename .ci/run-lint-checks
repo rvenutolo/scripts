@@ -22,6 +22,13 @@ set -Eeuo pipefail
 shopt -s inherit_errexit
 IFS=$'\n\t'
 
+# The repo root is this file's own canonical path with its depth in the repo
+# stripped, never the caller's working directory: run through a symlink, from a
+# subdirectory, or from inside another repository, the gate still grades the
+# repository it belongs to.
+SELF_PATH="$(readlink --canonicalize -- "${BASH_SOURCE[0]}")"
+SELF_REPO="${SELF_PATH%/*/*}"
+
 # An interactive `nix develop` or direnv shell leaves IN_DEVSHELL unset and the
 # host PATH behind the flake's tools, so a tool the flake lacks would resolve from
 # the host. Re-run through .ci/in-devshell, which sets IN_DEVSHELL and so stops
@@ -30,9 +37,7 @@ IFS=$'\n\t'
 # for the same reason: the function library is not loaded yet. Outside the
 # devShell nothing but bash, git, GNU coreutils and nix is assumed.
 if [[ -z "${IN_DEVSHELL:-}" ]]; then
-  SELF_PATH="$(readlink --canonicalize -- "${BASH_SOURCE[0]}")"
-  SELF_DIR="${SELF_PATH%/*}"
-  exec "${SELF_DIR}/in-devshell" "${SELF_PATH}" "$@"
+  exec "${SELF_REPO}/.ci/in-devshell" "${SELF_PATH}" "$@"
 fi
 
 # shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
@@ -41,8 +46,11 @@ log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
 
-REPO_DIR="$(git rev-parse --show-toplevel)"
+REPO_DIR="${SELF_REPO}"
 readonly REPO_DIR
+# Every tool below, and the docs build, finds its files from the working
+# directory, so they all run from the repo root.
+cd -- "${REPO_DIR}"
 
 function main() {
   args::check_no_args "$@"
@@ -50,7 +58,7 @@ function main() {
   # Aggregate rather than fail-fast so one run surfaces every category. Each
   # tool runs from the repo root; `|| rc=1` keeps set -e from aborting early.
   log::log 'running actionlint'
-  (cd "${REPO_DIR}" && actionlint) || rc=1
+  actionlint || rc=1
   log::log 'running yamllint'
   # Lint the tracked YAML set, for the same reason markdownlint does below:
   # `yamllint .` walks the whole working tree, and unlike typos and
@@ -63,8 +71,8 @@ function main() {
   # and scripts/other/.
   local yaml_tmp
   files::create_temp yaml_tmp
-  (cd "${REPO_DIR}" && git ls-files -z -- '*.yml' '*.yaml') > "${yaml_tmp}"
-  (cd "${REPO_DIR}" && xargs --null --no-run-if-empty yamllint < "${yaml_tmp}") || rc=1
+  git ls-files -z -- '*.yml' '*.yaml' > "${yaml_tmp}"
+  xargs --null --no-run-if-empty yamllint < "${yaml_tmp}" || rc=1
   log::log 'running json lint'
   # Inlined rather than a lint_json helper called as `lint_json || rc=1`: that
   # shape disables errexit through the helper's whole call tree, so a failing
@@ -84,12 +92,12 @@ function main() {
   # that and omits submodules natively.
   local md_tmp
   files::create_temp md_tmp
-  (cd "${REPO_DIR}" && git ls-files -z -- '*.md') > "${md_tmp}"
-  (cd "${REPO_DIR}" && xargs --null --no-run-if-empty markdownlint-cli2 < "${md_tmp}") || rc=1
+  git ls-files -z -- '*.md' > "${md_tmp}"
+  xargs --null --no-run-if-empty markdownlint-cli2 < "${md_tmp}" || rc=1
   log::log 'running typos'
-  (cd "${REPO_DIR}" && typos) || rc=1
+  typos || rc=1
   log::log 'running editorconfig-checker'
-  (cd "${REPO_DIR}" && editorconfig-checker) || rc=1
+  editorconfig-checker || rc=1
   # Last on purpose. The docs build writes generated markdown into .docs/ and a
   # rendered site into site/; running it after the linters keeps that output out
   # of reach of anything that walks the tree. It is also the only step here that

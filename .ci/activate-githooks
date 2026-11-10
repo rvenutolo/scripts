@@ -42,6 +42,8 @@ function main() {
     exit 1
   fi
   local repo_root
+  # The caller's working directory names the repository, unlike the gates: this
+  # activates hooks in the repository the caller is in.
   if ! repo_root="$(git rev-parse --show-toplevel 2> '/dev/null')"; then
     printf '%s: not a git repo: %s\n' "${0##*/}" "$(pwd)" >&2
     exit 1

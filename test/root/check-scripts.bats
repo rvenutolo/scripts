@@ -4,8 +4,8 @@ setup() {
   load '../test_helper/common'
   # Captured before the cd: common.bash resolves REPO_DIR from BATS_TEST_DIRNAME.
   CHECK="${REPO_DIR}/check-scripts"
-  # check-scripts derives its own repo root via `git rev-parse --show-toplevel`
-  # from the CWD, and bats does not guarantee a CWD. Pin it.
+  # The relative path arguments below name files in the repo, and bats does not
+  # guarantee a CWD. Pin it.
   cd "${REPO_DIR}" || return 1
   load '../test_helper/devshell_nix'
   devshell_nix::setup

@@ -30,7 +30,7 @@
 #              unrelated derivation in the local store realized it, and testing
 #              for existence alone made the result depend on store contents.
 #
-#              Both queries are run against the repo this script was invoked in,
+#              Both queries are run against the repo this script belongs to,
 #              never the ambient flake, so a worktree grades its own tree.
 #
 #              With IN_DEVSHELL unset, as in an interactive `nix develop` or
@@ -51,6 +51,13 @@ set -Eeuo pipefail
 shopt -s inherit_errexit
 IFS=$'\n\t'
 
+# The repo root is this file's own canonical path with its depth in the repo
+# stripped, never the caller's working directory: run through a symlink, from a
+# subdirectory, or from inside another repository, the gate still grades the
+# repository it belongs to.
+SELF_PATH="$(readlink --canonicalize -- "${BASH_SOURCE[0]}")"
+SELF_REPO="${SELF_PATH%/*/*}"
+
 # An interactive `nix develop` or direnv shell leaves IN_DEVSHELL unset and the
 # host PATH behind the flake's tools, so a tool the flake lacks would resolve from
 # the host. Re-run through .ci/in-devshell, which sets IN_DEVSHELL and so stops
@@ -62,9 +69,7 @@ IFS=$'\n\t'
 # and package list the seams supply, not the caller's, and the re-run would wipe
 # the seams.
 if [[ -z "${IN_DEVSHELL:-}" && ! -v DEVSHELL_PATH_OVERRIDE && ! -v DEVSHELL_PACKAGES_OVERRIDE ]]; then
-  SELF_PATH="$(readlink --canonicalize -- "${BASH_SOURCE[0]}")"
-  SELF_DIR="${SELF_PATH%/*}"
-  exec "${SELF_DIR}/in-devshell" "${SELF_PATH}" "$@"
+  exec "${SELF_REPO}/.ci/in-devshell" "${SELF_PATH}" "$@"
 fi
 
 # shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
@@ -75,7 +80,7 @@ args::check_no_args "$@"
 commands::assert_executable_exists 'nix'
 commands::assert_executable_exists 'jq'
 
-REPO_DIR="$(git rev-parse --show-toplevel)"
+REPO_DIR="${SELF_REPO}"
 readonly REPO_DIR
 readonly REQUIRED_TOOLS_FILE="${REQUIRED_TOOLS_FILE_OVERRIDE:-${REPO_DIR}/.ci/required-tools}"
 
