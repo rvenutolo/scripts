@@ -71,6 +71,7 @@ function main() {
     check-errexit-predicate \
     check-hooks-path-single-writer \
     check-ci-job-in-summary \
+    check-secrets-documented \
     check-orphan-invariants \
     check-justfile-invariants \
     check-devshell-provides \
