@@ -1,3 +1,5 @@
+bats_require_minimum_version 1.5.0
+
 setup() {
   load '../test_helper/common'
   CHECK="${REPO_DIR}/.ci/check-secrets-documented"
@@ -124,6 +126,14 @@ run_check() {
   run_check
   assert_failure 1
   assert_stderr --partial 'undocumented secret: BR_TOKEN'
+}
+
+@test "counts bracket-form secret references with whitespace inside the brackets" {
+  write_workflow "${WF}/a.yml" "A: $(secret_ref FOO_TOKEN)" "B: \${{ secrets[ 'WS_TOKEN' ] }}"
+  write_runbook FOO_TOKEN
+  run_check
+  assert_failure 1
+  assert_stderr --partial 'undocumented secret: WS_TOKEN ('
 }
 
 @test "counts every secret on a line that references several" {
