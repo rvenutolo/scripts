@@ -1077,31 +1077,142 @@ EOF
   assert_output --partial 'Expected no arguments'
 }
 
-# ---------- set_default_jdk_to_latest_patch_of_current_major ----------
+# ---------- is_lts_major_version ----------
 
-@test "set_default_jdk_to_latest_patch_of_current_major: uses current major when a default is set" {
-  stub_jdks_and_sdk
-  # Current default is an older 17 patch while 21 is the highest installed major, so this asserts
-  # both halves of the contract: major 17 is kept, and its latest installed patch is selected.
-  fixture_installed_jdks '17.0.11-tem'
-  fixture_default_symlink '17.0.10-tem'
-  run sdkman_jdks::set_default_jdk_to_latest_patch_of_current_major
-  assert_success
-  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output 'default java 17.0.11-tem'
+@test "is_lts_major_version: true for every LTS major" {
+  local major_version
+  for major_version in 8 11 17 21 25 29 33; do
+    run sdkman_jdks::is_lts_major_version "${major_version}"
+    assert_success
+  done
 }
 
-@test "set_default_jdk_to_latest_patch_of_current_major: falls back to highest installed major when no default set" {
+@test "is_lts_major_version: false for non-LTS majors" {
+  local major_version
+  for major_version in 7 9 10 12 16 18 22 24 26 27 28 30; do
+    run sdkman_jdks::is_lts_major_version "${major_version}"
+    assert_failure 1
+  done
+}
+
+@test "is_lts_major_version: leading zero is read as decimal, not octal" {
+  run sdkman_jdks::is_lts_major_version '08'
+  assert_success
+}
+
+@test "is_lts_major_version: dies on a non-integer major" {
+  run sdkman_jdks::is_lts_major_version '21.0.5'
+  assert_failure
+  assert_output --partial 'Unexpected major version: 21.0.5'
+}
+
+@test "is_lts_major_version: dies on an empty major" {
+  run sdkman_jdks::is_lts_major_version ''
+  assert_failure
+  assert_output --partial 'Unexpected major version: '
+}
+
+@test "is_lts_major_version: dies with no args" {
+  run sdkman_jdks::is_lts_major_version
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "is_lts_major_version: dies with two args" {
+  run sdkman_jdks::is_lts_major_version 21 25
+  assert_failure
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+# ---------- get_latest_installed_tem_jdk_lts_major_version ----------
+
+@test "get_latest_installed_tem_jdk_lts_major_version: skips newer non-LTS and early-access majors" {
+  fixture_installed_jdks '8.0.512.0+9-tem' '11.0.33.0+10-tem' '25.0.5.0+8-tem' '26.0.2.1+1-tem' '27.0.0.0+35-tem'
+  run sdkman_jdks::get_latest_installed_tem_jdk_lts_major_version
+  assert_success
+  assert_output '25'
+}
+
+@test "get_latest_installed_tem_jdk_lts_major_version: compares majors numerically" {
+  fixture_installed_jdks '8.0.512-tem' '11.0.33-tem'
+  run sdkman_jdks::get_latest_installed_tem_jdk_lts_major_version
+  assert_success
+  assert_output '11'
+}
+
+@test "get_latest_installed_tem_jdk_lts_major_version: single LTS major installed" {
+  fixture_installed_jdks '21.0.5-tem'
+  run sdkman_jdks::get_latest_installed_tem_jdk_lts_major_version
+  assert_success
+  assert_output '21'
+}
+
+@test "get_latest_installed_tem_jdk_lts_major_version: dies when only non-LTS majors are installed" {
+  fixture_installed_jdks '26.0.2-tem' '27.0.0-tem'
+  run sdkman_jdks::get_latest_installed_tem_jdk_lts_major_version
+  assert_failure
+  assert_output --partial 'No LTS Temurin JDK is installed'
+}
+
+@test "get_latest_installed_tem_jdk_lts_major_version: dies when no JDK is installed" {
+  # setup() creates an empty candidates/java
+  run sdkman_jdks::get_latest_installed_tem_jdk_lts_major_version
+  assert_failure
+  assert_output --partial 'No LTS Temurin JDK is installed'
+}
+
+@test "get_latest_installed_tem_jdk_lts_major_version: dies with args" {
+  run sdkman_jdks::get_latest_installed_tem_jdk_lts_major_version 'extra' < /dev/null
+  assert_failure
+  assert_output --partial 'Expected no arguments'
+}
+
+# ---------- set_default_jdk_to_latest_lts ----------
+
+@test "set_default_jdk_to_latest_lts: moves an older-major default to the latest patch of the latest LTS" {
   stub_jdks_and_sdk
-  # setup() creates candidates/java with no current symlink
-  run sdkman_jdks::set_default_jdk_to_latest_patch_of_current_major
+  # The default sits on an older LTS (as a fresh install of a new 11 patch leaves it), while newer
+  # non-LTS and early-access majors are installed: only the newest patch of 25 is correct.
+  fixture_installed_jdks '11.0.33-tem' '25.0.4-tem' '25.0.5-tem' '26.0.2-tem' '27.0.0-tem'
+  fixture_default_symlink '11.0.33-tem'
+  run sdkman_jdks::set_default_jdk_to_latest_lts
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  assert_output 'default java 25.0.5-tem'
+}
+
+@test "set_default_jdk_to_latest_lts: moves a newer non-LTS default down to the latest LTS" {
+  stub_jdks_and_sdk
+  fixture_installed_jdks '26.0.2-tem'
+  fixture_default_symlink '26.0.2-tem'
+  run sdkman_jdks::set_default_jdk_to_latest_lts
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output 'default java 21.0.5-tem'
 }
 
-@test "set_default_jdk_to_latest_patch_of_current_major: dies with args" {
-  run sdkman_jdks::set_default_jdk_to_latest_patch_of_current_major 'extra' < /dev/null
+@test "set_default_jdk_to_latest_lts: sets a default when none is set" {
+  stub_jdks_and_sdk
+  # setup() creates candidates/java with no current symlink
+  run sdkman_jdks::set_default_jdk_to_latest_lts
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  assert_output 'default java 21.0.5-tem'
+}
+
+@test "set_default_jdk_to_latest_lts: dies without touching the default when no LTS is installed" {
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() { printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"; }
+  export -f sdk
+  fixture_installed_jdks '26.0.2-tem'
+  run sdkman_jdks::set_default_jdk_to_latest_lts
+  assert_failure
+  assert_output --partial 'No LTS Temurin JDK is installed'
+  assert [ ! -e "${BATS_TEST_TMPDIR}/sdk.calls" ]
+}
+
+@test "set_default_jdk_to_latest_lts: dies with args" {
+  run sdkman_jdks::set_default_jdk_to_latest_lts 'extra' < /dev/null
   assert_failure
   assert_output --partial 'Expected no arguments'
 }

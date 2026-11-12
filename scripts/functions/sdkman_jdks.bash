@@ -472,18 +472,59 @@ function sdkman_jdks::get_current_default_jdk_major_version() {
   sdkman_jdks::get_jdk_major_version "${artifact_id}"
 }
 
-# @description Set the SDKMAN default java to the latest installed Temurin JDK of the current default's major version.
-# Falls back to the highest installed major version when no default is currently set.
+# @description Return true if the given Java major version is an LTS release.
+#   Computed from the release cadence rather than looked up: the SDKMAN catalog does not mark LTS
+#   rows. 8 and 11 are LTS, and from 17 on every fourth feature release (one every two years) is.
+# @arg $1 major java version (e.g. "21")
+# @exitcode 0 if the major version is an LTS release
+# @exitcode 1 if it is not, or if it is not a non-negative integer
+function sdkman_jdks::is_lts_major_version() {
+  args::check_exactly_1_arg "$@"
+  local -r major_version="$1"
+  if [[ ! "${major_version}" =~ ^[0-9]+$ ]]; then
+    log::die "Unexpected major version: ${major_version}"
+  fi
+  # 10# forces decimal so a leading zero is not read as octal.
+  local -r major=$((10#${major_version}))
+  ((major == 8 || major == 11 || (major >= 17 && (major - 17) % 4 == 0)))
+}
+
+# @description Print the highest installed Temurin JDK major version that is an LTS release.
+#   Dies when no LTS major is installed.
+# Output: stdout — major version number (e.g. "25")
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
-function sdkman_jdks::set_default_jdk_to_latest_patch_of_current_major() {
+function sdkman_jdks::get_latest_installed_tem_jdk_lts_major_version() {
+  args::check_no_args "$@"
+  local -a major_versions
+  local major_versions_tmp
+  files::create_temp major_versions_tmp
+  sdkman_jdks::get_installed_tem_jdk_major_versions > "${major_versions_tmp}"
+  mapfile -t major_versions < "${major_versions_tmp}"
+  local latest_lts_major_version=''
+  local major_version
+  # Majors arrive sorted ascending, so the last LTS match is the highest.
+  for major_version in "${major_versions[@]}"; do
+    if sdkman_jdks::is_lts_major_version "${major_version}"; then
+      latest_lts_major_version="${major_version}"
+    fi
+  done
+  if strings::is_empty "${latest_lts_major_version}"; then
+    log::die 'No LTS Temurin JDK is installed'
+  fi
+  printf '%s' "${latest_lts_major_version}"
+}
+
+# @description Set the SDKMAN default java to the latest installed patch of the latest installed LTS major.
+#   Run after installing JDKs: with sdkman_auto_answer=true, `sdk install java` makes every newly
+#   installed JDK the default, so the default otherwise ends up on whichever install ran last.
+#   Dies, leaving the default unchanged, when no LTS major is installed.
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+# @noargs
+function sdkman_jdks::set_default_jdk_to_latest_lts() {
   args::check_no_args "$@"
   local major_version
-  if sdkman_jdks::has_default_jdk; then
-    major_version="$(sdkman_jdks::get_current_default_jdk_major_version)"
-  else
-    major_version="$(sdkman_jdks::get_latest_installed_tem_jdk_major_version)"
-  fi
+  major_version="$(sdkman_jdks::get_latest_installed_tem_jdk_lts_major_version)"
   readonly major_version
   sdkman_jdks::set_default_sdk_to_latest_installed_for_major_version "${major_version}"
 }
