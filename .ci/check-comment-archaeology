@@ -97,7 +97,6 @@ function collect_in_scope_files() {
   git -C "${SCAN_ROOT}" ls-files --cached > "${tracked_tmp}" # -C: no long-form equivalent
   local path base
   while IFS= read -r path; do
-    strings::is_empty "${path}" && continue
     case "${path}" in
       scripts/other/* | .shdoc/* | site/*) continue ;;
     esac

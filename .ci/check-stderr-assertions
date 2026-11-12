@@ -145,7 +145,6 @@ function main() {
   local rc=0
   local file name hit
   while IFS= read -r file; do
-    strings::is_empty "${file}" && continue
     offending_lines "${file}" > "${hits_tmp}"
     if [[ ! -s "${hits_tmp}" ]]; then
       continue

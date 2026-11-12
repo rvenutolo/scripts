@@ -101,7 +101,6 @@ function main() {
   local total=0
   local file name job entry hr_count policy endpoints
   while IFS= read -r file; do
-    strings::is_empty "${file}" && continue
     name="$(basename "${file}")"
     files::create_temp jobs_tmp
     yq eval '.jobs | keys | .[]' "${file}" > "${jobs_tmp}"

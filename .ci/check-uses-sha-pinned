@@ -70,7 +70,6 @@ function main() {
   local total=0
   local file file_count
   while IFS= read -r file; do
-    strings::is_empty "${file}" && continue
     file_count="$(count_unpinned_in_file "${file}")"
     total=$((total + file_count))
   done < "${files_tmp}"

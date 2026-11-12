@@ -130,7 +130,6 @@ function main() {
   local file steps_tmp job name shell run_b64 run_tmp reduced_tmp first
   local -a mlines
   while IFS= read -r file; do
-    strings::is_empty "${file}" && continue
     files::create_temp steps_tmp
     extract_steps "${file}" > "${steps_tmp}"
     while IFS='|' read -r job name shell run_b64; do

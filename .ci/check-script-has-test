@@ -148,7 +148,6 @@ function main() {
   shell_scripts::find "${CI_DIR}" > "${ci_scripts_tmp}"
   local script
   while IFS= read -r script; do
-    strings::is_empty "${script}" && continue
     basename "${script}" >> "${ci_names_tmp}"
   done < "${ci_scripts_tmp}"
   executable_shell_names "${ROOT_DIR}" > "${root_names_tmp}"
@@ -161,7 +160,6 @@ function main() {
     shell_scripts::find "${SHIMS_DIR}" > "${shims_scripts_tmp}"
   fi
   while IFS= read -r script; do
-    strings::is_empty "${script}" && continue
     if files::is_executable "${script}"; then
       basename "${script}" >> "${shims_names_tmp}"
     fi

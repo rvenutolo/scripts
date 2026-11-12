@@ -38,7 +38,6 @@ function main() {
   local failed=0
   local file has_filter
   while IFS= read -r file; do
-    strings::is_empty "${file}" && continue
     # Both select(type == "!!map") guards are load bearing, and the outer one is
     # why no fallback is needed here. `.on.pull_request` on a flow-list trigger
     # (`on: [pull_request]`) errors while indexing, BEFORE any select on the

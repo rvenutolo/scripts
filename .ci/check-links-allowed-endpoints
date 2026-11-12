@@ -86,7 +86,6 @@ function markdown_hosts() {
   git -C "${root}" ls-files -- '*.md' > "${files_tmp}"
   local rel excluded prefix
   while IFS= read -r rel; do
-    strings::is_empty "${rel}" && continue
     excluded='false'
     while IFS= read -r prefix; do
       strings::is_empty "${prefix}" && continue

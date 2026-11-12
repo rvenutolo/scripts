@@ -68,7 +68,6 @@ function main() {
   local total=0
   local file
   while IFS= read -r file; do
-    strings::is_empty "${file}" && continue
     workflow_triggers "${file}" > "${triggers_tmp}"
     if grep --line-regexp --quiet 'pull_request_target' "${triggers_tmp}"; then
       printf '%s: declares the pull_request_target trigger\n' "${file}" >&2

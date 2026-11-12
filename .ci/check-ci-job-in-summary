@@ -85,7 +85,6 @@ function job_contexts() {
   find "${workflows_dir}" -type f \( -name '*.yml' -o -name '*.yaml' \) > "${files_tmp}"
   local file
   while IFS= read -r file; do
-    strings::is_empty "${file}" && continue
     yq -r '.jobs | to_entries[] | (.value.name // .key)' "${file}"
   done < "${files_tmp}"
 }

@@ -168,7 +168,6 @@ function main() {
   local rel file steps_tmp job index id_b64 name_b64 run_b64 id name run_body key
   local compliant exempted label
   while IFS='|' read -r rel file; do
-    strings::is_empty "${file}" && continue
     if grep --extended-regexp --quiet "${FORBIDDEN_PATTERN}" "${file}"; then
       printf '%s: spells "%s"; only %s may enter the devShell\n' \
         "${rel}" "${FORBIDDEN_SPELLING}" "${WRAPPER}" >&2

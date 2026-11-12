@@ -69,7 +69,6 @@ function main() {
   local total=0
   local file n
   while IFS= read -r file; do
-    strings::is_empty "${file}" && continue
     n="$(audit_file "${file}")"
     total=$((total + n))
   done < "${files_tmp}"
