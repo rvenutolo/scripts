@@ -144,6 +144,43 @@ run_check() {
   assert_stderr --partial 'undocumented secret: BAR_TOKEN'
 }
 
+@test "counts secrets in shell comments inside a block scalar" {
+  {
+    printf 'on: push\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n'
+    printf '      - run: |\n'
+    printf '          # %s\n' "$(secret_ref SH_TOKEN)"
+    printf '          echo %s\n' "$(secret_ref FOO_TOKEN)"
+    printf '      # %s\n' "$(secret_ref YAML_COMMENT_TOKEN)"
+  } > "${WF}/a.yml"
+  write_runbook FOO_TOKEN
+  run_check
+  assert_failure 1
+  assert_stderr --partial 'undocumented secret: SH_TOKEN'
+  refute_stderr --partial 'YAML_COMMENT_TOKEN'
+}
+
+@test "matches secret names case-insensitively against upper-case sections" {
+  write_workflow "${WF}/a.yml" "A: $(secret_ref foo_token)" "B: $(secret_ref github_token)"
+  write_runbook FOO_TOKEN
+  run_check
+  assert_success
+}
+
+@test "ignores identifiers that merely end in secrets" {
+  write_workflow "${WF}/a.yml" "A: $(secret_ref FOO_TOKEN)" "B: \${{ mysecrets.NOT_A_SECRET }}"
+  write_runbook FOO_TOKEN
+  run_check
+  assert_success
+}
+
+@test "ignores secret-shaped headings inside fenced code blocks" {
+  write_workflow "${WF}/a.yml" "A: $(secret_ref FOO_TOKEN)"
+  write_runbook FOO_TOKEN
+  printf '\n```markdown\n## FENCED_TOKEN\n```\n\n~~~\n## TILDE_TOKEN\n~~~\n' >> "${RUNBOOK}"
+  run_check
+  assert_success
+}
+
 @test "ignores headings that are not secret names" {
   write_workflow "${WF}/a.yml" "A: $(secret_ref FOO_TOKEN)"
   write_runbook FOO_TOKEN
