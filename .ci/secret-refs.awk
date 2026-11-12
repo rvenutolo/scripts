@@ -32,13 +32,15 @@ function scan(line,    rest, tok, masked, expr) {
     tok = substr(rest, RSTART, RLENGTH)
     rest = substr(rest, RSTART + RLENGTH)
     sub(/^[^s]?secrets[.[]/, "", tok)
-    gsub(/['"\][:space:]]/, "", tok)
+    gsub(/[]'"]/, "", tok)
+    gsub(/[[:space:]]/, "", tok)
     printf "%s\t%d\tname\t%s\n", FILENAME, FNR, toupper(tok)
   }
   masked = line
   gsub(NAMED, "\001", masked)
   rest = masked
-  while (match(rest, /\$\{\{[^}]*\}\}/)) {
+  # An expression may hold a lone `}` (format('{0}')); only `}}` closes it.
+  while (match(rest, /\$\{\{([^}]|\}[^}])*\}\}/)) {
     expr = substr(rest, RSTART, RLENGTH)
     rest = substr(rest, RSTART + RLENGTH)
     if (expr ~ /(^|[^A-Za-z0-9_.])secrets([^A-Za-z0-9_]|$)/) {
