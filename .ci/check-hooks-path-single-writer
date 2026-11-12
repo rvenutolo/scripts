@@ -165,7 +165,6 @@ function collect_second_writers() {
 
   local file relative hit
   while IFS= read -r file; do
-    strings::is_empty "${file}" && continue
     setting_lines "${file}" > "${hits_tmp}"
     if [[ ! -s "${hits_tmp}" ]]; then
       continue

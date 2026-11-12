@@ -105,7 +105,6 @@ function main() {
   local total=0
   local file n
   while IFS= read -r file; do
-    strings::is_empty "${file}" && continue
     n="$(audit_top_level "${file}")"
     total=$((total + n))
     n="$(audit_jobs "${file}")"

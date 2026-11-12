@@ -142,7 +142,6 @@ function main() {
 
   local file name job entry hr_count hardened file_monitoring deprecated
   while IFS= read -r file; do
-    strings::is_empty "${file}" && continue
     name="$(basename "${file}")"
     files::create_temp jobs_tmp
     yq eval '.jobs | keys | .[]' "${file}" > "${jobs_tmp}"

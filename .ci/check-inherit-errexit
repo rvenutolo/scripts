@@ -151,7 +151,6 @@ function main() {
   local rc=0
   local file name reason
   while IFS= read -r file; do
-    strings::is_empty "${file}" && continue
     reason="$(violation_reason "${file}")"
     if strings::is_empty "${reason}"; then
       continue

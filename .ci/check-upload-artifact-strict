@@ -76,7 +76,6 @@ function main() {
   local total=0
   local file steps_tmp name tag value
   while IFS= read -r file; do
-    strings::is_empty "${file}" && continue
     files::create_temp steps_tmp
     upload_artifact_steps "${file}" > "${steps_tmp}"
     while IFS='|' read -r name tag value; do
