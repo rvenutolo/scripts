@@ -118,3 +118,96 @@ EOF
   assert_failure 1
   assert_output --partial 'does not exist'
 }
+
+# write_pr_workflow <step-line...>: a pull_request workflow whose single job
+# carries the given lines verbatim, indented under `steps:`.
+write_pr_workflow() {
+  {
+    printf 'on:\n  pull_request:\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps:\n'
+    local line
+    for line in "$@"; do
+      printf '      %s\n' "${line}"
+    done
+  } > "${WF}/a.yml"
+}
+
+@test "fails: single-quoted bracket-form secret reference" {
+  write_pr_workflow "- env:" "    TOK: \${{ secrets['BR_TOKEN'] }}" "  run: true"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'secrets.BR_TOKEN not allowed'
+}
+
+@test "fails: double-quoted bracket-form secret reference" {
+  write_pr_workflow "- env:" "    TOK: '\${{ secrets[\"BR_TOKEN\"] }}'" "  run: true"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'secrets.BR_TOKEN not allowed'
+}
+
+@test "fails: bracket-form secret reference with whitespace inside the brackets" {
+  write_pr_workflow "- env:" "    TOK: \${{ secrets[ 'WS_TOKEN' ] }}" "  run: true"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'secrets.WS_TOKEN not allowed'
+}
+
+@test "fails: lower-case secret reference" {
+  write_pr_workflow "- env:" "    TOK: \${{ secrets.ruleset_read_token }}" "  run: true"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'secrets.RULESET_READ_TOKEN not allowed'
+}
+
+@test "passes: lower-case GITHUB_TOKEN reference" {
+  write_pr_workflow "- env:" "    TOK: \${{ secrets.github_token }}" "  run: true"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_success
+}
+
+@test "fails: whole secrets context passed to toJSON" {
+  write_pr_workflow "- env:" "    ALL: \${{ toJSON(secrets) }}" "  run: true"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'toJSON(secrets)'
+}
+
+@test "fails: dynamically indexed secret reference" {
+  write_pr_workflow "- env:" "    TOK: \${{ secrets[format('{0}_TOKEN', 'X')] }}" "  run: true"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'secrets[format('
+}
+
+@test "fails: secrets inherited by a called workflow" {
+  printf 'on:\n  pull_request:\njobs:\n  call:\n    uses: ./.github/workflows/b.yml\n    secrets: inherit\n' > "${WF}/a.yml"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'secrets: inherit'
+}
+
+@test "fails: secret referenced in a shell comment inside a run block" {
+  write_pr_workflow "- run: |" "    # \${{ secrets.SH_TOKEN }}" "    true"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'secrets.SH_TOKEN not allowed'
+}
+
+@test "passes: secret named only in a YAML comment line" {
+  write_pr_workflow "# was \${{ secrets.GONE_TOKEN }}" "- run: true"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_success
+}
+
+@test "passes: identifier that merely ends in secrets" {
+  write_pr_workflow "- env:" "    TOK: \${{ mysecrets.NOT_A_SECRET }}" "  run: true"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_success
+}
+
+@test "reports the line of each violation" {
+  write_pr_workflow "- env:" "    TOK: \${{ secrets.FOO_TOKEN }}" "  run: true"
+  WORKFLOWS_DIR_OVERRIDE="${WF}" run_check "${CHECK}"
+  assert_failure 1
+  assert_output --partial 'a.yml:8: secrets.FOO_TOKEN not allowed'
+}
