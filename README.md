@@ -110,6 +110,11 @@ Workflows under `.github/workflows/`.
 
 <!-- workflow-table:end -->
 
+### Secrets
+
+The repository secrets the workflows read, and how to recreate each one, are documented in
+the [secrets runbook](https://rvenutolo.github.io/scripts/secrets/) (source: `.docs/secrets.md`).
+
 ### Renovate
 
 `.github/renovate.json` runs the Renovate App on a weekly schedule (Saturday before 6am, `America/New_York`). Pins GitHub Actions to SHAs, groups `github-actions` and `submodules` updates, and auto-merges the actions, submodule, and `flake.lock` rules. A regex custom manager additionally tracks the SchemaStore SHA in `.ci/check-jsonschema`, which no packaged datasource covers. The `bats-support` and `bats-assert` revisions are ordinary flake inputs, so the `flake.lock` rule covers them — `flake.lock` carries each revision and its `narHash` together, which is why they are inputs rather than hand-written `fetchFromGitHub` pins.

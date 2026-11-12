@@ -1,9 +1,9 @@
 name: protect-main-drift-check
 # Scheduled monitor (NOT a PR gate): compares the live protect-main ruleset
-# against the in-tree mirror. Uses RULESET_READ_TOKEN (fine-grained PAT,
-# Administration: read-only) because GITHUB_TOKEN cannot read rulesets. Never
-# runs on pull_request — check-pr-workflows-no-secrets forbids non-GITHUB_TOKEN
-# secrets on PR-triggered workflows (fork-PR exfiltration risk).
+# against the in-tree mirror. Uses RULESET_READ_TOKEN (setup: .docs/secrets.md)
+# because GITHUB_TOKEN cannot read rulesets. Never runs on pull_request —
+# check-pr-workflows-no-secrets forbids non-GITHUB_TOKEN secrets on
+# PR-triggered workflows (fork-PR exfiltration risk).
 on:
   push:
     branches: [main]
