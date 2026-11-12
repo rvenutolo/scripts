@@ -176,9 +176,19 @@ run_check() {
 @test "ignores secret-shaped headings inside fenced code blocks" {
   write_workflow "${WF}/a.yml" "A: $(secret_ref FOO_TOKEN)"
   write_runbook FOO_TOKEN
+  # shellcheck disable=SC2016 # literal markdown fence backticks, not a command substitution
   printf '\n```markdown\n## FENCED_TOKEN\n```\n\n~~~\n## TILDE_TOKEN\n~~~\n' >> "${RUNBOOK}"
   run_check
   assert_success
+}
+
+@test "fails on a secrets reference with no fixed name" {
+  write_workflow "${WF}/a.yml" "A: $(secret_ref FOO_TOKEN)" "B: \${{ toJSON(secrets) }}"
+  write_runbook FOO_TOKEN
+  run_check
+  assert_failure 1
+  assert_stderr --partial 'secrets referenced without a fixed name'
+  assert_stderr --partial 'toJSON(secrets)'
 }
 
 @test "ignores headings that are not secret names" {
