@@ -43,6 +43,7 @@ Kept in lock-step with the real `.ci/` scripts, workflow job definitions, the
 | no gate script calls a yq/jq-backed helper from a condition | `check-errexit-predicate` | `governance` | `governance` |
 | exactly one mechanism owns this clone's git hook path | `check-hooks-path-single-writer` | `governance` | `governance` |
 | required-checks table, protect-main ruleset, and workflow jobs agree | `check-ci-job-in-summary` | `governance` | `governance` |
+| every secret a workflow or action reads is documented in the secrets runbook, and every documented secret is read | `check-secrets-documented` | `governance` | `governance` |
 | every top-level script and library function has a shdoc annotation | `check-shdoc-headers` | `check-scripts` | `check-scripts` |
 | no top-level script ships placeholder text in its shdoc header | `check-shdoc-headers` | `check-scripts` | `check-scripts` |
 | no function annotation ships placeholder text | `check-shdoc-headers` | `check-scripts` | `check-scripts` |
