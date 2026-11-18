@@ -472,8 +472,7 @@ setup() {
   run --separate-stderr sdkman::rewrite_sdkmanrc_file_java_version "${BATS_TEST_TMPDIR}/.sdkmanrc"
   assert_success
   assert_stderr --partial "No installed JDK for Java 11; leaving ${BATS_TEST_TMPDIR}/.sdkmanrc unchanged"
-  run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
-  assert_output 'java=11.0.20-amzn'
+  assert_equal "$(cat "${BATS_TEST_TMPDIR}/.sdkmanrc")" 'java=11.0.20-amzn'
 }
 
 @test "rewrite_sdkmanrc_file_java_version: dies when file missing" {
