@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# @description Install the latest available Temurin JDK for the given major version.
+# @description Install the latest available Corretto JDK for the given major version.
 # @arg $1 major java version (e.g. "21")
 # @exitcode 0 success
 # @exitcode 1 the given major version is not available
@@ -20,5 +20,5 @@ readonly MAJOR_VERSION="$1"
 (
   sdkman::init
 
-  sdkman_jdks::install_latest_tem_jdk "${MAJOR_VERSION}"
+  sdkman_jdks::install_latest_jdk "${MAJOR_VERSION}"
 )

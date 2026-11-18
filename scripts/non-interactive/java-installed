@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# @description Print all installed Temurin JDK entries in semicolon-delimited format, newest first.
+# @description Print all installed Corretto JDK entries in semicolon-delimited format, newest first.
 # @noargs
 # @stdout Lines with fields: major;version;artifact-id;installed('y').
 # @exitcode 0 success
@@ -14,4 +14,4 @@ log::enable_err_trap
 args::handle_help_flag "$@"
 args::check_no_args "$@"
 
-sdkman_jdks::get_formatted_installed_tem_jdks
+sdkman_jdks::get_formatted_installed_jdks

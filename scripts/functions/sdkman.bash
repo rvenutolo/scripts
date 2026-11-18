@@ -10,7 +10,7 @@
 #     # Subshell required: sdkman::init relaxes strict mode, which must not leak past the sdk calls.
 #     (
 #       sdkman::init
-#       sdkman_jdks::get_available_tem_jdk_major_versions
+#       sdkman_jdks::get_available_jdk_major_versions
 #     )
 #
 # @noargs
@@ -147,7 +147,7 @@ function sdkman::sdkmanrc_java_home() {
 # A named shorthand for the `java` key; `sdkman::get_sdkmanrc_file_value` owns the parsing, so this
 # accepts everything that does — CRLF, comments, whitespace around the `=`.
 # @arg $1 sdkmanrc_file .sdkmanrc file path
-# @stdout artifact ID string (e.g. "21.0.3-tem"), or nothing when no java key is declared
+# @stdout artifact ID string (e.g. "21.0.3.9.1-amzn"), or nothing when no java key is declared
 # @exitcode 0 always — "absent" is signalled by empty stdout, never a non-zero status
 # @exitcode 1 the given file does not exist
 function sdkman::get_sdkmanrc_file_java_artifact_id() {
@@ -163,7 +163,7 @@ function sdkman::get_sdkmanrc_file_java_artifact_id() {
 # a line the writer cannot match turns `sdkman::rewrite_sdkmanrc_file_java_version` into a silent
 # no-op that reports success.
 # @arg $1 sdkmanrc_file .sdkmanrc file path
-# @arg $2 artifact_id new artifact ID (e.g. "21.0.3-tem")
+# @arg $2 artifact_id new artifact ID (e.g. "21.0.3.9.1-amzn")
 # @exitcode 1 the given file does not exist
 function sdkman::overwrite_sdkmanrc_file_java_artifact_id() {
   args::check_exactly_2_args "$@"
@@ -181,9 +181,11 @@ function sdkman::overwrite_sdkmanrc_file_java_artifact_id() {
     "${sdkmanrc_file}"
 }
 
-# @description Update the java entry in an .sdkmanrc file to the latest installed Temurin JDK for the same major version.
-# No-ops if the currently declared artifact is already installed.
+# @description Update the java entry in an .sdkmanrc file to the latest installed Corretto JDK for the same major version.
+# No-ops if the currently declared artifact is already installed, and leaves the file unchanged with
+# a warning when no JDK of that major is installed (including majors below the managed floor).
 # @arg $1 .sdkmanrc file path
+# @stderr A warning naming the major version and file when no replacement JDK is installed.
 function sdkman::rewrite_sdkmanrc_file_java_version() {
   args::check_exactly_1_arg "$@"
   local -r sdkmanrc_file="$1"
@@ -191,7 +193,7 @@ function sdkman::rewrite_sdkmanrc_file_java_version() {
   local current_java_artifact_id
   current_java_artifact_id="$(sdkman::get_sdkmanrc_file_java_artifact_id "${sdkmanrc_file}")"
   readonly current_java_artifact_id
-  if sdkman_jdks::is_tem_jdk_artifact_installed "${current_java_artifact_id}"; then
+  if sdkman_jdks::is_jdk_artifact_installed "${current_java_artifact_id}"; then
     return 0
   fi
   local major_version
@@ -199,9 +201,14 @@ function sdkman::rewrite_sdkmanrc_file_java_version() {
   readonly major_version
   local new_java_artifact_id
   new_java_artifact_id="$(
-    sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version "${major_version}"
+    sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version "${major_version}"
   )"
   readonly new_java_artifact_id
+  # Writing the empty result would blank the pin to `java=`, which is worse than a stale one.
+  if strings::is_empty "${new_java_artifact_id}"; then
+    log::warn "No installed JDK for Java ${major_version}; leaving ${sdkmanrc_file} unchanged"
+    return 0
+  fi
   sdkman::overwrite_sdkmanrc_file_java_artifact_id "${sdkmanrc_file}" "${new_java_artifact_id}"
 }
 

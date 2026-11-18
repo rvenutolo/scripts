@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# @description Prune unused SDKMAN packages and Temurin JDKs, then rewrite `.sdkmanrc` files to current Java versions.
+# @description Prune unused SDKMAN packages and Corretto JDKs, then rewrite `.sdkmanrc` files to current Java versions.
 # @noargs
 
 set -Eeuo pipefail
@@ -20,9 +20,9 @@ args::check_no_args "$@"
   sdkman_packages::prune_sdkman_packages
   log::log 'Pruned SDKMAN packages'
 
-  log::log 'Pruning Temurin JDKs'
-  sdkman_jdks::prune_tem_jdks
-  log::log 'Pruned Temurin JDKs'
+  log::log 'Pruning Corretto JDKs'
+  sdkman_jdks::prune_jdks
+  log::log 'Pruned Corretto JDKs'
 
   log::log 'Rewriting .sdkmanrc files'
   sdkman::rewrite_sdkmanrc_file_java_versions
