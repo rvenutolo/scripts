@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-# @description Copy the user's docker-daemon.json into /etc/docker/daemon.json and restart docker.service if changed.
+# @description Install the user's docker-daemon.json as /etc/docker/daemon.json and restart docker.service if changed.
+# When ~/.etc/systemd-resolved-docker-stub.conf exists (work hosts), first install it as a systemd-resolved drop-in,
+# allow container DNS traffic through ufw, and verify the stub answers on the daemon's `dns` address; daemon.json is
+# only installed once that check passes, because a `dns` entry with no listener behind it leaves containers without DNS.
 # @noargs
 
 set -Eeuo pipefail
@@ -18,6 +21,90 @@ fi
 
 readonly src_file="${HOME}/.etc/docker-daemon.json"
 readonly dest_file='/etc/docker/daemon.json'
+readonly stub_src_file="${HOME}/.etc/systemd-resolved-docker-stub.conf"
+readonly stub_dest_file='/etc/systemd/resolved.conf.d/docker-stub.conf'
+
+# @description Succeed when the DNS server returns an address for a public name over the given transport.
+# dig prints its own errors ("no servers could be reached") to stdout even with +short, so require both a zero exit
+# and a line that is an IPv4 address rather than mere output.
+# @arg $1 DNS server address
+# @arg $2 dig transport flag (+notcp or +tcp)
+function stub_answers() {
+  local -r server="$1"
+  local -r transport="$2"
+  local answer
+  if ! answer="$(dig "@${server}" "${transport}" +short +time=2 +tries=1 'example.com' 2> /dev/null)"; then
+    return 1
+  fi
+  [[ "${answer}" =~ (^|$'\n')[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+($'\n'|$) ]]
+}
+
+# @description Succeed when the docker0 interface currently holds the given IPv4 address.
+# @arg $1 IPv4 address
+function docker0_has_address() {
+  local -r address="$1"
+  local addresses
+  addresses="$(ip -4 -oneline address show dev docker0 2> /dev/null || true)"
+  [[ "${addresses}" == *" ${address}/"* ]]
+}
+
+if files::exists "${stub_src_file}"; then
+  for cmd in 'jq' 'dig'; do
+    if ! commands::executable_exists "${cmd}"; then
+      log::die "${cmd} is required to install ${stub_src_file}"
+    fi
+  done
+
+  stub_address="$(sed --quiet 's/^DNSStubListenerExtra=//p' "${stub_src_file}")"
+  readonly stub_address
+  daemon_dns="$(jq --raw-output '.dns[0] // empty' "${src_file}")"
+  readonly daemon_dns
+  if strings::is_empty "${stub_address}" || [[ "${stub_address}" != "${daemon_dns}" ]]; then
+    log::die "Stub address '${stub_address}' in ${stub_src_file} does not match dns '${daemon_dns}' in ${src_file}"
+  fi
+
+  orig_stub_hash="$(files::hash_if_exists "${stub_dest_file}")"
+  readonly orig_stub_hash
+  files::root_copy "${stub_src_file}" "${stub_dest_file}"
+  cur_stub_hash="$(files::hash_if_exists "${stub_dest_file}")"
+  readonly cur_stub_hash
+  # Also offer the restart when the stub is not answering yet, so a restart declined on an earlier run can be retried.
+  if [[ "${orig_stub_hash}" != "${cur_stub_hash}" ]] || ! stub_answers "${stub_address}" '+notcp'; then
+    systemctl::restart_system_service_if_enabled 'systemd-resolved.service'
+  fi
+
+  # Container queries reach the stub through INPUT from every Docker bridge, so allow each container range by address;
+  # an interface rule would miss user-defined networks (br-*). ufw skips rules that already exist.
+  if commands::executable_exists 'ufw'; then
+    cidrs_json="$(jq --raw-output '."fixed-cidr", ."default-address-pools"[].base' "${src_file}")"
+    readonly cidrs_json
+    mapfile -t container_cidrs <<< "${cidrs_json}"
+    readonly container_cidrs
+    if ! prompt::yn "Allow DNS (port 53) from Docker container ranges to ${stub_address} in ufw?"; then
+      log::die "Container DNS needs the ufw rule; not installing ${dest_file}"
+    fi
+    for cidr in "${container_cidrs[@]}"; do
+      for proto in 'udp' 'tcp'; do
+        sudo ufw allow proto "${proto}" from "${cidr}" to "${stub_address}" port 53 comment 'docker dns via resolved'
+      done
+    done
+  fi
+
+  # The stub address only exists once docker runs with this file's bip. On a host where docker0 does not hold it yet,
+  # first install daemon.json without the dns entry so docker creates the address, then check the stub.
+  if ! docker0_has_address "${stub_address}"; then
+    log::log "docker0 does not hold ${stub_address} yet; installing ${dest_file} without dns first"
+    files::create_temp bootstrap_file
+    # shellcheck disable=SC2154 # bootstrap_file assigned by files::create_temp nameref
+    jq 'del(.dns)' "${src_file}" > "${bootstrap_file}"
+    files::root_copy "${bootstrap_file}" "${dest_file}"
+    systemctl::restart_system_service_if_enabled 'docker.service'
+  fi
+
+  log::log "Checking that ${stub_address} answers DNS before installing ${dest_file}"
+  retry::with_linear_backoff 5 1 stub_answers "${stub_address}" '+notcp'
+  retry::with_linear_backoff 5 1 stub_answers "${stub_address}" '+tcp'
+fi
 
 orig_hash="$(files::hash_if_exists "${dest_file}")"
 readonly orig_hash
