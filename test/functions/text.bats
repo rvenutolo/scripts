@@ -114,6 +114,17 @@ setup() {
   dual_mode::assert_file 'text::first_line' $'first\nsecond\nthird' 'first'
 }
 
+@test "first_line: reads stdin larger than a pipe buffer without killing the producer" {
+  # Production runs under pipefail; a reader that stops after one line kills a producer still writing.
+  set -o pipefail
+  first_line_of_large_input() {
+    seq 1 200000 | text::first_line
+  }
+  run first_line_of_large_input
+  assert_success
+  assert_output '1'
+}
+
 @test "first_line: empty input -> empty (stdin)" {
   dual_mode::assert_stdin 'text::first_line' '' ''
 }
