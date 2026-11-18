@@ -4,7 +4,8 @@
 # Asks ufw itself with `ufw --dry-run`, so the answer comes from ufw's own rule matching rather than from parsing its
 # status table, and works while ufw is inactive. The rule exists only when ufw reports it as existing and would update
 # nothing: a rule present for one address family but not the other, or with a different comment, reads as missing.
-# `LC_ALL=C` because ufw translates the "Skipping adding/inserting existing rule" messages. A failing dry-run
+# `LC_ALL=C` with `LANGUAGE` unset because ufw translates the "Skipping adding/inserting existing rule" messages, and
+# Python's gettext reads `LANGUAGE` before `LC_ALL`. A failing dry-run
 # (malformed rule, refused sudo) dies rather than reading as "missing", because errexit is off in a predicate's call
 # tree.
 # Insert-form rules ("insert N …", "prepend …") are accepted, with one limit from ufw itself: on insert, ufw reports an
@@ -15,7 +16,7 @@
 function ufw::rule_exists() {
   args::check_at_least_1_arg "$@"
   local output
-  if ! output="$(sudo env LC_ALL=C ufw --dry-run "$@" 2>&1)"; then
+  if ! output="$(sudo env --unset=LANGUAGE LC_ALL=C ufw --dry-run "$@" 2>&1)"; then
     log::die "ufw --dry-run $* failed: ${output}"
   fi
   [[ "${output}" =~ 'Skipping '(adding|inserting)' existing rule' && ! "${output}" =~ (^|$'\n')'Rules updated' ]]
@@ -37,7 +38,8 @@ function ufw::is_enabled() {
 # @description Print whether the ufw firewall is running right now: active or inactive.
 # Distinct from `ufw::is_enabled`, which is only the start-at-boot flag: the flag can be set while the firewall is down
 # (failed unit, `systemctl stop ufw`, flushed iptables). A producer rather than a predicate, so a failing `ufw status`
-# dies instead of reading as "inactive".
+# dies instead of reading as "inactive". Runs in the C locale with `LANGUAGE` unset, as `ufw::rule_exists` does, so the
+# status line is untranslated.
 # @noargs
 # @stdout active or inactive
 # @exitcode 0 on success
@@ -45,7 +47,7 @@ function ufw::is_enabled() {
 function ufw::status() {
   args::check_no_args "$@"
   local output
-  if ! output="$(sudo env LC_ALL=C ufw status 2>&1)"; then
+  if ! output="$(sudo env --unset=LANGUAGE LC_ALL=C ufw status 2>&1)"; then
     log::die "ufw status failed: ${output}"
   fi
   case "${output%%$'\n'*}" in
