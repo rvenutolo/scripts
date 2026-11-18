@@ -23,16 +23,18 @@ function ufw::rule_exists() {
 }
 
 # @description Predicate: is ufw enabled (set to start at boot)?
-# Reads `ENABLED` from /etc/ufw/ufw.conf, which is world-readable, so no sudo is needed.
+# Reads `ENABLED` from /etc/ufw/ufw.conf, which is world-readable, so no sudo is needed. Compared case-insensitively,
+# as ufw does.
 # @noargs
 # @exitcode 0 if enabled
-# @exitcode 1 otherwise
+# @exitcode 1 if not enabled, or /etc/ufw/ufw.conf does not exist (the script exits via `log::die`)
 function ufw::is_enabled() {
   args::check_no_args "$@"
+  files::assert_exists '/etc/ufw/ufw.conf'
   local enabled
   # shellcheck disable=SC1091 # /etc/ufw/ufw.conf is a runtime path, not statically followable
   enabled="$(source '/etc/ufw/ufw.conf' && printf '%s' "${ENABLED:-}")"
-  [[ "${enabled}" == 'yes' ]]
+  [[ "${enabled,,}" == 'yes' ]]
 }
 
 # @description Print whether the ufw firewall is running right now: active or inactive.
@@ -58,11 +60,12 @@ function ufw::status() {
 }
 
 # @description Print ufw's default policy for a direction as ufw names it: deny, reject or allow.
-# Reads /etc/default/ufw, which is world-readable and holds the policy whether or not ufw is active.
+# Reads /etc/default/ufw, which is world-readable and holds the policy whether or not ufw is active. The value is
+# compared case-insensitively, as ufw does.
 # @arg $1 direction: incoming, outgoing or routed
 # @stdout deny, reject or allow
 # @exitcode 0 on success
-# @exitcode 1 on an unknown direction, or an unset or unrecognized policy value
+# @exitcode 1 on an unknown direction, a missing /etc/default/ufw, or an unset or unrecognized policy value
 function ufw::default_policy() {
   args::check_exactly_1_arg "$@"
   local -r direction="$1"
@@ -74,10 +77,11 @@ function ufw::default_policy() {
     *) log::die "Unknown ufw policy direction: ${direction}" ;;
   esac
   readonly var_name
+  files::assert_exists '/etc/default/ufw'
   local value
   # shellcheck disable=SC1091 # /etc/default/ufw is a runtime path, not statically followable
   value="$(source '/etc/default/ufw' && printf '%s' "${!var_name:-}")"
-  case "${value}" in
+  case "${value^^}" in
     DROP) printf 'deny\n' ;;
     REJECT) printf 'reject\n' ;;
     ACCEPT) printf 'allow\n' ;;
