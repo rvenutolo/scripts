@@ -31,7 +31,25 @@ if ! ufw::rule_exists allow in on 'tailscale0'; then
   fi
 fi
 
-if ! ufw::rule_exists allow ssh; then
+# Any existing allow or limit rule that lets ssh in counts, so a deliberate `limit` is never replaced by a plain allow.
+# `ssh` and `22/tcp` are the same ufw rule; `22` (any protocol) and the OpenSSH app profile are distinct ones. The
+# profile is checked only when installed, because a dry-run naming an unknown profile is a ufw error.
+ssh_targets=('ssh' '22')
+if files::exists '/etc/ufw/applications.d/openssh-server'; then
+  ssh_targets+=('OpenSSH')
+fi
+readonly ssh_targets
+ssh_allowed='false'
+for ssh_action in 'allow' 'limit'; do
+  for ssh_target in "${ssh_targets[@]}"; do
+    if ufw::rule_exists "${ssh_action}" "${ssh_target}"; then
+      ssh_allowed='true'
+      break 2
+    fi
+  done
+done
+readonly ssh_allowed
+if [[ "${ssh_allowed}" == 'false' ]]; then
   if prompt::yn 'Set UFW to allow incoming traffic on port 22 (ssh)?'; then
     ufw::add_rule allow ssh
   fi

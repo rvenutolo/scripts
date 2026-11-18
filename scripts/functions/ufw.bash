@@ -4,37 +4,44 @@
 # Asks ufw itself with `ufw --dry-run`, so the answer comes from ufw's own rule matching rather than from parsing its
 # status table, and works while ufw is inactive. The rule exists only when ufw reports it as existing and would update
 # nothing: a rule present for one address family but not the other, or with a different comment, reads as missing.
-# `LC_ALL=C` because ufw translates the "Skipping adding existing rule" message. A failing dry-run (malformed rule,
-# refused sudo) dies rather than reading as "missing", because errexit is off in a predicate's call tree.
+# `LC_ALL=C` with `LANGUAGE` unset because ufw translates the "Skipping adding/inserting existing rule" messages, and
+# Python's gettext reads `LANGUAGE` before `LC_ALL`. A failing dry-run
+# (malformed rule, refused sudo) exits the calling script via `log::die` rather than reading as "missing", because
+# errexit is off in a predicate's call tree.
+# Insert-form rules ("insert N …", "prepend …") are accepted, with one limit from ufw itself: on insert, ufw reports an
+# existing rule when any rule matches apart from its action, so an insert-form check cannot tell "allow" from "deny".
 # @arg $@ rule arguments as given to `ufw` (e.g. "allow" "proto" "tcp" "from" "10.0.0.0/8" "port" "22")
 # @exitcode 0 if the rule exists
-# @exitcode 1 if the rule is missing, or the dry-run failed (after printing ufw's output to stderr)
+# @exitcode 1 if the rule is missing
 function ufw::rule_exists() {
   args::check_at_least_1_arg "$@"
   local output
-  if ! output="$(sudo env LC_ALL=C ufw --dry-run "$@" 2>&1)"; then
+  if ! output="$(sudo env --unset=LANGUAGE LC_ALL=C ufw --dry-run "$@" 2>&1)"; then
     log::die "ufw --dry-run $* failed: ${output}"
   fi
-  [[ "${output}" == *'Skipping adding existing rule'* && ! "${output}" =~ (^|$'\n')'Rules updated' ]]
+  [[ "${output}" =~ 'Skipping '(adding|inserting)' existing rule' && ! "${output}" =~ (^|$'\n')'Rules updated' ]]
 }
 
 # @description Predicate: is ufw enabled (set to start at boot)?
-# Reads `ENABLED` from /etc/ufw/ufw.conf, which is world-readable, so no sudo is needed.
+# Reads `ENABLED` from /etc/ufw/ufw.conf, which is world-readable, so no sudo is needed. Compared case-insensitively,
+# as ufw does.
 # @noargs
 # @exitcode 0 if enabled
-# @exitcode 1 otherwise
+# @exitcode 1 if not enabled, or /etc/ufw/ufw.conf does not exist (the script exits via `log::die`)
 function ufw::is_enabled() {
   args::check_no_args "$@"
+  files::assert_exists '/etc/ufw/ufw.conf'
   local enabled
   # shellcheck disable=SC1091 # /etc/ufw/ufw.conf is a runtime path, not statically followable
   enabled="$(source '/etc/ufw/ufw.conf' && printf '%s' "${ENABLED:-}")"
-  [[ "${enabled}" == 'yes' ]]
+  [[ "${enabled,,}" == 'yes' ]]
 }
 
 # @description Print whether the ufw firewall is running right now: active or inactive.
 # Distinct from `ufw::is_enabled`, which is only the start-at-boot flag: the flag can be set while the firewall is down
 # (failed unit, `systemctl stop ufw`, flushed iptables). A producer rather than a predicate, so a failing `ufw status`
-# dies instead of reading as "inactive".
+# dies instead of reading as "inactive". Runs in the C locale with `LANGUAGE` unset, as `ufw::rule_exists` does, so the
+# status line is untranslated.
 # @noargs
 # @stdout active or inactive
 # @exitcode 0 on success
@@ -42,7 +49,7 @@ function ufw::is_enabled() {
 function ufw::status() {
   args::check_no_args "$@"
   local output
-  if ! output="$(sudo env LC_ALL=C ufw status 2>&1)"; then
+  if ! output="$(sudo env --unset=LANGUAGE LC_ALL=C ufw status 2>&1)"; then
     log::die "ufw status failed: ${output}"
   fi
   case "${output%%$'\n'*}" in
@@ -53,11 +60,12 @@ function ufw::status() {
 }
 
 # @description Print ufw's default policy for a direction as ufw names it: deny, reject or allow.
-# Reads /etc/default/ufw, which is world-readable and holds the policy whether or not ufw is active.
+# Reads /etc/default/ufw, which is world-readable and holds the policy whether or not ufw is active. The value is
+# compared case-insensitively, as ufw does.
 # @arg $1 direction: incoming, outgoing or routed
 # @stdout deny, reject or allow
 # @exitcode 0 on success
-# @exitcode 1 on an unknown direction, or an unset or unrecognized policy value
+# @exitcode 1 on an unknown direction, a missing /etc/default/ufw, or an unset or unrecognized policy value
 function ufw::default_policy() {
   args::check_exactly_1_arg "$@"
   local -r direction="$1"
@@ -69,10 +77,11 @@ function ufw::default_policy() {
     *) log::die "Unknown ufw policy direction: ${direction}" ;;
   esac
   readonly var_name
+  files::assert_exists '/etc/default/ufw'
   local value
   # shellcheck disable=SC1091 # /etc/default/ufw is a runtime path, not statically followable
   value="$(source '/etc/default/ufw' && printf '%s' "${!var_name:-}")"
-  case "${value}" in
+  case "${value^^}" in
     DROP) printf 'deny\n' ;;
     REJECT) printf 'reject\n' ;;
     ACCEPT) printf 'allow\n' ;;

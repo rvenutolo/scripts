@@ -12,17 +12,19 @@ setup() {
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/log.bash"
   # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/files.bash"
+  # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/ufw.bash"
   cli_shim::install_passthrough_sudo
   install_ufw_shim
 }
 
-# ufw shim: records "$*" and the LC_ALL it saw to ufw.calls, prints ${UFW_OUTPUT}, exits ${UFW_EXIT:-0}.
+# ufw shim: records "$*" and the LC_ALL and LANGUAGE it saw to ufw.calls, prints ${UFW_OUTPUT}, exits ${UFW_EXIT:-0}.
 install_ufw_shim() {
   path_shim::add ufw "$(
     cat << 'EOF'
 #!/usr/bin/env bash
-printf '%s LC_ALL=%s\n' "$*" "${LC_ALL:-}" >> "${BATS_TEST_TMPDIR}/ufw.calls"
+printf '%s LC_ALL=%s LANGUAGE=%s\n' "$*" "${LC_ALL:-}" "${LANGUAGE-<unset>}" >> "${BATS_TEST_TMPDIR}/ufw.calls"
 printf '%s\n' "${UFW_OUTPUT:-}"
 exit "${UFW_EXIT:-0}"
 EOF
@@ -58,6 +60,18 @@ rule_exists_in_if() {
   assert_failure 1
 }
 
+@test "rule_exists: succeeds when ufw reports an existing rule on insert" {
+  export UFW_OUTPUT=$'Skipping inserting existing rule\nSkipping inserting existing rule (v6)'
+  run ufw::rule_exists insert 1 allow ssh
+  assert_success
+}
+
+@test "rule_exists: fails when an insert would update one family" {
+  export UFW_OUTPUT=$'Skipping inserting existing rule\nRules updated (v6)'
+  run ufw::rule_exists insert 1 allow ssh
+  assert_failure 1
+}
+
 @test "rule_exists: fails when ufw output is empty" {
   export UFW_OUTPUT=''
   run ufw::rule_exists allow ssh
@@ -69,7 +83,16 @@ rule_exists_in_if() {
   run ufw::rule_exists allow proto udp from 10.0.0.0/8 to 10.0.0.1 port 53
   assert_success
   run cli_shim::calls ufw
-  assert_output '--dry-run allow proto udp from 10.0.0.0/8 to 10.0.0.1 port 53 LC_ALL=C'
+  assert_output --partial '--dry-run allow proto udp from 10.0.0.0/8 to 10.0.0.1 port 53 LC_ALL=C '
+}
+
+@test "rule_exists: unsets LANGUAGE for ufw" {
+  export UFW_OUTPUT='Skipping adding existing rule'
+  export LANGUAGE='de'
+  run ufw::rule_exists allow ssh
+  assert_success
+  run cli_shim::calls ufw
+  assert_output --partial 'LANGUAGE=<unset>'
 }
 
 @test "rule_exists: dies with ufw output when the dry-run fails" {
@@ -109,17 +132,30 @@ rule_exists_in_if() {
   assert_output --partial 'Expected at least 1 argument'
 }
 
-# Writes ufw config fixtures and redirects `source` of the real paths to them.
-# $1 = /etc/ufw/ufw.conf contents, $2 = /etc/default/ufw contents
+# Writes ufw config fixtures and redirects `source` and `files::exists` of the real paths to them, so tests never
+# depend on the host's own ufw files.
+# $1 = /etc/ufw/ufw.conf contents, $2 = /etc/default/ufw contents; MISSING leaves that fixture absent
 install_config_fixtures() {
-  printf '%s\n' "$1" > "${BATS_TEST_TMPDIR}/ufw.conf"
-  printf '%s\n' "$2" > "${BATS_TEST_TMPDIR}/default-ufw"
+  if [[ "$1" != 'MISSING' ]]; then
+    printf '%s\n' "$1" > "${BATS_TEST_TMPDIR}/ufw.conf"
+  fi
+  if [[ "$2" != 'MISSING' ]]; then
+    printf '%s\n' "$2" > "${BATS_TEST_TMPDIR}/default-ufw"
+  fi
   # shellcheck disable=SC2329 # invoked indirectly when the helpers call `source`
   source() {
     case "$1" in
       '/etc/ufw/ufw.conf') builtin source "${BATS_TEST_TMPDIR}/ufw.conf" ;;
       '/etc/default/ufw') builtin source "${BATS_TEST_TMPDIR}/default-ufw" ;;
       *) builtin source "$@" ;;
+    esac
+  }
+  # shellcheck disable=SC2329 # invoked indirectly through files::assert_exists
+  files::exists() {
+    case "$1" in
+      '/etc/ufw/ufw.conf') [[ -f "${BATS_TEST_TMPDIR}/ufw.conf" ]] ;;
+      '/etc/default/ufw') [[ -f "${BATS_TEST_TMPDIR}/default-ufw" ]] ;;
+      *) [[ -f "$1" ]] ;;
     esac
   }
 }
@@ -136,6 +172,25 @@ install_policy_fixture() {
   install_config_fixtures 'ENABLED=yes' ''
   run ufw::is_enabled
   assert_success
+}
+
+@test "is_enabled: succeeds when ENABLED=YES" {
+  install_config_fixtures 'ENABLED=YES' ''
+  run ufw::is_enabled
+  assert_success
+}
+
+@test "is_enabled: succeeds when ENABLED=Yes" {
+  install_config_fixtures 'ENABLED="Yes"' ''
+  run ufw::is_enabled
+  assert_success
+}
+
+@test "is_enabled: dies when ufw.conf is missing" {
+  install_config_fixtures 'MISSING' ''
+  run ufw::is_enabled
+  assert_failure 1
+  assert_output --partial '/etc/ufw/ufw.conf does not exist'
 }
 
 @test "is_enabled: fails when ENABLED=no" {
@@ -177,7 +232,16 @@ install_policy_fixture() {
   run ufw::status
   assert_success
   run cli_shim::calls ufw
-  assert_output 'status LC_ALL=C'
+  assert_output --partial 'status LC_ALL=C '
+}
+
+@test "status: unsets LANGUAGE for ufw" {
+  export UFW_OUTPUT='Status: active'
+  export LANGUAGE='de'
+  run ufw::status
+  assert_success
+  run cli_shim::calls ufw
+  assert_output --partial 'LANGUAGE=<unset>'
 }
 
 @test "status: dies on unrecognized ufw output" {
@@ -264,6 +328,41 @@ install_policy_fixture() {
   run ufw::default_policy routed
   assert_success
   assert_output 'allow'
+}
+
+@test "default_policy: maps lowercase drop to deny" {
+  install_policy_fixture DEFAULT_INPUT_POLICY drop
+  run ufw::default_policy incoming
+  assert_success
+  assert_output 'deny'
+}
+
+@test "default_policy: maps lowercase reject to reject" {
+  install_policy_fixture DEFAULT_INPUT_POLICY reject
+  run ufw::default_policy incoming
+  assert_success
+  assert_output 'reject'
+}
+
+@test "default_policy: maps lowercase accept to allow" {
+  install_policy_fixture DEFAULT_OUTPUT_POLICY accept
+  run ufw::default_policy outgoing
+  assert_success
+  assert_output 'allow'
+}
+
+@test "default_policy: maps mixed-case Accept to allow" {
+  install_policy_fixture DEFAULT_FORWARD_POLICY Accept
+  run ufw::default_policy routed
+  assert_success
+  assert_output 'allow'
+}
+
+@test "default_policy: dies when /etc/default/ufw is missing" {
+  install_config_fixtures '' 'MISSING'
+  run ufw::default_policy incoming
+  assert_failure 1
+  assert_output --partial '/etc/default/ufw does not exist'
 }
 
 @test "default_policy: reads only the variable for the given direction" {
