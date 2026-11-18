@@ -458,6 +458,24 @@ setup() {
   assert_output 'java=21.0.7-amzn'
 }
 
+@test "rewrite_sdkmanrc_file_java_version: leaves a pin untouched when no JDK of that major is installed" {
+  printf 'java=11.0.20-amzn\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdkman_jdks::is_jdk_artifact_installed() { return 1; }
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdkman_jdks::get_jdk_major_version() { printf '11'; }
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version() { :; }
+  export -f sdkman_jdks::is_jdk_artifact_installed
+  export -f sdkman_jdks::get_jdk_major_version
+  export -f sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version
+  run --separate-stderr sdkman::rewrite_sdkmanrc_file_java_version "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  assert_success
+  assert_stderr --partial "No installed JDK for Java 11; leaving ${BATS_TEST_TMPDIR}/.sdkmanrc unchanged"
+  run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  assert_output 'java=11.0.20-amzn'
+}
+
 @test "rewrite_sdkmanrc_file_java_version: dies when file missing" {
   run sdkman::rewrite_sdkmanrc_file_java_version "${BATS_TEST_TMPDIR}/nope"
   assert_failure
