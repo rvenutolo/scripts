@@ -58,6 +58,18 @@ rule_exists_in_if() {
   assert_failure 1
 }
 
+@test "rule_exists: succeeds when ufw reports an existing rule on insert" {
+  export UFW_OUTPUT=$'Skipping inserting existing rule\nSkipping inserting existing rule (v6)'
+  run ufw::rule_exists insert 1 allow ssh
+  assert_success
+}
+
+@test "rule_exists: fails when an insert would update one family" {
+  export UFW_OUTPUT=$'Skipping inserting existing rule\nRules updated (v6)'
+  run ufw::rule_exists insert 1 allow ssh
+  assert_failure 1
+}
+
 @test "rule_exists: fails when ufw output is empty" {
   export UFW_OUTPUT=''
   run ufw::rule_exists allow ssh
