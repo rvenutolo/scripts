@@ -182,8 +182,10 @@ function sdkman::overwrite_sdkmanrc_file_java_artifact_id() {
 }
 
 # @description Update the java entry in an .sdkmanrc file to the latest installed Corretto JDK for the same major version.
-# No-ops if the currently declared artifact is already installed.
+# No-ops if the currently declared artifact is already installed, and leaves the file unchanged with
+# a warning when no JDK of that major is installed (including majors below the managed floor).
 # @arg $1 .sdkmanrc file path
+# @stderr A warning naming the major version and file when no replacement JDK is installed.
 function sdkman::rewrite_sdkmanrc_file_java_version() {
   args::check_exactly_1_arg "$@"
   local -r sdkmanrc_file="$1"
@@ -202,6 +204,11 @@ function sdkman::rewrite_sdkmanrc_file_java_version() {
     sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version "${major_version}"
   )"
   readonly new_java_artifact_id
+  # Writing the empty result would blank the pin to `java=`, which is worse than a stale one.
+  if strings::is_empty "${new_java_artifact_id}"; then
+    log::warn "No installed JDK for Java ${major_version}; leaving ${sdkmanrc_file} unchanged"
+    return 0
+  fi
   sdkman::overwrite_sdkmanrc_file_java_artifact_id "${sdkmanrc_file}" "${new_java_artifact_id}"
 }
 
