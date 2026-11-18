@@ -74,20 +74,35 @@ if files::exists "${stub_src_file}"; then
   fi
 
   # Container queries reach the stub through INPUT from every Docker bridge, so allow each container range by address;
-  # an interface rule would miss user-defined networks (br-*). ufw skips rules that already exist.
+  # an interface rule would miss user-defined networks (br-*). Only missing rules are offered, so a re-run on a host
+  # that already has them neither prompts nor dies.
   if commands::executable_exists 'ufw'; then
     cidrs_json="$(jq --raw-output '."fixed-cidr", ."default-address-pools"[].base' "${src_file}")"
     readonly cidrs_json
     mapfile -t container_cidrs <<< "${cidrs_json}"
     readonly container_cidrs
-    if ! prompt::yn "Allow DNS (port 53) from Docker container ranges to ${stub_address} in ufw?"; then
-      log::die "Container DNS needs the ufw rule; not installing ${dest_file}"
-    fi
+    missing_cidrs=()
+    missing_protos=()
     for cidr in "${container_cidrs[@]}"; do
       for proto in 'udp' 'tcp'; do
-        sudo ufw allow proto "${proto}" from "${cidr}" to "${stub_address}" port 53 comment 'docker dns via resolved'
+        if ! ufw::rule_exists allow proto "${proto}" from "${cidr}" to "${stub_address}" port 53 \
+          comment 'docker dns via resolved'; then
+          missing_cidrs+=("${cidr}")
+          missing_protos+=("${proto}")
+        fi
       done
     done
+    if ((${#missing_cidrs[@]} == 0)); then
+      log::log "ufw already allows DNS from Docker container ranges to ${stub_address}"
+    else
+      if ! prompt::yn "Allow DNS (port 53) from Docker container ranges to ${stub_address} in ufw?"; then
+        log::die "Container DNS needs the ufw rule; not installing ${dest_file}"
+      fi
+      for i in "${!missing_cidrs[@]}"; do
+        ufw::add_rule allow proto "${missing_protos[i]}" from "${missing_cidrs[i]}" to "${stub_address}" port 53 \
+          comment 'docker dns via resolved'
+      done
+    fi
   fi
 
   # The stub address only exists once docker runs with this file's bip. On a host where docker0 does not hold it yet,
