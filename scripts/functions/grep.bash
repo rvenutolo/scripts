@@ -7,7 +7,7 @@
 # @arg $@ grep options and pattern
 # @exitcode 0 if a line matches
 # @exitcode 1 if no line matches
-# @exitcode 2 grep's status on an error (e.g. an invalid pattern)
+# @exitcode 2 or above: grep's status on an error (e.g. an invalid pattern)
 function grep::_stdin_matches() { # pass-through: forwards grep options and pattern
   local count
   local status=0
