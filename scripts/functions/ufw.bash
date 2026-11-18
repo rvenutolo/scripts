@@ -5,11 +5,11 @@
 # status table, and works while ufw is inactive. The rule exists only when ufw reports it as existing and would update
 # nothing: a rule present for one address family but not the other, or with a different comment, reads as missing.
 # `LC_ALL=C` with `LANGUAGE` unset because ufw translates the "Skipping adding/inserting existing rule" messages, and
-# Python's gettext reads `LANGUAGE` before `LC_ALL`. A failing dry-run
-# (malformed rule, refused sudo) exits the calling script via `log::die` rather than reading as "missing", because
-# errexit is off in a predicate's call tree.
+# Python's gettext reads `LANGUAGE` before `LC_ALL`. A failing dry-run (malformed rule, refused sudo) exits the calling
+# script via `log::die` rather than reading as "missing", because errexit is off in a predicate's call tree.
 # Insert-form rules ("insert N …", "prepend …") are accepted, with one limit from ufw itself: on insert, ufw reports an
-# existing rule when any rule matches apart from its action, so an insert-form check cannot tell "allow" from "deny".
+# existing rule when any rule matches apart from its action, log type or comment, so an insert-form check cannot tell
+# rules apart by those.
 # @arg $@ rule arguments as given to `ufw` (e.g. "allow" "proto" "tcp" "from" "10.0.0.0/8" "port" "22")
 # @exitcode 0 if the rule exists
 # @exitcode 1 if the rule is missing
@@ -43,8 +43,9 @@ function ufw::app_profile_exists() {
 }
 
 # @description Predicate: is ufw enabled (set to start at boot)?
-# Reads `ENABLED` from /etc/ufw/ufw.conf, which is world-readable, so no sudo is needed. Compared case-insensitively,
-# as ufw does.
+# Reads `ENABLED` from /etc/ufw/ufw.conf, which is world-readable, so no sudo is needed. The file is read by sourcing
+# it, and the value compared case-insensitively because ufw lowercases it. ufw's own parser differs on lines it would
+# skip: a single-quoted value, a trailing comment or an indented line reads as set here but not to ufw.
 # @noargs
 # @exitcode 0 if enabled
 # @exitcode 1 if not enabled, or /etc/ufw/ufw.conf does not exist (the script exits via `log::die`)
@@ -80,8 +81,10 @@ function ufw::status() {
 }
 
 # @description Print ufw's default policy for a direction as ufw names it: deny, reject or allow.
-# Reads /etc/default/ufw, which is world-readable and holds the policy whether or not ufw is active. The value is
-# compared case-insensitively, as ufw does.
+# Reads /etc/default/ufw, which is world-readable and holds the policy whether or not ufw is active. The file is read
+# by sourcing it, and the value compared case-insensitively because ufw lowercases it. ufw's own parser differs in two
+# ways: it skips single-quoted, trailing-comment and indented lines, and a policy key in /etc/ufw/ufw.conf overrides
+# this file; neither is reproduced here.
 # @arg $1 direction: incoming, outgoing or routed
 # @stdout deny, reject or allow
 # @exitcode 0 on success
