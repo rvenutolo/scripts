@@ -17,12 +17,12 @@ setup() {
   install_ufw_shim
 }
 
-# ufw shim: records "$*" and the LC_ALL it saw to ufw.calls, prints ${UFW_OUTPUT}, exits ${UFW_EXIT:-0}.
+# ufw shim: records "$*" and the LC_ALL and LANGUAGE it saw to ufw.calls, prints ${UFW_OUTPUT}, exits ${UFW_EXIT:-0}.
 install_ufw_shim() {
   path_shim::add ufw "$(
     cat << 'EOF'
 #!/usr/bin/env bash
-printf '%s LC_ALL=%s\n' "$*" "${LC_ALL:-}" >> "${BATS_TEST_TMPDIR}/ufw.calls"
+printf '%s LC_ALL=%s LANGUAGE=%s\n' "$*" "${LC_ALL:-}" "${LANGUAGE-<unset>}" >> "${BATS_TEST_TMPDIR}/ufw.calls"
 printf '%s\n' "${UFW_OUTPUT:-}"
 exit "${UFW_EXIT:-0}"
 EOF
@@ -81,7 +81,16 @@ rule_exists_in_if() {
   run ufw::rule_exists allow proto udp from 10.0.0.0/8 to 10.0.0.1 port 53
   assert_success
   run cli_shim::calls ufw
-  assert_output '--dry-run allow proto udp from 10.0.0.0/8 to 10.0.0.1 port 53 LC_ALL=C'
+  assert_output --partial '--dry-run allow proto udp from 10.0.0.0/8 to 10.0.0.1 port 53 LC_ALL=C '
+}
+
+@test "rule_exists: unsets LANGUAGE for ufw" {
+  export UFW_OUTPUT='Skipping adding existing rule'
+  export LANGUAGE='de'
+  run ufw::rule_exists allow ssh
+  assert_success
+  run cli_shim::calls ufw
+  assert_output --partial 'LANGUAGE=<unset>'
 }
 
 @test "rule_exists: dies with ufw output when the dry-run fails" {
@@ -189,7 +198,16 @@ install_policy_fixture() {
   run ufw::status
   assert_success
   run cli_shim::calls ufw
-  assert_output 'status LC_ALL=C'
+  assert_output --partial 'status LC_ALL=C '
+}
+
+@test "status: unsets LANGUAGE for ufw" {
+  export UFW_OUTPUT='Status: active'
+  export LANGUAGE='de'
+  run ufw::status
+  assert_success
+  run cli_shim::calls ufw
+  assert_output --partial 'LANGUAGE=<unset>'
 }
 
 @test "status: dies on unrecognized ufw output" {
