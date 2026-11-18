@@ -52,7 +52,10 @@ if [[ "${outgoing_policy}" != 'allow' ]]; then
   fi
 fi
 
-if ! ufw::is_enabled; then
+# Both checks, because the start-at-boot flag can be set while the firewall is down.
+ufw_status="$(ufw::status)"
+readonly ufw_status
+if ! ufw::is_enabled || [[ "${ufw_status}" != 'active' ]]; then
   if prompt::yn 'Enable UFW?'; then
     sudo ufw --force enable
   fi
