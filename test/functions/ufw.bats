@@ -83,7 +83,7 @@ rule_exists_in_if() {
   run ufw::rule_exists allow proto udp from 10.0.0.0/8 to 10.0.0.1 port 53
   assert_success
   run cli_shim::calls ufw
-  assert_output --partial '--dry-run allow proto udp from 10.0.0.0/8 to 10.0.0.1 port 53 LC_ALL=C '
+  assert_output '--dry-run allow proto udp from 10.0.0.0/8 to 10.0.0.1 port 53 LC_ALL=C LANGUAGE=<unset>'
 }
 
 @test "rule_exists: unsets LANGUAGE for ufw" {
@@ -211,6 +211,79 @@ install_policy_fixture() {
   assert_output --partial 'Expected no arguments'
 }
 
+# ---------- app_profile_exists ----------
+
+@test "app_profile_exists: succeeds when ufw lists the profile" {
+  export UFW_OUTPUT=$'Available applications:\n  CUPS\n  OpenSSH'
+  run ufw::app_profile_exists 'OpenSSH'
+  assert_success
+}
+
+@test "app_profile_exists: matches the name case-insensitively, as ufw does" {
+  export UFW_OUTPUT=$'Available applications:\n  CUPS\n  OpenSSH'
+  run ufw::app_profile_exists 'openssh'
+  assert_success
+}
+
+@test "app_profile_exists: matches a name containing spaces" {
+  export UFW_OUTPUT=$'Available applications:\n  Apache Full\n  OpenSSH'
+  run ufw::app_profile_exists 'Apache Full'
+  assert_success
+}
+
+@test "app_profile_exists: fails when ufw does not list the profile" {
+  export UFW_OUTPUT=$'Available applications:\n  CUPS'
+  run ufw::app_profile_exists 'OpenSSH'
+  assert_failure 1
+}
+
+@test "app_profile_exists: fails when no profiles are installed" {
+  export UFW_OUTPUT='Available applications:'
+  run ufw::app_profile_exists 'OpenSSH'
+  assert_failure 1
+}
+
+@test "app_profile_exists: does not match a prefix of a listed name" {
+  export UFW_OUTPUT=$'Available applications:\n  OpenSSH'
+  run ufw::app_profile_exists 'Open'
+  assert_failure 1
+}
+
+@test "app_profile_exists: does not match the header line" {
+  export UFW_OUTPUT=$'Available applications:\n  OpenSSH'
+  run ufw::app_profile_exists 'Available applications:'
+  assert_failure 1
+}
+
+@test "app_profile_exists: runs ufw app list under LC_ALL=C without LANGUAGE" {
+  export UFW_OUTPUT=$'Available applications:\n  OpenSSH'
+  export LANGUAGE='de'
+  run ufw::app_profile_exists 'OpenSSH'
+  assert_success
+  run cli_shim::calls ufw
+  assert_output 'app list LC_ALL=C LANGUAGE=<unset>'
+}
+
+@test "app_profile_exists: dies with ufw output when ufw fails" {
+  export UFW_OUTPUT='ERROR: You need to be root to run this script'
+  export UFW_EXIT=1
+  run ufw::app_profile_exists 'OpenSSH'
+  assert_failure 1
+  assert_output --partial 'You need to be root'
+}
+
+@test "app_profile_exists: no args fails with arity message" {
+  run ufw::app_profile_exists
+  assert_failure 1
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "app_profile_exists: two args fails with arity message" {
+  run ufw::app_profile_exists 'OpenSSH' 'extra'
+  assert_failure 1
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
 # ---------- status ----------
 
 @test "status: prints active when ufw reports Status: active" {
@@ -232,7 +305,7 @@ install_policy_fixture() {
   run ufw::status
   assert_success
   run cli_shim::calls ufw
-  assert_output --partial 'status LC_ALL=C '
+  assert_output 'status LC_ALL=C LANGUAGE=<unset>'
 }
 
 @test "status: unsets LANGUAGE for ufw" {

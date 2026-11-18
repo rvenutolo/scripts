@@ -33,9 +33,9 @@ fi
 
 # Any existing allow or limit rule that lets ssh in counts, so a deliberate `limit` is never replaced by a plain allow.
 # `ssh` and `22/tcp` are the same ufw rule; `22` (any protocol) and the OpenSSH app profile are distinct ones. The
-# profile is checked only when installed, because a dry-run naming an unknown profile is a ufw error.
+# profile is checked only when ufw knows it, because a dry-run naming an unknown profile is a ufw error.
 ssh_targets=('ssh' '22')
-if files::exists '/etc/ufw/applications.d/openssh-server'; then
+if ufw::app_profile_exists 'OpenSSH'; then
   ssh_targets+=('OpenSSH')
 fi
 readonly ssh_targets
