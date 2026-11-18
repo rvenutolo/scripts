@@ -17,40 +17,42 @@ if ! commands::executable_exists 'ufw'; then
   exit 0
 fi
 
-if ! sudo ufw status verbose | grep::contains_word_ignore_case 'deny (incoming)'; then
+incoming_policy="$(ufw::default_policy 'incoming')"
+readonly incoming_policy
+if [[ "${incoming_policy}" != 'deny' ]]; then
   if prompt::yn 'Set UFW to deny incoming?'; then
     sudo ufw default deny 'incoming'
   fi
 fi
 
-if ! sudo ufw status verbose \
-  | grep::contains_perl_regex_ignore_case 'anywhere on tailscale0\s+allow in\s+anywhere'; then
+if ! ufw::rule_exists allow in on 'tailscale0'; then
   if prompt::yn 'Set UFW to allow incoming traffic from tailnet?'; then
-    sudo ufw allow in on 'tailscale0'
+    ufw::add_rule allow in on 'tailscale0'
   fi
 fi
 
-if ! sudo ufw status verbose | grep::contains_perl_regex_ignore_case '22/tcp\s+allow in\s+anywhere'; then
+if ! ufw::rule_exists allow ssh; then
   if prompt::yn 'Set UFW to allow incoming traffic on port 22 (ssh)?'; then
-    sudo ufw allow ssh
+    ufw::add_rule allow ssh
   fi
 fi
 
 if hosts::is_server \
-  && ! sudo ufw status verbose \
-  | grep::contains_perl_regex_ignore_case '45876/tcp\s+allow in\s+169\.254\.0\.0/16'; then
+  && ! ufw::rule_exists allow from '169.254.0.0/16' to any port '45876' proto 'tcp'; then
   if prompt::ny 'Set UFW to allow incoming traffic on port 45876 (beszel) from 169.254.0.0/16 (docker IP range)?'; then
-    sudo ufw allow from '169.254.0.0/16' to any port '45876' proto 'tcp'
+    ufw::add_rule allow from '169.254.0.0/16' to any port '45876' proto 'tcp'
   fi
 fi
 
-if ! sudo ufw status verbose | grep::contains_word_ignore_case 'allow (outgoing)'; then
+outgoing_policy="$(ufw::default_policy 'outgoing')"
+readonly outgoing_policy
+if [[ "${outgoing_policy}" != 'allow' ]]; then
   if prompt::yn 'Set UFW to allow outgoing?'; then
     sudo ufw default allow 'outgoing'
   fi
 fi
 
-if ! sudo ufw status verbose | grep::contains_word_ignore_case 'status: active'; then
+if ! ufw::is_enabled; then
   if prompt::yn 'Enable UFW?'; then
     sudo ufw --force enable
   fi
