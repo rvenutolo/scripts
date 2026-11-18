@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# @description Print the latest available Temurin JDK for the given major version.
+# @description Print the latest available Corretto JDK for the given major version.
 # @arg $1 major java version (e.g. "21")
 # @stdout One semicolon-delimited line: major;version;artifact-id;installed('y'/'n').
 # @exitcode 0 success

@@ -4,7 +4,7 @@
 
 # @description Extract the major version number from a JDK version string or artifact ID.
 # Output: stdout — major version number (e.g. "21")
-# @arg $1 version string or artifact ID (e.g. "21.0.3-tem" or "21")
+# @arg $1 version string or artifact ID (e.g. "21.0.3.9.1-amzn" or "21")
 function sdkman_jdks::get_jdk_major_version() {
   args::check_exactly_1_arg "$@"
   local -r version="$1"
@@ -15,24 +15,36 @@ function sdkman_jdks::get_jdk_major_version() {
   fi
 }
 
+### SETTINGS
+
+# @description Print the SDKMAN Identifier suffix of the one JDK vendor these helpers manage
+#   (Amazon Corretto). Every catalog row and candidate dir without it is ignored.
+# Output: stdout — vendor suffix without the leading dash
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+# @noargs
+function sdkman_jdks::_vendor_suffix() {
+  args::check_no_args "$@"
+  printf 'amzn'
+}
+
 ### BASIC OPERATIONS
 
 # @description Install a specific JDK artifact via SDKMAN.
-# @arg $1 jdk artifact ID (e.g. "21.0.3-tem")
+# @arg $1 jdk artifact ID (e.g. "21.0.3.9.1-amzn")
 function sdkman_jdks::install_jdk() {
   args::check_exactly_1_arg "$@"
   sdk install java "$1" | sdkman::clean_output
 }
 
 # @description Uninstall a specific JDK artifact via SDKMAN.
-# @arg $1 jdk artifact ID (e.g. "21.0.3-tem")
+# @arg $1 jdk artifact ID (e.g. "21.0.3.9.1-amzn")
 function sdkman_jdks::uninstall_jdk() {
   args::check_exactly_1_arg "$@"
   sdk uninstall java "$1" | sdkman::clean_output
 }
 
 # @description Set the given JDK artifact as the SDKMAN default for java.
-# @arg $1 artifact ID (e.g. "21.0.3-tem")
+# @arg $1 artifact ID (e.g. "21.0.3.9.1-amzn")
 function sdkman_jdks::set_default_jdk_by_id() {
   args::check_exactly_1_arg "$@"
   sdk default java "$1" | sdkman::clean_output
@@ -40,32 +52,34 @@ function sdkman_jdks::set_default_jdk_by_id() {
 
 ### FORMATTED JDK INFO
 
-# @description Fetch the remote Temurin JDK catalog, newest first. Always performs a network
+# @description Fetch the remote Corretto JDK catalog, newest first. Always performs a network
 #   round-trip: `sdk list java` issues an uncached HTTPS request to the SDKMAN API.
 #   Callers want sdkman_jdks::get_jdk_catalog, which memoizes this per process.
 #   The installed/in-use markers `sdk list java` prints are deliberately discarded — installed
 #   state is owned by the candidates dir (see sdkman_jdks::get_formatted_installed_jdks).
-#   Vendor rows are selected by the `-tem` suffix on the trailing Identifier column, not by a
-#   fixed field index: SDKMAN dropped the Dist and Status columns from the table, so the old
-#   `$4 == tem` / print-`$6` form silently matched nothing and every caller saw an empty catalog
-#   — `sdkman-clean` died with "Java version 8 is not available" and `sdkman-update` skipped
-#   every JDK without a word. Keying on `$NF` parses the 4-column and 6-column layouts alike.
+#   Vendor rows are selected by the sdkman_jdks::_vendor_suffix suffix on the trailing Identifier
+#   column, not by a fixed field index: `sdk list java` prints a 4-column table today and a
+#   6-column one (with Dist and Status) on older SDKMAN releases, and keying on `$NF` parses both.
 #   Rows SDKMAN marks "local only" are dropped: those versions sit in the candidates dir but the
 #   API no longer serves them, so they are not available to install, and every consumer of this
 #   catalog means exactly that. Left in, one that sorted above the newest remote row for its major
 #   would make install_latest_jdk hand `sdk install java` an undownloadable artifact and make
 #   prune_jdks_for_major_version keep it while uninstalling the current one.
 #   The marker is matched by shape rather than by column, for the same reason `$NF` is: it is a
-#   `+` among the Use column's `> * +` glyphs today and was the literal text `local only` in the
-#   six-column layout's Status column. No other cell can collide — a Version always carries
-#   digits, an Identifier ends in `-tem`, and a Vendor is alphabetic.
+#   `+` among the Use column's `> * +` glyphs in the 4-column layout and the literal text
+#   `local only` in the 6-column layout's Status column. No other cell can collide — a Version
+#   always carries digits, an Identifier ends in the vendor suffix, and a Vendor is alphabetic.
 # Output: stdout — lines with fields: major;version;artifact-id
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
 function sdkman_jdks::fetch_jdk_catalog() {
   args::check_no_args "$@"
+  local vendor_suffix
+  vendor_suffix="$(sdkman_jdks::_vendor_suffix)"
+  readonly vendor_suffix
   sdk list java \
-    | awk --field-separator '|' 'NF >= 4 && $NF ~ /-tem[[:space:]]*$/ {
+    | awk --field-separator '|' --assign "vendor_suffix=${vendor_suffix}" \
+      'NF >= 4 && $NF ~ ("-" vendor_suffix "[[:space:]]*$") {
       for (i = 1; i <= NF; i++) {
         marker = $i
         gsub(/^[ \t]+|[ \t]+$/, "", marker)
@@ -79,7 +93,7 @@ function sdkman_jdks::fetch_jdk_catalog() {
     }'
 }
 
-# @description Print the path of this process's Temurin catalog memo file.
+# @description Print the path of this process's JDK catalog memo file.
 #   Keyed on $$, which — unlike BASHPID — is stable inside subshells and pipeline segments, so
 #   every caller in a pipeline resolves the same path. Lives under XDG_RUNTIME_DIR because that
 #   directory is per-user and mode 0700, so a predictable filename there carries none of the
@@ -92,7 +106,7 @@ function sdkman_jdks::catalog_cache_file() {
   printf '%s/sdkman-jdk-catalog.%s' "${XDG_RUNTIME_DIR}" "$$"
 }
 
-# @description Print the Temurin JDK catalog, fetching it at most once per process.
+# @description Print the Corretto JDK catalog, fetching it at most once per process.
 #   The memo is a file rather than a variable because callers invoke this from inside pipelines,
 #   and a pipeline segment runs in a subshell whose variable writes are discarded — a variable
 #   memo would never register a single hit.
@@ -125,7 +139,7 @@ function sdkman_jdks::get_jdk_catalog() {
   cat "${cache_file}"
 }
 
-# @description Print all available Temurin JDKs in semicolon-delimited format, newest first.
+# @description Print all available Corretto JDKs in semicolon-delimited format, newest first.
 #   The catalog half is memoized per process, so this costs at most one `sdk list java` round-trip
 #   per run no matter how many times it is called. The installed column is re-derived from the
 #   candidates dir on every call, so it stays correct across installs and uninstalls within a run
@@ -216,7 +230,7 @@ function sdkman_jdks::get_formatted_jdk_artifact_id_field() {
 
 ### AVAILABLE JDKS
 
-# @description Print the latest available Temurin JDK entry per major version in semicolon-delimited format.
+# @description Print the latest available Corretto JDK entry per major version in semicolon-delimited format.
 # Output: stdout — one line per major version: major;version;artifact-id;installed('y'/'n')
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
@@ -226,7 +240,7 @@ function sdkman_jdks::get_formatted_latest_available_jdk_major_versions() {
     | sdkman_jdks::filter_for_latest_per_major_version
 }
 
-# @description Print the latest available Temurin JDK entry for the given major version in semicolon-delimited format.
+# @description Print the latest available Corretto JDK entry for the given major version in semicolon-delimited format.
 # Output: stdout — one line: major;version;artifact-id;installed('y'/'n')
 # @arg $1 major java version
 function sdkman_jdks::get_formatted_latest_available_jdk_for_major_version() {
@@ -238,7 +252,7 @@ function sdkman_jdks::get_formatted_latest_available_jdk_for_major_version() {
     | sdkman_jdks::filter_for_major_version "${major_version}"
 }
 
-# @description Print all available Temurin JDK major version numbers, sorted numerically.
+# @description Print all available Corretto JDK major version numbers, sorted numerically.
 # Output: stdout — major version numbers, one per line
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
@@ -250,7 +264,7 @@ function sdkman_jdks::get_available_jdk_major_versions() {
     | uniq
 }
 
-# @description Print the highest available Temurin JDK major version number.
+# @description Print the highest available Corretto JDK major version number.
 # Output: stdout — major version number (e.g. "21")
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
@@ -260,7 +274,7 @@ function sdkman_jdks::get_latest_available_jdk_major_version() {
     | text::last_line
 }
 
-# @description Die if the given major version is not available in the SDKMAN Temurin JDK list.
+# @description Die if the given major version is not available in the SDKMAN Corretto JDK list.
 # @arg $1 major java version
 function sdkman_jdks::check_available_jdk_major_version() {
   args::check_exactly_1_arg "$@"
@@ -272,7 +286,7 @@ function sdkman_jdks::check_available_jdk_major_version() {
 
 ### INSTALLED JDKS
 
-# @description Print all installed Temurin JDK entries in semicolon-delimited format, newest first.
+# @description Print all installed Corretto JDK entries in semicolon-delimited format, newest first.
 #   Reads the SDKMAN candidates directory rather than `sdk list java`, so it performs no network I/O
 #   — `sdk list java` issues an uncached HTTPS request to the SDKMAN API on every invocation, which
 #   dominated the runtime of every caller that looped over installed JDKs.
@@ -282,20 +296,23 @@ function sdkman_jdks::check_available_jdk_major_version() {
 function sdkman_jdks::get_formatted_installed_jdks() {
   args::check_no_args "$@"
   local -r java_candidates_dir="${SDKMAN_CANDIDATES_DIR}/java"
+  local vendor_suffix
+  vendor_suffix="$(sdkman_jdks::_vendor_suffix)"
+  readonly vendor_suffix
   local candidate_dir artifact_id version major_version
   # An unmatched glob stays literal, so the dir check doubles as the missing/empty-dir guard.
-  # The `current` symlink is excluded by the `*-tem` pattern, not by the dir check.
-  for candidate_dir in "${java_candidates_dir}"/*-tem; do
+  # The `current` symlink is excluded by the vendor-suffix pattern, not by the dir check.
+  for candidate_dir in "${java_candidates_dir}"/*-"${vendor_suffix}"; do
     dirs::exists "${candidate_dir}" || continue
     artifact_id="${candidate_dir##*/}"
-    version="${artifact_id%-tem}"
+    version="${artifact_id%-"${vendor_suffix}"}"
     major_version="$(sdkman_jdks::get_jdk_major_version "${version}")"
     printf '%s;%s;%s;y\n' "${major_version}" "${version}" "${artifact_id}"
   done \
     | sort --version-sort --reverse
 }
 
-# @description Print installed Temurin JDK entries for the given major version in semicolon-delimited format.
+# @description Print installed Corretto JDK entries for the given major version in semicolon-delimited format.
 # Output: stdout — lines with fields: major;version;artifact-id;installed('y')
 # @arg $1 major version
 function sdkman_jdks::get_formatted_installed_jdks_for_major_version() {
@@ -305,7 +322,7 @@ function sdkman_jdks::get_formatted_installed_jdks_for_major_version() {
     | sdkman_jdks::filter_for_major_version "${major_version}"
 }
 
-# @description Print the latest installed Temurin JDK entry per major version in semicolon-delimited format.
+# @description Print the latest installed Corretto JDK entry per major version in semicolon-delimited format.
 # Output: stdout — one line per major version: major;version;artifact-id;installed('y')
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
@@ -315,7 +332,7 @@ function sdkman_jdks::get_formatted_latest_installed_jdk_major_versions() {
     | sdkman_jdks::filter_for_latest_per_major_version
 }
 
-# @description Print the latest installed Temurin JDK entry for the given major version in semicolon-delimited format.
+# @description Print the latest installed Corretto JDK entry for the given major version in semicolon-delimited format.
 # Output: stdout — one line: major;version;artifact-id;installed('y')
 # @arg $1 major java version
 function sdkman_jdks::get_formatted_latest_installed_jdk_for_major_version() {
@@ -327,7 +344,7 @@ function sdkman_jdks::get_formatted_latest_installed_jdk_for_major_version() {
     | sdkman_jdks::filter_for_major_version "${major_version}"
 }
 
-# @description Print all installed Temurin JDK major version numbers, sorted numerically.
+# @description Print all installed Corretto JDK major version numbers, sorted numerically.
 # Output: stdout — major version numbers, one per line
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
@@ -339,7 +356,7 @@ function sdkman_jdks::get_installed_jdk_major_versions() {
     | uniq
 }
 
-# @description Print the highest installed Temurin JDK major version number.
+# @description Print the highest installed Corretto JDK major version number.
 # Output: stdout — major version number (e.g. "21")
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
@@ -349,7 +366,7 @@ function sdkman_jdks::get_latest_installed_jdk_major_version() {
     | text::last_line
 }
 
-# @description Die if the given major version has no installed Temurin JDK.
+# @description Die if the given major version has no installed Corretto JDK.
 # @arg $1 major java version
 function sdkman_jdks::check_installed_jdk_major_version() {
   args::check_exactly_1_arg "$@"
@@ -359,21 +376,24 @@ function sdkman_jdks::check_installed_jdk_major_version() {
   fi
 }
 
-# @description Return true if a Temurin JDK with the given artifact ID is currently installed.
+# @description Return true if a Corretto JDK with the given artifact ID is currently installed.
 #   A direct candidate-dir test rather than a scan of the formatted installed list: this is called
 #   once per catalog line while annotating sdkman_jdks::get_formatted_all_jdks, where the
 #   pipeline form would fork several processes per line.
-# @arg $1 artifact ID (e.g. "21.0.3-tem")
+# @arg $1 artifact ID (e.g. "21.0.3.9.1-amzn")
 # @exitcode 0 if true
 # @exitcode 1 if false
 function sdkman_jdks::is_jdk_artifact_installed() {
   args::check_exactly_1_arg "$@"
   local -r artifact_id="$1"
-  [[ "${artifact_id}" == *-tem ]] && dirs::exists "${SDKMAN_CANDIDATES_DIR}/java/${artifact_id}"
+  local vendor_suffix
+  vendor_suffix="$(sdkman_jdks::_vendor_suffix)"
+  readonly vendor_suffix
+  [[ "${artifact_id}" == *-"${vendor_suffix}" ]] && dirs::exists "${SDKMAN_CANDIDATES_DIR}/java/${artifact_id}"
 }
 
-# @description Print the artifact ID of the latest installed Temurin JDK for the given major version.
-# Output: stdout — artifact ID (e.g. "21.0.3-tem")
+# @description Print the artifact ID of the latest installed Corretto JDK for the given major version.
+# Output: stdout — artifact ID (e.g. "21.0.3.9.1-amzn")
 # @arg $1 major java version
 function sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version() {
   args::check_exactly_1_arg "$@"
@@ -385,7 +405,7 @@ function sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version() {
 
 ### INSTALLING JDKS
 
-# @description Install the latest available Temurin JDK for the given major version.
+# @description Install the latest available Corretto JDK for the given major version.
 # @arg $1 major version
 function sdkman_jdks::install_latest_jdk() {
   args::check_exactly_1_arg "$@"
@@ -400,7 +420,7 @@ function sdkman_jdks::install_latest_jdk() {
   sdkman_jdks::install_jdk "${latest_artifact_id}"
 }
 
-# @description Install the latest available Temurin JDK for every available major version.
+# @description Install the latest available Corretto JDK for every available major version.
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
 function sdkman_jdks::install_latest_jdks() {
@@ -417,7 +437,7 @@ function sdkman_jdks::install_latest_jdks() {
 
 ### SETTING DEFAULT JDK
 
-# @description Set the SDKMAN default java to the latest installed Temurin JDK for the given major version.
+# @description Set the SDKMAN default java to the latest installed Corretto JDK for the given major version.
 # @arg $1 major java version
 function sdkman_jdks::set_default_sdk_to_latest_installed_for_major_version() {
   args::check_exactly_1_arg "$@"
@@ -443,7 +463,7 @@ function sdkman_jdks::has_default_jdk() {
 }
 
 # @description Print the artifact ID of the current default java. Dies if no default is set.
-# Output: stdout — artifact ID (e.g. "17.0.10-tem")
+# Output: stdout — artifact ID (e.g. "17.0.10.7.1-amzn")
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
 function sdkman_jdks::get_current_default_jdk_artifact_id() {
@@ -489,7 +509,7 @@ function sdkman_jdks::is_lts_major_version() {
   ((major == 8 || major == 11 || (major >= 17 && (major - 17) % 4 == 0)))
 }
 
-# @description Print the highest installed Temurin JDK major version that is an LTS release.
+# @description Print the highest installed Corretto JDK major version that is an LTS release.
 #   Dies when no LTS major is installed.
 # Output: stdout — major version number (e.g. "25")
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
@@ -510,7 +530,7 @@ function sdkman_jdks::get_latest_installed_jdk_lts_major_version() {
     fi
   done
   if strings::is_empty "${latest_lts_major_version}"; then
-    log::die 'No LTS Temurin JDK is installed'
+    log::die 'No LTS Corretto JDK is installed'
   fi
   printf '%s' "${latest_lts_major_version}"
 }
@@ -531,7 +551,7 @@ function sdkman_jdks::set_default_jdk_to_latest_lts() {
 
 ### PRUNE JDKS
 
-# @description Uninstall all installed Temurin JDKs for the given major version except the latest available.
+# @description Uninstall all installed Corretto JDKs for the given major version except the latest available.
 #   Refuses to act when the latest available artifact is not itself installed: every installed
 #   artifact then differs from the keeper, so the sweep would leave the major with nothing
 #   installed at all. That is reachable whenever the newest remote artifact has not been pulled
@@ -580,7 +600,7 @@ function sdkman_jdks::prune_jdks_for_major_version() {
   done
 }
 
-# @description Uninstall all outdated installed Temurin JDKs across every installed major version.
+# @description Uninstall all outdated installed Corretto JDKs across every installed major version.
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
 function sdkman_jdks::prune_jdks() {

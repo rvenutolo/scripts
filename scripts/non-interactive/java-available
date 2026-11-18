@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# @description Print all available Temurin JDK major version numbers, sorted numerically.
+# @description Print all available Corretto JDK major version numbers, sorted numerically.
 # @noargs
 # @stdout Major version numbers, one per line.
 # @exitcode 0 success

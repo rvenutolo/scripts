@@ -147,60 +147,60 @@ setup() {
 # ---------- get_sdkmanrc_file_value ----------
 
 @test "get_sdkmanrc_file_value: reads a plain key=value line" {
-  printf 'java=21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  printf 'java=21.0.3-amzn\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
   assert_success
-  assert_output '21.0.3-tem'
+  assert_output '21.0.3-amzn'
 }
 
 @test "get_sdkmanrc_file_value: reads a non-java key" {
-  printf 'java=21.0.3-tem\ngradle=8.5\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  printf 'java=21.0.3-amzn\ngradle=8.5\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'gradle'
   assert_success
   assert_output '8.5'
 }
 
 @test "get_sdkmanrc_file_value: tolerates whitespace around key, = and value" {
-  printf '   java   =   21.0.3-tem   \n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  printf '   java   =   21.0.3-amzn   \n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
   assert_success
-  assert_output '21.0.3-tem'
+  assert_output '21.0.3-amzn'
 }
 
 @test "get_sdkmanrc_file_value: tolerates CRLF line endings" {
-  printf 'java=21.0.3-tem\r\ngradle=8.5\r\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  printf 'java=21.0.3-amzn\r\ngradle=8.5\r\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
   assert_success
-  assert_output '21.0.3-tem'
+  assert_output '21.0.3-amzn'
 }
 
 @test "get_sdkmanrc_file_value: ignores blank lines and whole-line comments" {
-  printf '# Enable auto-env through the sdkman_auto_env config\n\n#java=99.0.0-tem\njava=21.0.3-tem\n' \
+  printf '# Enable auto-env through the sdkman_auto_env config\n\n#java=99.0.0-amzn\njava=21.0.3-amzn\n' \
     > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
   assert_success
-  assert_output '21.0.3-tem'
+  assert_output '21.0.3-amzn'
 }
 
 @test "get_sdkmanrc_file_value: strips a spaced trailing comment" {
-  printf 'java=21.0.3-tem # pinned for the enforcer\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  printf 'java=21.0.3-amzn # pinned for the enforcer\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
   assert_success
-  assert_output '21.0.3-tem'
+  assert_output '21.0.3-amzn'
 }
 
 @test "get_sdkmanrc_file_value: strips an unspaced trailing comment" {
-  printf 'java=21.0.3-tem#pinned\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  printf 'java=21.0.3-amzn#pinned\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
   assert_success
-  assert_output '21.0.3-tem'
+  assert_output '21.0.3-amzn'
 }
 
 @test "get_sdkmanrc_file_value: last assignment of the key wins" {
-  printf 'java=21.0.3-tem\njava=25.0.4-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  printf 'java=21.0.3-amzn\njava=25.0.4-amzn\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   run sdkman::get_sdkmanrc_file_value "${BATS_TEST_TMPDIR}/.sdkmanrc" 'java'
   assert_success
-  assert_output '25.0.4-tem'
+  assert_output '25.0.4-amzn'
 }
 
 @test "get_sdkmanrc_file_value: empty when the key is absent" {
@@ -253,25 +253,25 @@ setup() {
 
 @test "sdkmanrc_java_home: resolves the pinned JDK from the start directory" {
   export SDKMAN_DIR="${BATS_TEST_TMPDIR}/sdkman"
-  mkdir --parents "${SDKMAN_DIR}/candidates/java/21.0.3-tem" "${BATS_TEST_TMPDIR}/proj"
-  printf 'java=21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
+  mkdir --parents "${SDKMAN_DIR}/candidates/java/21.0.3-amzn" "${BATS_TEST_TMPDIR}/proj"
+  printf 'java=21.0.3-amzn\n' > "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
   run sdkman::sdkmanrc_java_home "${BATS_TEST_TMPDIR}/proj"
   assert_success
-  assert_output "${SDKMAN_DIR}/candidates/java/21.0.3-tem"
+  assert_output "${SDKMAN_DIR}/candidates/java/21.0.3-amzn"
 }
 
 @test "sdkmanrc_java_home: resolves the pin from an ancestor of a submodule directory" {
   export SDKMAN_DIR="${BATS_TEST_TMPDIR}/sdkman"
-  mkdir --parents "${SDKMAN_DIR}/candidates/java/25.0.4-tem" "${BATS_TEST_TMPDIR}/proj/module"
-  printf 'java=25.0.4-tem\n' > "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
+  mkdir --parents "${SDKMAN_DIR}/candidates/java/25.0.4-amzn" "${BATS_TEST_TMPDIR}/proj/module"
+  printf 'java=25.0.4-amzn\n' > "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
   run sdkman::sdkmanrc_java_home "${BATS_TEST_TMPDIR}/proj/module"
   assert_success
-  assert_output "${SDKMAN_DIR}/candidates/java/25.0.4-tem"
+  assert_output "${SDKMAN_DIR}/candidates/java/25.0.4-amzn"
 }
 
 @test "sdkmanrc_java_home: empty when no ancestor holds an .sdkmanrc" {
   export SDKMAN_DIR="${BATS_TEST_TMPDIR}/sdkman"
-  mkdir --parents "${SDKMAN_DIR}/candidates/java/21.0.3-tem" "${BATS_TEST_TMPDIR}/proj"
+  mkdir --parents "${SDKMAN_DIR}/candidates/java/21.0.3-amzn" "${BATS_TEST_TMPDIR}/proj"
   run --separate-stderr sdkman::sdkmanrc_java_home "${BATS_TEST_TMPDIR}/proj"
   assert_success
   refute_output
@@ -280,7 +280,7 @@ setup() {
 
 @test "sdkmanrc_java_home: empty when .sdkmanrc declares no java key" {
   export SDKMAN_DIR="${BATS_TEST_TMPDIR}/sdkman"
-  mkdir --parents "${SDKMAN_DIR}/candidates/java/21.0.3-tem" "${BATS_TEST_TMPDIR}/proj"
+  mkdir --parents "${SDKMAN_DIR}/candidates/java/21.0.3-amzn" "${BATS_TEST_TMPDIR}/proj"
   printf 'gradle=8.5\n' > "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
   run --separate-stderr sdkman::sdkmanrc_java_home "${BATS_TEST_TMPDIR}/proj"
   assert_success
@@ -290,12 +290,12 @@ setup() {
 
 @test "sdkmanrc_java_home: warns to stderr and prints nothing when the pinned JDK is not installed" {
   export SDKMAN_DIR="${BATS_TEST_TMPDIR}/sdkman"
-  mkdir --parents "${SDKMAN_DIR}/candidates/java/21.0.3-tem" "${BATS_TEST_TMPDIR}/proj"
-  printf 'java=99.0.0-tem\n' > "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
+  mkdir --parents "${SDKMAN_DIR}/candidates/java/21.0.3-amzn" "${BATS_TEST_TMPDIR}/proj"
+  printf 'java=99.0.0-amzn\n' > "${BATS_TEST_TMPDIR}/proj/.sdkmanrc"
   run --separate-stderr sdkman::sdkmanrc_java_home "${BATS_TEST_TMPDIR}/proj"
   assert_success
   refute_output
-  assert_stderr --partial 'pins java=99.0.0-tem'
+  assert_stderr --partial 'pins java=99.0.0-amzn'
   assert_stderr --partial 'not installed'
 }
 
@@ -314,10 +314,10 @@ setup() {
 # ---------- get_sdkmanrc_file_java_artifact_id ----------
 
 @test "get_sdkmanrc_file_java_artifact_id: extracts artifact id from .sdkmanrc" {
-  printf 'java=21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  printf 'java=21.0.3-amzn\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   run sdkman::get_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc"
   assert_success
-  assert_output '21.0.3-tem'
+  assert_output '21.0.3-amzn'
 }
 
 @test "get_sdkmanrc_file_java_artifact_id: empty when no java= entry" {
@@ -340,27 +340,27 @@ setup() {
 }
 
 @test "get_sdkmanrc_file_java_artifact_id: shares the tolerant parser (CRLF, spacing, trailing comment)" {
-  printf '# pin\r\n  java  =  25.0.4-tem  # for the enforcer\r\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  printf '# pin\r\n  java  =  25.0.4-amzn  # for the enforcer\r\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   run sdkman::get_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc"
   assert_success
-  assert_output '25.0.4-tem'
+  assert_output '25.0.4-amzn'
 }
 
 @test "get_sdkmanrc_file_java_artifact_id: last assignment wins" {
-  printf 'java=21.0.3-tem\njava=25.0.4-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  printf 'java=21.0.3-amzn\njava=25.0.4-amzn\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   run sdkman::get_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc"
   assert_success
-  assert_output '25.0.4-tem'
+  assert_output '25.0.4-amzn'
 }
 
 # ---------- overwrite_sdkmanrc_file_java_artifact_id ----------
 
 @test "overwrite_sdkmanrc_file_java_artifact_id: rewrites java= line" {
-  printf 'java=21.0.3-tem\ngradle=8.5\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
-  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '21.0.5-tem'
+  printf 'java=21.0.3-amzn\ngradle=8.5\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '21.0.5-amzn'
   assert_success
   run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
-  assert_line --index 0 'java=21.0.5-tem'
+  assert_line --index 0 'java=21.0.5-amzn'
   assert_line --index 1 'gradle=8.5'
 }
 
@@ -377,41 +377,41 @@ setup() {
 }
 
 @test "overwrite_sdkmanrc_file_java_artifact_id: rewrites an indented line, preserving indentation and spacing" {
-  printf '  java  =  21.0.3-tem\ngradle=8.5\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
-  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '21.0.5-tem'
+  printf '  java  =  21.0.3-amzn\ngradle=8.5\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '21.0.5-amzn'
   assert_success
   run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
-  assert_line --index 0 '  java  =  21.0.5-tem'
+  assert_line --index 0 '  java  =  21.0.5-amzn'
   assert_line --index 1 'gradle=8.5'
 }
 
 @test "overwrite_sdkmanrc_file_java_artifact_id: preserves a trailing comment" {
-  printf 'java=21.0.3-tem # pinned for the enforcer\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
-  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '21.0.5-tem'
+  printf 'java=21.0.3-amzn # pinned for the enforcer\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '21.0.5-amzn'
   assert_success
   run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
-  assert_output 'java=21.0.5-tem # pinned for the enforcer'
+  assert_output 'java=21.0.5-amzn # pinned for the enforcer'
 }
 
 @test "overwrite_sdkmanrc_file_java_artifact_id: preserves a CRLF line ending" {
-  printf 'java=21.0.3-tem\r\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
-  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '21.0.5-tem'
+  printf 'java=21.0.3-amzn\r\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '21.0.5-amzn'
   assert_success
   run od --address-radix=n --format=c "${BATS_TEST_TMPDIR}/.sdkmanrc"
   assert_output --partial '\r'
 }
 
 @test "overwrite_sdkmanrc_file_java_artifact_id: leaves a whole-line comment untouched" {
-  printf '#java=99.0.0-tem\njava=21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
-  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '21.0.5-tem'
+  printf '#java=99.0.0-amzn\njava=21.0.3-amzn\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '21.0.5-amzn'
   assert_success
   run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
-  assert_line --index 0 '#java=99.0.0-tem'
-  assert_line --index 1 'java=21.0.5-tem'
+  assert_line --index 0 '#java=99.0.0-amzn'
+  assert_line --index 1 'java=21.0.5-amzn'
 }
 
 @test "overwrite_sdkmanrc_file_java_artifact_id: writes sed replacement metacharacters literally" {
-  printf 'java=21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  printf 'java=21.0.3-amzn\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   run sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" 'a&b/c\d'
   assert_success
   run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
@@ -421,41 +421,41 @@ setup() {
 @test "overwrite_sdkmanrc_file_java_artifact_id: round-trips through the reader on a tolerant line shape" {
   # The invariant that keeps rewrite_sdkmanrc_file_java_version honest: anything the reader can find,
   # the writer can rewrite. A reader-only match makes the rewrite a silent no-op that reports success.
-  printf '  java  =  21.0.3-tem  # pinned\r\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
-  sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '25.0.4-tem'
+  printf '  java  =  21.0.3-amzn  # pinned\r\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  sdkman::overwrite_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc" '25.0.4-amzn'
   run sdkman::get_sdkmanrc_file_java_artifact_id "${BATS_TEST_TMPDIR}/.sdkmanrc"
   assert_success
-  assert_output '25.0.4-tem'
+  assert_output '25.0.4-amzn'
 }
 
 # ---------- rewrite_sdkmanrc_file_java_version ----------
 
 @test "rewrite_sdkmanrc_file_java_version: no-op when current artifact already installed" {
-  printf 'java=21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  printf 'java=21.0.3-amzn\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdkman_jdks::is_jdk_artifact_installed() { return 0; }
   export -f sdkman_jdks::is_jdk_artifact_installed
   run sdkman::rewrite_sdkmanrc_file_java_version "${BATS_TEST_TMPDIR}/.sdkmanrc"
   assert_success
   run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
-  assert_output 'java=21.0.3-tem'
+  assert_output 'java=21.0.3-amzn'
 }
 
 @test "rewrite_sdkmanrc_file_java_version: rewrites to latest installed when current absent" {
-  printf 'java=21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  printf 'java=21.0.3-amzn\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdkman_jdks::is_jdk_artifact_installed() { return 1; }
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdkman_jdks::get_jdk_major_version() { printf '21'; }
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
-  function sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version() { printf '21.0.7-tem'; }
+  function sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version() { printf '21.0.7-amzn'; }
   export -f sdkman_jdks::is_jdk_artifact_installed
   export -f sdkman_jdks::get_jdk_major_version
   export -f sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version
   run sdkman::rewrite_sdkmanrc_file_java_version "${BATS_TEST_TMPDIR}/.sdkmanrc"
   assert_success
   run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
-  assert_output 'java=21.0.7-tem'
+  assert_output 'java=21.0.7-amzn'
 }
 
 @test "rewrite_sdkmanrc_file_java_version: dies when file missing" {
@@ -471,20 +471,20 @@ setup() {
 }
 
 @test "rewrite_sdkmanrc_file_java_version: rewrites an indented java line" {
-  printf '  java = 21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
+  printf '  java = 21.0.3-amzn\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdkman_jdks::is_jdk_artifact_installed() { return 1; }
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdkman_jdks::get_jdk_major_version() { printf '21'; }
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
-  function sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version() { printf '21.0.7-tem'; }
+  function sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version() { printf '21.0.7-amzn'; }
   export -f sdkman_jdks::is_jdk_artifact_installed
   export -f sdkman_jdks::get_jdk_major_version
   export -f sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version
   run sdkman::rewrite_sdkmanrc_file_java_version "${BATS_TEST_TMPDIR}/.sdkmanrc"
   assert_success
   run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
-  assert_output '  java = 21.0.7-tem'
+  assert_output '  java = 21.0.7-amzn'
 }
 
 # ---------- list_all_sdkmanrc_files ----------
@@ -519,23 +519,23 @@ setup() {
 @test "rewrite_sdkmanrc_file_java_versions: rewrites every .sdkmanrc under HOME" {
   export HOME="${BATS_TEST_TMPDIR}/fakehome"
   mkdir --parents "${HOME}/a" "${HOME}/b"
-  printf 'java=21.0.3-tem\n' > "${HOME}/a/.sdkmanrc"
-  printf 'java=21.0.3-tem\n' > "${HOME}/b/.sdkmanrc"
+  printf 'java=21.0.3-amzn\n' > "${HOME}/a/.sdkmanrc"
+  printf 'java=21.0.3-amzn\n' > "${HOME}/b/.sdkmanrc"
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdkman_jdks::is_jdk_artifact_installed() { return 1; }
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdkman_jdks::get_jdk_major_version() { printf '21'; }
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
-  function sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version() { printf '21.0.7-tem'; }
+  function sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version() { printf '21.0.7-amzn'; }
   export -f sdkman_jdks::is_jdk_artifact_installed
   export -f sdkman_jdks::get_jdk_major_version
   export -f sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version
   run sdkman::rewrite_sdkmanrc_file_java_versions
   assert_success
   run cat "${HOME}/a/.sdkmanrc"
-  assert_output 'java=21.0.7-tem'
+  assert_output 'java=21.0.7-amzn'
   run cat "${HOME}/b/.sdkmanrc"
-  assert_output 'java=21.0.7-tem'
+  assert_output 'java=21.0.7-amzn'
 }
 
 @test "rewrite_sdkmanrc_file_java_versions: no-op when no .sdkmanrc files present" {

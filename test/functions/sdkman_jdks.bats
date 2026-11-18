@@ -47,9 +47,9 @@ stub_sdk_catalog() {
       cat << 'EOF'
  Vendor         | Use | Version            | Identifier
 --------------------------------------------------------------------------------
- Temurin        |     | 21.0.5             | 21.0.5-tem
-                | > * | 21.0.3             | 21.0.3-tem
-                |   * | 17.0.10            | 17.0.10-tem
+ Corretto       |     | 21.0.5             | 21.0.5-amzn
+                | > * | 21.0.3             | 21.0.3-amzn
+                |   * | 17.0.10            | 17.0.10-amzn
  Eclipse        |     | 21.0.5             | 21.0.5-sapmchn
 EOF
     fi
@@ -67,9 +67,9 @@ stub_sdk_catalog_legacy_columns() {
       cat << 'EOF'
  Vendor        | Use | Version      | Dist    | Status     | Identifier
 --------------------------------------------------------------------------------
- Temurin       |     | 21.0.5       | tem     |            | 21.0.5-tem
- Temurin       | >>> | 21.0.3       | tem     | installed  | 21.0.3-tem
- Temurin       |     | 17.0.10      | tem     | installed  | 17.0.10-tem
+ Corretto      |     | 21.0.5       | amzn    |            | 21.0.5-amzn
+ Corretto      | >>> | 21.0.3       | amzn    | installed  | 21.0.3-amzn
+ Corretto      |     | 17.0.10      | amzn    | installed  | 17.0.10-amzn
  Eclipse       |     | 21.0.5       | sapmchn |            | 21.0.5-sapmchn
 EOF
     fi
@@ -89,9 +89,9 @@ stub_sdk_catalog_local_only_first() {
       cat << 'EOF'
  Vendor         | Use | Version            | Identifier
 --------------------------------------------------------------------------------
- Temurin        |   + | 21.0.9             | 21.0.9-tem
-                |     | 21.0.5             | 21.0.5-tem
-                |   * | 17.0.10            | 17.0.10-tem
+ Corretto       |   + | 21.0.9             | 21.0.9-amzn
+                |     | 21.0.5             | 21.0.5-amzn
+                |   * | 17.0.10            | 17.0.10-amzn
 EOF
     fi
   }
@@ -101,7 +101,7 @@ EOF
 # ---------- get_jdk_major_version ----------
 
 @test "get_jdk_major_version: extracts from artifact id" {
-  run sdkman_jdks::get_jdk_major_version '21.0.3-tem'
+  run sdkman_jdks::get_jdk_major_version '21.0.3-amzn'
   assert_success
   assert_output '21'
 }
@@ -113,7 +113,7 @@ EOF
 }
 
 @test "get_jdk_major_version: extracts from multi-digit major" {
-  run sdkman_jdks::get_jdk_major_version '17.0.10-tem'
+  run sdkman_jdks::get_jdk_major_version '17.0.10-amzn'
   assert_success
   assert_output '17'
 }
@@ -137,10 +137,10 @@ EOF
     source '${SCRIPTS_DIR}/functions/log.bash'
     source '${SCRIPTS_DIR}/functions/args.bash'
     source '${SCRIPTS_DIR}/functions/sdkman_jdks.bash'
-    printf '21;21.0.3;21.0.3-tem;y\n17;17.0.10;17.0.10-tem;n\n' | sdkman_jdks::filter_for_installed
+    printf '21;21.0.3;21.0.3-amzn;y\n17;17.0.10;17.0.10-amzn;n\n' | sdkman_jdks::filter_for_installed
   "
   assert_success
-  assert_output '21;21.0.3;21.0.3-tem;y'
+  assert_output '21;21.0.3;21.0.3-amzn;y'
 }
 
 @test "filter_for_installed: empty stdin yields empty output" {
@@ -164,10 +164,10 @@ EOF
     source '${SCRIPTS_DIR}/functions/log.bash'
     source '${SCRIPTS_DIR}/functions/args.bash'
     source '${SCRIPTS_DIR}/functions/sdkman_jdks.bash'
-    printf '21;21.0.3;21.0.3-tem;y\n17;17.0.10;17.0.10-tem;y\n' | sdkman_jdks::filter_for_major_version 21
+    printf '21;21.0.3;21.0.3-amzn;y\n17;17.0.10;17.0.10-amzn;y\n' | sdkman_jdks::filter_for_major_version 21
   "
   assert_success
-  assert_output '21;21.0.3;21.0.3-tem;y'
+  assert_output '21;21.0.3;21.0.3-amzn;y'
 }
 
 @test "filter_for_major_version: dies with wrong arg count" {
@@ -188,11 +188,11 @@ EOF
     source '${SCRIPTS_DIR}/functions/log.bash'
     source '${SCRIPTS_DIR}/functions/args.bash'
     source '${SCRIPTS_DIR}/functions/sdkman_jdks.bash'
-    printf '21;21.0.5;21.0.5-tem;y\n21;21.0.3;21.0.3-tem;y\n17;17.0.10;17.0.10-tem;y\n' | sdkman_jdks::filter_for_latest_per_major_version
+    printf '21;21.0.5;21.0.5-amzn;y\n21;21.0.3;21.0.3-amzn;y\n17;17.0.10;17.0.10-amzn;y\n' | sdkman_jdks::filter_for_latest_per_major_version
   "
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
-  assert_line --index 1 '17;17.0.10;17.0.10-tem;y'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn;y'
+  assert_line --index 1 '17;17.0.10;17.0.10-amzn;y'
 }
 
 @test "filter_for_latest_per_major_version: dies with args" {
@@ -208,7 +208,7 @@ EOF
     source '${SCRIPTS_DIR}/functions/log.bash'
     source '${SCRIPTS_DIR}/functions/args.bash'
     source '${SCRIPTS_DIR}/functions/sdkman_jdks.bash'
-    printf '21;21.0.3;21.0.3-tem;y\n' | sdkman_jdks::get_formatted_jdk_major_version_field
+    printf '21;21.0.3;21.0.3-amzn;y\n' | sdkman_jdks::get_formatted_jdk_major_version_field
   "
   assert_success
   assert_output '21'
@@ -219,7 +219,7 @@ EOF
     source '${SCRIPTS_DIR}/functions/log.bash'
     source '${SCRIPTS_DIR}/functions/args.bash'
     source '${SCRIPTS_DIR}/functions/sdkman_jdks.bash'
-    printf '21;21.0.3;21.0.3-tem;y\n' | sdkman_jdks::get_formatted_jdk_version_field
+    printf '21;21.0.3;21.0.3-amzn;y\n' | sdkman_jdks::get_formatted_jdk_version_field
   "
   assert_success
   assert_output '21.0.3'
@@ -230,10 +230,10 @@ EOF
     source '${SCRIPTS_DIR}/functions/log.bash'
     source '${SCRIPTS_DIR}/functions/args.bash'
     source '${SCRIPTS_DIR}/functions/sdkman_jdks.bash'
-    printf '21;21.0.3;21.0.3-tem;y\n' | sdkman_jdks::get_formatted_jdk_artifact_id_field
+    printf '21;21.0.3;21.0.3-amzn;y\n' | sdkman_jdks::get_formatted_jdk_artifact_id_field
   "
   assert_success
-  assert_output '21.0.3-tem'
+  assert_output '21.0.3-amzn'
 }
 
 @test "all field extractors: empty stdin yields empty output" {
@@ -267,11 +267,11 @@ EOF
 # ---------- helpers for wrapper tests ----------
 
 # Canned formatted JDK rows for stubbing get_formatted_all_jdks.
-readonly CANNED_JDKS='21;21.0.5;21.0.5-tem;y
-21;21.0.3;21.0.3-tem;y
-17;17.0.10;17.0.10-tem;y
-17;17.0.8;17.0.8-tem;n
-11;11.0.22;11.0.22-tem;n'
+readonly CANNED_JDKS='21;21.0.5;21.0.5-amzn;y
+21;21.0.3;21.0.3-amzn;y
+17;17.0.10;17.0.10-amzn;y
+17;17.0.8;17.0.8-amzn;n
+11;11.0.22;11.0.22-amzn;n'
 
 # Create candidate dirs for the given artifact ids. The installed-* helpers read the SDKMAN
 # candidates dir rather than `sdk list java`, so installed state must exist on disk.
@@ -287,12 +287,12 @@ stub_jdks_and_sdk() {
   function sdk() { printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"; }
   export -f sdkman_jdks::get_formatted_all_jdks sdk
   # Mirror the 'y' rows of CANNED_JDKS on disk so the two sources of truth agree.
-  fixture_installed_jdks '21.0.5-tem' '21.0.3-tem' '17.0.10-tem'
+  fixture_installed_jdks '21.0.5-amzn' '21.0.3-amzn' '17.0.10-amzn'
 }
 
 # SDKMAN_CANDIDATES_DIR is exported once in setup(); this only creates the symlink.
 fixture_default_symlink() {
-  # $1 = artifact id, e.g. 17.0.19-tem
+  # $1 = artifact id, e.g. 17.0.19-amzn
   mkdir --parents "${SDKMAN_CANDIDATES_DIR}/java/$1"
   ln --symbolic "${SDKMAN_CANDIDATES_DIR}/java/$1" "${SDKMAN_CANDIDATES_DIR}/java/current"
 }
@@ -303,9 +303,9 @@ fixture_default_symlink() {
   stub_sdk_catalog
   run sdkman_jdks::fetch_jdk_catalog
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem'
-  assert_line --index 1 '21;21.0.3;21.0.3-tem'
-  assert_line --index 2 '17;17.0.10;17.0.10-tem'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn'
+  assert_line --index 1 '21;21.0.3;21.0.3-amzn'
+  assert_line --index 2 '17;17.0.10;17.0.10-amzn'
   refute_output --partial 'sapmchn'
 }
 
@@ -315,9 +315,9 @@ fixture_default_symlink() {
   stub_sdk_catalog_legacy_columns
   run sdkman_jdks::fetch_jdk_catalog
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem'
-  assert_line --index 1 '21;21.0.3;21.0.3-tem'
-  assert_line --index 2 '17;17.0.10;17.0.10-tem'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn'
+  assert_line --index 1 '21;21.0.3;21.0.3-amzn'
+  assert_line --index 2 '17;17.0.10;17.0.10-amzn'
   refute_output --partial 'sapmchn'
 }
 
@@ -329,14 +329,45 @@ fixture_default_symlink() {
     cat << 'EOF'
  Vendor         | Use | Version            | Identifier
 --------------------------------------------------------------------------------
- Temurin        |     | 21.0.12+1.1        | 21.0.12+1.1-tem
-                |   + | 21.0.12            | 21.0.12-tem
+ Corretto       |     | 21.0.12+1.1        | 21.0.12+1.1-amzn
+                |   + | 21.0.12            | 21.0.12-amzn
 EOF
   }
   export -f sdk
   run sdkman_jdks::fetch_jdk_catalog
   assert_success
-  assert_output '21;21.0.12+1.1;21.0.12+1.1-tem'
+  assert_output '21;21.0.12+1.1;21.0.12+1.1-amzn'
+}
+
+@test "fetch_jdk_catalog: parses a Corretto version with a + build suffix" {
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() {
+    cat << 'EOF'
+ Vendor         | Use | Version            | Identifier
+--------------------------------------------------------------------------------
+ Corretto       |     | 26.0.2.0+11.1      | 26.0.2.0+11.1-amzn
+EOF
+  }
+  export -f sdk
+  run sdkman_jdks::fetch_jdk_catalog
+  assert_success
+  assert_output '26;26.0.2.0+11.1;26.0.2.0+11.1-amzn'
+}
+
+@test "fetch_jdk_catalog: ignores Temurin rows" {
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() {
+    cat << 'EOF'
+ Vendor         | Use | Version            | Identifier
+--------------------------------------------------------------------------------
+ Corretto       |     | 21.0.5.11.1        | 21.0.5.11.1-amzn
+ Temurin        |     | 21.0.5             | 21.0.5-tem
+EOF
+  }
+  export -f sdk
+  run sdkman_jdks::fetch_jdk_catalog
+  assert_success
+  assert_output '21;21.0.5.11.1;21.0.5.11.1-amzn'
 }
 
 @test "fetch_jdk_catalog: drops rows SDKMAN marks local only" {
@@ -348,14 +379,14 @@ EOF
     cat << 'EOF'
  Vendor         | Use | Version            | Identifier
 --------------------------------------------------------------------------------
- Temurin        |   + | 21.0.9             | 21.0.9-tem
-                |     | 21.0.5             | 21.0.5-tem
+ Corretto       |   + | 21.0.9             | 21.0.9-amzn
+                |     | 21.0.5             | 21.0.5-amzn
 EOF
   }
   export -f sdk
   run sdkman_jdks::fetch_jdk_catalog
   assert_success
-  assert_output '21;21.0.5;21.0.5-tem'
+  assert_output '21;21.0.5;21.0.5-amzn'
 }
 
 @test "fetch_jdk_catalog: drops legacy six-column rows marked local only" {
@@ -366,14 +397,14 @@ EOF
     cat << 'EOF'
  Vendor        | Use | Version      | Dist    | Status     | Identifier
 --------------------------------------------------------------------------------
- Temurin       |     | 21.0.9       | tem     | local only | 21.0.9-tem
- Temurin       |     | 21.0.5       | tem     |            | 21.0.5-tem
+ Corretto      |     | 21.0.9       | amzn    | local only | 21.0.9-amzn
+ Corretto      |     | 21.0.5       | amzn    |            | 21.0.5-amzn
 EOF
   }
   export -f sdk
   run sdkman_jdks::fetch_jdk_catalog
   assert_success
-  assert_output '21;21.0.5;21.0.5-tem'
+  assert_output '21;21.0.5;21.0.5-amzn'
 }
 
 @test "fetch_jdk_catalog: keeps in-use and installed rows in both layouts" {
@@ -384,17 +415,17 @@ EOF
     cat << 'EOF'
  Vendor         | Use | Version            | Identifier
 --------------------------------------------------------------------------------
- Temurin        | > * | 21.0.5             | 21.0.5-tem
-                |   * | 17.0.10            | 17.0.10-tem
-                |     | 11.0.22            | 11.0.22-tem
+ Corretto       | > * | 21.0.5             | 21.0.5-amzn
+                |   * | 17.0.10            | 17.0.10-amzn
+                |     | 11.0.22            | 11.0.22-amzn
 EOF
   }
   export -f sdk
   run sdkman_jdks::fetch_jdk_catalog
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem'
-  assert_line --index 1 '17;17.0.10;17.0.10-tem'
-  assert_line --index 2 '11;11.0.22;11.0.22-tem'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn'
+  assert_line --index 1 '17;17.0.10;17.0.10-amzn'
+  assert_line --index 2 '11;11.0.22;11.0.22-amzn'
 }
 
 @test "fetch_jdk_catalog: keeps legacy in-use and installed rows" {
@@ -403,18 +434,18 @@ EOF
     cat << 'EOF'
  Vendor        | Use | Version      | Dist    | Status     | Identifier
 --------------------------------------------------------------------------------
- Temurin       | >>> | 21.0.5       | tem     | installed  | 21.0.5-tem
- Temurin       |     | 17.0.10      | tem     |            | 17.0.10-tem
+ Corretto      | >>> | 21.0.5       | amzn    | installed  | 21.0.5-amzn
+ Corretto      |     | 17.0.10      | amzn    |            | 17.0.10-amzn
 EOF
   }
   export -f sdk
   run sdkman_jdks::fetch_jdk_catalog
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem'
-  assert_line --index 1 '17;17.0.10;17.0.10-tem'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn'
+  assert_line --index 1 '17;17.0.10;17.0.10-amzn'
 }
 
-@test "fetch_jdk_catalog: ignores table furniture and non-temurin rows" {
+@test "fetch_jdk_catalog: ignores table furniture and non-Corretto rows" {
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdk() {
     cat << 'EOF'
@@ -423,8 +454,8 @@ Available Java Versions for Linux 64bit
 ================================================================================
  Vendor         | Use | Version            | Identifier
 --------------------------------------------------------------------------------
- Corretto       |     | 21.0.12            | 21.0.12-amzn
- Temurin        |   * | 17.0.20            | 17.0.20-tem
+ Temurin        |     | 21.0.12            | 21.0.12-tem
+ Corretto       |   * | 17.0.20            | 17.0.20-amzn
 ================================================================================
  > in use   * installed   + local only
 --------------------------------------------------------------------------------
@@ -435,7 +466,7 @@ EOF
   export -f sdk
   run sdkman_jdks::fetch_jdk_catalog
   assert_success
-  assert_output '17;17.0.20;17.0.20-tem'
+  assert_output '17;17.0.20;17.0.20-amzn'
 }
 
 @test "fetch_jdk_catalog: discards the sdk-reported installed status" {
@@ -474,8 +505,8 @@ EOF
   stub_sdk_catalog
   run sdkman_jdks::get_jdk_catalog
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem'
-  assert_line --index 2 '17;17.0.10;17.0.10-tem'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn'
+  assert_line --index 2 '17;17.0.10;17.0.10-amzn'
 }
 
 @test "get_jdk_catalog: fetches once even when called from inside pipelines" {
@@ -531,7 +562,7 @@ EOF
   # shellcheck disable=SC2329 # invoked indirectly via export -f by the function under test
   function sdk() {
     printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"
-    printf ' Temurin       |     | 21.0.5       | tem     |            | 21.0.5-tem\n'
+    printf ' Corretto      |     | 21.0.5       | amzn    |            | 21.0.5-amzn\n'
     return 1
   }
   export -f sdk
@@ -542,8 +573,8 @@ EOF
   stub_sdk_catalog
   run sdkman_jdks::get_jdk_catalog
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem'
-  assert_line --index 2 '17;17.0.10;17.0.10-tem'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn'
+  assert_line --index 2 '17;17.0.10;17.0.10-amzn'
 }
 
 @test "get_jdk_catalog: dies with args" {
@@ -556,12 +587,12 @@ EOF
 
 @test "get_formatted_all_jdks: annotates installed status from the candidates dir" {
   stub_sdk_catalog
-  fixture_installed_jdks '21.0.3-tem' '17.0.10-tem'
+  fixture_installed_jdks '21.0.3-amzn' '17.0.10-amzn'
   run sdkman_jdks::get_formatted_all_jdks
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem;n'
-  assert_line --index 1 '21;21.0.3;21.0.3-tem;y'
-  assert_line --index 2 '17;17.0.10;17.0.10-tem;y'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn;n'
+  assert_line --index 1 '21;21.0.3;21.0.3-amzn;y'
+  assert_line --index 2 '17;17.0.10;17.0.10-amzn;y'
   refute_output --partial 'sapmchn'
 }
 
@@ -569,9 +600,9 @@ EOF
   stub_sdk_catalog
   run sdkman_jdks::get_formatted_all_jdks
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem;n'
-  assert_line --index 1 '21;21.0.3;21.0.3-tem;n'
-  assert_line --index 2 '17;17.0.10;17.0.10-tem;n'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn;n'
+  assert_line --index 1 '21;21.0.3;21.0.3-amzn;n'
+  assert_line --index 2 '17;17.0.10;17.0.10-amzn;n'
 }
 
 @test "get_formatted_all_jdks: installed column tracks installs made after the memo was filled" {
@@ -580,11 +611,11 @@ EOF
   stub_sdk_catalog
   run sdkman_jdks::get_formatted_all_jdks
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem;n'
-  fixture_installed_jdks '21.0.5-tem'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn;n'
+  fixture_installed_jdks '21.0.5-amzn'
   run sdkman_jdks::get_formatted_all_jdks
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn;y'
   # ...and still only one round-trip across both calls.
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output 'list java'
@@ -609,26 +640,26 @@ EOF
 
 @test "install_jdk: invokes sdk install java <id>" {
   stub_jdks_and_sdk
-  run sdkman_jdks::install_jdk '21.0.5-tem'
+  run sdkman_jdks::install_jdk '21.0.5-amzn'
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output 'install java 21.0.5-tem'
+  assert_output 'install java 21.0.5-amzn'
 }
 
 @test "uninstall_jdk: invokes sdk uninstall java <id>" {
   stub_jdks_and_sdk
-  run sdkman_jdks::uninstall_jdk '21.0.3-tem'
+  run sdkman_jdks::uninstall_jdk '21.0.3-amzn'
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output 'uninstall java 21.0.3-tem'
+  assert_output 'uninstall java 21.0.3-amzn'
 }
 
 @test "set_default_jdk_by_id: invokes sdk default java <id>" {
   stub_jdks_and_sdk
-  run sdkman_jdks::set_default_jdk_by_id '21.0.5-tem'
+  run sdkman_jdks::set_default_jdk_by_id '21.0.5-amzn'
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output 'default java 21.0.5-tem'
+  assert_output 'default java 21.0.5-amzn'
 }
 
 @test "install_jdk: dies with 0 args" {
@@ -655,9 +686,9 @@ EOF
   stub_jdks_and_sdk
   run sdkman_jdks::get_formatted_latest_available_jdk_major_versions
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
-  assert_line --index 1 '17;17.0.10;17.0.10-tem;y'
-  assert_line --index 2 '11;11.0.22;11.0.22-tem;n'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn;y'
+  assert_line --index 1 '17;17.0.10;17.0.10-amzn;y'
+  assert_line --index 2 '11;11.0.22;11.0.22-amzn;n'
 }
 
 @test "get_formatted_latest_available_jdk_major_versions: dies with args" {
@@ -670,7 +701,7 @@ EOF
   stub_jdks_and_sdk
   run sdkman_jdks::get_formatted_latest_available_jdk_for_major_version 17
   assert_success
-  assert_output '17;17.0.10;17.0.10-tem;y'
+  assert_output '17;17.0.10;17.0.10-amzn;y'
 }
 
 @test "get_formatted_latest_available_jdk_for_major_version: dies for unavailable major" {
@@ -738,45 +769,60 @@ EOF
 # ---------- get_formatted_installed_jdks (candidates-dir source) ----------
 
 @test "get_formatted_installed_jdks: formats every candidate dir, newest first" {
-  fixture_installed_jdks '8.0.492-tem' '11.0.32-tem' '21.0.9-tem' '21.0.12-tem'
+  fixture_installed_jdks '8.0.492-amzn' '11.0.32-amzn' '21.0.9-amzn' '21.0.12-amzn'
   run sdkman_jdks::get_formatted_installed_jdks
   assert_success
   # Ordering must be version-aware, not lexicographic: 21 before 11 before 8 across majors,
   # and 21.0.12 before 21.0.9 within a major.
-  assert_line --index 0 '21;21.0.12;21.0.12-tem;y'
-  assert_line --index 1 '21;21.0.9;21.0.9-tem;y'
-  assert_line --index 2 '11;11.0.32;11.0.32-tem;y'
-  assert_line --index 3 '8;8.0.492;8.0.492-tem;y'
+  assert_line --index 0 '21;21.0.12;21.0.12-amzn;y'
+  assert_line --index 1 '21;21.0.9;21.0.9-amzn;y'
+  assert_line --index 2 '11;11.0.32;11.0.32-amzn;y'
+  assert_line --index 3 '8;8.0.492;8.0.492-amzn;y'
 }
 
 @test "get_formatted_installed_jdks: single installed jdk" {
-  fixture_installed_jdks '21.0.5-tem'
+  fixture_installed_jdks '21.0.5-amzn'
   run sdkman_jdks::get_formatted_installed_jdks
   assert_success
-  assert_output '21;21.0.5;21.0.5-tem;y'
+  assert_output '21;21.0.5;21.0.5-amzn;y'
 }
 
-@test "get_formatted_installed_jdks: ignores non-temurin candidates" {
-  fixture_installed_jdks '21.0.5-tem' '21.0.5-oracle' '21.0.5-graalce' '21.0.5-amzn'
+@test "get_formatted_installed_jdks: ignores non-Corretto candidates" {
+  fixture_installed_jdks '21.0.5-amzn' '21.0.5-oracle' '21.0.5-graalce' '21.0.5-tem'
   run sdkman_jdks::get_formatted_installed_jdks
   assert_success
-  assert_output '21;21.0.5;21.0.5-tem;y'
+  assert_output '21;21.0.5;21.0.5-amzn;y'
+}
+
+@test "get_formatted_installed_jdks: ignores a Temurin candidate dir" {
+  fixture_installed_jdks '21.0.3-tem' '21.0.3.9.1-amzn'
+  run sdkman_jdks::get_formatted_installed_jdks
+  assert_success
+  assert_output '21;21.0.3.9.1;21.0.3.9.1-amzn;y'
+}
+
+@test "get_formatted_installed_jdks: orders Corretto + build shapes by version" {
+  fixture_installed_jdks '26.0.2.0+11.1-amzn' '26.0.3.1.1-amzn'
+  run sdkman_jdks::get_formatted_installed_jdks
+  assert_success
+  assert_line --index 0 '26;26.0.3.1.1;26.0.3.1.1-amzn;y'
+  assert_line --index 1 '26;26.0.2.0+11.1;26.0.2.0+11.1-amzn;y'
 }
 
 @test "get_formatted_installed_jdks: ignores the current symlink" {
-  fixture_default_symlink '21.0.5-tem'
+  fixture_default_symlink '21.0.5-amzn'
   run sdkman_jdks::get_formatted_installed_jdks
   assert_success
-  assert_output '21;21.0.5;21.0.5-tem;y'
+  assert_output '21;21.0.5;21.0.5-amzn;y'
   refute_output --partial 'current'
 }
 
 @test "get_formatted_installed_jdks: ignores plain files named like an artifact" {
-  fixture_installed_jdks '21.0.5-tem'
-  touch "${SDKMAN_CANDIDATES_DIR}/java/17.0.10-tem"
+  fixture_installed_jdks '21.0.5-amzn'
+  touch "${SDKMAN_CANDIDATES_DIR}/java/17.0.10-amzn"
   run sdkman_jdks::get_formatted_installed_jdks
   assert_success
-  assert_output '21;21.0.5;21.0.5-tem;y'
+  assert_output '21;21.0.5;21.0.5-amzn;y'
 }
 
 @test "get_formatted_installed_jdks: empty when no candidates installed" {
@@ -799,10 +845,10 @@ EOF
   # shellcheck disable=SC2329 # deliberately never invoked; the test asserts it is not called
   function sdk() { printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"; }
   export -f sdk
-  fixture_installed_jdks '21.0.5-tem'
+  fixture_installed_jdks '21.0.5-amzn'
   run sdkman_jdks::get_formatted_installed_jdks
   assert_success
-  assert_output '21;21.0.5;21.0.5-tem;y'
+  assert_output '21;21.0.5;21.0.5-amzn;y'
   refute [ -e "${BATS_TEST_TMPDIR}/sdk.calls" ]
 }
 
@@ -818,9 +864,9 @@ EOF
   stub_jdks_and_sdk
   run sdkman_jdks::get_formatted_installed_jdks
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
-  assert_line --index 1 '21;21.0.3;21.0.3-tem;y'
-  assert_line --index 2 '17;17.0.10;17.0.10-tem;y'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn;y'
+  assert_line --index 1 '21;21.0.3;21.0.3-amzn;y'
+  assert_line --index 2 '17;17.0.10;17.0.10-amzn;y'
   refute_output --partial '11.0.22'
 }
 
@@ -828,8 +874,8 @@ EOF
   stub_jdks_and_sdk
   run sdkman_jdks::get_formatted_installed_jdks_for_major_version 21
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
-  assert_line --index 1 '21;21.0.3;21.0.3-tem;y'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn;y'
+  assert_line --index 1 '21;21.0.3;21.0.3-amzn;y'
 }
 
 @test "get_formatted_installed_jdks_for_major_version: dies with 0 args" {
@@ -842,8 +888,8 @@ EOF
   stub_jdks_and_sdk
   run sdkman_jdks::get_formatted_latest_installed_jdk_major_versions
   assert_success
-  assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
-  assert_line --index 1 '17;17.0.10;17.0.10-tem;y'
+  assert_line --index 0 '21;21.0.5;21.0.5-amzn;y'
+  assert_line --index 1 '17;17.0.10;17.0.10-amzn;y'
 }
 
 @test "get_formatted_latest_installed_jdk_major_versions: dies with args" {
@@ -856,7 +902,7 @@ EOF
   stub_jdks_and_sdk
   run sdkman_jdks::get_formatted_latest_installed_jdk_for_major_version 21
   assert_success
-  assert_output '21;21.0.5;21.0.5-tem;y'
+  assert_output '21;21.0.5;21.0.5-amzn;y'
 }
 
 @test "get_formatted_latest_installed_jdk_for_major_version: dies for non-installed major" {
@@ -920,14 +966,20 @@ EOF
 
 @test "is_jdk_artifact_installed: true for installed artifact" {
   stub_jdks_and_sdk
-  run sdkman_jdks::is_jdk_artifact_installed '21.0.3-tem'
+  run sdkman_jdks::is_jdk_artifact_installed '21.0.3-amzn'
   assert_success
 }
 
 @test "is_jdk_artifact_installed: false for non-installed artifact" {
   stub_jdks_and_sdk
-  run sdkman_jdks::is_jdk_artifact_installed '17.0.8-tem'
+  run sdkman_jdks::is_jdk_artifact_installed '17.0.8-amzn'
   assert_failure
+}
+
+@test "is_jdk_artifact_installed: false for an installed Temurin dir" {
+  fixture_installed_jdks '21.0.3-tem'
+  run sdkman_jdks::is_jdk_artifact_installed '21.0.3-tem'
+  assert_failure 1
 }
 
 @test "is_jdk_artifact_installed: dies with 0 args" {
@@ -940,7 +992,7 @@ EOF
   stub_jdks_and_sdk
   run sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version 21
   assert_success
-  assert_output '21.0.5-tem'
+  assert_output '21.0.5-amzn'
 }
 
 @test "get_latest_installed_jdk_artifact_id_for_major_version: dies with 0 args" {
@@ -956,7 +1008,7 @@ EOF
   run sdkman_jdks::install_latest_jdk 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output 'install java 21.0.5-tem'
+  assert_output 'install java 21.0.5-amzn'
 }
 
 @test "install_latest_jdk: dies with 0 args" {
@@ -972,8 +1024,8 @@ EOF
   run sdkman_jdks::install_latest_jdk 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  refute_output --partial 'install java 21.0.9-tem'
-  assert_output --partial 'install java 21.0.5-tem'
+  refute_output --partial 'install java 21.0.9-amzn'
+  assert_output --partial 'install java 21.0.5-amzn'
 }
 
 @test "install_latest_jdks: installs latest for every major" {
@@ -981,9 +1033,9 @@ EOF
   run sdkman_jdks::install_latest_jdks
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_line --index 0 'install java 11.0.22-tem'
-  assert_line --index 1 'install java 17.0.10-tem'
-  assert_line --index 2 'install java 21.0.5-tem'
+  assert_line --index 0 'install java 11.0.22-amzn'
+  assert_line --index 1 'install java 17.0.10-amzn'
+  assert_line --index 2 'install java 21.0.5-amzn'
 }
 
 @test "install_latest_jdks: dies with args" {
@@ -997,7 +1049,7 @@ EOF
   run sdkman_jdks::set_default_sdk_to_latest_installed_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output 'default java 21.0.5-tem'
+  assert_output 'default java 21.0.5-amzn'
 }
 
 @test "set_default_sdk_to_latest_installed_for_major_version: dies with 0 args" {
@@ -1009,7 +1061,7 @@ EOF
 # ---------- has_default_jdk ----------
 
 @test "has_default_jdk: true when current symlink exists" {
-  fixture_default_symlink '17.0.19-tem'
+  fixture_default_symlink '17.0.19-amzn'
   run sdkman_jdks::has_default_jdk
   assert_success
 }
@@ -1029,10 +1081,10 @@ EOF
 # ---------- get_current_default_jdk_artifact_id ----------
 
 @test "get_current_default_jdk_artifact_id: prints the artifact the current symlink points at" {
-  fixture_default_symlink '17.0.19-tem'
+  fixture_default_symlink '17.0.19-amzn'
   run sdkman_jdks::get_current_default_jdk_artifact_id
   assert_success
-  assert_output '17.0.19-tem'
+  assert_output '17.0.19-amzn'
 }
 
 @test "get_current_default_jdk_artifact_id: dies when no symlink" {
@@ -1051,14 +1103,14 @@ EOF
 # ---------- get_current_default_jdk_major_version ----------
 
 @test "get_current_default_jdk_major_version: extracts major from current symlink" {
-  fixture_default_symlink '17.0.19-tem'
+  fixture_default_symlink '17.0.19-amzn'
   run sdkman_jdks::get_current_default_jdk_major_version
   assert_success
   assert_output '17'
 }
 
 @test "get_current_default_jdk_major_version: multi-digit major" {
-  fixture_default_symlink '21.0.5-tem'
+  fixture_default_symlink '21.0.5-amzn'
   run sdkman_jdks::get_current_default_jdk_major_version
   assert_success
   assert_output '21'
@@ -1127,38 +1179,38 @@ EOF
 # ---------- get_latest_installed_jdk_lts_major_version ----------
 
 @test "get_latest_installed_jdk_lts_major_version: skips newer non-LTS and early-access majors" {
-  fixture_installed_jdks '8.0.512.0+9-tem' '11.0.33.0+10-tem' '25.0.5.0+8-tem' '26.0.2.1+1-tem' '27.0.0.0+35-tem'
+  fixture_installed_jdks '8.0.512.0+9-amzn' '11.0.33.0+10-amzn' '25.0.5.0+8-amzn' '26.0.2.1+1-amzn' '27.0.0.0+35-amzn'
   run sdkman_jdks::get_latest_installed_jdk_lts_major_version
   assert_success
   assert_output '25'
 }
 
 @test "get_latest_installed_jdk_lts_major_version: compares majors numerically" {
-  fixture_installed_jdks '8.0.512-tem' '11.0.33-tem'
+  fixture_installed_jdks '8.0.512-amzn' '11.0.33-amzn'
   run sdkman_jdks::get_latest_installed_jdk_lts_major_version
   assert_success
   assert_output '11'
 }
 
 @test "get_latest_installed_jdk_lts_major_version: single LTS major installed" {
-  fixture_installed_jdks '21.0.5-tem'
+  fixture_installed_jdks '21.0.5-amzn'
   run sdkman_jdks::get_latest_installed_jdk_lts_major_version
   assert_success
   assert_output '21'
 }
 
 @test "get_latest_installed_jdk_lts_major_version: dies when only non-LTS majors are installed" {
-  fixture_installed_jdks '26.0.2-tem' '27.0.0-tem'
+  fixture_installed_jdks '26.0.2-amzn' '27.0.0-amzn'
   run sdkman_jdks::get_latest_installed_jdk_lts_major_version
   assert_failure
-  assert_output --partial 'No LTS Temurin JDK is installed'
+  assert_output --partial 'No LTS Corretto JDK is installed'
 }
 
 @test "get_latest_installed_jdk_lts_major_version: dies when no JDK is installed" {
   # setup() creates an empty candidates/java
   run sdkman_jdks::get_latest_installed_jdk_lts_major_version
   assert_failure
-  assert_output --partial 'No LTS Temurin JDK is installed'
+  assert_output --partial 'No LTS Corretto JDK is installed'
 }
 
 @test "get_latest_installed_jdk_lts_major_version: dies with args" {
@@ -1173,22 +1225,22 @@ EOF
   stub_jdks_and_sdk
   # The default sits on an older LTS (as a fresh install of a new 11 patch leaves it), while newer
   # non-LTS and early-access majors are installed: only the newest patch of 25 is correct.
-  fixture_installed_jdks '11.0.33-tem' '25.0.4-tem' '25.0.5-tem' '26.0.2-tem' '27.0.0-tem'
-  fixture_default_symlink '11.0.33-tem'
+  fixture_installed_jdks '11.0.33-amzn' '25.0.4-amzn' '25.0.5-amzn' '26.0.2-amzn' '27.0.0-amzn'
+  fixture_default_symlink '11.0.33-amzn'
   run sdkman_jdks::set_default_jdk_to_latest_lts
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output 'default java 25.0.5-tem'
+  assert_output 'default java 25.0.5-amzn'
 }
 
 @test "set_default_jdk_to_latest_lts: moves a newer non-LTS default down to the latest LTS" {
   stub_jdks_and_sdk
-  fixture_installed_jdks '26.0.2-tem'
-  fixture_default_symlink '26.0.2-tem'
+  fixture_installed_jdks '26.0.2-amzn'
+  fixture_default_symlink '26.0.2-amzn'
   run sdkman_jdks::set_default_jdk_to_latest_lts
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output 'default java 21.0.5-tem'
+  assert_output 'default java 21.0.5-amzn'
 }
 
 @test "set_default_jdk_to_latest_lts: sets a default when none is set" {
@@ -1197,17 +1249,17 @@ EOF
   run sdkman_jdks::set_default_jdk_to_latest_lts
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output 'default java 21.0.5-tem'
+  assert_output 'default java 21.0.5-amzn'
 }
 
 @test "set_default_jdk_to_latest_lts: dies without touching the default when no LTS is installed" {
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdk() { printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"; }
   export -f sdk
-  fixture_installed_jdks '26.0.2-tem'
+  fixture_installed_jdks '26.0.2-amzn'
   run sdkman_jdks::set_default_jdk_to_latest_lts
   assert_failure
-  assert_output --partial 'No LTS Temurin JDK is installed'
+  assert_output --partial 'No LTS Corretto JDK is installed'
   assert [ ! -e "${BATS_TEST_TMPDIR}/sdk.calls" ]
 }
 
@@ -1222,37 +1274,37 @@ EOF
   run sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output 'uninstall java 21.0.3-tem'
+  assert_output 'uninstall java 21.0.3-amzn'
 }
 
 @test "prune_jdks_for_major_version: repoints the default at the keeper before removing it" {
   # `sdk uninstall` refuses to remove the artifact java/current points at and exits 1, which
   # killed the whole sweep. The repoint must land before the uninstall, not merely happen.
   stub_jdks_and_sdk
-  fixture_default_symlink '21.0.3-tem'
+  fixture_default_symlink '21.0.3-amzn'
   run sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_line --index 0 'default java 21.0.5-tem'
-  assert_line --index 1 'uninstall java 21.0.3-tem'
+  assert_line --index 0 'default java 21.0.5-amzn'
+  assert_line --index 1 'uninstall java 21.0.3-amzn'
 }
 
 @test "prune_jdks_for_major_version: leaves the default alone when it is already the keeper" {
   stub_jdks_and_sdk
-  fixture_default_symlink '21.0.5-tem'
+  fixture_default_symlink '21.0.5-amzn'
   run sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output 'uninstall java 21.0.3-tem'
+  assert_output 'uninstall java 21.0.3-amzn'
 }
 
 @test "prune_jdks_for_major_version: leaves a default from another major alone" {
   stub_jdks_and_sdk
-  fixture_default_symlink '17.0.10-tem'
+  fixture_default_symlink '17.0.10-amzn'
   run sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output 'uninstall java 21.0.3-tem'
+  assert_output 'uninstall java 21.0.3-amzn'
 }
 
 @test "prune_jdks_for_major_version: prunes normally when no default is set" {
@@ -1261,35 +1313,35 @@ EOF
   run sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output 'uninstall java 21.0.3-tem'
+  assert_output 'uninstall java 21.0.3-amzn'
 }
 
 @test "prune_jdks_for_major_version: keeps the newest remote over a local-only artifact" {
   # Mirror of the install case: with 21.0.9 local only and sorting first, an unfiltered catalog
   # would make it the keeper and uninstall 21.0.5 — the one that can still be downloaded.
   stub_sdk_catalog_local_only_first
-  fixture_installed_jdks '21.0.9-tem' '21.0.5-tem'
+  fixture_installed_jdks '21.0.9-amzn' '21.0.5-amzn'
   run sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output --partial 'uninstall java 21.0.9-tem'
-  refute_output --partial 'uninstall java 21.0.5-tem'
+  assert_output --partial 'uninstall java 21.0.9-amzn'
+  refute_output --partial 'uninstall java 21.0.5-amzn'
 }
 
 @test "prune_jdks_for_major_version: warns instead of pruning when the keeper is not installed" {
   # 21.0.5 is the keeper but is not on disk, so every installed artifact for major 21 differs
   # from it and the sweep would strip the major bare — irreversibly, for a local-only artifact.
   stub_sdk_catalog_local_only_first
-  fixture_installed_jdks '21.0.9-tem'
+  fixture_installed_jdks '21.0.9-amzn'
   run --separate-stderr sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   assert_stderr --partial 'Not pruning Java 21'
-  assert_stderr --partial '21.0.5-tem is not installed'
+  assert_stderr --partial '21.0.5-amzn is not installed'
 }
 
 @test "prune_jdks_for_major_version: uninstalls nothing when the keeper is not installed" {
   stub_sdk_catalog_local_only_first
-  fixture_installed_jdks '21.0.9-tem'
+  fixture_installed_jdks '21.0.9-amzn'
   run sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
@@ -1315,7 +1367,7 @@ EOF
   run sdkman_jdks::prune_jdks
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_output --partial 'uninstall java 21.0.3-tem'
+  assert_output --partial 'uninstall java 21.0.3-amzn'
 }
 
 @test "prune_jdks: dies with args" {

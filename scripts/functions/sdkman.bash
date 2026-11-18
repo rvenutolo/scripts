@@ -147,7 +147,7 @@ function sdkman::sdkmanrc_java_home() {
 # A named shorthand for the `java` key; `sdkman::get_sdkmanrc_file_value` owns the parsing, so this
 # accepts everything that does — CRLF, comments, whitespace around the `=`.
 # @arg $1 sdkmanrc_file .sdkmanrc file path
-# @stdout artifact ID string (e.g. "21.0.3-tem"), or nothing when no java key is declared
+# @stdout artifact ID string (e.g. "21.0.3.9.1-amzn"), or nothing when no java key is declared
 # @exitcode 0 always — "absent" is signalled by empty stdout, never a non-zero status
 # @exitcode 1 the given file does not exist
 function sdkman::get_sdkmanrc_file_java_artifact_id() {
@@ -163,7 +163,7 @@ function sdkman::get_sdkmanrc_file_java_artifact_id() {
 # a line the writer cannot match turns `sdkman::rewrite_sdkmanrc_file_java_version` into a silent
 # no-op that reports success.
 # @arg $1 sdkmanrc_file .sdkmanrc file path
-# @arg $2 artifact_id new artifact ID (e.g. "21.0.3-tem")
+# @arg $2 artifact_id new artifact ID (e.g. "21.0.3.9.1-amzn")
 # @exitcode 1 the given file does not exist
 function sdkman::overwrite_sdkmanrc_file_java_artifact_id() {
   args::check_exactly_2_args "$@"
@@ -181,7 +181,7 @@ function sdkman::overwrite_sdkmanrc_file_java_artifact_id() {
     "${sdkmanrc_file}"
 }
 
-# @description Update the java entry in an .sdkmanrc file to the latest installed Temurin JDK for the same major version.
+# @description Update the java entry in an .sdkmanrc file to the latest installed Corretto JDK for the same major version.
 # No-ops if the currently declared artifact is already installed.
 # @arg $1 .sdkmanrc file path
 function sdkman::rewrite_sdkmanrc_file_java_version() {
