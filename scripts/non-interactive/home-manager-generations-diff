@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
 # @description Show the nix store closure diff between the two most recent home-manager generations.
+# With fewer than two generations there is nothing to compare: it says so and exits 0.
 # @noargs
 # @stdout `nix store diff-closures` output between the previous and current generation.
+# @stderr A notice when fewer than two generations exist.
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -18,6 +20,12 @@ args::check_no_args "$@"
 files::create_temp generations_file
 # shellcheck disable=SC2154 # generations_file assigned by files::create_temp nameref
 home-manager generations > "${generations_file}"
+generation_count="$(wc --lines < "${generations_file}")"
+readonly generation_count
+if ((generation_count < 2)); then
+  log::log "Found ${generation_count} home-manager generation(s); need two to diff"
+  exit 0
+fi
 head --lines=2 -- "${generations_file}" \
   | tac \
   | cut --delimiter=' ' --fields=7 \
