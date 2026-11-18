@@ -502,6 +502,16 @@ function pipe_large_input() {
   seq 1 200000 | "$1" "$2"
 }
 
+@test "contains_regex: stdin mode returns grep's error status on an invalid pattern" {
+  run grep::contains_regex '[' <<< 'abc'
+  assert_failure 2
+}
+
+@test "contains_regex: stdin mode fails on empty input even for an empty-line pattern" {
+  run grep::contains_regex '^$' < /dev/null
+  assert_failure 1
+}
+
 @test "contains_exactly: stdin mode reads input larger than a pipe buffer" {
   run pipe_large_input grep::contains_exactly '1'
   assert_success
