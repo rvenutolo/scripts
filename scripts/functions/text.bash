@@ -28,6 +28,8 @@ function text::remove_empty_lines() {
 }
 
 # @description Print the first line of stdin or a file.
+# Stdin is read to the end rather than with `head`, which exits after one line and kills a producer still writing
+# past the pipe buffer with SIGPIPE, failing the caller's pipeline under pipefail.
 # Output: stdout — first line of input
 # @arg $1 file path (optional; reads stdin if omitted)
 function text::first_line() {
@@ -36,7 +38,7 @@ function text::first_line() {
     head --lines=1 "$1"
   else
     args::check_for_stdin
-    head --lines=1
+    sed --quiet '1p'
   fi
 }
 
