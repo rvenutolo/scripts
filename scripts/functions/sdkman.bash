@@ -10,7 +10,7 @@
 #     # Subshell required: sdkman::init relaxes strict mode, which must not leak past the sdk calls.
 #     (
 #       sdkman::init
-#       sdkman_jdks::get_available_tem_jdk_major_versions
+#       sdkman_jdks::get_available_jdk_major_versions
 #     )
 #
 # @noargs
@@ -191,7 +191,7 @@ function sdkman::rewrite_sdkmanrc_file_java_version() {
   local current_java_artifact_id
   current_java_artifact_id="$(sdkman::get_sdkmanrc_file_java_artifact_id "${sdkmanrc_file}")"
   readonly current_java_artifact_id
-  if sdkman_jdks::is_tem_jdk_artifact_installed "${current_java_artifact_id}"; then
+  if sdkman_jdks::is_jdk_artifact_installed "${current_java_artifact_id}"; then
     return 0
   fi
   local major_version
@@ -199,7 +199,7 @@ function sdkman::rewrite_sdkmanrc_file_java_version() {
   readonly major_version
   local new_java_artifact_id
   new_java_artifact_id="$(
-    sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version "${major_version}"
+    sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version "${major_version}"
   )"
   readonly new_java_artifact_id
   sdkman::overwrite_sdkmanrc_file_java_artifact_id "${sdkmanrc_file}" "${new_java_artifact_id}"

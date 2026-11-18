@@ -201,36 +201,36 @@ EOF
   assert_output --partial 'Expected no arguments'
 }
 
-# ---------- get_formatted_tem_jdk_*_field ----------
+# ---------- get_formatted_jdk_*_field ----------
 
-@test "get_formatted_tem_jdk_major_version_field: extracts col 1" {
+@test "get_formatted_jdk_major_version_field: extracts col 1" {
   run bash -c "
     source '${SCRIPTS_DIR}/functions/log.bash'
     source '${SCRIPTS_DIR}/functions/args.bash'
     source '${SCRIPTS_DIR}/functions/sdkman_jdks.bash'
-    printf '21;21.0.3;21.0.3-tem;y\n' | sdkman_jdks::get_formatted_tem_jdk_major_version_field
+    printf '21;21.0.3;21.0.3-tem;y\n' | sdkman_jdks::get_formatted_jdk_major_version_field
   "
   assert_success
   assert_output '21'
 }
 
-@test "get_formatted_tem_jdk_version_field: extracts col 2" {
+@test "get_formatted_jdk_version_field: extracts col 2" {
   run bash -c "
     source '${SCRIPTS_DIR}/functions/log.bash'
     source '${SCRIPTS_DIR}/functions/args.bash'
     source '${SCRIPTS_DIR}/functions/sdkman_jdks.bash'
-    printf '21;21.0.3;21.0.3-tem;y\n' | sdkman_jdks::get_formatted_tem_jdk_version_field
+    printf '21;21.0.3;21.0.3-tem;y\n' | sdkman_jdks::get_formatted_jdk_version_field
   "
   assert_success
   assert_output '21.0.3'
 }
 
-@test "get_formatted_tem_jdk_artifact_id_field: extracts col 3" {
+@test "get_formatted_jdk_artifact_id_field: extracts col 3" {
   run bash -c "
     source '${SCRIPTS_DIR}/functions/log.bash'
     source '${SCRIPTS_DIR}/functions/args.bash'
     source '${SCRIPTS_DIR}/functions/sdkman_jdks.bash'
-    printf '21;21.0.3;21.0.3-tem;y\n' | sdkman_jdks::get_formatted_tem_jdk_artifact_id_field
+    printf '21;21.0.3;21.0.3-tem;y\n' | sdkman_jdks::get_formatted_jdk_artifact_id_field
   "
   assert_success
   assert_output '21.0.3-tem'
@@ -239,34 +239,34 @@ EOF
 @test "all field extractors: empty stdin yields empty output" {
   # BATS run connects stdin to a pipe (not a tty), so check_for_stdin passes;
   # with empty input the cut commands succeed with empty output.
-  for fn in get_formatted_tem_jdk_major_version_field get_formatted_tem_jdk_version_field get_formatted_tem_jdk_artifact_id_field; do
+  for fn in get_formatted_jdk_major_version_field get_formatted_jdk_version_field get_formatted_jdk_artifact_id_field; do
     run "sdkman_jdks::${fn}" < /dev/null
     assert_success
     assert_output ''
   done
 }
 
-@test "get_formatted_tem_jdk_major_version_field: dies with args" {
-  run sdkman_jdks::get_formatted_tem_jdk_major_version_field 'extra' < /dev/null
+@test "get_formatted_jdk_major_version_field: dies with args" {
+  run sdkman_jdks::get_formatted_jdk_major_version_field 'extra' < /dev/null
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
 
-@test "get_formatted_tem_jdk_version_field: dies with args" {
-  run sdkman_jdks::get_formatted_tem_jdk_version_field 'extra' < /dev/null
+@test "get_formatted_jdk_version_field: dies with args" {
+  run sdkman_jdks::get_formatted_jdk_version_field 'extra' < /dev/null
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
 
-@test "get_formatted_tem_jdk_artifact_id_field: dies with args" {
-  run sdkman_jdks::get_formatted_tem_jdk_artifact_id_field 'extra' < /dev/null
+@test "get_formatted_jdk_artifact_id_field: dies with args" {
+  run sdkman_jdks::get_formatted_jdk_artifact_id_field 'extra' < /dev/null
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
 
 # ---------- helpers for wrapper tests ----------
 
-# Canned formatted JDK rows for stubbing get_formatted_all_tem_jdks.
+# Canned formatted JDK rows for stubbing get_formatted_all_jdks.
 readonly CANNED_JDKS='21;21.0.5;21.0.5-tem;y
 21;21.0.3;21.0.3-tem;y
 17;17.0.10;17.0.10-tem;y
@@ -283,9 +283,9 @@ fixture_installed_jdks() {
 }
 
 stub_jdks_and_sdk() {
-  function sdkman_jdks::get_formatted_all_tem_jdks() { printf '%s\n' "${CANNED_JDKS}"; }
+  function sdkman_jdks::get_formatted_all_jdks() { printf '%s\n' "${CANNED_JDKS}"; }
   function sdk() { printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"; }
-  export -f sdkman_jdks::get_formatted_all_tem_jdks sdk
+  export -f sdkman_jdks::get_formatted_all_jdks sdk
   # Mirror the 'y' rows of CANNED_JDKS on disk so the two sources of truth agree.
   fixture_installed_jdks '21.0.5-tem' '21.0.3-tem' '17.0.10-tem'
 }
@@ -297,11 +297,11 @@ fixture_default_symlink() {
   ln --symbolic "${SDKMAN_CANDIDATES_DIR}/java/$1" "${SDKMAN_CANDIDATES_DIR}/java/current"
 }
 
-# ---------- fetch_tem_jdk_catalog (parser test) ----------
+# ---------- fetch_jdk_catalog (parser test) ----------
 
-@test "fetch_tem_jdk_catalog: parses pipe-delimited sdk list java output" {
+@test "fetch_jdk_catalog: parses pipe-delimited sdk list java output" {
   stub_sdk_catalog
-  run sdkman_jdks::fetch_tem_jdk_catalog
+  run sdkman_jdks::fetch_jdk_catalog
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem'
   assert_line --index 1 '21;21.0.3;21.0.3-tem'
@@ -309,11 +309,11 @@ fixture_default_symlink() {
   refute_output --partial 'sapmchn'
 }
 
-@test "fetch_tem_jdk_catalog: parses the legacy six-column sdk list java output" {
+@test "fetch_jdk_catalog: parses the legacy six-column sdk list java output" {
   # SDKMAN dropped the Dist and Status columns; a parser keyed on a fixed field index matched
   # nothing after that and handed every caller an empty catalog. Both layouts must parse.
   stub_sdk_catalog_legacy_columns
-  run sdkman_jdks::fetch_tem_jdk_catalog
+  run sdkman_jdks::fetch_jdk_catalog
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem'
   assert_line --index 1 '21;21.0.3;21.0.3-tem'
@@ -321,7 +321,7 @@ fixture_default_symlink() {
   refute_output --partial 'sapmchn'
 }
 
-@test "fetch_tem_jdk_catalog: keeps a version carrying a build suffix" {
+@test "fetch_jdk_catalog: keeps a version carrying a build suffix" {
   # The `+` inside 21.0.12+1.1 must not be mistaken for the local-only marker. The marker is a
   # standalone glyph cell; a version field always carries digits, so the two never collide.
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
@@ -334,12 +334,12 @@ fixture_default_symlink() {
 EOF
   }
   export -f sdk
-  run sdkman_jdks::fetch_tem_jdk_catalog
+  run sdkman_jdks::fetch_jdk_catalog
   assert_success
   assert_output '21;21.0.12+1.1;21.0.12+1.1-tem'
 }
 
-@test "fetch_tem_jdk_catalog: drops rows SDKMAN marks local only" {
+@test "fetch_jdk_catalog: drops rows SDKMAN marks local only" {
   # A `+` in the Use column means the version is present in the local candidates dir but is no
   # longer downloadable from the SDKMAN API. The catalog answers "what can be installed", so a
   # local-only row has no business in it.
@@ -353,12 +353,12 @@ EOF
 EOF
   }
   export -f sdk
-  run sdkman_jdks::fetch_tem_jdk_catalog
+  run sdkman_jdks::fetch_jdk_catalog
   assert_success
   assert_output '21;21.0.5;21.0.5-tem'
 }
 
-@test "fetch_tem_jdk_catalog: drops legacy six-column rows marked local only" {
+@test "fetch_jdk_catalog: drops legacy six-column rows marked local only" {
   # Before the Dist and Status columns were dropped the same state was the literal text
   # 'local only' in Status, not a glyph. Both spellings must be filtered.
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
@@ -371,12 +371,12 @@ EOF
 EOF
   }
   export -f sdk
-  run sdkman_jdks::fetch_tem_jdk_catalog
+  run sdkman_jdks::fetch_jdk_catalog
   assert_success
   assert_output '21;21.0.5;21.0.5-tem'
 }
 
-@test "fetch_tem_jdk_catalog: keeps in-use and installed rows in both layouts" {
+@test "fetch_jdk_catalog: keeps in-use and installed rows in both layouts" {
   # Only `+` marks local-only. The `>` and `*` glyphs, the legacy `>>>` in-use marker, the
   # legacy 'installed' Status text, and an empty marker cell all denote installable versions.
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
@@ -390,14 +390,14 @@ EOF
 EOF
   }
   export -f sdk
-  run sdkman_jdks::fetch_tem_jdk_catalog
+  run sdkman_jdks::fetch_jdk_catalog
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem'
   assert_line --index 1 '17;17.0.10;17.0.10-tem'
   assert_line --index 2 '11;11.0.22;11.0.22-tem'
 }
 
-@test "fetch_tem_jdk_catalog: keeps legacy in-use and installed rows" {
+@test "fetch_jdk_catalog: keeps legacy in-use and installed rows" {
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdk() {
     cat << 'EOF'
@@ -408,13 +408,13 @@ EOF
 EOF
   }
   export -f sdk
-  run sdkman_jdks::fetch_tem_jdk_catalog
+  run sdkman_jdks::fetch_jdk_catalog
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem'
   assert_line --index 1 '17;17.0.10;17.0.10-tem'
 }
 
-@test "fetch_tem_jdk_catalog: ignores table furniture and non-temurin rows" {
+@test "fetch_jdk_catalog: ignores table furniture and non-temurin rows" {
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdk() {
     cat << 'EOF'
@@ -433,23 +433,23 @@ Available Java Versions for Linux 64bit
 EOF
   }
   export -f sdk
-  run sdkman_jdks::fetch_tem_jdk_catalog
+  run sdkman_jdks::fetch_jdk_catalog
   assert_success
   assert_output '17;17.0.20;17.0.20-tem'
 }
 
-@test "fetch_tem_jdk_catalog: discards the sdk-reported installed status" {
+@test "fetch_jdk_catalog: discards the sdk-reported installed status" {
   # Installed state is owned by the candidates dir, so no 'y'/'n' column here even though the
   # canned payload marks 21.0.3 and 17.0.10 as installed.
   stub_sdk_catalog
-  run sdkman_jdks::fetch_tem_jdk_catalog
+  run sdkman_jdks::fetch_jdk_catalog
   assert_success
   refute_output --partial ';y'
   refute_output --partial ';n'
 }
 
-@test "fetch_tem_jdk_catalog: dies with args" {
-  run sdkman_jdks::fetch_tem_jdk_catalog extra
+@test "fetch_jdk_catalog: dies with args" {
+  run sdkman_jdks::fetch_jdk_catalog extra
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
@@ -459,7 +459,7 @@ EOF
 @test "catalog_cache_file: lives under XDG_RUNTIME_DIR and is keyed on the pid" {
   run sdkman_jdks::catalog_cache_file
   assert_success
-  assert_output "${XDG_RUNTIME_DIR}/sdkman-tem-jdk-catalog.$$"
+  assert_output "${XDG_RUNTIME_DIR}/sdkman-jdk-catalog.$$"
 }
 
 @test "catalog_cache_file: dies with args" {
@@ -468,48 +468,48 @@ EOF
   assert_output --partial 'Expected no arguments'
 }
 
-# ---------- get_tem_jdk_catalog (memoization) ----------
+# ---------- get_jdk_catalog (memoization) ----------
 
-@test "get_tem_jdk_catalog: returns the catalog" {
+@test "get_jdk_catalog: returns the catalog" {
   stub_sdk_catalog
-  run sdkman_jdks::get_tem_jdk_catalog
+  run sdkman_jdks::get_jdk_catalog
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem'
   assert_line --index 2 '17;17.0.10;17.0.10-tem'
 }
 
-@test "get_tem_jdk_catalog: fetches once even when called from inside pipelines" {
+@test "get_jdk_catalog: fetches once even when called from inside pipelines" {
   # A pipeline segment runs in a subshell, so a variable-based memo would be discarded and every
   # one of these calls would hit the network. This is the regression this design exists to prevent.
   stub_sdk_catalog
-  sdkman_jdks::get_tem_jdk_catalog | cat > /dev/null
-  sdkman_jdks::get_tem_jdk_catalog | cat > /dev/null
-  sdkman_jdks::get_tem_jdk_catalog > /dev/null
+  sdkman_jdks::get_jdk_catalog | cat > /dev/null
+  sdkman_jdks::get_jdk_catalog | cat > /dev/null
+  sdkman_jdks::get_jdk_catalog > /dev/null
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output 'list java'
 }
 
-@test "get_tem_jdk_catalog: memoized output matches the freshly fetched output" {
+@test "get_jdk_catalog: memoized output matches the freshly fetched output" {
   stub_sdk_catalog
-  sdkman_jdks::get_tem_jdk_catalog > "${BATS_TEST_TMPDIR}/first"
-  sdkman_jdks::get_tem_jdk_catalog > "${BATS_TEST_TMPDIR}/second"
+  sdkman_jdks::get_jdk_catalog > "${BATS_TEST_TMPDIR}/first"
+  sdkman_jdks::get_jdk_catalog > "${BATS_TEST_TMPDIR}/second"
   run diff "${BATS_TEST_TMPDIR}/first" "${BATS_TEST_TMPDIR}/second"
   assert_success
 }
 
-@test "get_tem_jdk_catalog: refetches when the memo predates this process" {
+@test "get_jdk_catalog: refetches when the memo predates this process" {
   # Simulates a recycled pid finding a dead namesake's memo still sitting in XDG_RUNTIME_DIR.
   stub_sdk_catalog
-  sdkman_jdks::get_tem_jdk_catalog > /dev/null
+  sdkman_jdks::get_jdk_catalog > /dev/null
   touch --date='2000-01-01' "$(sdkman_jdks::catalog_cache_file)"
-  sdkman_jdks::get_tem_jdk_catalog > /dev/null
+  sdkman_jdks::get_jdk_catalog > /dev/null
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_line --index 0 'list java'
   assert_line --index 1 'list java'
   assert_equal "${#lines[@]}" 2
 }
 
-@test "get_tem_jdk_catalog: reports failure when the fetch fails" {
+@test "get_jdk_catalog: reports failure when the fetch fails" {
   # Every script that sources this library runs under `set -Eeuo pipefail`; bats does not. Without
   # pipefail a failing `sdk` inside `sdk list java | awk ...` is masked by awk's success, so the
   # test would not model production. bats isolates each @test in its own subshell, so this cannot
@@ -518,13 +518,13 @@ EOF
   # shellcheck disable=SC2329 # invoked indirectly via export -f by the function under test
   function sdk() { return 1; }
   export -f sdk
-  run sdkman_jdks::get_tem_jdk_catalog
+  run sdkman_jdks::get_jdk_catalog
   assert_failure
 }
 
-@test "get_tem_jdk_catalog: a failed fetch is never cached" {
-  # Guarding this with errexit alone is not enough: callers reach get_tem_jdk_catalog from `if`
-  # and `||` contexts (check_available_tem_jdk_major_version does), and errexit is disabled inside
+@test "get_jdk_catalog: a failed fetch is never cached" {
+  # Guarding this with errexit alone is not enough: callers reach get_jdk_catalog from `if`
+  # and `||` contexts (check_available_jdk_major_version does), and errexit is disabled inside
   # a function invoked that way — so a partial response would be promoted to the memo and served
   # for the rest of the process. Exercise exactly that shape, under production's pipefail.
   set -o pipefail
@@ -535,29 +535,29 @@ EOF
     return 1
   }
   export -f sdk
-  if sdkman_jdks::get_tem_jdk_catalog > /dev/null 2>&1; then :; fi
+  if sdkman_jdks::get_jdk_catalog > /dev/null 2>&1; then :; fi
   refute [ -e "$(sdkman_jdks::catalog_cache_file)" ]
 
   # A later call must retry rather than serve the truncated response.
   stub_sdk_catalog
-  run sdkman_jdks::get_tem_jdk_catalog
+  run sdkman_jdks::get_jdk_catalog
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem'
   assert_line --index 2 '17;17.0.10;17.0.10-tem'
 }
 
-@test "get_tem_jdk_catalog: dies with args" {
-  run sdkman_jdks::get_tem_jdk_catalog extra
+@test "get_jdk_catalog: dies with args" {
+  run sdkman_jdks::get_jdk_catalog extra
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
 
-# ---------- get_formatted_all_tem_jdks (installed annotation) ----------
+# ---------- get_formatted_all_jdks (installed annotation) ----------
 
-@test "get_formatted_all_tem_jdks: annotates installed status from the candidates dir" {
+@test "get_formatted_all_jdks: annotates installed status from the candidates dir" {
   stub_sdk_catalog
   fixture_installed_jdks '21.0.3-tem' '17.0.10-tem'
-  run sdkman_jdks::get_formatted_all_tem_jdks
+  run sdkman_jdks::get_formatted_all_jdks
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem;n'
   assert_line --index 1 '21;21.0.3;21.0.3-tem;y'
@@ -565,24 +565,24 @@ EOF
   refute_output --partial 'sapmchn'
 }
 
-@test "get_formatted_all_tem_jdks: all n when nothing is installed" {
+@test "get_formatted_all_jdks: all n when nothing is installed" {
   stub_sdk_catalog
-  run sdkman_jdks::get_formatted_all_tem_jdks
+  run sdkman_jdks::get_formatted_all_jdks
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem;n'
   assert_line --index 1 '21;21.0.3;21.0.3-tem;n'
   assert_line --index 2 '17;17.0.10;17.0.10-tem;n'
 }
 
-@test "get_formatted_all_tem_jdks: installed column tracks installs made after the memo was filled" {
+@test "get_formatted_all_jdks: installed column tracks installs made after the memo was filled" {
   # The memo holds only the catalog, never the installed column, so an install performed mid-run
   # is reflected immediately without any cache invalidation.
   stub_sdk_catalog
-  run sdkman_jdks::get_formatted_all_tem_jdks
+  run sdkman_jdks::get_formatted_all_jdks
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem;n'
   fixture_installed_jdks '21.0.5-tem'
-  run sdkman_jdks::get_formatted_all_tem_jdks
+  run sdkman_jdks::get_formatted_all_jdks
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
   # ...and still only one round-trip across both calls.
@@ -590,17 +590,17 @@ EOF
   assert_output 'list java'
 }
 
-@test "get_formatted_all_tem_jdks: empty catalog yields empty output" {
+@test "get_formatted_all_jdks: empty catalog yields empty output" {
   # shellcheck disable=SC2329 # invoked indirectly via export -f by the function under test
   function sdk() { :; }
   export -f sdk
-  run sdkman_jdks::get_formatted_all_tem_jdks
+  run sdkman_jdks::get_formatted_all_jdks
   assert_success
   assert_output ''
 }
 
-@test "get_formatted_all_tem_jdks: dies with args" {
-  run sdkman_jdks::get_formatted_all_tem_jdks extra
+@test "get_formatted_all_jdks: dies with args" {
+  run sdkman_jdks::get_formatted_all_jdks extra
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
@@ -651,95 +651,95 @@ EOF
 
 # ---------- latest_available_* ----------
 
-@test "get_formatted_latest_available_tem_jdk_major_versions: returns latest per major" {
+@test "get_formatted_latest_available_jdk_major_versions: returns latest per major" {
   stub_jdks_and_sdk
-  run sdkman_jdks::get_formatted_latest_available_tem_jdk_major_versions
+  run sdkman_jdks::get_formatted_latest_available_jdk_major_versions
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
   assert_line --index 1 '17;17.0.10;17.0.10-tem;y'
   assert_line --index 2 '11;11.0.22;11.0.22-tem;n'
 }
 
-@test "get_formatted_latest_available_tem_jdk_major_versions: dies with args" {
-  run sdkman_jdks::get_formatted_latest_available_tem_jdk_major_versions 'extra' < /dev/null
+@test "get_formatted_latest_available_jdk_major_versions: dies with args" {
+  run sdkman_jdks::get_formatted_latest_available_jdk_major_versions 'extra' < /dev/null
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
 
-@test "get_formatted_latest_available_tem_jdk_for_major_version: returns latest for given major" {
+@test "get_formatted_latest_available_jdk_for_major_version: returns latest for given major" {
   stub_jdks_and_sdk
-  run sdkman_jdks::get_formatted_latest_available_tem_jdk_for_major_version 17
+  run sdkman_jdks::get_formatted_latest_available_jdk_for_major_version 17
   assert_success
   assert_output '17;17.0.10;17.0.10-tem;y'
 }
 
-@test "get_formatted_latest_available_tem_jdk_for_major_version: dies for unavailable major" {
+@test "get_formatted_latest_available_jdk_for_major_version: dies for unavailable major" {
   stub_jdks_and_sdk
-  run sdkman_jdks::get_formatted_latest_available_tem_jdk_for_major_version 99
+  run sdkman_jdks::get_formatted_latest_available_jdk_for_major_version 99
   assert_failure
   assert_output --partial 'Java version 99 is not available'
 }
 
-@test "get_formatted_latest_available_tem_jdk_for_major_version: dies with 0 args" {
-  run sdkman_jdks::get_formatted_latest_available_tem_jdk_for_major_version < /dev/null
+@test "get_formatted_latest_available_jdk_for_major_version: dies with 0 args" {
+  run sdkman_jdks::get_formatted_latest_available_jdk_for_major_version < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- available major versions ----------
 
-@test "get_available_tem_jdk_major_versions: numerically sorted unique majors" {
+@test "get_available_jdk_major_versions: numerically sorted unique majors" {
   stub_jdks_and_sdk
-  run sdkman_jdks::get_available_tem_jdk_major_versions
+  run sdkman_jdks::get_available_jdk_major_versions
   assert_success
   assert_line --index 0 '11'
   assert_line --index 1 '17'
   assert_line --index 2 '21'
 }
 
-@test "get_available_tem_jdk_major_versions: dies with args" {
-  run sdkman_jdks::get_available_tem_jdk_major_versions 'extra' < /dev/null
+@test "get_available_jdk_major_versions: dies with args" {
+  run sdkman_jdks::get_available_jdk_major_versions 'extra' < /dev/null
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
 
-@test "get_latest_available_tem_jdk_major_version: returns highest major" {
+@test "get_latest_available_jdk_major_version: returns highest major" {
   stub_jdks_and_sdk
-  run sdkman_jdks::get_latest_available_tem_jdk_major_version
+  run sdkman_jdks::get_latest_available_jdk_major_version
   assert_success
   assert_output '21'
 }
 
-@test "get_latest_available_tem_jdk_major_version: dies with args" {
-  run sdkman_jdks::get_latest_available_tem_jdk_major_version 'extra' < /dev/null
+@test "get_latest_available_jdk_major_version: dies with args" {
+  run sdkman_jdks::get_latest_available_jdk_major_version 'extra' < /dev/null
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
 
-@test "check_available_tem_jdk_major_version: succeeds for available major" {
+@test "check_available_jdk_major_version: succeeds for available major" {
   stub_jdks_and_sdk
-  run sdkman_jdks::check_available_tem_jdk_major_version 21
+  run sdkman_jdks::check_available_jdk_major_version 21
   assert_success
 }
 
-@test "check_available_tem_jdk_major_version: dies for unavailable major" {
+@test "check_available_jdk_major_version: dies for unavailable major" {
   stub_jdks_and_sdk
-  run sdkman_jdks::check_available_tem_jdk_major_version 99
+  run sdkman_jdks::check_available_jdk_major_version 99
   assert_failure
   assert_output --partial 'Java version 99 is not available'
 }
 
-@test "check_available_tem_jdk_major_version: dies with 0 args" {
-  run sdkman_jdks::check_available_tem_jdk_major_version < /dev/null
+@test "check_available_jdk_major_version: dies with 0 args" {
+  run sdkman_jdks::check_available_jdk_major_version < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
 
-# ---------- get_formatted_installed_tem_jdks (candidates-dir source) ----------
+# ---------- get_formatted_installed_jdks (candidates-dir source) ----------
 
-@test "get_formatted_installed_tem_jdks: formats every candidate dir, newest first" {
+@test "get_formatted_installed_jdks: formats every candidate dir, newest first" {
   fixture_installed_jdks '8.0.492-tem' '11.0.32-tem' '21.0.9-tem' '21.0.12-tem'
-  run sdkman_jdks::get_formatted_installed_tem_jdks
+  run sdkman_jdks::get_formatted_installed_jdks
   assert_success
   # Ordering must be version-aware, not lexicographic: 21 before 11 before 8 across majors,
   # and 21.0.12 before 21.0.9 within a major.
@@ -749,74 +749,74 @@ EOF
   assert_line --index 3 '8;8.0.492;8.0.492-tem;y'
 }
 
-@test "get_formatted_installed_tem_jdks: single installed jdk" {
+@test "get_formatted_installed_jdks: single installed jdk" {
   fixture_installed_jdks '21.0.5-tem'
-  run sdkman_jdks::get_formatted_installed_tem_jdks
+  run sdkman_jdks::get_formatted_installed_jdks
   assert_success
   assert_output '21;21.0.5;21.0.5-tem;y'
 }
 
-@test "get_formatted_installed_tem_jdks: ignores non-temurin candidates" {
+@test "get_formatted_installed_jdks: ignores non-temurin candidates" {
   fixture_installed_jdks '21.0.5-tem' '21.0.5-oracle' '21.0.5-graalce' '21.0.5-amzn'
-  run sdkman_jdks::get_formatted_installed_tem_jdks
+  run sdkman_jdks::get_formatted_installed_jdks
   assert_success
   assert_output '21;21.0.5;21.0.5-tem;y'
 }
 
-@test "get_formatted_installed_tem_jdks: ignores the current symlink" {
+@test "get_formatted_installed_jdks: ignores the current symlink" {
   fixture_default_symlink '21.0.5-tem'
-  run sdkman_jdks::get_formatted_installed_tem_jdks
+  run sdkman_jdks::get_formatted_installed_jdks
   assert_success
   assert_output '21;21.0.5;21.0.5-tem;y'
   refute_output --partial 'current'
 }
 
-@test "get_formatted_installed_tem_jdks: ignores plain files named like an artifact" {
+@test "get_formatted_installed_jdks: ignores plain files named like an artifact" {
   fixture_installed_jdks '21.0.5-tem'
   touch "${SDKMAN_CANDIDATES_DIR}/java/17.0.10-tem"
-  run sdkman_jdks::get_formatted_installed_tem_jdks
+  run sdkman_jdks::get_formatted_installed_jdks
   assert_success
   assert_output '21;21.0.5;21.0.5-tem;y'
 }
 
-@test "get_formatted_installed_tem_jdks: empty when no candidates installed" {
+@test "get_formatted_installed_jdks: empty when no candidates installed" {
   # setup() creates an empty candidates/java dir
-  run sdkman_jdks::get_formatted_installed_tem_jdks
+  run sdkman_jdks::get_formatted_installed_jdks
   assert_success
   assert_output ''
 }
 
-@test "get_formatted_installed_tem_jdks: empty when candidates dir does not exist" {
+@test "get_formatted_installed_jdks: empty when candidates dir does not exist" {
   rm --recursive --force -- "${SDKMAN_CANDIDATES_DIR}/java"
-  run sdkman_jdks::get_formatted_installed_tem_jdks
+  run sdkman_jdks::get_formatted_installed_jdks
   assert_success
   assert_output ''
 }
 
-@test "get_formatted_installed_tem_jdks: makes no sdk call" {
+@test "get_formatted_installed_jdks: makes no sdk call" {
   # The whole point of reading the candidates dir is avoiding the network round-trip that
   # `sdk list java` performs on every invocation.
   # shellcheck disable=SC2329 # deliberately never invoked; the test asserts it is not called
   function sdk() { printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"; }
   export -f sdk
   fixture_installed_jdks '21.0.5-tem'
-  run sdkman_jdks::get_formatted_installed_tem_jdks
+  run sdkman_jdks::get_formatted_installed_jdks
   assert_success
   assert_output '21;21.0.5;21.0.5-tem;y'
   refute [ -e "${BATS_TEST_TMPDIR}/sdk.calls" ]
 }
 
-@test "get_formatted_installed_tem_jdks: dies with args" {
-  run sdkman_jdks::get_formatted_installed_tem_jdks extra
+@test "get_formatted_installed_jdks: dies with args" {
+  run sdkman_jdks::get_formatted_installed_jdks extra
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
 
 # ---------- installed-jdk family ----------
 
-@test "get_formatted_installed_tem_jdks: reflects the canned installed set" {
+@test "get_formatted_installed_jdks: reflects the canned installed set" {
   stub_jdks_and_sdk
-  run sdkman_jdks::get_formatted_installed_tem_jdks
+  run sdkman_jdks::get_formatted_installed_jdks
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
   assert_line --index 1 '21;21.0.3;21.0.3-tem;y'
@@ -824,161 +824,161 @@ EOF
   refute_output --partial '11.0.22'
 }
 
-@test "get_formatted_installed_tem_jdks_for_major_version: filters installed by major" {
+@test "get_formatted_installed_jdks_for_major_version: filters installed by major" {
   stub_jdks_and_sdk
-  run sdkman_jdks::get_formatted_installed_tem_jdks_for_major_version 21
+  run sdkman_jdks::get_formatted_installed_jdks_for_major_version 21
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
   assert_line --index 1 '21;21.0.3;21.0.3-tem;y'
 }
 
-@test "get_formatted_installed_tem_jdks_for_major_version: dies with 0 args" {
-  run sdkman_jdks::get_formatted_installed_tem_jdks_for_major_version < /dev/null
+@test "get_formatted_installed_jdks_for_major_version: dies with 0 args" {
+  run sdkman_jdks::get_formatted_installed_jdks_for_major_version < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
 
-@test "get_formatted_latest_installed_tem_jdk_major_versions: latest installed per major" {
+@test "get_formatted_latest_installed_jdk_major_versions: latest installed per major" {
   stub_jdks_and_sdk
-  run sdkman_jdks::get_formatted_latest_installed_tem_jdk_major_versions
+  run sdkman_jdks::get_formatted_latest_installed_jdk_major_versions
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-tem;y'
   assert_line --index 1 '17;17.0.10;17.0.10-tem;y'
 }
 
-@test "get_formatted_latest_installed_tem_jdk_major_versions: dies with args" {
-  run sdkman_jdks::get_formatted_latest_installed_tem_jdk_major_versions 'extra' < /dev/null
+@test "get_formatted_latest_installed_jdk_major_versions: dies with args" {
+  run sdkman_jdks::get_formatted_latest_installed_jdk_major_versions 'extra' < /dev/null
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
 
-@test "get_formatted_latest_installed_tem_jdk_for_major_version: returns latest installed for major" {
+@test "get_formatted_latest_installed_jdk_for_major_version: returns latest installed for major" {
   stub_jdks_and_sdk
-  run sdkman_jdks::get_formatted_latest_installed_tem_jdk_for_major_version 21
+  run sdkman_jdks::get_formatted_latest_installed_jdk_for_major_version 21
   assert_success
   assert_output '21;21.0.5;21.0.5-tem;y'
 }
 
-@test "get_formatted_latest_installed_tem_jdk_for_major_version: dies for non-installed major" {
+@test "get_formatted_latest_installed_jdk_for_major_version: dies for non-installed major" {
   stub_jdks_and_sdk
-  run sdkman_jdks::get_formatted_latest_installed_tem_jdk_for_major_version 11
+  run sdkman_jdks::get_formatted_latest_installed_jdk_for_major_version 11
   assert_failure
   assert_output --partial 'Java version 11 is not installed'
 }
 
-@test "get_formatted_latest_installed_tem_jdk_for_major_version: dies with 0 args" {
-  run sdkman_jdks::get_formatted_latest_installed_tem_jdk_for_major_version < /dev/null
+@test "get_formatted_latest_installed_jdk_for_major_version: dies with 0 args" {
+  run sdkman_jdks::get_formatted_latest_installed_jdk_for_major_version < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
 
-@test "get_installed_tem_jdk_major_versions: numerically sorted unique installed majors" {
+@test "get_installed_jdk_major_versions: numerically sorted unique installed majors" {
   stub_jdks_and_sdk
-  run sdkman_jdks::get_installed_tem_jdk_major_versions
+  run sdkman_jdks::get_installed_jdk_major_versions
   assert_success
   assert_line --index 0 '17'
   assert_line --index 1 '21'
 }
 
-@test "get_installed_tem_jdk_major_versions: dies with args" {
-  run sdkman_jdks::get_installed_tem_jdk_major_versions 'extra' < /dev/null
+@test "get_installed_jdk_major_versions: dies with args" {
+  run sdkman_jdks::get_installed_jdk_major_versions 'extra' < /dev/null
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
 
-@test "get_latest_installed_tem_jdk_major_version: returns highest installed major" {
+@test "get_latest_installed_jdk_major_version: returns highest installed major" {
   stub_jdks_and_sdk
-  run sdkman_jdks::get_latest_installed_tem_jdk_major_version
+  run sdkman_jdks::get_latest_installed_jdk_major_version
   assert_success
   assert_output '21'
 }
 
-@test "get_latest_installed_tem_jdk_major_version: dies with args" {
-  run sdkman_jdks::get_latest_installed_tem_jdk_major_version 'extra' < /dev/null
+@test "get_latest_installed_jdk_major_version: dies with args" {
+  run sdkman_jdks::get_latest_installed_jdk_major_version 'extra' < /dev/null
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
 
-@test "check_installed_tem_jdk_major_version: succeeds for installed" {
+@test "check_installed_jdk_major_version: succeeds for installed" {
   stub_jdks_and_sdk
-  run sdkman_jdks::check_installed_tem_jdk_major_version 21
+  run sdkman_jdks::check_installed_jdk_major_version 21
   assert_success
 }
 
-@test "check_installed_tem_jdk_major_version: dies for non-installed" {
+@test "check_installed_jdk_major_version: dies for non-installed" {
   stub_jdks_and_sdk
-  run sdkman_jdks::check_installed_tem_jdk_major_version 11
+  run sdkman_jdks::check_installed_jdk_major_version 11
   assert_failure
   assert_output --partial 'Java version 11 is not installed'
 }
 
-@test "check_installed_tem_jdk_major_version: dies with 0 args" {
-  run sdkman_jdks::check_installed_tem_jdk_major_version < /dev/null
+@test "check_installed_jdk_major_version: dies with 0 args" {
+  run sdkman_jdks::check_installed_jdk_major_version < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
 
-@test "is_tem_jdk_artifact_installed: true for installed artifact" {
+@test "is_jdk_artifact_installed: true for installed artifact" {
   stub_jdks_and_sdk
-  run sdkman_jdks::is_tem_jdk_artifact_installed '21.0.3-tem'
+  run sdkman_jdks::is_jdk_artifact_installed '21.0.3-tem'
   assert_success
 }
 
-@test "is_tem_jdk_artifact_installed: false for non-installed artifact" {
+@test "is_jdk_artifact_installed: false for non-installed artifact" {
   stub_jdks_and_sdk
-  run sdkman_jdks::is_tem_jdk_artifact_installed '17.0.8-tem'
+  run sdkman_jdks::is_jdk_artifact_installed '17.0.8-tem'
   assert_failure
 }
 
-@test "is_tem_jdk_artifact_installed: dies with 0 args" {
-  run sdkman_jdks::is_tem_jdk_artifact_installed < /dev/null
+@test "is_jdk_artifact_installed: dies with 0 args" {
+  run sdkman_jdks::is_jdk_artifact_installed < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
 
-@test "get_latest_installed_tem_jdk_artifact_id_for_major_version: returns artifact id" {
+@test "get_latest_installed_jdk_artifact_id_for_major_version: returns artifact id" {
   stub_jdks_and_sdk
-  run sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version 21
+  run sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version 21
   assert_success
   assert_output '21.0.5-tem'
 }
 
-@test "get_latest_installed_tem_jdk_artifact_id_for_major_version: dies with 0 args" {
-  run sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version < /dev/null
+@test "get_latest_installed_jdk_artifact_id_for_major_version: dies with 0 args" {
+  run sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
 
 # ---------- installing / setting default / pruning ----------
 
-@test "install_latest_tem_jdk: installs latest available for major" {
+@test "install_latest_jdk: installs latest available for major" {
   stub_jdks_and_sdk
-  run sdkman_jdks::install_latest_tem_jdk 21
+  run sdkman_jdks::install_latest_jdk 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output 'install java 21.0.5-tem'
 }
 
-@test "install_latest_tem_jdk: dies with 0 args" {
-  run sdkman_jdks::install_latest_tem_jdk < /dev/null
+@test "install_latest_jdk: dies with 0 args" {
+  run sdkman_jdks::install_latest_jdk < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
 
-@test "install_latest_tem_jdk: ignores a local-only artifact sorting above the newest remote" {
+@test "install_latest_jdk: ignores a local-only artifact sorting above the newest remote" {
   # 21.0.9 is local only and sorts first for major 21, so an unfiltered catalog would hand
   # `sdk install java` an artifact the API does not serve.
   stub_sdk_catalog_local_only_first
-  run sdkman_jdks::install_latest_tem_jdk 21
+  run sdkman_jdks::install_latest_jdk 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   refute_output --partial 'install java 21.0.9-tem'
   assert_output --partial 'install java 21.0.5-tem'
 }
 
-@test "install_latest_tem_jdks: installs latest for every major" {
+@test "install_latest_jdks: installs latest for every major" {
   stub_jdks_and_sdk
-  run sdkman_jdks::install_latest_tem_jdks
+  run sdkman_jdks::install_latest_jdks
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_line --index 0 'install java 11.0.22-tem'
@@ -986,8 +986,8 @@ EOF
   assert_line --index 2 'install java 21.0.5-tem'
 }
 
-@test "install_latest_tem_jdks: dies with args" {
-  run sdkman_jdks::install_latest_tem_jdks 'extra' < /dev/null
+@test "install_latest_jdks: dies with args" {
+  run sdkman_jdks::install_latest_jdks 'extra' < /dev/null
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
@@ -1124,45 +1124,45 @@ EOF
   assert_output --partial 'Expected exactly 1 argument'
 }
 
-# ---------- get_latest_installed_tem_jdk_lts_major_version ----------
+# ---------- get_latest_installed_jdk_lts_major_version ----------
 
-@test "get_latest_installed_tem_jdk_lts_major_version: skips newer non-LTS and early-access majors" {
+@test "get_latest_installed_jdk_lts_major_version: skips newer non-LTS and early-access majors" {
   fixture_installed_jdks '8.0.512.0+9-tem' '11.0.33.0+10-tem' '25.0.5.0+8-tem' '26.0.2.1+1-tem' '27.0.0.0+35-tem'
-  run sdkman_jdks::get_latest_installed_tem_jdk_lts_major_version
+  run sdkman_jdks::get_latest_installed_jdk_lts_major_version
   assert_success
   assert_output '25'
 }
 
-@test "get_latest_installed_tem_jdk_lts_major_version: compares majors numerically" {
+@test "get_latest_installed_jdk_lts_major_version: compares majors numerically" {
   fixture_installed_jdks '8.0.512-tem' '11.0.33-tem'
-  run sdkman_jdks::get_latest_installed_tem_jdk_lts_major_version
+  run sdkman_jdks::get_latest_installed_jdk_lts_major_version
   assert_success
   assert_output '11'
 }
 
-@test "get_latest_installed_tem_jdk_lts_major_version: single LTS major installed" {
+@test "get_latest_installed_jdk_lts_major_version: single LTS major installed" {
   fixture_installed_jdks '21.0.5-tem'
-  run sdkman_jdks::get_latest_installed_tem_jdk_lts_major_version
+  run sdkman_jdks::get_latest_installed_jdk_lts_major_version
   assert_success
   assert_output '21'
 }
 
-@test "get_latest_installed_tem_jdk_lts_major_version: dies when only non-LTS majors are installed" {
+@test "get_latest_installed_jdk_lts_major_version: dies when only non-LTS majors are installed" {
   fixture_installed_jdks '26.0.2-tem' '27.0.0-tem'
-  run sdkman_jdks::get_latest_installed_tem_jdk_lts_major_version
+  run sdkman_jdks::get_latest_installed_jdk_lts_major_version
   assert_failure
   assert_output --partial 'No LTS Temurin JDK is installed'
 }
 
-@test "get_latest_installed_tem_jdk_lts_major_version: dies when no JDK is installed" {
+@test "get_latest_installed_jdk_lts_major_version: dies when no JDK is installed" {
   # setup() creates an empty candidates/java
-  run sdkman_jdks::get_latest_installed_tem_jdk_lts_major_version
+  run sdkman_jdks::get_latest_installed_jdk_lts_major_version
   assert_failure
   assert_output --partial 'No LTS Temurin JDK is installed'
 }
 
-@test "get_latest_installed_tem_jdk_lts_major_version: dies with args" {
-  run sdkman_jdks::get_latest_installed_tem_jdk_lts_major_version 'extra' < /dev/null
+@test "get_latest_installed_jdk_lts_major_version: dies with args" {
+  run sdkman_jdks::get_latest_installed_jdk_lts_major_version 'extra' < /dev/null
   assert_failure
   assert_output --partial 'Expected no arguments'
 }
@@ -1217,109 +1217,109 @@ EOF
   assert_output --partial 'Expected no arguments'
 }
 
-@test "prune_tem_jdks_for_major_version: uninstalls all installed for major except latest available" {
+@test "prune_jdks_for_major_version: uninstalls all installed for major except latest available" {
   stub_jdks_and_sdk
-  run sdkman_jdks::prune_tem_jdks_for_major_version 21
+  run sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output 'uninstall java 21.0.3-tem'
 }
 
-@test "prune_tem_jdks_for_major_version: repoints the default at the keeper before removing it" {
+@test "prune_jdks_for_major_version: repoints the default at the keeper before removing it" {
   # `sdk uninstall` refuses to remove the artifact java/current points at and exits 1, which
   # killed the whole sweep. The repoint must land before the uninstall, not merely happen.
   stub_jdks_and_sdk
   fixture_default_symlink '21.0.3-tem'
-  run sdkman_jdks::prune_tem_jdks_for_major_version 21
+  run sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_line --index 0 'default java 21.0.5-tem'
   assert_line --index 1 'uninstall java 21.0.3-tem'
 }
 
-@test "prune_tem_jdks_for_major_version: leaves the default alone when it is already the keeper" {
+@test "prune_jdks_for_major_version: leaves the default alone when it is already the keeper" {
   stub_jdks_and_sdk
   fixture_default_symlink '21.0.5-tem'
-  run sdkman_jdks::prune_tem_jdks_for_major_version 21
+  run sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output 'uninstall java 21.0.3-tem'
 }
 
-@test "prune_tem_jdks_for_major_version: leaves a default from another major alone" {
+@test "prune_jdks_for_major_version: leaves a default from another major alone" {
   stub_jdks_and_sdk
   fixture_default_symlink '17.0.10-tem'
-  run sdkman_jdks::prune_tem_jdks_for_major_version 21
+  run sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output 'uninstall java 21.0.3-tem'
 }
 
-@test "prune_tem_jdks_for_major_version: prunes normally when no default is set" {
+@test "prune_jdks_for_major_version: prunes normally when no default is set" {
   # setup() creates candidates/java with no current symlink
   stub_jdks_and_sdk
-  run sdkman_jdks::prune_tem_jdks_for_major_version 21
+  run sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output 'uninstall java 21.0.3-tem'
 }
 
-@test "prune_tem_jdks_for_major_version: keeps the newest remote over a local-only artifact" {
+@test "prune_jdks_for_major_version: keeps the newest remote over a local-only artifact" {
   # Mirror of the install case: with 21.0.9 local only and sorting first, an unfiltered catalog
   # would make it the keeper and uninstall 21.0.5 — the one that can still be downloaded.
   stub_sdk_catalog_local_only_first
   fixture_installed_jdks '21.0.9-tem' '21.0.5-tem'
-  run sdkman_jdks::prune_tem_jdks_for_major_version 21
+  run sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output --partial 'uninstall java 21.0.9-tem'
   refute_output --partial 'uninstall java 21.0.5-tem'
 }
 
-@test "prune_tem_jdks_for_major_version: warns instead of pruning when the keeper is not installed" {
+@test "prune_jdks_for_major_version: warns instead of pruning when the keeper is not installed" {
   # 21.0.5 is the keeper but is not on disk, so every installed artifact for major 21 differs
   # from it and the sweep would strip the major bare — irreversibly, for a local-only artifact.
   stub_sdk_catalog_local_only_first
   fixture_installed_jdks '21.0.9-tem'
-  run --separate-stderr sdkman_jdks::prune_tem_jdks_for_major_version 21
+  run --separate-stderr sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   assert_stderr --partial 'Not pruning Java 21'
   assert_stderr --partial '21.0.5-tem is not installed'
 }
 
-@test "prune_tem_jdks_for_major_version: uninstalls nothing when the keeper is not installed" {
+@test "prune_jdks_for_major_version: uninstalls nothing when the keeper is not installed" {
   stub_sdk_catalog_local_only_first
   fixture_installed_jdks '21.0.9-tem'
-  run sdkman_jdks::prune_tem_jdks_for_major_version 21
+  run sdkman_jdks::prune_jdks_for_major_version 21
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   refute_output --partial 'uninstall'
 }
 
-@test "prune_tem_jdks_for_major_version: is a silent no-op when nothing is installed for the major" {
+@test "prune_jdks_for_major_version: is a silent no-op when nothing is installed for the major" {
   # The guard must not turn a major with no installed JDKs at all into a warning.
   stub_sdk_catalog_local_only_first
-  run --separate-stderr sdkman_jdks::prune_tem_jdks_for_major_version 17
+  run --separate-stderr sdkman_jdks::prune_jdks_for_major_version 17
   assert_success
   refute_stderr
 }
 
-@test "prune_tem_jdks_for_major_version: dies with 0 args" {
-  run sdkman_jdks::prune_tem_jdks_for_major_version < /dev/null
+@test "prune_jdks_for_major_version: dies with 0 args" {
+  run sdkman_jdks::prune_jdks_for_major_version < /dev/null
   assert_failure
   assert_output --partial 'Expected exactly 1 argument'
 }
 
-@test "prune_tem_jdks: prunes across every installed major" {
+@test "prune_jdks: prunes across every installed major" {
   stub_jdks_and_sdk
-  run sdkman_jdks::prune_tem_jdks
+  run sdkman_jdks::prune_jdks
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
   assert_output --partial 'uninstall java 21.0.3-tem'
 }
 
-@test "prune_tem_jdks: dies with args" {
-  run sdkman_jdks::prune_tem_jdks 'extra' < /dev/null
+@test "prune_jdks: dies with args" {
+  run sdkman_jdks::prune_jdks 'extra' < /dev/null
   assert_failure
   assert_output --partial 'Expected no arguments'
 }

@@ -433,8 +433,8 @@ setup() {
 @test "rewrite_sdkmanrc_file_java_version: no-op when current artifact already installed" {
   printf 'java=21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
-  function sdkman_jdks::is_tem_jdk_artifact_installed() { return 0; }
-  export -f sdkman_jdks::is_tem_jdk_artifact_installed
+  function sdkman_jdks::is_jdk_artifact_installed() { return 0; }
+  export -f sdkman_jdks::is_jdk_artifact_installed
   run sdkman::rewrite_sdkmanrc_file_java_version "${BATS_TEST_TMPDIR}/.sdkmanrc"
   assert_success
   run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
@@ -444,14 +444,14 @@ setup() {
 @test "rewrite_sdkmanrc_file_java_version: rewrites to latest installed when current absent" {
   printf 'java=21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
-  function sdkman_jdks::is_tem_jdk_artifact_installed() { return 1; }
+  function sdkman_jdks::is_jdk_artifact_installed() { return 1; }
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdkman_jdks::get_jdk_major_version() { printf '21'; }
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
-  function sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version() { printf '21.0.7-tem'; }
-  export -f sdkman_jdks::is_tem_jdk_artifact_installed
+  function sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version() { printf '21.0.7-tem'; }
+  export -f sdkman_jdks::is_jdk_artifact_installed
   export -f sdkman_jdks::get_jdk_major_version
-  export -f sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version
+  export -f sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version
   run sdkman::rewrite_sdkmanrc_file_java_version "${BATS_TEST_TMPDIR}/.sdkmanrc"
   assert_success
   run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
@@ -473,14 +473,14 @@ setup() {
 @test "rewrite_sdkmanrc_file_java_version: rewrites an indented java line" {
   printf '  java = 21.0.3-tem\n' > "${BATS_TEST_TMPDIR}/.sdkmanrc"
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
-  function sdkman_jdks::is_tem_jdk_artifact_installed() { return 1; }
+  function sdkman_jdks::is_jdk_artifact_installed() { return 1; }
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdkman_jdks::get_jdk_major_version() { printf '21'; }
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
-  function sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version() { printf '21.0.7-tem'; }
-  export -f sdkman_jdks::is_tem_jdk_artifact_installed
+  function sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version() { printf '21.0.7-tem'; }
+  export -f sdkman_jdks::is_jdk_artifact_installed
   export -f sdkman_jdks::get_jdk_major_version
-  export -f sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version
+  export -f sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version
   run sdkman::rewrite_sdkmanrc_file_java_version "${BATS_TEST_TMPDIR}/.sdkmanrc"
   assert_success
   run cat "${BATS_TEST_TMPDIR}/.sdkmanrc"
@@ -522,14 +522,14 @@ setup() {
   printf 'java=21.0.3-tem\n' > "${HOME}/a/.sdkmanrc"
   printf 'java=21.0.3-tem\n' > "${HOME}/b/.sdkmanrc"
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
-  function sdkman_jdks::is_tem_jdk_artifact_installed() { return 1; }
+  function sdkman_jdks::is_jdk_artifact_installed() { return 1; }
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
   function sdkman_jdks::get_jdk_major_version() { printf '21'; }
   # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
-  function sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version() { printf '21.0.7-tem'; }
-  export -f sdkman_jdks::is_tem_jdk_artifact_installed
+  function sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version() { printf '21.0.7-tem'; }
+  export -f sdkman_jdks::is_jdk_artifact_installed
   export -f sdkman_jdks::get_jdk_major_version
-  export -f sdkman_jdks::get_latest_installed_tem_jdk_artifact_id_for_major_version
+  export -f sdkman_jdks::get_latest_installed_jdk_artifact_id_for_major_version
   run sdkman::rewrite_sdkmanrc_file_java_versions
   assert_success
   run cat "${HOME}/a/.sdkmanrc"

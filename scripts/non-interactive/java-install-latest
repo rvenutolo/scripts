@@ -20,5 +20,5 @@ readonly MAJOR_VERSION="$1"
 (
   sdkman::init
 
-  sdkman_jdks::install_latest_tem_jdk "${MAJOR_VERSION}"
+  sdkman_jdks::install_latest_jdk "${MAJOR_VERSION}"
 )

@@ -50,7 +50,7 @@ trap - ERR
   fi
 
   log::log 'Updating Temurin JDKs'
-  sdkman_jdks::install_latest_tem_jdks
+  sdkman_jdks::install_latest_jdks
   log::log 'Updated Temurin JDKs'
 
   log::log 'Setting default JDK'

@@ -21,7 +21,7 @@ args::check_no_args "$@"
   log::log 'Pruned SDKMAN packages'
 
   log::log 'Pruning Temurin JDKs'
-  sdkman_jdks::prune_tem_jdks
+  sdkman_jdks::prune_jdks
   log::log 'Pruned Temurin JDKs'
 
   log::log 'Rewriting .sdkmanrc files'
