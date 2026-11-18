@@ -18,6 +18,47 @@ function ufw::rule_exists() {
   [[ "${output}" == *'Skipping adding existing rule'* && ! "${output}" =~ (^|$'\n')'Rules updated' ]]
 }
 
+# @description Predicate: is ufw enabled (set to start at boot)?
+# Reads `ENABLED` from /etc/ufw/ufw.conf, which is world-readable, so no sudo is needed.
+# @noargs
+# @exitcode 0 if enabled
+# @exitcode 1 otherwise
+function ufw::is_enabled() {
+  args::check_no_args "$@"
+  local enabled
+  # shellcheck disable=SC1091 # /etc/ufw/ufw.conf is a runtime path, not statically followable
+  enabled="$(source '/etc/ufw/ufw.conf' && printf '%s' "${ENABLED:-}")"
+  [[ "${enabled}" == 'yes' ]]
+}
+
+# @description Print ufw's default policy for a direction as ufw names it: deny, reject or allow.
+# Reads /etc/default/ufw, which is world-readable and holds the policy whether or not ufw is active.
+# @arg $1 direction: incoming, outgoing or routed
+# @stdout deny, reject or allow
+# @exitcode 0 on success
+# @exitcode 1 on an unknown direction, or an unset or unrecognized policy value
+function ufw::default_policy() {
+  args::check_exactly_1_arg "$@"
+  local -r direction="$1"
+  local var_name
+  case "${direction}" in
+    incoming) var_name='DEFAULT_INPUT_POLICY' ;;
+    outgoing) var_name='DEFAULT_OUTPUT_POLICY' ;;
+    routed) var_name='DEFAULT_FORWARD_POLICY' ;;
+    *) log::die "Unknown ufw policy direction: ${direction}" ;;
+  esac
+  readonly var_name
+  local value
+  # shellcheck disable=SC1091 # /etc/default/ufw is a runtime path, not statically followable
+  value="$(source '/etc/default/ufw' && printf '%s' "${!var_name:-}")"
+  case "${value}" in
+    DROP) printf 'deny\n' ;;
+    REJECT) printf 'reject\n' ;;
+    ACCEPT) printf 'allow\n' ;;
+    *) log::die "Unrecognized ${var_name} in /etc/default/ufw: '${value}'" ;;
+  esac
+}
+
 # @description Add a ufw rule. Does not prompt; callers own confirmation.
 # @arg $@ rule arguments as given to `ufw` (e.g. "allow" "in" "on" "tailscale0")
 # @exitcode 0 on success

@@ -108,3 +108,155 @@ rule_exists_in_if() {
   assert_failure 1
   assert_output --partial 'Expected at least 1 argument'
 }
+
+# Writes ufw config fixtures and redirects `source` of the real paths to them.
+# $1 = /etc/ufw/ufw.conf contents, $2 = /etc/default/ufw contents
+install_config_fixtures() {
+  printf '%s\n' "$1" > "${BATS_TEST_TMPDIR}/ufw.conf"
+  printf '%s\n' "$2" > "${BATS_TEST_TMPDIR}/default-ufw"
+  # shellcheck disable=SC2329 # invoked indirectly when the helpers call `source`
+  source() {
+    case "$1" in
+      '/etc/ufw/ufw.conf') builtin source "${BATS_TEST_TMPDIR}/ufw.conf" ;;
+      '/etc/default/ufw') builtin source "${BATS_TEST_TMPDIR}/default-ufw" ;;
+      *) builtin source "$@" ;;
+    esac
+  }
+}
+
+# Writes an /etc/default/ufw fixture with one policy variable set.
+# $1 = variable name, $2 = value
+install_policy_fixture() {
+  install_config_fixtures 'ENABLED=no' "$1=\"$2\""
+}
+
+# ---------- is_enabled ----------
+
+@test "is_enabled: succeeds when ENABLED=yes" {
+  install_config_fixtures 'ENABLED=yes' ''
+  run ufw::is_enabled
+  assert_success
+}
+
+@test "is_enabled: fails when ENABLED=no" {
+  install_config_fixtures 'ENABLED=no' ''
+  run ufw::is_enabled
+  assert_failure 1
+}
+
+@test "is_enabled: fails when ENABLED is unset" {
+  install_config_fixtures '' ''
+  run ufw::is_enabled
+  assert_failure 1
+}
+
+@test "is_enabled: extra arg fails with arity message" {
+  run ufw::is_enabled extra
+  assert_failure 1
+  assert_output --partial 'Expected no arguments'
+}
+
+# ---------- default_policy ----------
+
+@test "default_policy: maps incoming DROP to deny" {
+  install_policy_fixture DEFAULT_INPUT_POLICY DROP
+  run ufw::default_policy incoming
+  assert_success
+  assert_output 'deny'
+}
+
+@test "default_policy: maps incoming REJECT to reject" {
+  install_policy_fixture DEFAULT_INPUT_POLICY REJECT
+  run ufw::default_policy incoming
+  assert_success
+  assert_output 'reject'
+}
+
+@test "default_policy: maps incoming ACCEPT to allow" {
+  install_policy_fixture DEFAULT_INPUT_POLICY ACCEPT
+  run ufw::default_policy incoming
+  assert_success
+  assert_output 'allow'
+}
+
+@test "default_policy: maps outgoing DROP to deny" {
+  install_policy_fixture DEFAULT_OUTPUT_POLICY DROP
+  run ufw::default_policy outgoing
+  assert_success
+  assert_output 'deny'
+}
+
+@test "default_policy: maps outgoing REJECT to reject" {
+  install_policy_fixture DEFAULT_OUTPUT_POLICY REJECT
+  run ufw::default_policy outgoing
+  assert_success
+  assert_output 'reject'
+}
+
+@test "default_policy: maps outgoing ACCEPT to allow" {
+  install_policy_fixture DEFAULT_OUTPUT_POLICY ACCEPT
+  run ufw::default_policy outgoing
+  assert_success
+  assert_output 'allow'
+}
+
+@test "default_policy: maps routed DROP to deny" {
+  install_policy_fixture DEFAULT_FORWARD_POLICY DROP
+  run ufw::default_policy routed
+  assert_success
+  assert_output 'deny'
+}
+
+@test "default_policy: maps routed REJECT to reject" {
+  install_policy_fixture DEFAULT_FORWARD_POLICY REJECT
+  run ufw::default_policy routed
+  assert_success
+  assert_output 'reject'
+}
+
+@test "default_policy: maps routed ACCEPT to allow" {
+  install_policy_fixture DEFAULT_FORWARD_POLICY ACCEPT
+  run ufw::default_policy routed
+  assert_success
+  assert_output 'allow'
+}
+
+@test "default_policy: reads only the variable for the given direction" {
+  install_config_fixtures 'ENABLED=no' $'DEFAULT_INPUT_POLICY="DROP"\nDEFAULT_OUTPUT_POLICY="ACCEPT"'
+  run ufw::default_policy outgoing
+  assert_success
+  assert_output 'allow'
+}
+
+@test "default_policy: dies on an unknown direction" {
+  install_policy_fixture DEFAULT_INPUT_POLICY DROP
+  run ufw::default_policy sideways
+  assert_failure 1
+  assert_output --partial 'sideways'
+}
+
+@test "default_policy: dies on an unrecognized policy value" {
+  install_policy_fixture DEFAULT_INPUT_POLICY BOGUS
+  run ufw::default_policy incoming
+  assert_failure 1
+  assert_output --partial 'BOGUS'
+}
+
+@test "default_policy: dies when the policy variable is unset" {
+  install_config_fixtures 'ENABLED=no' ''
+  run ufw::default_policy incoming
+  assert_failure 1
+  assert_output --partial 'DEFAULT_INPUT_POLICY'
+}
+
+@test "default_policy: no args fails with arity message" {
+  run ufw::default_policy
+  assert_failure 1
+  assert_output --partial 'Expected exactly 1 argument'
+}
+
+@test "default_policy: two args fails with arity message" {
+  run ufw::default_policy incoming outgoing
+  assert_failure 1
+  assert_output --partial 'Expected exactly 1 argument'
+}
