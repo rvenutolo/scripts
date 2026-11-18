@@ -6,13 +6,13 @@
 # nothing: a rule present for one address family but not the other, or with a different comment, reads as missing.
 # `LC_ALL=C` with `LANGUAGE` unset because ufw translates the "Skipping adding/inserting existing rule" messages, and
 # Python's gettext reads `LANGUAGE` before `LC_ALL`. A failing dry-run
-# (malformed rule, refused sudo) dies rather than reading as "missing", because errexit is off in a predicate's call
-# tree.
+# (malformed rule, refused sudo) exits the calling script via `log::die` rather than reading as "missing", because
+# errexit is off in a predicate's call tree.
 # Insert-form rules ("insert N …", "prepend …") are accepted, with one limit from ufw itself: on insert, ufw reports an
 # existing rule when any rule matches apart from its action, so an insert-form check cannot tell "allow" from "deny".
 # @arg $@ rule arguments as given to `ufw` (e.g. "allow" "proto" "tcp" "from" "10.0.0.0/8" "port" "22")
 # @exitcode 0 if the rule exists
-# @exitcode 1 if the rule is missing, or the dry-run failed (after printing ufw's output to stderr)
+# @exitcode 1 if the rule is missing
 function ufw::rule_exists() {
   args::check_at_least_1_arg "$@"
   local output
