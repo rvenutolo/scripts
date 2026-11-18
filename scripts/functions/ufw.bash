@@ -31,6 +31,27 @@ function ufw::is_enabled() {
   [[ "${enabled}" == 'yes' ]]
 }
 
+# @description Print whether the ufw firewall is running right now: active or inactive.
+# Distinct from `ufw::is_enabled`, which is only the start-at-boot flag: the flag can be set while the firewall is down
+# (failed unit, `systemctl stop ufw`, flushed iptables). A producer rather than a predicate, so a failing `ufw status`
+# dies instead of reading as "inactive".
+# @noargs
+# @stdout active or inactive
+# @exitcode 0 on success
+# @exitcode 1 if `ufw status` fails or prints an unrecognized status line
+function ufw::status() {
+  args::check_no_args "$@"
+  local output
+  if ! output="$(sudo env LC_ALL=C ufw status 2>&1)"; then
+    log::die "ufw status failed: ${output}"
+  fi
+  case "${output%%$'\n'*}" in
+    'Status: active') printf 'active\n' ;;
+    'Status: inactive') printf 'inactive\n' ;;
+    *) log::die "Unrecognized ufw status output: ${output}" ;;
+  esac
+}
+
 # @description Print ufw's default policy for a direction as ufw names it: deny, reject or allow.
 # Reads /etc/default/ufw, which is world-readable and holds the policy whether or not ufw is active.
 # @arg $1 direction: incoming, outgoing or routed

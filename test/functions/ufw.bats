@@ -156,6 +156,51 @@ install_policy_fixture() {
   assert_output --partial 'Expected no arguments'
 }
 
+# ---------- status ----------
+
+@test "status: prints active when ufw reports Status: active" {
+  export UFW_OUTPUT=$'Status: active\n\nTo                         Action      From'
+  run ufw::status
+  assert_success
+  assert_output 'active'
+}
+
+@test "status: prints inactive when ufw reports Status: inactive" {
+  export UFW_OUTPUT='Status: inactive'
+  run ufw::status
+  assert_success
+  assert_output 'inactive'
+}
+
+@test "status: runs ufw status under LC_ALL=C" {
+  export UFW_OUTPUT='Status: active'
+  run ufw::status
+  assert_success
+  run cli_shim::calls ufw
+  assert_output 'status LC_ALL=C'
+}
+
+@test "status: dies on unrecognized ufw output" {
+  export UFW_OUTPUT='Something else'
+  run ufw::status
+  assert_failure 1
+  assert_output --partial 'Something else'
+}
+
+@test "status: dies with ufw output when ufw fails" {
+  export UFW_OUTPUT='ERROR: You need to be root to run this script'
+  export UFW_EXIT=1
+  run ufw::status
+  assert_failure 1
+  assert_output --partial 'You need to be root'
+}
+
+@test "status: extra arg fails with arity message" {
+  run ufw::status extra
+  assert_failure 1
+  assert_output --partial 'Expected no arguments'
+}
+
 # ---------- default_policy ----------
 
 @test "default_policy: maps incoming DROP to deny" {
