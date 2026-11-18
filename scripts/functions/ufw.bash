@@ -22,6 +22,26 @@ function ufw::rule_exists() {
   [[ "${output}" =~ 'Skipping '(adding|inserting)' existing rule' && ! "${output}" =~ (^|$'\n')'Rules updated' ]]
 }
 
+# @description Predicate: does ufw know an application profile by this name?
+# Asks `ufw app list`, so the answer covers every file under /etc/ufw/applications.d and uses ufw's own
+# case-insensitive name matching. A rule naming an unknown profile is a ufw error, so callers check this before passing
+# a profile name to `ufw::rule_exists`. Runs in the C locale with `LANGUAGE` unset so the header line is untranslated.
+# A failing `ufw app list` exits the calling script via `log::die` rather than reading as "unknown".
+# @arg $1 profile name (e.g. "OpenSSH")
+# @exitcode 0 if ufw lists the profile
+# @exitcode 1 if it does not
+function ufw::app_profile_exists() {
+  args::check_exactly_1_arg "$@"
+  local -r name="$1"
+  local output
+  if ! output="$(sudo env --unset=LANGUAGE LC_ALL=C ufw app list 2>&1)"; then
+    log::die "ufw app list failed: ${output}"
+  fi
+  # ufw prints a header line, then each profile name on its own line indented by two spaces, so a match must sit
+  # between a newline and the end of a line; the header can never match.
+  [[ "${output,,}"$'\n' == *$'\n  '"${name,,}"$'\n'* ]]
+}
+
 # @description Predicate: is ufw enabled (set to start at boot)?
 # Reads `ENABLED` from /etc/ufw/ufw.conf, which is world-readable, so no sudo is needed. Compared case-insensitively,
 # as ufw does.
