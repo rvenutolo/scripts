@@ -491,3 +491,73 @@ function run_file_grep() {
   assert_failure
   assert_output --partial 'Expected exactly 2 arguments'
 }
+
+# ---------- stdin larger than a pipe buffer ----------
+
+# Pipes far more than a pipe buffer of output, whose first line matches, into a stdin-mode helper under pipefail, as
+# production scripts do. A helper that stops reading at the first match kills the producer with SIGPIPE.
+# $1 = function name, $2 = needle / pattern
+function pipe_large_input() {
+  set -o pipefail
+  seq 1 200000 | "$1" "$2"
+}
+
+@test "contains_regex: stdin mode returns grep's error status on an invalid pattern" {
+  run grep::contains_regex '[' <<< 'abc'
+  assert_failure 2
+}
+
+@test "contains_regex: stdin mode fails on empty input even for an empty-line pattern" {
+  run grep::contains_regex '^$' < /dev/null
+  assert_failure 1
+}
+
+@test "contains_exactly: stdin mode reads input larger than a pipe buffer" {
+  run pipe_large_input grep::contains_exactly '1'
+  assert_success
+}
+
+@test "contains_exactly_ignore_case: stdin mode reads input larger than a pipe buffer" {
+  run pipe_large_input grep::contains_exactly_ignore_case '1'
+  assert_success
+}
+
+@test "contains_regex: stdin mode reads input larger than a pipe buffer" {
+  run pipe_large_input grep::contains_regex '^1$'
+  assert_success
+}
+
+@test "contains_regex_ignore_case: stdin mode reads input larger than a pipe buffer" {
+  run pipe_large_input grep::contains_regex_ignore_case '^1$'
+  assert_success
+}
+
+@test "contains_perl_regex: stdin mode reads input larger than a pipe buffer" {
+  run pipe_large_input grep::contains_perl_regex '^1$'
+  assert_success
+}
+
+@test "contains_perl_regex_ignore_case: stdin mode reads input larger than a pipe buffer" {
+  run pipe_large_input grep::contains_perl_regex_ignore_case '^1$'
+  assert_success
+}
+
+@test "contains_word: stdin mode reads input larger than a pipe buffer" {
+  run pipe_large_input grep::contains_word '1'
+  assert_success
+}
+
+@test "contains_word_ignore_case: stdin mode reads input larger than a pipe buffer" {
+  run pipe_large_input grep::contains_word_ignore_case '1'
+  assert_success
+}
+
+@test "contains_word_regex: stdin mode reads input larger than a pipe buffer" {
+  run pipe_large_input grep::contains_word_regex '1'
+  assert_success
+}
+
+@test "contains_word_regex_ignore_case: stdin mode reads input larger than a pipe buffer" {
+  run pipe_large_input grep::contains_word_regex_ignore_case '1'
+  assert_success
+}

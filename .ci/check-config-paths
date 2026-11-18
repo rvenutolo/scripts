@@ -262,8 +262,10 @@ function regex_literal_prefix() {
 function git_knows_path() {
   args::check_exactly_1_arg "$@"
   local -r path="$1"
+  # The whole listing is captured rather than piped to `head`, which would kill `git ls-files` with SIGPIPE on a large
+  # directory and fail this function under pipefail if it were ever called outside a condition.
   local tracked
-  tracked="$(git -C "${CONFIG_ROOT}" ls-files -- "${path}" | head --lines=1)"
+  tracked="$(git -C "${CONFIG_ROOT}" ls-files -- "${path}")"
   if strings::is_not_empty "${tracked}"; then
     return 0
   fi

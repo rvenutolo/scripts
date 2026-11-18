@@ -1,5 +1,23 @@
 #!/usr/bin/env bash
 
+# @description Predicate: does stdin contain a line matching the given grep options and pattern? Reads all of stdin.
+# The stdin-mode helpers use this rather than `grep --quiet`, which stops reading at its first match: that kills a
+# producer still writing past the pipe buffer with SIGPIPE, and under pipefail the caller's pipeline then fails although
+# the input matched. `--count` has to read to the end.
+# @arg $@ grep options and pattern
+# @exitcode 0 if a line matches
+# @exitcode 1 if no line matches
+# @exitcode 2 or above: grep's status on an error (e.g. an invalid pattern)
+function grep::_stdin_matches() { # pass-through: forwards grep options and pattern
+  local count
+  local status=0
+  count="$(grep --count "$@")" || status=$?
+  if ((status > 1)); then
+    return "${status}"
+  fi
+  ((count > 0))
+}
+
 # @description Return true if input contains the exact fixed string.
 # With 1 arg (stdin): $1 = string to search for.
 # With 2 args (file): $1 = file path, $2 = string to search for.
@@ -19,7 +37,7 @@ function grep::contains_exactly() {
   else
     args::check_exactly_1_arg "$@"
     args::check_for_stdin
-    grep --quiet --fixed-strings -- "$1"
+    grep::_stdin_matches --fixed-strings -- "$1"
   fi
 }
 
@@ -40,7 +58,7 @@ function grep::contains_exactly_ignore_case() {
   else
     args::check_exactly_1_arg "$@"
     args::check_for_stdin
-    grep --quiet --fixed-strings --ignore-case -- "$1"
+    grep::_stdin_matches --fixed-strings --ignore-case -- "$1"
   fi
 }
 
@@ -61,7 +79,7 @@ function grep::contains_regex() {
   else
     args::check_exactly_1_arg "$@"
     args::check_for_stdin
-    grep --quiet -- "$1"
+    grep::_stdin_matches -- "$1"
   fi
 }
 
@@ -82,7 +100,7 @@ function grep::contains_regex_ignore_case() {
   else
     args::check_exactly_1_arg "$@"
     args::check_for_stdin
-    grep --quiet --ignore-case -- "$1"
+    grep::_stdin_matches --ignore-case -- "$1"
   fi
 }
 
@@ -103,7 +121,7 @@ function grep::contains_perl_regex() {
   else
     args::check_exactly_1_arg "$@"
     args::check_for_stdin
-    grep --quiet --perl-regexp -- "$1"
+    grep::_stdin_matches --perl-regexp -- "$1"
   fi
 }
 
@@ -124,7 +142,7 @@ function grep::contains_perl_regex_ignore_case() {
   else
     args::check_exactly_1_arg "$@"
     args::check_for_stdin
-    grep --quiet --ignore-case --perl-regexp -- "$1"
+    grep::_stdin_matches --ignore-case --perl-regexp -- "$1"
   fi
 }
 
@@ -145,7 +163,7 @@ function grep::contains_word() {
   else
     args::check_exactly_1_arg "$@"
     args::check_for_stdin
-    grep --quiet --fixed-strings --word-regexp -- "$1"
+    grep::_stdin_matches --fixed-strings --word-regexp -- "$1"
   fi
 }
 
@@ -166,7 +184,7 @@ function grep::contains_word_ignore_case() {
   else
     args::check_exactly_1_arg "$@"
     args::check_for_stdin
-    grep --quiet --fixed-strings --ignore-case --word-regexp -- "$1"
+    grep::_stdin_matches --fixed-strings --ignore-case --word-regexp -- "$1"
   fi
 }
 
@@ -187,7 +205,7 @@ function grep::contains_word_regex() {
   else
     args::check_exactly_1_arg "$@"
     args::check_for_stdin
-    grep --quiet --word-regexp -- "$1"
+    grep::_stdin_matches --word-regexp -- "$1"
   fi
 }
 
@@ -208,6 +226,6 @@ function grep::contains_word_regex_ignore_case() {
   else
     args::check_exactly_1_arg "$@"
     args::check_for_stdin
-    grep --quiet --ignore-case --word-regexp -- "$1"
+    grep::_stdin_matches --ignore-case --word-regexp -- "$1"
   fi
 }

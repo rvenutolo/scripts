@@ -31,8 +31,12 @@ function shdoc::file_has_description() {
   local -r file="$1"
   local end_line
   end_line="$(shdoc::_header_end_line "${file}")"
-  head --lines="${end_line}" -- "${file}" \
-    | grep --quiet --extended-regexp '^# @description( |$)'
+  # The header is captured and matched in the shell, not piped to `grep --quiet`: that grep stops reading at its first
+  # match, which kills `head` with SIGPIPE when the header is larger than one write, and pipefail then reports the
+  # description as missing.
+  local header
+  header="$(head --lines="${end_line}" -- "${file}")"
+  [[ "${header}" =~ (^|$'\n')'# @description'( |$'\n'|$) ]]
 }
 
 # @description Scan a script file for top-level helper function definitions of

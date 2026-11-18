@@ -25,6 +25,22 @@ EOF
   assert_success
 }
 
+@test "shdoc::file_has_description true when the header is larger than a pipe buffer" {
+  # Production runs under pipefail; a header this size makes any early-exiting reader in a pipeline kill its producer.
+  set -o pipefail
+  local f="${BATS_TEST_TMPDIR}/big-header"
+  {
+    printf '#!/usr/bin/env bash\n\n# @description Does a thing.\n'
+    local i
+    for ((i = 1; i <= 2000; i++)); do
+      printf '#              padding line %05d keeps the header past the 64 KiB pipe buffer\n' "${i}"
+    done
+    printf '# @noargs\n\nset -Eeuo pipefail\n'
+  } > "${f}"
+  run shdoc::file_has_description "${f}"
+  assert_success
+}
+
 @test "shdoc::file_has_description false when no @description anywhere" {
   local f="${BATS_TEST_TMPDIR}/s2"
   cat > "${f}" << 'EOF'
