@@ -27,6 +27,17 @@ function sdkman_jdks::_vendor_suffix() {
   printf 'amzn'
 }
 
+# @description Print the lowest Java major version these helpers manage. Catalog rows and
+#   candidate dirs for older majors are ignored, so no caller lists, installs, prunes or
+#   defaults to them.
+# Output: stdout — major version number
+# shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
+# @noargs
+function sdkman_jdks::_min_major_version() {
+  args::check_no_args "$@"
+  printf '17'
+}
+
 ### BASIC OPERATIONS
 
 # @description Install a specific JDK artifact via SDKMAN.
@@ -69,6 +80,7 @@ function sdkman_jdks::set_default_jdk_by_id() {
 #   `+` among the Use column's `> * +` glyphs in the 4-column layout and the literal text
 #   `local only` in the 6-column layout's Status column. No other cell can collide — a Version
 #   always carries digits, an Identifier ends in the vendor suffix, and a Vendor is alphabetic.
+#   Rows for majors below sdkman_jdks::_min_major_version are dropped.
 # Output: stdout — lines with fields: major;version;artifact-id
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
@@ -77,8 +89,12 @@ function sdkman_jdks::fetch_jdk_catalog() {
   local vendor_suffix
   vendor_suffix="$(sdkman_jdks::_vendor_suffix)"
   readonly vendor_suffix
+  local min_major_version
+  min_major_version="$(sdkman_jdks::_min_major_version)"
+  readonly min_major_version
   sdk list java \
     | awk --field-separator '|' --assign "vendor_suffix=${vendor_suffix}" \
+      --assign "min_major_version=${min_major_version}" \
       'NF >= 4 && $NF ~ ("-" vendor_suffix "[[:space:]]*$") {
       for (i = 1; i <= NF; i++) {
         marker = $i
@@ -89,7 +105,9 @@ function sdkman_jdks::fetch_jdk_catalog() {
       gsub(/^[ \t]+|[ \t]+$/, "", $NF)
       match($3, /^[0-9]+/)
       if (RSTART == 0) next
-      print substr($3, RSTART, RLENGTH) ";" $3 ";" $NF
+      major = substr($3, RSTART, RLENGTH)
+      if (major + 0 < min_major_version + 0) next
+      print major ";" $3 ";" $NF
     }'
 }
 
@@ -290,6 +308,7 @@ function sdkman_jdks::check_available_jdk_major_version() {
 #   Reads the SDKMAN candidates directory rather than `sdk list java`, so it performs no network I/O
 #   — `sdk list java` issues an uncached HTTPS request to the SDKMAN API on every invocation, which
 #   dominated the runtime of every caller that looped over installed JDKs.
+#   Candidate dirs for majors below sdkman_jdks::_min_major_version are skipped.
 # Output: stdout — lines with fields: major;version;artifact-id;installed('y')
 # shellcheck disable=SC2120 # called with no args by callers, shellcheck can't see all call sites
 # @noargs
@@ -299,6 +318,9 @@ function sdkman_jdks::get_formatted_installed_jdks() {
   local vendor_suffix
   vendor_suffix="$(sdkman_jdks::_vendor_suffix)"
   readonly vendor_suffix
+  local min_major_version
+  min_major_version="$(sdkman_jdks::_min_major_version)"
+  readonly min_major_version
   local candidate_dir artifact_id version major_version
   # An unmatched glob stays literal, so the dir check doubles as the missing/empty-dir guard.
   # The `current` symlink is excluded by the vendor-suffix pattern, not by the dir check.
@@ -307,6 +329,10 @@ function sdkman_jdks::get_formatted_installed_jdks() {
     artifact_id="${candidate_dir##*/}"
     version="${artifact_id%-"${vendor_suffix}"}"
     major_version="$(sdkman_jdks::get_jdk_major_version "${version}")"
+    # 10# forces decimal so a leading zero is not read as octal.
+    if ((10#${major_version} < min_major_version)); then
+      continue
+    fi
     printf '%s;%s;%s;y\n' "${major_version}" "${version}" "${artifact_id}"
   done \
     | sort --version-sort --reverse
@@ -494,10 +520,11 @@ function sdkman_jdks::get_current_default_jdk_major_version() {
 
 # @description Return true if the given Java major version is an LTS release.
 #   Computed from the release cadence rather than looked up: the SDKMAN catalog does not mark LTS
-#   rows. 8 and 11 are LTS, and from 17 on every fourth feature release (one every two years) is.
+#   rows. From 17 on, every fourth feature release (one every two years) is LTS. Majors below
+#   sdkman_jdks::_min_major_version are out of scope and never count as LTS.
 # @arg $1 major java version (e.g. "21")
 # @exitcode 0 if the major version is an LTS release
-# @exitcode 1 if it is not, or if it is not a non-negative integer
+# @exitcode 1 if it is not, or if it is below the minimum major version
 function sdkman_jdks::is_lts_major_version() {
   args::check_exactly_1_arg "$@"
   local -r major_version="$1"
@@ -506,7 +533,10 @@ function sdkman_jdks::is_lts_major_version() {
   fi
   # 10# forces decimal so a leading zero is not read as octal.
   local -r major=$((10#${major_version}))
-  ((major == 8 || major == 11 || (major >= 17 && (major - 17) % 4 == 0)))
+  local min_major_version
+  min_major_version="$(sdkman_jdks::_min_major_version)"
+  readonly min_major_version
+  ((major >= min_major_version && (major - 17) % 4 == 0))
 }
 
 # @description Print the highest installed Corretto JDK major version that is an LTS release.

@@ -270,8 +270,7 @@ EOF
 readonly CANNED_JDKS='21;21.0.5;21.0.5-amzn;y
 21;21.0.3;21.0.3-amzn;y
 17;17.0.10;17.0.10-amzn;y
-17;17.0.8;17.0.8-amzn;n
-11;11.0.22;11.0.22-amzn;n'
+17;17.0.8;17.0.8-amzn;n'
 
 # Create candidate dirs for the given artifact ids. The installed-* helpers read the SDKMAN
 # candidates dir rather than `sdk list java`, so installed state must exist on disk.
@@ -417,7 +416,7 @@ EOF
 --------------------------------------------------------------------------------
  Corretto       | > * | 21.0.5             | 21.0.5-amzn
                 |   * | 17.0.10            | 17.0.10-amzn
-                |     | 11.0.22            | 11.0.22-amzn
+                |     | 17.0.8             | 17.0.8-amzn
 EOF
   }
   export -f sdk
@@ -425,7 +424,24 @@ EOF
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-amzn'
   assert_line --index 1 '17;17.0.10;17.0.10-amzn'
-  assert_line --index 2 '11;11.0.22;11.0.22-amzn'
+  assert_line --index 2 '17;17.0.8;17.0.8-amzn'
+}
+
+@test "fetch_jdk_catalog: drops majors below 17" {
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() {
+    cat << 'EOF'
+ Vendor         | Use | Version            | Identifier
+--------------------------------------------------------------------------------
+ Corretto       |     | 17.0.13.11.1       | 17.0.13.11.1-amzn
+                |     | 11.0.25.9.1        | 11.0.25.9.1-amzn
+                |     | 8.0.432            | 8.0.432-amzn
+EOF
+  }
+  export -f sdk
+  run sdkman_jdks::fetch_jdk_catalog
+  assert_success
+  assert_output '17;17.0.13.11.1;17.0.13.11.1-amzn'
 }
 
 @test "fetch_jdk_catalog: keeps legacy in-use and installed rows" {
@@ -688,7 +704,7 @@ EOF
   assert_success
   assert_line --index 0 '21;21.0.5;21.0.5-amzn;y'
   assert_line --index 1 '17;17.0.10;17.0.10-amzn;y'
-  assert_line --index 2 '11;11.0.22;11.0.22-amzn;n'
+  assert_equal "${#lines[@]}" 2
 }
 
 @test "get_formatted_latest_available_jdk_major_versions: dies with args" {
@@ -723,9 +739,7 @@ EOF
   stub_jdks_and_sdk
   run sdkman_jdks::get_available_jdk_major_versions
   assert_success
-  assert_line --index 0 '11'
-  assert_line --index 1 '17'
-  assert_line --index 2 '21'
+  assert_output $'17\n21'
 }
 
 @test "get_available_jdk_major_versions: dies with args" {
@@ -769,15 +783,21 @@ EOF
 # ---------- get_formatted_installed_jdks (candidates-dir source) ----------
 
 @test "get_formatted_installed_jdks: formats every candidate dir, newest first" {
-  fixture_installed_jdks '8.0.492-amzn' '11.0.32-amzn' '21.0.9-amzn' '21.0.12-amzn'
+  fixture_installed_jdks '17.0.9-amzn' '25.0.1-amzn' '21.0.9-amzn' '21.0.12-amzn'
   run sdkman_jdks::get_formatted_installed_jdks
   assert_success
-  # Ordering must be version-aware, not lexicographic: 21 before 11 before 8 across majors,
-  # and 21.0.12 before 21.0.9 within a major.
-  assert_line --index 0 '21;21.0.12;21.0.12-amzn;y'
-  assert_line --index 1 '21;21.0.9;21.0.9-amzn;y'
-  assert_line --index 2 '11;11.0.32;11.0.32-amzn;y'
-  assert_line --index 3 '8;8.0.492;8.0.492-amzn;y'
+  # Ordering must be version-aware, not lexicographic: 21.0.12 before 21.0.9 within a major.
+  assert_line --index 0 '25;25.0.1;25.0.1-amzn;y'
+  assert_line --index 1 '21;21.0.12;21.0.12-amzn;y'
+  assert_line --index 2 '21;21.0.9;21.0.9-amzn;y'
+  assert_line --index 3 '17;17.0.9;17.0.9-amzn;y'
+}
+
+@test "get_formatted_installed_jdks: ignores majors below 17" {
+  fixture_installed_jdks '8.0.432-amzn' '11.0.25.9.1-amzn' '17.0.13.11.1-amzn'
+  run sdkman_jdks::get_formatted_installed_jdks
+  assert_success
+  assert_output '17;17.0.13.11.1;17.0.13.11.1-amzn;y'
 }
 
 @test "get_formatted_installed_jdks: single installed jdk" {
@@ -867,7 +887,7 @@ EOF
   assert_line --index 0 '21;21.0.5;21.0.5-amzn;y'
   assert_line --index 1 '21;21.0.3;21.0.3-amzn;y'
   assert_line --index 2 '17;17.0.10;17.0.10-amzn;y'
-  refute_output --partial '11.0.22'
+  refute_output --partial '17.0.8'
 }
 
 @test "get_formatted_installed_jdks_for_major_version: filters installed by major" {
@@ -1033,9 +1053,44 @@ EOF
   run sdkman_jdks::install_latest_jdks
   assert_success
   run cat "${BATS_TEST_TMPDIR}/sdk.calls"
-  assert_line --index 0 'install java 11.0.22-amzn'
-  assert_line --index 1 'install java 17.0.10-amzn'
-  assert_line --index 2 'install java 21.0.5-amzn'
+  assert_output $'install java 17.0.10-amzn\ninstall java 21.0.5-amzn'
+}
+
+@test "install_latest_jdks: never installs a major below 17" {
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() {
+    printf '%s\n' "$*" >> "${BATS_TEST_TMPDIR}/sdk.calls"
+    if [[ "$1" == 'list' ]]; then
+      cat << 'EOF'
+ Vendor         | Use | Version            | Identifier
+--------------------------------------------------------------------------------
+ Corretto       |     | 17.0.13.11.1       | 17.0.13.11.1-amzn
+                |     | 11.0.25.9.1        | 11.0.25.9.1-amzn
+EOF
+    fi
+  }
+  export -f sdk
+  run sdkman_jdks::install_latest_jdks
+  assert_success
+  run cat "${BATS_TEST_TMPDIR}/sdk.calls"
+  assert_line 'install java 17.0.13.11.1-amzn'
+  refute_output --partial 'install java 11'
+}
+
+@test "check_available_jdk_major_version: dies for a major below 17 present in the catalog" {
+  # shellcheck disable=SC2329 # invoked indirectly via export -f by sdkman functions under test
+  function sdk() {
+    cat << 'EOF'
+ Vendor         | Use | Version            | Identifier
+--------------------------------------------------------------------------------
+ Corretto       |     | 17.0.13.11.1       | 17.0.13.11.1-amzn
+                |     | 11.0.25.9.1        | 11.0.25.9.1-amzn
+EOF
+  }
+  export -f sdk
+  run sdkman_jdks::check_available_jdk_major_version 11
+  assert_failure
+  assert_output --partial 'Java version 11 is not available'
 }
 
 @test "install_latest_jdks: dies with args" {
@@ -1133,7 +1188,7 @@ EOF
 
 @test "is_lts_major_version: true for every LTS major" {
   local major_version
-  for major_version in 8 11 17 21 25 29 33; do
+  for major_version in 17 21 25 29 33; do
     run sdkman_jdks::is_lts_major_version "${major_version}"
     assert_success
   done
@@ -1141,14 +1196,14 @@ EOF
 
 @test "is_lts_major_version: false for non-LTS majors" {
   local major_version
-  for major_version in 7 9 10 12 16 18 22 24 26 27 28 30; do
+  for major_version in 7 8 9 10 11 12 13 16 18 22 24 26 27 28 30; do
     run sdkman_jdks::is_lts_major_version "${major_version}"
     assert_failure 1
   done
 }
 
 @test "is_lts_major_version: leading zero is read as decimal, not octal" {
-  run sdkman_jdks::is_lts_major_version '08'
+  run sdkman_jdks::is_lts_major_version '021'
   assert_success
 }
 
@@ -1185,11 +1240,11 @@ EOF
   assert_output '25'
 }
 
-@test "get_latest_installed_jdk_lts_major_version: compares majors numerically" {
+@test "get_latest_installed_jdk_lts_major_version: ignores LTS majors below 17" {
   fixture_installed_jdks '8.0.512-amzn' '11.0.33-amzn'
   run sdkman_jdks::get_latest_installed_jdk_lts_major_version
-  assert_success
-  assert_output '11'
+  assert_failure
+  assert_output --partial 'No LTS Corretto JDK is installed'
 }
 
 @test "get_latest_installed_jdk_lts_major_version: single LTS major installed" {
