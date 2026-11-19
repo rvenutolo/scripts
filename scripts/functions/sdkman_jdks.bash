@@ -146,8 +146,8 @@ function sdkman_jdks::get_jdk_catalog() {
     # never cached for the rest of the process. The check must be explicit rather than left to
     # errexit: callers reach this from `if`/`||` contexts (e.g.
     # sdkman_jdks::check_available_jdk_major_version), and errexit is disabled inside a
-    # function invoked that way. Partial output is still emitted, matching what the bare
-    # `sdk list java | awk` pipeline did before the memo existed.
+    # function invoked that way. Whatever rows the failed fetch produced are still emitted, so a
+    # caller sees the same partial catalog an unmemoized `sdk list java | awk` would give it.
     if ! sdkman_jdks::fetch_jdk_catalog > "${catalog_tmp}"; then
       cat "${catalog_tmp}"
       return 1
@@ -405,7 +405,8 @@ function sdkman_jdks::check_installed_jdk_major_version() {
 # @description Return true if a Corretto JDK with the given artifact ID is currently installed.
 #   A direct candidate-dir test rather than a scan of the formatted installed list: this is called
 #   once per catalog line while annotating sdkman_jdks::get_formatted_all_jdks, where the
-#   pipeline form would fork several processes per line.
+#   pipeline form would fork several processes per line. Agrees with the installed scan: an
+#   artifact of another vendor or below sdkman_jdks::_min_major_version is never installed.
 # @arg $1 artifact ID (e.g. "21.0.3.9.1-amzn")
 # @exitcode 0 if true
 # @exitcode 1 if false
@@ -415,7 +416,14 @@ function sdkman_jdks::is_jdk_artifact_installed() {
   local vendor_suffix
   vendor_suffix="$(sdkman_jdks::_vendor_suffix)"
   readonly vendor_suffix
-  [[ "${artifact_id}" == *-"${vendor_suffix}" ]] && dirs::exists "${SDKMAN_CANDIDATES_DIR}/java/${artifact_id}"
+  local min_major_version
+  min_major_version="$(sdkman_jdks::_min_major_version)"
+  readonly min_major_version
+  # Inline major parse: get_jdk_major_version dies on a non-numeric ID, and a predicate must not.
+  # 10# forces decimal so a leading zero is not read as octal.
+  [[ "${artifact_id}" == *-"${vendor_suffix}" && "${artifact_id}" =~ ^([0-9]+) ]] \
+    && ((10#${BASH_REMATCH[1]} >= min_major_version)) \
+    && dirs::exists "${SDKMAN_CANDIDATES_DIR}/java/${artifact_id}"
 }
 
 # @description Print the artifact ID of the latest installed Corretto JDK for the given major version.
@@ -589,7 +597,7 @@ function sdkman_jdks::set_default_jdk_to_latest_lts() {
 #   gone. Install the keeper first (sdkman-update does), then prune on the next run.
 #   Repoints the java/current symlink at the keeper first when the default is one of the artifacts
 #   about to go: `sdk uninstall` refuses to remove the artifact `current` points at and exits 1,
-#   which killed the whole prune sweep under errexit.
+#   which would abort the whole prune sweep under errexit.
 # @arg $1 major java version
 # @stderr A warning naming the major version when pruning is declined for the reason above.
 function sdkman_jdks::prune_jdks_for_major_version() {
