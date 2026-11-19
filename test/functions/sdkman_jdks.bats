@@ -1002,6 +1002,18 @@ EOF
   assert_failure 1
 }
 
+@test "is_jdk_artifact_installed: false for an installed Corretto JDK below 17" {
+  fixture_installed_jdks '11.0.25.9.1-amzn'
+  run sdkman_jdks::is_jdk_artifact_installed '11.0.25.9.1-amzn'
+  assert_failure 1
+}
+
+@test "is_jdk_artifact_installed: false for an artifact ID without a leading major" {
+  fixture_installed_jdks 'latest-amzn'
+  run sdkman_jdks::is_jdk_artifact_installed 'latest-amzn'
+  assert_failure 1
+}
+
 @test "is_jdk_artifact_installed: dies with 0 args" {
   run sdkman_jdks::is_jdk_artifact_installed < /dev/null
   assert_failure
