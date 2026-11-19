@@ -405,7 +405,8 @@ function sdkman_jdks::check_installed_jdk_major_version() {
 # @description Return true if a Corretto JDK with the given artifact ID is currently installed.
 #   A direct candidate-dir test rather than a scan of the formatted installed list: this is called
 #   once per catalog line while annotating sdkman_jdks::get_formatted_all_jdks, where the
-#   pipeline form would fork several processes per line.
+#   pipeline form would fork several processes per line. Agrees with the installed scan: an
+#   artifact of another vendor or below sdkman_jdks::_min_major_version is never installed.
 # @arg $1 artifact ID (e.g. "21.0.3.9.1-amzn")
 # @exitcode 0 if true
 # @exitcode 1 if false
@@ -415,7 +416,14 @@ function sdkman_jdks::is_jdk_artifact_installed() {
   local vendor_suffix
   vendor_suffix="$(sdkman_jdks::_vendor_suffix)"
   readonly vendor_suffix
-  [[ "${artifact_id}" == *-"${vendor_suffix}" ]] && dirs::exists "${SDKMAN_CANDIDATES_DIR}/java/${artifact_id}"
+  local min_major_version
+  min_major_version="$(sdkman_jdks::_min_major_version)"
+  readonly min_major_version
+  # Inline major parse: get_jdk_major_version dies on a non-numeric ID, and a predicate must not.
+  # 10# forces decimal so a leading zero is not read as octal.
+  [[ "${artifact_id}" == *-"${vendor_suffix}" && "${artifact_id}" =~ ^([0-9]+) ]] \
+    && ((10#${BASH_REMATCH[1]} >= min_major_version)) \
+    && dirs::exists "${SDKMAN_CANDIDATES_DIR}/java/${artifact_id}"
 }
 
 # @description Print the artifact ID of the latest installed Corretto JDK for the given major version.
