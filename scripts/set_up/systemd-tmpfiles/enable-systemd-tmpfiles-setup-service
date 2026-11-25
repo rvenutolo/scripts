@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# @description Enable the stock systemd-tmpfiles-setup.service user unit so user tmpfiles.d `D` rules empty their directories when the user manager starts.
+# @noargs
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+args::handle_help_flag "$@"
+args::check_no_args "$@"
+
+readonly UNIT='systemd-tmpfiles-setup.service'
+
+# Enabled without --now: starting it runs `--remove`, which would empty TMPDIR
+# under every running session. It only belongs at user-manager start.
+if ! systemctl::user_service_unit_file_exists "${UNIT}"; then
+  log::log "User service unit file does not exist: ${UNIT}"
+elif ! systemctl::is_user_unit_enabled "${UNIT}" && prompt::yn "Enable ${UNIT} user service (takes effect next boot)?"; then
+  log::log "Enabling ${UNIT} user service"
+  systemctl enable --user --quiet "${UNIT}"
+  log::log "Enabled ${UNIT} user service"
+fi
