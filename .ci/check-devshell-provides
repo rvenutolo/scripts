@@ -101,6 +101,9 @@ readonly EXCLUDED_PACKAGES=(
   zizmor
   lychee
   kcov
+  # scripts/functions/claude.bash (payload, not repo tooling) calls envsubst;
+  # the devShell carries gettext only so the BATS suite can exercise that helper.
+  gettext
   # nix is genuinely provided by the devShell and IS declared in
   # .ci/required-tools — the forward arm proves that, and it is the guarantee
   # that matters. The reverse arm cannot see it: it derives a package's bin
