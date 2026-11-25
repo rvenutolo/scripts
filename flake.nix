@@ -103,6 +103,8 @@
               lychee
               # tests / runtime
               commitlint
+              # envsubst, used by claude::wrapper_args
+              gettext
               # withLibraries, not bare bats: the wrapper this produces exports
               # BATS_LIB_PATH at its own share/bats, so test_helper/common.bash loads
               # bats-support and bats-assert with `bats_load_library`, and a bats that
