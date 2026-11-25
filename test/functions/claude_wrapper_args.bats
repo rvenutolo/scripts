@@ -14,6 +14,12 @@ setup() {
   # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/files.bash"
   # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/commands.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/git.bash"
+  # shellcheck disable=SC1091
+  source "${SCRIPTS_DIR}/functions/path.bash"
+  # shellcheck disable=SC1091
   source "${SCRIPTS_DIR}/functions/claude.bash"
   load '../test_helper/git_fixture'
   load '../test_helper/path_shim'
@@ -164,6 +170,73 @@ track_root_file() {
   assert_success
   assert_stderr --partial "${REPO}/.claude/wrapper-args"
   assert_stderr --partial 'could not verify'
+}
+
+@test "wrapper_args: a symlinked start dir still finds the committed file tracked" {
+  make_repo
+  mkdir --parents -- "${REPO}/sub"
+  write_args_file "${REPO}/sub" '--model sonnet'
+  git_fixture::run "${REPO}" add --force -- sub/.claude/wrapper-args
+  git_fixture::run "${REPO}" -c user.name=t -c user.email=t@example.invalid commit --quiet --message=x
+  ln --symbolic -- "${REPO}/sub" "${BATS_TEST_TMPDIR}/link"
+  local -a got=()
+  claude::wrapper_args got "${BATS_TEST_TMPDIR}/link" 2> '/dev/null'
+  assert_equal "${#got[@]}" 0
+  run --separate-stderr claude::wrapper_args got "${BATS_TEST_TMPDIR}/link"
+  assert_stderr --partial 'tracked'
+}
+
+@test "wrapper_args: ignores a file reached through a committed .claude symlink" {
+  make_repo
+  mkdir --parents -- "${REPO}/vendor/x"
+  printf '%s' '--model sonnet' > "${REPO}/vendor/x/wrapper-args"
+  ln --symbolic -- 'vendor/x' "${REPO}/.claude"
+  git_fixture::run "${REPO}" add --force -- .claude
+  git_fixture::run "${REPO}" -c user.name=t -c user.email=t@example.invalid commit --quiet --message=x
+  local -a got=()
+  claude::wrapper_args got "${REPO}" 2> '/dev/null'
+  assert_equal "${#got[@]}" 0
+  run --separate-stderr claude::wrapper_args got "${REPO}"
+  assert_success
+  assert_stderr --partial "${REPO}/.claude/wrapper-args"
+}
+
+@test "wrapper_args: an exported GIT_DIR for another repo does not hide a tracked file" {
+  make_repo
+  write_args_file "${REPO}" '--model sonnet'
+  track_root_file commit
+  git_fixture::init "${BATS_TEST_TMPDIR}/other"
+  export GIT_DIR="${BATS_TEST_TMPDIR}/other/.git"
+  local -a got=()
+  claude::wrapper_args got "${REPO}" 2> '/dev/null'
+  assert_equal "${#got[@]}" 0
+}
+
+@test "wrapper_args: ignores an unreadable file with a warning" {
+  mkdir --parents -- "${PLAIN}"
+  write_args_file "${PLAIN}" '--model sonnet'
+  chmod 000 -- "${PLAIN}/.claude/wrapper-args"
+  local -a got=()
+  claude::wrapper_args got "${PLAIN}" 2> '/dev/null'
+  assert_equal "${#got[@]}" 0
+  run --separate-stderr claude::wrapper_args got "${PLAIN}"
+  assert_success
+  assert_stderr --partial "${PLAIN}/.claude/wrapper-args"
+  assert_stderr --partial 'not readable'
+}
+
+@test "wrapper_args: ignores the file with a warning when envsubst is missing" {
+  mkdir --parents -- "${PLAIN}"
+  write_args_file "${PLAIN}" '--model sonnet'
+  local envsubst_dir
+  envsubst_dir="$(dirname -- "$(command -v envsubst)")"
+  path::remove "${envsubst_dir}"
+  local -a got=()
+  claude::wrapper_args got "${PLAIN}" 2> '/dev/null'
+  assert_equal "${#got[@]}" 0
+  run --separate-stderr claude::wrapper_args got "${PLAIN}"
+  assert_success
+  assert_stderr --partial 'envsubst'
 }
 
 # ---------- parsing ----------

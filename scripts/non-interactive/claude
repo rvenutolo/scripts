@@ -14,6 +14,8 @@
 #              Arguments from an untracked .claude/wrapper-args (the nearest
 #              one from PWD up to the repo root) go between those defaults and
 #              the caller's arguments; see claude::wrapper_args for the rules.
+#              Write list-taking flags there as --flag=value (e.g.
+#              --add-dir=/some/dir), or they swallow the caller's prompt.
 #              Prepends scripts/shims/claude/ to PATH so the Claude process tree
 #              — and nothing else — resolves pkill/killall to the guarding shims.
 # @arg $@ args Optional arguments forwarded verbatim to claude.

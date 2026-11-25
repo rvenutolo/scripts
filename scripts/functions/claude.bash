@@ -230,12 +230,21 @@ function claude::_wrapper_args_find() {
 #   expands inside single quotes. The result is split by xargs, honoring single quotes,
 #   double quotes and backslash escapes. An argument that is exactly `~` or starts with
 #   `~/` gets `${HOME}` in place of the `~`; a `~` anywhere else stays literal.
+#   Expanded values are re-parsed by xargs, so a quote or backslash inside a
+#   variable's value is read as syntax.
+#
+#   Write list-taking claude flags (`--add-dir`, `--allowedTools`, `--mcp-config`,
+#   ...) as `--flag=value`. The wrapper places these arguments right before the
+#   caller's, and the space-separated form keeps consuming words, so it would
+#   swallow the caller's prompt or subcommand.
 #
 #   Every rejection warns on stderr, naming the file and the reason, and yields no
 #   arguments at all, never a partial set: the file is tracked, git cannot answer, a
 #   referenced variable is not exported (an unexported shell variable counts as
-#   unset, since envsubst sees only the environment), or the line does not parse
-#   (e.g. an unclosed quote). A bad file never makes this helper fail.
+#   unset, since envsubst sees only the environment), the line does not parse
+#   (e.g. an unclosed quote), the file is unreadable, or envsubst is not installed.
+#   A bad file never makes this helper fail. The lookup uses the physical path of
+#   start_dir, so a symlinked directory resolves to its real repo.
 # @arg $1 out_name name of the caller's indexed array to fill (emptied first)
 # @arg $2 start_dir absolute directory the lookup starts from, normally ${PWD}
 # @stderr a warning for every ignored file
@@ -243,10 +252,13 @@ function claude::_wrapper_args_find() {
 function claude::wrapper_args() {
   args::check_exactly_2_args "$@"
   local -r out_name="$1"
-  local -r start_dir="$2"
   namerefs::assert_available "${out_name}" '__claude_wrapper_args_ref'
   local -n __claude_wrapper_args_ref="${out_name}"
   __claude_wrapper_args_ref=()
+  # The physical path, so a symlinked PWD cannot hide the repo root and skip the
+  # tracked check; it also makes a relative start_dir absolute.
+  local start_dir
+  start_dir="$(cd -P -- "$2" && pwd -P)" # -P: no long-form equivalent
 
   local root file
   root="$(claude::_wrapper_args_repo_root "${start_dir}")"
@@ -256,23 +268,46 @@ function claude::wrapper_args() {
   fi
 
   if strings::is_not_empty "${root}"; then
-    local git_status=0
-    # -C: no long-form equivalent
-    git -C "$(dirname -- "${file}")" ls-files --error-unmatch -- 'wrapper-args' > '/dev/null' 2>&1 \
-      || git_status=$?
-    case "${git_status}" in
-      0)
-        log::warn "ignoring ${file}: it is tracked by git; wrapper args must stay local-only"
-        return
-        ;;
-      1) ;;
-      *)
-        log::warn "ignoring ${file}: could not verify it is untracked (git exit ${git_status})"
-        return
-        ;;
-    esac
+    # The file, plus the .claude entry when it is a symlink: git reports a path
+    # through a symlink as untracked, so a committed .claude symlink into an
+    # untracked directory would otherwise pass.
+    local -a check_paths=("${file#"${root}/"}")
+    local claude_dir
+    claude_dir="$(dirname -- "${file}")"
+    if [[ -L "${claude_dir}" ]]; then
+      check_paths+=("${claude_dir#"${root}/"}")
+    fi
+    local check_path git_status
+    for check_path in "${check_paths[@]}"; do
+      git_status=0
+      # The subshell drops inherited GIT_DIR and friends, which would otherwise
+      # consult another repo's index.
+      (
+        git::clear_local_env
+        git -C "${root}" ls-files --error-unmatch -- "${check_path}" > '/dev/null' 2>&1 # -C: no long-form equivalent
+      ) || git_status=$?
+      case "${git_status}" in
+        0)
+          log::warn "ignoring ${file}: ${check_path} is tracked by git; wrapper args must stay local-only"
+          return
+          ;;
+        1) ;;
+        *)
+          log::warn "ignoring ${file}: could not verify it is untracked (git exit ${git_status})"
+          return
+          ;;
+      esac
+    done
   fi
 
+  if [[ ! -r "${file}" ]]; then
+    log::warn "ignoring ${file}: it is not readable"
+    return
+  fi
+  if ! commands::executable_exists envsubst; then
+    log::warn "ignoring ${file}: envsubst (gettext) is not installed"
+    return
+  fi
   local content
   content="$(< "${file}")"
   local names_file
