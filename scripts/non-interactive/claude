@@ -11,6 +11,9 @@
 #              ahead of the caller's arguments, so a /model or /effort choice
 #              another session persisted into settings.json never leaks into a
 #              new one; a caller's own --model / --effort still wins, being last.
+#              Arguments from an untracked .claude/wrapper-args (the nearest
+#              one from PWD up to the repo root) go between those defaults and
+#              the caller's arguments; see claude::wrapper_args for the rules.
 #              Prepends scripts/shims/claude/ to PATH so the Claude process tree
 #              — and nothing else — resolves pkill/killall to the guarding shims.
 # @arg $@ args Optional arguments forwarded verbatim to claude.
@@ -52,6 +55,11 @@ else
   log::warn "claude shims dir missing: ${claude_shims} (pkill/killall guard inactive)"
 fi
 
+# Per-project arguments from an untracked .claude/wrapper-args; empty when there
+# is none or it is rejected (claude::wrapper_args warns and never fails).
+wrapper_args=()
+claude::wrapper_args wrapper_args "${PWD}"
+
 # Pin the default model and effort. /model and /effort persist their choice into
 # settings.json, so a one-off switch in one session silently becomes every later
 # session's default. The flags override settings.json at launch, so a session
@@ -65,7 +73,8 @@ fi
 # the flag beats it anyway, so using both would be a second way to say the same
 # thing with a different override story.
 #
-# Placed before "$@" because argument parsing is last-wins: a caller's own
-# --model / --effort overrides these. An already-set CLAUDE_CODE_EFFORT_LEVEL
-# still wins over both, being the stronger mechanism.
-exec "${claude_bin}" --model "${DEFAULT_MODEL}" --effort "${DEFAULT_EFFORT}" "$@"
+# Placed before "$@" because argument parsing is last-wins: the wrapper-args file
+# overrides these defaults, and a caller's own --model / --effort overrides both.
+# An already-set CLAUDE_CODE_EFFORT_LEVEL still wins over all of them, being the
+# stronger mechanism.
+exec "${claude_bin}" --model "${DEFAULT_MODEL}" --effort "${DEFAULT_EFFORT}" "${wrapper_args[@]}" "$@"
