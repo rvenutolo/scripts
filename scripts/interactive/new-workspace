@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# @description Create or resume a claude-workspace-kit workspace by running the engine's `new-workspace` command via
+#   `nix run`. All behavior and flags belong to the engine; see the "Create a workspace" section of its README.
+# @arg $@ args Arguments forwarded unchanged to the engine's `new-workspace` command.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# shellcheck disable=SC1091 # .functions.bash is sourced from SCRIPTS_DIR at runtime
+source "${SCRIPTS_DIR}/.functions.bash"
+log::enable_err_trap
+# pass-through: --help is forwarded so the engine prints its own usage
+# pass-through: any arg count valid (forwarded to the engine)
+
+exec nix run 'git+ssh://git@github.com/rvenutolo/claude-workspace-kit#workspace-kit' -- new-workspace "$@"
